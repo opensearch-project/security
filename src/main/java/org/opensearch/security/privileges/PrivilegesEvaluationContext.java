@@ -22,7 +22,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.common.inject.Inject;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;

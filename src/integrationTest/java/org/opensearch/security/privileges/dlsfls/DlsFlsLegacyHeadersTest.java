@@ -48,7 +48,6 @@ import org.opensearch.transport.Transport;
 
 import org.mockito.Mockito;
 
-import static org.mockito.Mockito.mock;
 import static org.opensearch.security.Song.ARTIST_STRING;
 import static org.opensearch.security.Song.ARTIST_TWINS;
 import static org.opensearch.security.Song.FIELD_ARTIST;
@@ -57,6 +56,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class DlsFlsLegacyHeadersTest {
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
@@ -348,7 +348,7 @@ public class DlsFlsLegacyHeadersTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             () -> clusterState,
-                mock(ApiTokenRepository.class)
+            mock(ApiTokenRepository.class)
         );
 
         DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
@@ -368,7 +368,7 @@ public class DlsFlsLegacyHeadersTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             () -> clusterState,
-                mock(ApiTokenRepository.class)
+            mock(ApiTokenRepository.class)
         );
     }
 

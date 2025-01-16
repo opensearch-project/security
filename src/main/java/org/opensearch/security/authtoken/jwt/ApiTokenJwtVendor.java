@@ -14,16 +14,13 @@ package org.opensearch.security.authtoken.jwt;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
-import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 
@@ -31,16 +28,11 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.KeyLengthException;
-import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 import static org.opensearch.security.authtoken.jwt.JwtVendor.createJwkFromSettings;
-import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class ApiTokenJwtVendor extends JwtVendor {
     private static final Logger logger = LogManager.getLogger(ApiTokenJwtVendor.class);
@@ -61,7 +53,7 @@ public class ApiTokenJwtVendor extends JwtVendor {
     @Override
     @SuppressWarnings("removal")
     public ExpiringBearerAuthToken createJwt(final String issuer, final String subject, final String audience, final long expiration)
-            throws JOSEException, ParseException {
+        throws JOSEException, ParseException {
         final long currentTimeMs = timeProvider.getAsLong();
         final Date now = new Date(currentTimeMs);
 
@@ -77,13 +69,13 @@ public class ApiTokenJwtVendor extends JwtVendor {
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
 
         final SignedJWT signedJwt = AccessController.doPrivileged(
-                (PrivilegedAction<SignedJWT>) () -> new SignedJWT(header, claimsBuilder.build())
+            (PrivilegedAction<SignedJWT>) () -> new SignedJWT(header, claimsBuilder.build())
         );
         // Sign the JWT so it can be serialized
         signedJwt.sign(signer);
         if (logger.isDebugEnabled()) {
             logger.debug(
-                    "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
+                "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
             );
         }
         return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime);

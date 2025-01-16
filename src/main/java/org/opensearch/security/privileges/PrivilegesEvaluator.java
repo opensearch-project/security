@@ -79,7 +79,6 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -304,7 +303,17 @@ public class PrivilegesEvaluator {
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier, apiTokenRepository);
+        return new PrivilegesEvaluationContext(
+            user,
+            mappedRoles,
+            action0,
+            request,
+            task,
+            irr,
+            resolver,
+            clusterStateSupplier,
+            apiTokenRepository
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {

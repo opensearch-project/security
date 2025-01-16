@@ -30,9 +30,6 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.support.ConfigConstants;
 
 import com.nimbusds.jose.JWSSigner;
@@ -54,7 +51,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class OBOJwtVendorTest {
+public class JwtVendorTest {
     private Appender mockAppender;
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
@@ -104,7 +101,15 @@ public class OBOJwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
         OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            issuer,
+            subject,
+            audience,
+            expirySeconds,
+            roles,
+            backendRoles,
+            false
+        );
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -141,7 +146,15 @@ public class OBOJwtVendorTest {
             // CS-ENFORCE-SINGLE
             .build();
         final OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            issuer,
+            subject,
+            audience,
+            expirySeconds,
+            roles,
+            backendRoles,
+            true
+        );
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -191,7 +204,15 @@ public class OBOJwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
 
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            issuer,
+            subject,
+            audience,
+            expirySeconds,
+            roles,
+            backendRoles,
+            true
+        );
         // Expiry is a hint, the max value is controlled by the JwtVendor and reduced as is seen fit.
         assertThat(authToken.getExpiresInSeconds(), not(equalTo(expirySeconds)));
         assertThat(authToken.getExpiresInSeconds(), equalTo(600L));
@@ -279,19 +300,12 @@ public class OBOJwtVendorTest {
         final String issuer = "cluster_0";
         final String subject = "test-token";
         final String audience = "test-token";
-        final List<String> clusterPermissions = List.of("cluster:admin/*");
-        ApiToken.IndexPermission indexPermission = new ApiToken.IndexPermission(List.of("*"), List.of("read"));
-        final List<ApiToken.IndexPermission> indexPermissions = List.of(indexPermission);
-        final String expectedClusterPermissions = "cluster:admin/*";
-        final String expectedIndexPermissions = "["
-            + indexPermission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString()
-            + "]";
 
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        final OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(issuer, subject, audience, Long.MAX_VALUE);
+        final ApiTokenJwtVendor apiTokenJwtVendor = new ApiTokenJwtVendor(settings, Optional.of(currentTime));
+        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(issuer, subject, audience, Long.MAX_VALUE);
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -301,19 +315,6 @@ public class OBOJwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
         // Allow for millisecond to second conversion flexibility
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime() / 1000, equalTo(Long.MAX_VALUE / 1000));
-    }
-
-    @Test
-    public void testEncryptJwtCorrectly() {
-        String claimsEncryptionKey = BaseEncoding.base64().encode("1234567890123456".getBytes(StandardCharsets.UTF_8));
-        String token =
-            "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJkZXJlayI6ImlzIGF3ZXNvbWUifQ.aPp9mSaBRBUzMJ8V_MYWUs8UoGYnJDNVriu3B9MRJpPNZtOhnIfATE0Ghmms2bGRNw9rmyRn1VIDQRmxSOTu3w";
-        String expectedEncryptedToken =
-            "k3JQNRXR57Y4V4W1LNkpEP7FTJZos7fySJDJDGuBQXe7pi9aiEIGJ7JqjezssGRZ1AZGD/QTPQ0jjaV+rEICxBO9oyfTYWIoDdnAg5LijqPAzaULp48hi+/dqXXAAhi1zIlCSjqTDoZMTyjFxq4aRlPLjjQFuVxR3gIDMNnAUnvmFu5xh5AiVeKa1dwGy5X34Ou2i9pnQzmEDJDnf6mh7w2ODkDThJGh8JUlsUlfZEq6NwVN1XNyOr2IhPd3IZYUMgN3vWHyfjs6uwQNyHKHHcxIj4P8bJXLIGxJy3+LV5Y=";
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        LongSupplier currentTime = () -> (long) 100;
-        OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        assertThat(OBOJwtVendor.encryptString(token), equalTo(expectedEncryptedToken));
     }
 
     @Test

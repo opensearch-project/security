@@ -30,11 +30,11 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
-import static org.mockito.Mockito.mock;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests on the FieldMasking class - top-level functionality is tested in FieldMaskingTest.Basic. The inner classes FieldMasking.Field
@@ -161,7 +161,7 @@ public class FieldPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                    mock(ApiTokenRepository.class)
+                mock(ApiTokenRepository.class)
             );
         }
     }

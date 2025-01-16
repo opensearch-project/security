@@ -28,6 +28,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
+import org.opensearch.security.authtoken.jwt.ApiTokenJwtVendor;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.OBOJwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -61,7 +62,9 @@ public class SecurityTokenManagerTest {
     private SecurityTokenManager tokenManager;
 
     @Mock
-    private OBOJwtVendor OBOJwtVendor;
+    private OBOJwtVendor oboJwtVendor;
+    @Mock
+    private ApiTokenJwtVendor apiTokenJwtVendor;
     @Mock
     private ClusterService cs;
     @Mock
@@ -113,7 +116,7 @@ public class SecurityTokenManagerTest {
 
         assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
         verify(dcm).getDynamicOnBehalfOfSettings();
-        verify(tokenManager, never()).createJwtVendor(any());
+        verify(tokenManager, never()).createOboJwtVendor(any());
     }
 
     /** Creates the jwt vendor and returns a mock for validation if needed */
@@ -122,7 +125,7 @@ public class SecurityTokenManagerTest {
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
-        doAnswer((invocation) -> OBOJwtVendor).when(tokenManager).createJwtVendor(settings);
+        doAnswer((invocation) -> oboJwtVendor).when(tokenManager).createOboJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
     }
@@ -213,7 +216,7 @@ public class SecurityTokenManagerTest {
 
         createMockJwtVendorInTokenManager();
 
-        when(OBOJwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenThrow(
+        when(oboJwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenThrow(
             new RuntimeException("foobar")
         );
         final OpenSearchSecurityException exception = assertThrows(
@@ -240,7 +243,7 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(OBOJwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenReturn(authToken);
+        when(oboJwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L));
 
         assertThat(returnedToken, equalTo(authToken));
@@ -261,7 +264,7 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(OBOJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
+        when(apiTokenJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));
@@ -282,7 +285,7 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(OBOJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
+        when(oboJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));

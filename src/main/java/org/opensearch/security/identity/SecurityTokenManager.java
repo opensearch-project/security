@@ -100,7 +100,6 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-
     public boolean issueOnBehalfOfTokenAllowed() {
         return oboJwtVendor != null && configModel != null;
     }

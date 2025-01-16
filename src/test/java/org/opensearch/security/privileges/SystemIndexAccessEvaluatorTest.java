@@ -165,7 +165,7 @@ public class SystemIndexAccessEvaluatorTest {
             null,
             indexNameExpressionResolver,
             null,
-                mock(ApiTokenRepository.class)
+            mock(ApiTokenRepository.class)
         );
     }
 

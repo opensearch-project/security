@@ -23,9 +23,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -35,7 +33,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -55,8 +52,6 @@ public class ApiTokenAction extends BaseRestHandler {
     private ApiTokenRepository apiTokenRepository;
     public Logger log = LogManager.getLogger(this.getClass());
 
-
-
     private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
             new RestHandler.Route(POST, "/apitokens"),
@@ -68,7 +63,7 @@ public class ApiTokenAction extends BaseRestHandler {
     @Inject
     public ApiTokenAction(ApiTokenRepository apiTokenRepository) {
         this.apiTokenRepository = apiTokenRepository;
-//        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
+        // this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
     }
 
     @Override

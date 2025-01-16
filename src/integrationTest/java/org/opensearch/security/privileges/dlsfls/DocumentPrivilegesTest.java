@@ -62,7 +62,6 @@ import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -70,6 +69,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for the DocumentPrivileges class and the underlying AbstractRuleBasedPrivileges class. As these classes
@@ -529,7 +529,7 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                    mock(ApiTokenRepository.class)
+                mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -845,7 +845,7 @@ public class DocumentPrivilegesTest {
                 RESOLVER_REPLACER,
                 INDEX_NAME_EXPRESSION_RESOLVER,
                 () -> CLUSTER_STATE,
-                    mock(ApiTokenRepository.class)
+                mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1131,7 +1131,7 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                    mock(ApiTokenRepository.class)
+                mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1151,7 +1151,19 @@ public class DocumentPrivilegesTest {
         @Test(expected = PrivilegesEvaluationException.class)
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
-                .evaluate(new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null, mock(ApiTokenRepository.class)));
+                .evaluate(
+                    new PrivilegesEvaluationContext(
+                        new User("test_user"),
+                        ImmutableSet.of(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        mock(ApiTokenRepository.class)
+                    )
+                );
         }
 
         @Test

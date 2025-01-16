@@ -53,11 +53,11 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 
-import static org.mockito.Mockito.mock;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.mockito.Mockito.mock;
 
 /**
  * Moved from https://github.com/opensearch-project/security/blob/54361468f5c4b3a57f3ecffaf1bbe8dccee562be/src/test/java/org/opensearch/security/securityconf/SecurityRolesPermissionsTest.java
@@ -253,7 +253,17 @@ public class RestEndpointPermissionTests {
     }
 
     static PrivilegesEvaluationContext ctx(String... roles) {
-        return new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.copyOf(roles), null, null, null, null, null, null, mock(ApiTokenRepository.class));
+        return new PrivilegesEvaluationContext(
+            new User("test_user"),
+            ImmutableSet.copyOf(roles),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            mock(ApiTokenRepository.class)
+        );
     }
 
 }

@@ -53,7 +53,6 @@ import org.opensearch.security.util.MockIndexMetadataBuilder;
 import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isPartiallyOk;
@@ -64,6 +63,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for ActionPrivileges. As the ActionPrivileges provides quite a few different code paths for checking
@@ -1134,7 +1134,7 @@ public class ActionPrivilegesTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             null,
-                mock(ApiTokenRepository.class)
+            mock(ApiTokenRepository.class)
         );
     }
 

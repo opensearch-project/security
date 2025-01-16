@@ -19,8 +19,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.opensearch.cluster.service.ClusterService;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
