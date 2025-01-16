@@ -10,13 +10,16 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 import org.opensearch.action.ActionType;
+import org.opensearch.action.support.master.AcknowledgedResponse;
+// CS-ENFORCE-SINGLE
 
-public class IndexDocumentIntoSystemIndexAction extends ActionType<IndexDocumentIntoSystemIndexResponse> {
+public class IndexDocumentIntoSystemIndexAction extends ActionType<AcknowledgedResponse> {
     public static final IndexDocumentIntoSystemIndexAction INSTANCE = new IndexDocumentIntoSystemIndexAction();
     public static final String NAME = "cluster:mock/systemindex/index";
 
     private IndexDocumentIntoSystemIndexAction() {
-        super(NAME, IndexDocumentIntoSystemIndexResponse::new);
+        super(NAME, AcknowledgedResponse::new);
     }
 }

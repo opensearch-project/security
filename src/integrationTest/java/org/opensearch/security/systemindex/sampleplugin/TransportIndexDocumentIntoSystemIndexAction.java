@@ -10,85 +10,64 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.identity.IdentityService;
-import org.opensearch.identity.Subject;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
-import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
+// CS-ENFORCE-SINGLE
 
 public class TransportIndexDocumentIntoSystemIndexAction extends HandledTransportAction<
     IndexDocumentIntoSystemIndexRequest,
-    IndexDocumentIntoSystemIndexResponse> {
+    AcknowledgedResponse> {
 
     private final Client client;
-    private final ThreadPool threadPool;
-    private final PluginContextSwitcher contextSwitcher;
-    private final IdentityService identityService;
+    private final RunAsSubjectClient pluginClient;
 
     @Inject
     public TransportIndexDocumentIntoSystemIndexAction(
         final TransportService transportService,
         final ActionFilters actionFilters,
         final Client client,
-        final ThreadPool threadPool,
-        final PluginContextSwitcher contextSwitcher,
-        final IdentityService identityService
+        final RunAsSubjectClient pluginClient
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;
-        this.threadPool = threadPool;
-        this.contextSwitcher = contextSwitcher;
-        this.identityService = identityService;
+        this.pluginClient = pluginClient;
     }
 
     @Override
-    protected void doExecute(
-        Task task,
-        IndexDocumentIntoSystemIndexRequest request,
-        ActionListener<IndexDocumentIntoSystemIndexResponse> actionListener
-    ) {
+    protected void doExecute(Task task, IndexDocumentIntoSystemIndexRequest request, ActionListener<AcknowledgedResponse> actionListener) {
         String indexName = request.getIndexName();
         String runAs = request.getRunAs();
-        Subject userSubject = identityService.getCurrentSubject();
         try {
-            contextSwitcher.runAs(() -> {
-                client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
-                    if ("user".equalsIgnoreCase(runAs)) {
-                        userSubject.runAs(() -> {
-                            client.index(
-                                new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                                    .source("{\"content\":1}", XContentType.JSON),
-                                ActionListener.wrap(r2 -> {
-                                    User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                                    actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
-                                }, actionListener::onFailure)
-                            );
-                            return null;
-                        });
-                    } else {
-                        client.index(
-                            new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                                .source("{\"content\":1}", XContentType.JSON),
-                            ActionListener.wrap(r2 -> {
-                                User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                                actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
-                            }, actionListener::onFailure)
-                        );
-                    }
-                }, actionListener::onFailure));
-                return null;
-            });
+            pluginClient.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
+                if ("user".equalsIgnoreCase(runAs)) {
+                    client.index(
+                        new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                            .source("{\"content\":1}", XContentType.JSON),
+                        ActionListener.wrap(r2 -> {
+                            actionListener.onResponse(new AcknowledgedResponse(true));
+                        }, actionListener::onFailure)
+                    );
+                } else {
+                    pluginClient.index(
+                        new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                            .source("{\"content\":1}", XContentType.JSON),
+                        ActionListener.wrap(r2 -> {
+                            actionListener.onResponse(new AcknowledgedResponse(true));
+                        }, actionListener::onFailure)
+                    );
+                }
+            }, actionListener::onFailure));
         } catch (Exception ex) {
             throw new RuntimeException("Unexpected error: " + ex.getMessage());
         }
