@@ -178,10 +178,7 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
-import org.opensearch.security.resources.ResourceSharingIndexListener;
-import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
+import org.opensearch.security.resources.*;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -1273,7 +1270,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             e.subscribeForChanges(dcf);
         }
 
-        final var resourceSharingIndex = ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+        final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(
             resourceSharingIndex,
             localClient,
@@ -2243,7 +2240,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
         final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+            ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
             "Resource Sharing index"
         );
         return List.of(securityIndexDescriptor, resourceSharingIndexDescriptor);

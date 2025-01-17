@@ -60,7 +60,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         initialized = true;
         this.threadPool = threadPool;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+            ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
             client,
             threadPool,
             auditLog

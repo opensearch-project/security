@@ -381,8 +381,7 @@ public class ConfigConstants {
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
-    // Resource sharing index
-    public static final String OPENSEARCH_RESOURCE_SHARING_INDEX = ".opensearch_resource_sharing";
+    // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = SECURITY_SETTINGS_PREFIX + "resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = true;
 
