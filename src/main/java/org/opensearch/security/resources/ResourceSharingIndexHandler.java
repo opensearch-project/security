@@ -176,12 +176,13 @@ public class ResourceSharingIndexHandler {
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .request();
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                LOGGER.info("Successfully created {} entry.", resourceSharingIndex);
-            }, (failResponse) -> {
-                LOGGER.error(failResponse.getMessage());
-                LOGGER.info("Failed to create {} entry.", resourceSharingIndex);
-            });
+            ActionListener<IndexResponse> irListener = ActionListener.wrap(
+                idxResponse -> LOGGER.info("Successfully created {} entry.", resourceSharingIndex),
+                (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    LOGGER.info("Failed to create {} entry.", resourceSharingIndex);
+                }
+            );
             client.index(ir, irListener);
             return entry;
         } catch (Exception e) {
@@ -228,7 +229,7 @@ public class ResourceSharingIndexHandler {
     public void fetchAllDocuments(String pluginIndex, ActionListener<Set<String>> listener) {
         LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
-        try (final ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext();) {
+        try (final ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(
                 QueryBuilders.termQuery("source_idx.keyword", pluginIndex)
@@ -434,7 +435,7 @@ public class ResourceSharingIndexHandler {
         final Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
-        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
@@ -458,28 +459,20 @@ public class ResourceSharingIndexHandler {
             boolQuery.must(QueryBuilders.existsQuery("share_with")).must(shouldQuery);
 
             executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
-                try {
-                    // If 'success' indicates the search completed, log and return the results
-                    LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
-                    listener.onResponse(resourceIds);
-                } finally {
-                    // Always close the stashed context
-                    storedContext.close();
-                }
+                LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
+                listener.onResponse(resourceIds);
+
             }, exception -> {
-                try {
-                    LOGGER.error(
-                        "Search failed for pluginIndex={}, scope={}, recipientType={}, entities={}",
-                        pluginIndex,
-                        scope,
-                        recipientType,
-                        entities,
-                        exception
-                    );
-                    listener.onFailure(exception);
-                } finally {
-                    storedContext.close();
-                }
+                LOGGER.error(
+                    "Search failed for pluginIndex={}, scope={}, recipientType={}, entities={}",
+                    pluginIndex,
+                    scope,
+                    recipientType,
+                    entities,
+                    exception
+                );
+                listener.onFailure(exception);
+
             }));
         } catch (Exception e) {
             LOGGER.error(
@@ -643,7 +636,7 @@ public class ResourceSharingIndexHandler {
         }
         LOGGER.debug("Fetching document from index: {}, resourceId: {}", pluginIndex, resourceId);
 
-        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
                 .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
@@ -1082,7 +1075,7 @@ public class ResourceSharingIndexHandler {
             return;
         }
 
-        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             LOGGER.debug(
                 "Revoking access for resource {} in {} for entities: {} and scopes: {}",
@@ -1114,7 +1107,6 @@ public class ResourceSharingIndexHandler {
                 }
                 List<String> scopesToUse = (scopes != null) ? new ArrayList<>(scopes) : new ArrayList<>();
 
-                // Build the revoke script
                 Script revokeScript = new Script(ScriptType.INLINE, "painless", """
                     if (ctx._source.share_with != null) {
                         Set scopesToProcess = new HashSet(params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
@@ -1192,7 +1184,9 @@ public class ResourceSharingIndexHandler {
      *
      * @param sourceIdx The source index to match in the query (exact match)
      * @param resourceId The resource ID to match in the query (exact match)
-     * @return boolean true if at least one document was deleted, false if no documents were found or deletion failed
+     * @param listener The listener to be notified when the operation completes
+     * @throws IllegalArgumentException if sourceIdx or resourceId is null/empty
+     * @throws RuntimeException if the delete operation fails or encounters an error
      *
      * @implNote The delete operation uses a bool query with two must clauses to ensure exact matching:
      * <pre>
@@ -1208,10 +1202,14 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    public boolean deleteResourceSharingRecord(String resourceId, String sourceIdx) {
-        LOGGER.debug("Deleting documents from {} where source_idx = {} and resource_id = {}", resourceSharingIndex, sourceIdx, resourceId);
+    public void deleteResourceSharingRecord(String resourceId, String sourceIdx, ActionListener<Boolean> listener) {
+        LOGGER.debug(
+            "Deleting documents asynchronously from {} where source_idx = {} and resource_id = {}",
+            resourceSharingIndex,
+            sourceIdx,
+            resourceId
+        );
 
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.boolQuery()
@@ -1219,24 +1217,36 @@ public class ResourceSharingIndexHandler {
                     .must(QueryBuilders.termQuery("resource_id.keyword", resourceId))
             ).setRefresh(true);
 
-            BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, dbq).actionGet();
+            client.execute(DeleteByQueryAction.INSTANCE, dbq, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkByScrollResponse response) {
 
-            if (response.getDeleted() > 0) {
-                LOGGER.info("Successfully deleted {} documents from {}", response.getDeleted(), resourceSharingIndex);
-                return true;
-            } else {
-                LOGGER.info(
-                    "No documents found to delete in {} for source_idx: {} and resource_id: {}",
-                    resourceSharingIndex,
-                    sourceIdx,
-                    resourceId
-                );
-                return false;
-            }
+                    long deleted = response.getDeleted();
+                    if (deleted > 0) {
+                        LOGGER.info("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
+                        listener.onResponse(true);
+                    } else {
+                        LOGGER.info(
+                            "No documents found to delete in {} for source_idx: {} and resource_id: {}",
+                            resourceSharingIndex,
+                            sourceIdx,
+                            resourceId
+                        );
+                        // No documents were deleted
+                        listener.onResponse(false);
+                    }
+                }
 
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, e);
+                    listener.onFailure(e);
+
+                }
+            });
         } catch (Exception e) {
-            LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, e);
-            return false;
+            LOGGER.error("Failed to delete documents from {} before request submission", resourceSharingIndex, e);
+            listener.onFailure(e);
         }
     }
 
@@ -1265,13 +1275,7 @@ public class ResourceSharingIndexHandler {
     * </pre>
     *
     * @param name The username to match against the created_by.user field
-    * @return boolean indicating whether the deletion was successful:
-    *         <ul>
-    *           <li>true - if one or more documents were deleted</li>
-    *           <li>false - if no documents were found</li>
-    *           <li>false - if the operation failed due to an error</li>
-    *         </ul>
-    *
+    * @param listener The listener to be notified when the operation completes
     * @throws IllegalArgumentException if name is null or empty
     *
     *
@@ -1293,34 +1297,42 @@ public class ResourceSharingIndexHandler {
     * }
     * </pre>
     */
-    public boolean deleteAllRecordsForUser(String name) {
+    public void deleteAllRecordsForUser(String name, ActionListener<Boolean> listener) {
         if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("Username must not be null or empty");
+            listener.onFailure(new IllegalArgumentException("Username must not be null or empty"));
+            return;
         }
 
-        LOGGER.debug("Deleting all records for user {}", name);
+        LOGGER.debug("Deleting all records for user {} asynchronously", name);
 
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteByQueryRequest deleteRequest = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.termQuery("created_by.user", name)
             ).setRefresh(true);
 
-            BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, deleteRequest).actionGet();
+            client.execute(DeleteByQueryAction.INSTANCE, deleteRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkByScrollResponse response) {
+                    long deletedDocs = response.getDeleted();
+                    if (deletedDocs > 0) {
+                        LOGGER.info("Successfully deleted {} documents created by user {}", deletedDocs, name);
+                        listener.onResponse(true);
+                    } else {
+                        LOGGER.info("No documents found for user {}", name);
+                        // No documents matched => success = false
+                        listener.onResponse(false);
+                    }
+                }
 
-            long deletedDocs = response.getDeleted();
-
-            if (deletedDocs > 0) {
-                LOGGER.info("Successfully deleted {} documents created by user {}", deletedDocs, name);
-                return true;
-            } else {
-                LOGGER.info("No documents found for user {}", name);
-                return false;
-            }
-
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Failed to delete documents for user {}", name, e);
+                    listener.onFailure(e);
+                }
+            });
         } catch (Exception e) {
-            LOGGER.error("Failed to delete documents for user {}", name, e);
-            return false;
+            LOGGER.error("Failed to delete documents for user {} before request submission", name, e);
+            listener.onFailure(e);
         }
     }
 
@@ -1329,7 +1341,8 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceIndex The resource index to fetch documents from.
      * @param parser The class to deserialize the documents into a specified type defined by the parser.
-     * @return A set of deserialized documents.
+     * @param listener The listener to be notified with the set of deserialized documents.
+     * @param <T> The type of the deserialized documents.
      */
     public <T extends Resource> void getResourceDocumentsFromIds(
         Set<String> resourceIds,

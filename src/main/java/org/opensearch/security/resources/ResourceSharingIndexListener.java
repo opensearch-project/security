@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.Client;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
@@ -116,11 +117,12 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
         String resourceId = delete.id();
 
-        boolean success = this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex);
-        if (success) {
-            log.info("Successfully deleted resource sharing entry for resource {}", resourceId);
-        } else {
-            log.info("Failed to delete resource sharing entry for resource {}", resourceId);
-        }
+        this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex, ActionListener.wrap(deleted -> {
+            if (deleted) {
+                log.info("Successfully deleted resource sharing entry for resource {}", resourceId);
+            } else {
+                log.info("No resource sharing entry found for resource {}", resourceId);
+            }
+        }, exception -> log.error("Failed to delete resource sharing entry for resource {}", resourceId, exception)));
     }
 }
