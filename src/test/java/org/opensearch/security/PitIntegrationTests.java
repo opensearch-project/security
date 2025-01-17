@@ -11,8 +11,12 @@
 package org.opensearch.security;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
@@ -21,7 +25,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
@@ -32,10 +38,24 @@ import static org.hamcrest.Matchers.is;
  * Integration tests to test point in time APIs permission model
  */
 public class PitIntegrationTests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public PitIntegrationTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     @Test
     public void testPitExplicitAPIAccess() throws Exception {
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         try (Client tc = getClient()) {
             // create alias
@@ -116,7 +136,11 @@ public class PitIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testPitAllAPIAccess() throws Exception {
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
 
         // Create two indices
@@ -187,7 +211,11 @@ public class PitIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDataStreamWithPits() throws Exception {
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         String indexTemplate = "{\"index_patterns\": [ \"my-data-stream*\" ], \"data_stream\": { }, \"priority\": 200, "
             + "\"template\": {\"settings\": { } } }";

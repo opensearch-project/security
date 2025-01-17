@@ -18,7 +18,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;

@@ -11,10 +11,17 @@
 
 package org.opensearch.security;
 
+import java.util.Arrays;
+import java.util.Collection;
+
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -23,6 +30,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class DataStreamIntegrationTests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public DataStreamIntegrationTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     final String bulkDocsBody = "{ \"create\" : {} }"
         + System.lineSeparator()
@@ -58,7 +75,12 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testCreateDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
+
         RestHelper rh = nonSslRestHelper();
         HttpResponse response;
 
@@ -95,7 +117,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testGetDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -140,7 +166,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testDeleteDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -188,7 +218,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testDataStreamStats() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -236,7 +270,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testGetIndexOnBackingIndicesOfDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -281,7 +319,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testDocumentLevelSecurityOnDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -350,7 +392,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testFLSOnBackingIndicesOfDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
@@ -428,7 +474,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
     @Test
     public void testFieldMaskingOnDataStream() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         createSampleDataStreams(rh);
         HttpResponse response;
