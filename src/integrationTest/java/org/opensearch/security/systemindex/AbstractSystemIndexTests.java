@@ -29,7 +29,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class AbstractSystemIndexTests {
+public abstract class AbstractSystemIndexTests {
 
     private final LocalCluster cluster;
 

@@ -17,7 +17,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class AbstractSystemIndexDisabledTests {
+public abstract class AbstractSystemIndexDisabledTests {
 
     private final LocalCluster cluster;
 
