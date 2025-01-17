@@ -45,7 +45,7 @@ public class SystemIndexTests {
     public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
@@ -61,10 +61,9 @@ public class SystemIndexTests {
         .build();
 
     @Before
-    public void wipeAllIndices() {
+    public void setup() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(".system-index1");
-            client.delete(".system-index2");
         }
     }
 
@@ -83,7 +82,7 @@ public class SystemIndexTests {
 
             assertThat(response2.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
 
-            // regular user can create system index
+            // regular use can create system index
             HttpResponse response3 = client.put(".system-index1");
 
             assertThat(response3.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
