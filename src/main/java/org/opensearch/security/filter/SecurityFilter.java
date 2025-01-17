@@ -522,6 +522,15 @@ public class SecurityFilter implements ActionFilter {
         return false;
     }
 
+    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
+        if (evalp instanceof org.opensearch.security.privileges.PrivilegesEvaluatorImpl) {
+            ((org.opensearch.security.privileges.PrivilegesEvaluatorImpl) evalp).updatePluginToClusterActions(
+                pluginIdentifier,
+                clusterActions
+            );
+        }
+    }
+
     private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         if (resolved.isLocalAll()) {

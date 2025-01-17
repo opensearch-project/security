@@ -17,7 +17,7 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 
 public class IndexDocumentIntoSystemIndexAction extends ActionType<AcknowledgedResponse> {
     public static final IndexDocumentIntoSystemIndexAction INSTANCE = new IndexDocumentIntoSystemIndexAction();
-    public static final String NAME = "mock:systemindex/index";
+    public static final String NAME = "cluster:mock/systemindex/index";
 
     private IndexDocumentIntoSystemIndexAction() {
         super(NAME, AcknowledgedResponse::new);

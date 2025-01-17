@@ -37,11 +37,13 @@ public class ContextProvidingPluginSubjectTests {
 
         final Plugin testPlugin = new TestIdentityAwarePlugin();
 
-        final User pluginUser = new User("plugin:" + testPlugin.getClass().getCanonicalName());
+        final String pluginPrincipal = "plugin:" + testPlugin.getClass().getCanonicalName();
+
+        final User pluginUser = new User(pluginPrincipal);
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
-        assertThat(subject.getPrincipal().getName(), equalTo(testPlugin.getClass().getCanonicalName()));
+        assertThat(subject.getPrincipal().getName(), equalTo(pluginPrincipal));
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
