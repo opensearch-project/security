@@ -62,24 +62,27 @@ class MockIpdServer implements Closeable {
         this.ssl = ssl;
         this.jwks = jwks;
 
-        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
-            .setListenerPort(port)
-            .register(CTX_DISCOVER, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleDiscoverRequest(request, response, context);
-                }
-            })
-            .register(CTX_KEYS, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleKeysRequest(request, response, context);
-                }
-            });
+        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port).setRequestRouter((request, context) -> {
+            if (request.getRequestUri().startsWith(CTX_DISCOVER)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleDiscoverRequest(request, response, context);
+                    }
+                };
+            } else if (request.getRequestUri().startsWith(CTX_KEYS)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleKeysRequest(request, response, context);
+                    }
+                };
+            } else {
+                return null;
+            }
+        });
 
         if (ssl) {
             serverBootstrap = serverBootstrap.setSslContext(createSSLContext()).setSslSetupHandler(new Callback<SSLParameters>() {
