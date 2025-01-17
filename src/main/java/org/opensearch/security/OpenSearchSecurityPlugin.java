@@ -178,7 +178,11 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.*;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceSharingConstants;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.ResourceSharingIndexListener;
+import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -2306,7 +2310,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return ImmutableMap.copyOf(RESOURCE_PROVIDERS);
     }
 
-    // TODO following should be removed once core test framework allows loading extensions
+    // TODO following should be removed once core test framework allows loading extended classes
     @VisibleForTesting
     public static Map<String, ResourceProvider> getResourceProvidersMutable() {
         return RESOURCE_PROVIDERS;
