@@ -63,6 +63,7 @@ public class SslCertificatesLoader {
         final var settings = environment.settings();
         final var sslConfigSettings = settings.getByPrefix(fullSslConfigSuffix);
         if (settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH)) {
+            final var keyStorePassword = resolvePassword(sslConfigSuffix + KEYSTORE_PASSWORD, settings, DEFAULT_STORE_PASSWORD);
             return Tuple.tuple(
                 environment.settings().hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH)
                     ? buildJdkTrustStoreConfiguration(
@@ -74,8 +75,12 @@ public class SslCertificatesLoader {
                 buildJdkKeyStoreConfiguration(
                     sslConfigSettings,
                     environment,
-                    resolvePassword(sslConfigSuffix + KEYSTORE_PASSWORD, settings, DEFAULT_STORE_PASSWORD),
-                    resolvePassword(fullSslConfigSuffix + KEYSTORE_KEY_PASSWORD, settings, DEFAULT_STORE_PASSWORD)
+                    keyStorePassword,
+                    resolvePassword(
+                        fullSslConfigSuffix + KEYSTORE_KEY_PASSWORD,
+                        settings,
+                        keyStorePassword != null ? String.valueOf(keyStorePassword) : null
+                    )
                 )
             );
         } else {
