@@ -50,7 +50,7 @@ runs:
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
 
-    - uses: alehechka/upload-tartifact@v2
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ inputs.report-artifact-name }}

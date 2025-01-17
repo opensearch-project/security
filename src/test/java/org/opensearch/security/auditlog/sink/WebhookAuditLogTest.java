@@ -240,7 +240,7 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .register("*", handler)
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -355,7 +355,7 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .register("*", handler)
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -393,8 +393,8 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setServerSocketFactory(createSSLContext().getServerSocketFactory())
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -481,8 +481,8 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setServerSocketFactory(createSSLContext().getServerSocketFactory())
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -610,8 +610,8 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setServerSocketFactory(createSSLContext().getServerSocketFactory())
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -717,8 +717,8 @@ public class WebhookAuditLogTest {
         server = ServerBootstrap.bootstrap()
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
-            .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setServerSocketFactory(createSSLContext().getServerSocketFactory())
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
