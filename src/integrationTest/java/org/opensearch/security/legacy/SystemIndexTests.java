@@ -16,6 +16,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.systemindex.AbstractSystemIndexTests;
 import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1;
 import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin2;
@@ -45,7 +46,7 @@ public class SystemIndexTests extends AbstractSystemIndexTests {
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
                 SECURITY_SYSTEM_INDICES_ENABLED_KEY,
                 true,
-                "plugins.security.privileges_evaluation.use_legacy_impl",
+                PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(),
                 true
             )
         )
