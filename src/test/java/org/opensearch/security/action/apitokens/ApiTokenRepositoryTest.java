@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.user.User;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -63,6 +64,29 @@ public class ApiTokenRepositoryTest {
         repository.deleteApiToken(tokenName);
 
         verify(apiTokenIndexHandler).deleteToken(tokenName);
+    }
+
+    @Test
+    public void testGetApiTokenPermissionsForUser() throws ApiTokenException {
+        User derek = new User("derek");
+        User apiTokenNotExists = new User("apitoken:notexists");
+        User apiTokenExists = new User("apitoken:exists");
+        repository.getJtis()
+            .put("exists", new Permissions(List.of("cluster_all"), List.of(new ApiToken.IndexPermission(List.of("*"), List.of("*")))));
+
+        Permissions permissionsForDerek = repository.getApiTokenPermissionsForUser(derek);
+        assertEquals(List.of(), permissionsForDerek.getClusterPerm());
+        assertEquals(List.of(), permissionsForDerek.getIndexPermission());
+
+        Permissions permissionsForApiTokenNotExists = repository.getApiTokenPermissionsForUser(apiTokenNotExists);
+        assertEquals(List.of(), permissionsForApiTokenNotExists.getClusterPerm());
+        assertEquals(List.of(), permissionsForApiTokenNotExists.getIndexPermission());
+
+        Permissions permissionsForApiTokenExists = repository.getApiTokenPermissionsForUser(apiTokenExists);
+        assertEquals(List.of("cluster_all"), permissionsForApiTokenExists.getClusterPerm());
+        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getAllowedActions());
+        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getIndexPatterns());
+
     }
 
     @Test

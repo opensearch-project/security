@@ -25,6 +25,9 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.user.User;
+
+import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
 public class ApiTokenRepository {
     private final ApiTokenIndexHandler apiTokenIndexHandler;
@@ -39,6 +42,17 @@ public class ApiTokenRepository {
         tokensFromIndex.forEach(
             (key, apiToken) -> jtis.put(key, new Permissions(apiToken.getClusterPermissions(), apiToken.getIndexPermissions()))
         );
+    }
+
+    public Permissions getApiTokenPermissionsForUser(User user) {
+        String name = user.getName();
+        if (name.startsWith(API_TOKEN_USER_PREFIX)) {
+            String jti = user.getName().split(API_TOKEN_USER_PREFIX)[1];
+            if (isValidToken(jti)) {
+                return getPermissionsForJti(jti);
+            }
+        }
+        return new Permissions(List.of(), List.of());
     }
 
     public Permissions getPermissionsForJti(String jti) {

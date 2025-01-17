@@ -1189,7 +1189,8 @@ public class ActionPrivilegesTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
+            null,
+            mock(ApiTokenRepository.class)
         );
     }
 }
