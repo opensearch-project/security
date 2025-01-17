@@ -24,7 +24,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -70,6 +69,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ResourceSharingException;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -187,7 +187,7 @@ public class ResourceSharingIndexHandler {
             return entry;
         } catch (Exception e) {
             LOGGER.info("Failed to create {} entry.", resourceSharingIndex, e);
-            throw new OpenSearchException("Failed to create " + resourceSharingIndex + " entry.", e);
+            throw new ResourceSharingException("Failed to create " + resourceSharingIndex + " entry.", e);
         }
     }
 
@@ -672,7 +672,7 @@ public class ResourceSharingIndexHandler {
                     } catch (Exception e) {
                         LOGGER.error("Failed to parse document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
                         listener.onFailure(
-                            new OpenSearchException(
+                            new ResourceSharingException(
                                 "Failed to parse document for resourceId: " + resourceId + " from index: " + pluginIndex,
                                 e
                             )
@@ -685,7 +685,10 @@ public class ResourceSharingIndexHandler {
 
                     LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
                     listener.onFailure(
-                        new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
+                        new ResourceSharingException(
+                            "Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                            e
+                        )
                     );
 
                 }
@@ -693,7 +696,7 @@ public class ResourceSharingIndexHandler {
         } catch (Exception e) {
             LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
             listener.onFailure(
-                new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
+                new ResourceSharingException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
             );
         }
     }
@@ -835,7 +838,7 @@ public class ResourceSharingIndexHandler {
             });
         } catch (IOException e) {
             LOGGER.error("Failed to build json content", e);
-            listener.onFailure(new OpenSearchException("Failed to build json content", e));
+            listener.onFailure(new ResourceSharingException("Failed to build json content", e));
             return;
         }
 
@@ -852,7 +855,7 @@ public class ResourceSharingIndexHandler {
             if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-                throw new OpenSearchException("User " + requestUserName + " is not authorized to share resource " + resourceId);
+                throw new ResourceSharingException("User " + requestUserName + " is not authorized to share resource " + resourceId);
             }
 
             Script updateScript = new Script(ScriptType.INLINE, "painless", """
@@ -1096,7 +1099,7 @@ public class ResourceSharingIndexHandler {
             currentSharingListener.whenComplete(currentSharingInfo -> {
                 // Only admin or the creator of the resource is currently allowed to revoke access
                 if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
-                    throw new OpenSearchException(
+                    throw new ResourceSharingException(
                         "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
                     );
                 }
@@ -1380,7 +1383,7 @@ public class ResourceSharingIndexHandler {
                     }
                     listener.onResponse(result);
                 } catch (Exception e) {
-                    listener.onFailure(new OpenSearchException("Failed to parse resources: " + e.getMessage(), e));
+                    listener.onFailure(new ResourceSharingException("Failed to parse resources: " + e.getMessage(), e));
                 }
             }, e -> {
                 if (e instanceof IndexNotFoundException) {
@@ -1388,7 +1391,7 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(e);
                 } else {
                     LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
-                    listener.onFailure(new OpenSearchException("Failed to fetch resources: " + e.getMessage(), e));
+                    listener.onFailure(new ResourceSharingException("Failed to fetch resources: " + e.getMessage(), e));
                 }
             }));
         }

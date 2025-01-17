@@ -23,7 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.Query;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -456,7 +455,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            listener.onFailure(new OpenSearchException("No authenticated user available."));
+            listener.onFailure(new ResourceSharingException("No authenticated user available."));
             return;
         }
 
