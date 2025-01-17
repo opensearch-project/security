@@ -29,6 +29,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -143,6 +144,7 @@ public class PrivilegesEvaluator {
     private final boolean checkSnapshotRestoreWritePrivileges;
 
     private final ClusterInfoHolder clusterInfoHolder;
+    private final ConfigurationRepository configurationRepository;
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
@@ -153,6 +155,7 @@ public class PrivilegesEvaluator {
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
+    private final Map<String, Set<String>> pluginToClusterActions;
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
     private ApiTokenRepository apiTokenRepository;
 
@@ -178,6 +181,7 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
+        this.pluginToClusterActions = new HashMap<>();
         this.clusterStateSupplier = clusterStateSupplier;
         this.settings = settings;
 
@@ -194,6 +198,7 @@ public class PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
+        this.configurationRepository = configurationRepository;
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -236,7 +241,8 @@ public class PrivilegesEvaluator {
                 DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                settings
+                settings,
+                pluginToClusterActions
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -852,5 +858,9 @@ public class PrivilegesEvaluator {
         }
 
         return Collections.unmodifiableList(ret);
+    }
+
+    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
+        pluginToClusterActions.put(pluginIdentifier, clusterActions);
     }
 }

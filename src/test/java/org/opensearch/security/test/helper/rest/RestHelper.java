@@ -381,7 +381,9 @@ public class RestHelper {
             hcb.setConnectionManager(cm);
         }
 
-        final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(60));
+        final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
+            .setResponseTimeout(Timeout.ofSeconds(60))
+            .setProtocolUpgradeEnabled(false);
 
         return hcb.setDefaultRequestConfig(requestConfigBuilder.build()).disableAutomaticRetries().build();
     }
