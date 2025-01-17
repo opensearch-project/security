@@ -178,7 +178,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
             assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // The HTTP/1.1 is forced and should be used instead
-            assertThat(HttpVersion.HTTP_1_1, is(whoAmIRes.getStatusLine().getProtocolVersion()));
+            assertThat(whoAmIRes.getStatusLine().getProtocolVersion(), is(HttpVersion.HTTP_1_1));
             JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
             assertThat(whoAmIResponsePayload, whoAmIResNode.get("dn").asText(), is("CN=spock,OU=client,O=client,L=Test,C=DE"));
