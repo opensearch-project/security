@@ -39,10 +39,12 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceRestAction;
+import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -94,6 +96,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
+            new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class),
             new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
         );
     }

@@ -30,7 +30,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
             new Route(PUT, "/_plugins/sample_resource_sharing/create"),
-            new Route(POST, "/_plugins/sample_resource_sharing/update")
+            new Route(POST, "/_plugins/sample_resource_sharing/update/{resourceId}")
         );
     }
 
@@ -46,6 +46,33 @@ public class CreateResourceRestAction extends BaseRestHandler {
             source = parser.map();
         }
 
+        switch (request.method()) {
+            case PUT:
+                return createResource(source, client);
+            case POST:
+                return updateResource(source, request.param("resourceId"), client);
+            default:
+                throw new IllegalArgumentException("Illegal method: " + request.method());
+        }
+    }
+
+    private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
+        String name = (String) source.get("name");
+        String description = source.containsKey("description") ? (String) source.get("description") : null;
+        Map<String, String> attributes = source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
+        SampleResource resource = new SampleResource();
+        resource.setName(name);
+        resource.setDescription(description);
+        resource.setAttributes(attributes);
+        final UpdateResourceRequest updateResourceRequest = new UpdateResourceRequest(resourceId, resource);
+        return channel -> client.executeLocally(
+            UpdateResourceAction.INSTANCE,
+            updateResourceRequest,
+            new RestToXContentListener<>(channel)
+        );
+    }
+
+    private RestChannelConsumer createResource(Map<String, Object> source, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
         Map<String, String> attributes = source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
