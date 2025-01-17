@@ -10,12 +10,10 @@ package org.opensearch.security.rest.resources.access.list;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
@@ -30,7 +28,7 @@ public class RestListAccessibleResourcesAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return addRoutesPrefix(ImmutableList.of(new Route(GET, "/resources/list")), PLUGIN_ROUTE_PREFIX);
+        return addRoutesPrefix(ImmutableList.of(new Route(GET, "/resources/list/{resourceIndex}")), PLUGIN_ROUTE_PREFIX);
     }
 
     @Override
@@ -40,12 +38,7 @@ public class RestListAccessibleResourcesAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        Map<String, Object> source;
-        try (XContentParser parser = request.contentParser()) {
-            source = parser.map();
-        }
-
-        String resourceIndex = (String) source.get("resource_index");
+        String resourceIndex = request.param("resourceIndex", "");
         final ListAccessibleResourcesRequest listAccessibleResourcesRequest = new ListAccessibleResourcesRequest(resourceIndex);
         return channel -> client.executeLocally(
             ListAccessibleResourcesAction.INSTANCE,

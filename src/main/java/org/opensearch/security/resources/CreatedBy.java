@@ -25,16 +25,16 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
-    private final String creatorType;
+    private final Enum<Creator> creatorType;
     private final String creator;
 
-    public CreatedBy(String creatorType, String creator) {
+    public CreatedBy(Enum<Creator> creatorType, String creator) {
         this.creatorType = creatorType;
         this.creator = creator;
     }
 
     public CreatedBy(StreamInput in) throws IOException {
-        this.creatorType = in.readString();
+        this.creatorType = in.readEnum(Creator.class);
         this.creator = in.readString();
     }
 
@@ -42,7 +42,7 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
         return creator;
     }
 
-    public String getCreatorType() {
+    public Enum<Creator> getCreatorType() {
         return creatorType;
     }
 
@@ -58,23 +58,23 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(creatorType);
+        out.writeEnum(Creator.valueOf(creatorType.name()));
         out.writeString(creator);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject().field(creatorType, creator).endObject();
+        return builder.startObject().field(String.valueOf(creatorType), creator).endObject();
     }
 
     public static CreatedBy fromXContent(XContentParser parser) throws IOException {
         String creator = null;
-        String creatorType = null;
+        Enum<Creator> creatorType = null;
         XContentParser.Token token;
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
-                creatorType = parser.currentName();
+                creatorType = Creator.valueOf(parser.currentName());
             } else if (token == XContentParser.Token.VALUE_STRING) {
                 creator = parser.text();
             }

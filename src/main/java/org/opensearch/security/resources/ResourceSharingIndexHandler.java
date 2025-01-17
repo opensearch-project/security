@@ -26,23 +26,23 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
 import org.opensearch.action.get.MultiGetRequest;
-import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
@@ -216,14 +216,8 @@ public class ResourceSharingIndexHandler {
     * </pre>
     *
     * @param pluginIndex The source index to match against the source_idx field
-    * @return Set<String> containing resource IDs that belong to the specified system index.
-    *         Returns an empty list if:
-    *         <ul>
-    *           <li>No matching documents are found</li>
-    *           <li>An error occurs during the search operation</li>
-    *           <li>The system index parameter is invalid</li>
-    *         </ul>
-    *
+    * @param listener The listener to be notified when the operation completes.
+    *                 The listener receives a set of resource IDs as a result.
     * @apiNote This method:
     * <ul>
     *   <li>Uses source filtering for optimal performance</li>
@@ -231,40 +225,54 @@ public class ResourceSharingIndexHandler {
     *   <li>Returns an empty list instead of throwing exceptions</li>
     * </ul>
     */
-    public Set<String> fetchAllDocuments(String pluginIndex) {
-        LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
+    public void fetchAllDocuments(String pluginIndex, ActionListener<Set<String>> listener) {
+        LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+        try (final ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext();) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
-
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
-            searchSourceBuilder.size(10000); // TODO check what size should be set here.
-
-            searchSourceBuilder.fetchSource(new String[] { "resource_id" }, null);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(
+                QueryBuilders.termQuery("source_idx.keyword", pluginIndex)
+            ).size(10000).fetchSource(new String[] { "resource_id" }, null);
 
             searchRequest.source(searchSourceBuilder);
 
-            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            client.search(searchRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(SearchResponse searchResponse) {
+                    try {
+                        Set<String> resourceIds = new HashSet<>();
 
-            Set<String> resourceIds = new HashSet<>();
+                        SearchHit[] hits = searchResponse.getHits().getHits();
+                        for (SearchHit hit : hits) {
+                            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
+                                resourceIds.add(sourceAsMap.get("resource_id").toString());
+                            }
+                        }
 
-            SearchHit[] hits = searchResponse.getHits().getHits();
-            for (SearchHit hit : hits) {
-                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                    resourceIds.add(sourceAsMap.get("resource_id").toString());
+                        LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
+
+                        listener.onResponse(resourceIds);
+                    } catch (Exception e) {
+                        LOGGER.error(
+                            "Error while processing search response from {} for source_idx: {}",
+                            resourceSharingIndex,
+                            pluginIndex,
+                            e
+                        );
+                        listener.onFailure(e);
+                    }
                 }
-            }
 
-            LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
-
-            return resourceIds;
-
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
+                    listener.onFailure(e);
+                }
+            });
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
-            return Set.of();
+            LOGGER.error("Failed to initiate fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
+            listener.onFailure(e);
         }
     }
 
@@ -313,15 +321,14 @@ public class ResourceSharingIndexHandler {
     *
     * @param pluginIndex The source index to match against the source_idx field
     * @param entities Set of values to match in the specified RecipientType field
-    * @param RecipientType The type of association with the resource. Must be one of:
+    * @param recipientType The type of association with the resource. Must be one of:
     *                  <ul>
     *                    <li>"users" - for user-based access</li>
     *                    <li>"roles" - for role-based access</li>
     *                    <li>"backend_roles" - for backend role-based access</li>
     *                  </ul>
-    * @return Set<String> List of resource IDs that match the criteria. The list may be empty
-    *         if no matches are found
-    *
+    * @param listener The listener to be notified when the operation completes.
+    *                 The listener receives a set of resource IDs as a result.
     * @throws RuntimeException if the search operation fails
     *
     * @apiNote This method:
@@ -334,9 +341,14 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public Set<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String RecipientType) {
+    public void fetchDocumentsForAllScopes(
+        String pluginIndex,
+        Set<String> entities,
+        String recipientType,
+        ActionListener<Set<String>> listener
+    ) {
         // "*" must match all scopes
-        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*");
+        fetchDocumentsForAGivenScope(pluginIndex, entities, recipientType, "*", listener);
     }
 
     /**
@@ -384,16 +396,15 @@ public class ResourceSharingIndexHandler {
      *
      * @param pluginIndex The source index to match against the source_idx field
      * @param entities Set of values to match in the specified RecipientType field
-     * @param RecipientType The type of association with the resource. Must be one of:
+     * @param recipientType The type of association with the resource. Must be one of:
      *                  <ul>
      *                    <li>"users" - for user-based access</li>
      *                    <li>"roles" - for role-based access</li>
      *                    <li>"backend_roles" - for backend role-based access</li>
      *                  </ul>
      * @param scope The scope of the access. Should be implementation of {@link ResourceAccessScope}
-     * @return Set<String> List of resource IDs that match the criteria. The list may be empty
-     *         if no matches are found
-     *
+     * @param listener The listener to be notified when the operation completes.
+     *                 The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
      *
      * @apiNote This method:
@@ -405,20 +416,25 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public Set<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String RecipientType, String scope) {
+    public void fetchDocumentsForAGivenScope(
+        String pluginIndex,
+        Set<String> entities,
+        String recipientType,
+        String scope,
+        ActionListener<Set<String>> listener
+    ) {
         LOGGER.debug(
-            "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
+            "Fetching documents asynchronously from index: {}, where share_with.{}.{} contains any of {}",
             pluginIndex,
             scope,
-            RecipientType,
+            recipientType,
             entities
         );
 
-        Set<String> resourceIds = new HashSet<>();
+        final Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
@@ -428,36 +444,54 @@ public class ResourceSharingIndexHandler {
             if ("*".equals(scope)) {
                 for (String entity : entities) {
                     shouldQuery.should(
-                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + RecipientType + ".keyword")
+                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipientType + ".keyword")
                             .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
                     );
                 }
             } else {
                 for (String entity : entities) {
-                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + RecipientType + ".keyword", entity));
+                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + recipientType + ".keyword", entity));
                 }
             }
             shouldQuery.minimumShouldMatch(1);
 
             boolQuery.must(QueryBuilders.existsQuery("share_with")).must(shouldQuery);
 
-            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery);
-
-            LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
-
-            return resourceIds;
-
+            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
+                try {
+                    // If 'success' indicates the search completed, log and return the results
+                    LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
+                    listener.onResponse(resourceIds);
+                } finally {
+                    // Always close the stashed context
+                    storedContext.close();
+                }
+            }, exception -> {
+                try {
+                    LOGGER.error(
+                        "Search failed for pluginIndex={}, scope={}, recipientType={}, entities={}",
+                        pluginIndex,
+                        scope,
+                        recipientType,
+                        entities,
+                        exception
+                    );
+                    listener.onFailure(exception);
+                } finally {
+                    storedContext.close();
+                }
+            }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to fetch documents from {} for criteria - pluginIndex: {}, scope: {}, RecipientType: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, scope: {}, RecipientType: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
                 scope,
-                RecipientType,
+                recipientType,
                 entities,
                 e
             );
-            throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
+            listener.onFailure(new RuntimeException("Failed to fetch documents: " + e.getMessage(), e));
         }
     }
 
@@ -494,8 +528,8 @@ public class ResourceSharingIndexHandler {
      * @param pluginIndex The source index to match against the source_idx field
      * @param field The field name to search in. Must be a valid field in the index mapping
      * @param value The value to match for the specified field. Performs exact term matching
-     * @return Set<String> List of resource IDs that match the criteria. Returns an empty list
-     *         if no matches are found
+     * @param listener The listener to be notified when the operation completes.
+     *                 The listener receives a set of resource IDs as a result.
      *
      * @throws IllegalArgumentException if any parameter is null or empty
      * @throws RuntimeException if the search operation fails, wrapping the underlying exception
@@ -514,9 +548,10 @@ public class ResourceSharingIndexHandler {
      * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-    public Set<String> fetchDocumentsByField(String pluginIndex, String field, String value) {
+    public void fetchDocumentsByField(String pluginIndex, String field, String value, ActionListener<Set<String>> listener) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
-            throw new IllegalArgumentException("pluginIndex, field, and value must not be null or empty");
+            listener.onFailure(new IllegalArgumentException("pluginIndex, field, and value must not be null or empty"));
+            return;
         }
 
         LOGGER.debug("Fetching documents from index: {}, where {} = {}", pluginIndex, field, value);
@@ -533,15 +568,18 @@ public class ResourceSharingIndexHandler {
                 .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
                 .must(QueryBuilders.termQuery(field + ".keyword", value));
 
-            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery);
-
-            LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
-
-            return resourceIds;
+            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
+                LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
+                listener.onResponse(resourceIds);
+            }, exception -> {
+                LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, exception);
+                listener.onFailure(new RuntimeException("Failed to fetch documents: " + exception.getMessage(), exception));
+            }));
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
-            throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
+            LOGGER.error("Failed to initiate fetch from {} where {} = {}", resourceSharingIndex, field, value, e);
+            listener.onFailure(new RuntimeException("Failed to initiate fetch: " + e.getMessage(), e));
         }
+
     }
 
     /**
@@ -574,8 +612,8 @@ public class ResourceSharingIndexHandler {
     *
     * @param pluginIndex The source index to match against the source_idx field
     * @param resourceId The resource ID to fetch. Must exactly match the resource_id field
-    * @return ResourceSharing object if a matching document is found, null if no document
-    *         matches the criteria
+    * @param listener The listener to be notified when the operation completes.
+    *                 The listener receives the parsed ResourceSharing object or null if not found
     *
     * @throws IllegalArgumentException if pluginIndexName or resourceId is null or empty
     * @throws RuntimeException if the search operation fails or parsing errors occur,
@@ -598,53 +636,72 @@ public class ResourceSharingIndexHandler {
     * }
     * </pre>
     */
-
-    public ResourceSharing fetchDocumentById(String pluginIndex, String resourceId) {
+    public void fetchDocumentById(String pluginIndex, String resourceId, ActionListener<ResourceSharing> listener) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(resourceId)) {
-            throw new IllegalArgumentException("pluginIndexName and resourceId must not be null or empty");
+            listener.onFailure(new IllegalArgumentException("pluginIndex and resourceId must not be null or empty"));
+            return;
         }
+        LOGGER.debug("Fetching document from index: {}, resourceId: {}", pluginIndex, resourceId);
 
-        LOGGER.debug("Fetching document from index: {}, with resourceId: {}", pluginIndex, resourceId);
-
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
-
+        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
                 .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // We only need one document since
-                                                                                                          // a resource must have only one
-                                                                                                          // sharing entry
-            searchRequest.source(searchSourceBuilder);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // There is only one document for
+                                                                                                          // a single resource
 
-            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex).source(searchSourceBuilder);
 
-            SearchHit[] hits = searchResponse.getHits().getHits();
-            if (hits.length == 0) {
-                LOGGER.debug("No document found for resourceId: {} in index: {}", resourceId, pluginIndex);
-                return null;
-            }
+            client.search(searchRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(SearchResponse searchResponse) {
+                    try {
+                        SearchHit[] hits = searchResponse.getHits().getHits();
+                        if (hits.length == 0) {
+                            LOGGER.debug("No document found for resourceId: {} in index: {}", resourceId, pluginIndex);
+                            listener.onResponse(null);
+                            return;
+                        }
 
-            SearchHit hit = hits[0];
-            try (
-                XContentParser parser = XContentType.JSON.xContent()
-                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hit.getSourceAsString())
-            ) {
+                        SearchHit hit = hits[0];
+                        try (
+                            XContentParser parser = XContentType.JSON.xContent()
+                                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hit.getSourceAsString())
+                        ) {
+                            parser.nextToken();
+                            ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
 
-                parser.nextToken();
+                            LOGGER.debug("Successfully fetched document for resourceId: {} from index: {}", resourceId, pluginIndex);
 
-                ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                            listener.onResponse(resourceSharing);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to parse document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
+                        listener.onFailure(
+                            new OpenSearchException(
+                                "Failed to parse document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                                e
+                            )
+                        );
+                    }
+                }
 
-                LOGGER.debug("Successfully fetched document for resourceId: {} from index: {}", resourceId, pluginIndex);
+                @Override
+                public void onFailure(Exception e) {
 
-                return resourceSharing;
-            }
+                    LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
+                    listener.onFailure(
+                        new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
+                    );
 
+                }
+            });
         } catch (Exception e) {
             LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
-            throw new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e);
+            listener.onFailure(
+                new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
+            );
         }
     }
 
@@ -654,41 +711,100 @@ public class ResourceSharingIndexHandler {
      * @param scroll Search Scroll
      * @param searchRequest Request to execute
      * @param boolQuery Query to execute with the request
+     * @param listener Listener to be notified when the operation completes
      */
-    private void executeSearchRequest(Set<String> resourceIds, Scroll scroll, SearchRequest searchRequest, BoolQueryBuilder boolQuery) {
+    private void executeSearchRequest(
+        Set<String> resourceIds,
+        Scroll scroll,
+        SearchRequest searchRequest,
+        BoolQueryBuilder boolQuery,
+        ActionListener<Void> listener
+    ) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
             .size(1000)
             .fetchSource(new String[] { "resource_id" }, null);
 
         searchRequest.source(searchSourceBuilder);
 
-        SearchResponse searchResponse = client.search(searchRequest).actionGet();
-        String scrollId = searchResponse.getScrollId();
-        SearchHit[] hits = searchResponse.getHits().getHits();
+        StepListener<SearchResponse> searchStep = new StepListener<>();
 
-        while (hits != null && hits.length > 0) {
-            for (SearchHit hit : hits) {
-                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                    resourceIds.add(sourceAsMap.get("resource_id").toString());
-                }
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            String scrollId = initialResponse.getScrollId();
+            processScrollResults(resourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Helper method to process scroll results recursively.
+     * @param resourceIds List to collect resource IDs
+     * @param scroll Search Scroll
+     * @param scrollId Scroll ID
+     * @param hits Search hits
+     * @param listener Listener to be notified when the operation completes
+     */
+    private void processScrollResults(
+        Set<String> resourceIds,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Void> listener
+    ) {
+        // If no hits, clean up and complete
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, listener);
+            return;
+        }
+
+        // Process current batch of hits
+        for (SearchHit hit : hits) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
+                resourceIds.add(sourceAsMap.get("resource_id").toString());
             }
+        }
 
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-            scrollRequest.scroll(scroll);
-            searchResponse = client.execute(SearchScrollAction.INSTANCE, scrollRequest).actionGet();
-            scrollId = searchResponse.getScrollId();
-            hits = searchResponse.getHits().getHits();
+        // Prepare next scroll request
+        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+        scrollRequest.scroll(scroll);
+
+        // Execute next scroll
+        client.searchScroll(scrollRequest, ActionListener.wrap(scrollResponse -> {
+            // Process next batch recursively
+            processScrollResults(resourceIds, scroll, scrollResponse.getScrollId(), scrollResponse.getHits().getHits(), listener);
+        }, e -> {
+            // Clean up scroll context on failure
+            clearScroll(scrollId, ActionListener.wrap(r -> listener.onFailure(e), ex -> {
+                e.addSuppressed(ex);
+                listener.onFailure(e);
+            }));
+        }));
+    }
+
+    /**
+     * Helper method to clear scroll context.
+     * @param scrollId Scroll ID
+     * @param listener Listener to be notified when the operation completes
+     */
+    private void clearScroll(String scrollId, ActionListener<Void> listener) {
+        if (scrollId == null) {
+            listener.onResponse(null);
+            return;
         }
 
         ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
         clearScrollRequest.addScrollId(scrollId);
-        client.clearScroll(clearScrollRequest).actionGet();
+
+        client.clearScroll(clearScrollRequest, ActionListener.wrap(r -> listener.onResponse(null), e -> {
+            LOGGER.warn("Failed to clear scroll context", e);
+            listener.onResponse(null);
+        }));
     }
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -704,93 +820,105 @@ public class ResourceSharingIndexHandler {
      *                     }
      *                 }
      * @param isAdmin Boolean indicating whether the user requesting to share is an admin or not
-     * @return ResourceSharing Returns resourceSharing object if the update was successful, null otherwise
+     * @param listener Listener to be notified when the operation completes
+     *
      * @throws RuntimeException if there's an error during the update operation
      */
-    public ResourceSharing updateResourceSharingInfo(
+    public void updateResourceSharingInfo(
         String resourceId,
         String sourceIdx,
         String requestUserName,
         ShareWith shareWith,
-        boolean isAdmin
+        boolean isAdmin,
+        ActionListener<ResourceSharing> listener
     ) {
         XContentBuilder builder;
         Map<String, Object> shareWithMap;
         try {
-            builder = jsonBuilder();
+            builder = XContentFactory.jsonBuilder();
             shareWith.toXContent(builder, ToXContent.EMPTY_PARAMS);
             String json = builder.toString();
             shareWithMap = DefaultObjectMapper.readValue(json, new TypeReference<>() {
             });
-
         } catch (IOException e) {
             LOGGER.error("Failed to build json content", e);
-            throw new OpenSearchException("Failed to build json content", e);
+            listener.onFailure(new OpenSearchException("Failed to build json content", e));
+            return;
         }
 
-        // Check if the user requesting to share is the owner of the resource
-        // TODO Add a way for users who are not creators to be able to share the resource
-        ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
-            LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-            throw new OpenSearchException("User " + requestUserName + " is not authorized to share resource " + resourceId);
-        }
+        StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
+        StepListener<Boolean> updateScriptListener = new StepListener<>();
+        StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
-        CreatedBy createdBy;
-        if (currentSharingInfo == null) {
-            createdBy = new CreatedBy(Creator.USER.getName(), requestUserName);
-        } else {
-            createdBy = currentSharingInfo.getCreatedBy();
-        }
+        // Fetch resource sharing doc
+        fetchDocumentById(sourceIdx, resourceId, fetchDocListener);
 
-        // Atomic operation
-        Script updateScript = new Script(ScriptType.INLINE, "painless", """
-            if (ctx._source.share_with == null) {
-                ctx._source.share_with = [:];
+        // build update script
+        fetchDocListener.whenComplete(currentSharingInfo -> {
+            // Check if user can share. At present only the resource creator and admin is allowed to share the resource
+            if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
+
+                LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
+                throw new OpenSearchException("User " + requestUserName + " is not authorized to share resource " + resourceId);
             }
 
-            for (def entry : params.shareWith.entrySet()) {
-                def scopeName = entry.getKey();
-                def newScope = entry.getValue();
+            Script updateScript = new Script(ScriptType.INLINE, "painless", """
+                if (ctx._source.share_with == null) {
+                    ctx._source.share_with = [:];
+                }
 
-                if (!ctx._source.share_with.containsKey(scopeName)) {
-                    def newScopeEntry = [:];
-                    for (def field : newScope.entrySet()) {
-                        if (field.getValue() != null && !field.getValue().isEmpty()) {
-                            newScopeEntry[field.getKey()] = new HashSet(field.getValue());
-                        }
-                    }
-                    ctx._source.share_with[scopeName] = newScopeEntry;
-                } else {
-                    def existingScope = ctx._source.share_with[scopeName];
+                for (def entry : params.shareWith.entrySet()) {
+                    def scopeName = entry.getKey();
+                    def newScope = entry.getValue();
 
-                    for (def field : newScope.entrySet()) {
-                        def fieldName = field.getKey();
-                        def newValues = field.getValue();
-
-                        if (newValues != null && !newValues.isEmpty()) {
-                            if (!existingScope.containsKey(fieldName)) {
-                                existingScope[fieldName] = new HashSet();
+                    if (!ctx._source.share_with.containsKey(scopeName)) {
+                        def newScopeEntry = [:];
+                        for (def field : newScope.entrySet()) {
+                            if (field.getValue() != null && !field.getValue().isEmpty()) {
+                                newScopeEntry[field.getKey()] = new HashSet(field.getValue());
                             }
+                        }
+                        ctx._source.share_with[scopeName] = newScopeEntry;
+                    } else {
+                        def existingScope = ctx._source.share_with[scopeName];
 
-                            for (def value : newValues) {
-                                if (!existingScope[fieldName].contains(value)) {
-                                    existingScope[fieldName].add(value);
+                        for (def field : newScope.entrySet()) {
+                            def fieldName = field.getKey();
+                            def newValues = field.getValue();
+
+                            if (newValues != null && !newValues.isEmpty()) {
+                                if (!existingScope.containsKey(fieldName)) {
+                                    existingScope[fieldName] = new HashSet();
+                                }
+
+                                for (def value : newValues) {
+                                    if (!existingScope[fieldName].contains(value)) {
+                                        existingScope[fieldName].add(value);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                """, Collections.singletonMap("shareWith", shareWithMap));
+
+            updateByQueryResourceSharing(sourceIdx, resourceId, updateScript, updateScriptListener);
+
+        }, listener::onFailure);
+
+        // Build & return the updated ResourceSharing
+        updateScriptListener.whenComplete(success -> {
+            if (!success) {
+                LOGGER.error("Failed to update resource sharing info for resource {}", resourceId);
+                listener.onResponse(null);
+                return;
             }
-            """, Collections.singletonMap("shareWith", shareWithMap));
+            // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
+            // intensive to do it in java)
+            fetchDocumentById(sourceIdx, resourceId, updatedSharingListener);
+        }, listener::onFailure);
 
-        boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
-        if (!success) {
-            LOGGER.error("Failed to update resource sharing info for resource {}", resourceId);
-            throw new OpenSearchException("Failed to update resource sharing info for resource " + resourceId);
-        }
-
-        return new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith);
+        updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
     }
 
     /**
@@ -821,8 +949,7 @@ public class ResourceSharingIndexHandler {
      * @param resourceId The resource ID to match in the query (exact match)
      * @param updateScript The script containing the update operations to be performed.
      *                    This script defines how the matching documents should be modified
-     * @return boolean true if at least one document was updated, false if no documents
-     *         were found or update failed
+     * @param listener Listener to be notified when the operation completes
      *
      * @apiNote This method:
      * <ul>
@@ -846,8 +973,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    private boolean updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript) {
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+    private void updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript, ActionListener<Boolean> listener) {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             BoolQueryBuilder query = QueryBuilders.boolQuery()
                 .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
@@ -857,24 +983,36 @@ public class ResourceSharingIndexHandler {
                 .setScript(updateScript)
                 .setRefresh(true);
 
-            BulkByScrollResponse response = client.execute(UpdateByQueryAction.INSTANCE, ubq).actionGet();
+            client.execute(UpdateByQueryAction.INSTANCE, ubq, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkByScrollResponse response) {
+                    long updated = response.getUpdated();
+                    if (updated > 0) {
+                        LOGGER.info("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
+                        listener.onResponse(true);
+                    } else {
+                        LOGGER.info(
+                            "No documents found to update in {} for source_idx: {} and resource_id: {}",
+                            resourceSharingIndex,
+                            sourceIdx,
+                            resourceId
+                        );
+                        listener.onResponse(false);
+                    }
 
-            if (response.getUpdated() > 0) {
-                LOGGER.info("Successfully updated {} documents in {}.", response.getUpdated(), resourceSharingIndex);
-                return true;
-            } else {
-                LOGGER.info(
-                    "No documents found to update in {} for source_idx: {} and resource_id: {}",
-                    resourceSharingIndex,
-                    sourceIdx,
-                    resourceId
-                );
-                return false;
-            }
+                }
 
+                @Override
+                public void onFailure(Exception e) {
+
+                    LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
+                    listener.onFailure(e);
+
+                }
+            });
         } catch (Exception e) {
-            LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
-            return false;
+            LOGGER.error("Failed to update documents in {} before request submission.", resourceSharingIndex, e);
+            listener.onFailure(e);
         }
     }
 
@@ -913,7 +1051,7 @@ public class ResourceSharingIndexHandler {
      * @param scopes A list of scopes to revoke access from. If null or empty, access is revoked from all scopes
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin Boolean indicating whether the user is an admin or not
-     * @return The updated ResourceSharing object after revoking access, or null if the document doesn't exist
+     * @param listener Listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException if the update operation fails or encounters an error
      *
@@ -930,76 +1068,102 @@ public class ResourceSharingIndexHandler {
      * ResourceSharing updated = revokeAccess("resourceId", "pluginIndex", revokeAccess);
      * </pre>
      */
-    public ResourceSharing revokeAccess(
+    public void revokeAccess(
         String resourceId,
         String sourceIdx,
         Map<RecipientType, Set<String>> revokeAccess,
         Set<String> scopes,
         String requestUserName,
-        boolean isAdmin
+        boolean isAdmin,
+        ActionListener<ResourceSharing> listener
     ) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
-            throw new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty");
+            listener.onFailure(new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty"));
+            return;
         }
 
-        // TODO Check if access can be revoked by non-creator
-        ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
-            LOGGER.error("User {} is not authorized to revoke access to resource {}", requestUserName, resourceId);
-            throw new OpenSearchException("User " + requestUserName + " is not authorized to revoke access to resource " + resourceId);
-        }
+        try (ThreadContext.StoredContext storedContext = this.threadPool.getThreadContext().stashContext()) {
 
-        LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
+            LOGGER.debug(
+                "Revoking access for resource {} in {} for entities: {} and scopes: {}",
+                resourceId,
+                sourceIdx,
+                revokeAccess,
+                scopes
+            );
 
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            Map<String, Object> revoke = new HashMap<>();
-            for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
-                revoke.put(entry.getKey().getType().toLowerCase(), new ArrayList<>(entry.getValue()));
-            }
+            StepListener<ResourceSharing> currentSharingListener = new StepListener<>();
+            StepListener<Boolean> revokeUpdateListener = new StepListener<>();
+            StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
-            List<String> scopesToUse = scopes != null ? new ArrayList<>(scopes) : new ArrayList<>();
+            // Fetch the current ResourceSharing document
+            fetchDocumentById(sourceIdx, resourceId, currentSharingListener);
 
-            Script revokeScript = new Script(ScriptType.INLINE, "painless", """
-                if (ctx._source.share_with != null) {
-                    Set scopesToProcess = new HashSet(params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
+            // Check permissions & build revoke script
+            currentSharingListener.whenComplete(currentSharingInfo -> {
+                // Only admin or the creator of the resource is currently allowed to revoke access
+                if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
+                    throw new OpenSearchException(
+                        "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
+                    );
+                }
 
-                    for (def scopeName : scopesToProcess) {
-                        if (ctx._source.share_with.containsKey(scopeName)) {
-                            def existingScope = ctx._source.share_with.get(scopeName);
+                Map<String, Object> revoke = new HashMap<>();
+                for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
+                    revoke.put(entry.getKey().getType().toLowerCase(), new ArrayList<>(entry.getValue()));
+                }
+                List<String> scopesToUse = (scopes != null) ? new ArrayList<>(scopes) : new ArrayList<>();
 
-                            for (def entry : params.revokeAccess.entrySet()) {
-                                def RecipientType = entry.getKey();
-                                def entitiesToRemove = entry.getValue();
+                // Build the revoke script
+                Script revokeScript = new Script(ScriptType.INLINE, "painless", """
+                    if (ctx._source.share_with != null) {
+                        Set scopesToProcess = new HashSet(params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
 
-                                if (existingScope.containsKey(RecipientType) && existingScope[RecipientType] != null) {
-                                    if (!(existingScope[RecipientType] instanceof HashSet)) {
-                                        existingScope[RecipientType] = new HashSet(existingScope[RecipientType]);
-                                    }
+                        for (def scopeName : scopesToProcess) {
+                            if (ctx._source.share_with.containsKey(scopeName)) {
+                                def existingScope = ctx._source.share_with.get(scopeName);
 
-                                    existingScope[RecipientType].removeAll(entitiesToRemove);
+                                for (def entry : params.revokeAccess.entrySet()) {
+                                    def RecipientType = entry.getKey();
+                                    def entitiesToRemove = entry.getValue();
 
-                                    if (existingScope[RecipientType].isEmpty()) {
-                                        existingScope.remove(RecipientType);
+                                    if (existingScope.containsKey(RecipientType) && existingScope[RecipientType] != null) {
+                                        if (!(existingScope[RecipientType] instanceof HashSet)) {
+                                            existingScope[RecipientType] = new HashSet(existingScope[RecipientType]);
+                                        }
+
+                                        existingScope[RecipientType].removeAll(entitiesToRemove);
+
+                                        if (existingScope[RecipientType].isEmpty()) {
+                                            existingScope.remove(RecipientType);
+                                        }
                                     }
                                 }
-                            }
 
-                            if (existingScope.isEmpty()) {
-                                ctx._source.share_with.remove(scopeName);
+                                if (existingScope.isEmpty()) {
+                                    ctx._source.share_with.remove(scopeName);
+                                }
                             }
                         }
                     }
+                    """, Map.of("revokeAccess", revoke, "scopes", scopesToUse));
+                updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript, revokeUpdateListener);
+
+            }, listener::onFailure);
+
+            // Return doc or null based on successful result, fail otherwise
+            revokeUpdateListener.whenComplete(success -> {
+                if (!success) {
+                    LOGGER.error("Failed to revoke access for resource {} in index {} (no docs updated).", resourceId, sourceIdx);
+                    listener.onResponse(null);
+                    return;
                 }
-                """, Map.of("revokeAccess", revoke, "scopes", scopesToUse));
+                // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
+                // intensive to do it in java)
+                fetchDocumentById(sourceIdx, resourceId, updatedSharingListener);
+            }, listener::onFailure);
 
-            boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript);
-
-            return success ? fetchDocumentById(sourceIdx, resourceId) : null;
-
-        } catch (Exception e) {
-            LOGGER.error("Failed to revoke access for resource: {} in index: {}", resourceId, sourceIdx, e);
-            throw new RuntimeException("Failed to revoke access: " + e.getMessage(), e);
+            updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
         }
     }
 
@@ -1167,47 +1331,54 @@ public class ResourceSharingIndexHandler {
      * @param parser The class to deserialize the documents into a specified type defined by the parser.
      * @return A set of deserialized documents.
      */
-    public <T extends Resource> Set<T> getResourceDocumentsFromIds(
+    public <T extends Resource> void getResourceDocumentsFromIds(
         Set<String> resourceIds,
         String resourceIndex,
-        ResourceParser<T> parser
+        ResourceParser<T> parser,
+        ActionListener<Set<T>> listener
     ) {
-        Set<T> result = new HashSet<>();
         if (resourceIds.isEmpty()) {
-            return result;
+            listener.onResponse(new HashSet<>());
+            return;
         }
 
         // stashing Context to avoid permission issues in-case resourceIndex is a system index
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             MultiGetRequest request = new MultiGetRequest();
             for (String id : resourceIds) {
                 request.add(new MultiGetRequest.Item(resourceIndex, id));
             }
 
-            MultiGetResponse response = client.multiGet(request).actionGet();
-
-            for (MultiGetItemResponse itemResponse : response.getResponses()) {
-                if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
-                    BytesReference sourceAsString = itemResponse.getResponse().getSourceAsBytesRef();
-                    XContentParser xContentParser = XContentHelper.createParser(
-                        NamedXContentRegistry.EMPTY,
-                        LoggingDeprecationHandler.INSTANCE,
-                        sourceAsString,
-                        XContentType.JSON
-                    );
-                    T resource = parser.parseXContent(xContentParser);
-                    result.add(resource);
+            client.multiGet(request, ActionListener.wrap(response -> {
+                Set<T> result = new HashSet<>();
+                try {
+                    for (MultiGetItemResponse itemResponse : response.getResponses()) {
+                        if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
+                            BytesReference sourceAsString = itemResponse.getResponse().getSourceAsBytesRef();
+                            XContentParser xContentParser = XContentHelper.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                LoggingDeprecationHandler.INSTANCE,
+                                sourceAsString,
+                                XContentType.JSON
+                            );
+                            T resource = parser.parseXContent(xContentParser);
+                            result.add(resource);
+                        }
+                    }
+                    listener.onResponse(result);
+                } catch (Exception e) {
+                    listener.onFailure(new OpenSearchException("Failed to parse resources: " + e.getMessage(), e));
                 }
-            }
-        } catch (IndexNotFoundException e) {
-            LOGGER.error("Index {} does not exist", resourceIndex, e);
-            throw e;
-        } catch (Exception e) {
-            LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
-            throw new OpenSearchException("Failed to fetch resources: " + e.getMessage(), e);
+            }, e -> {
+                if (e instanceof IndexNotFoundException) {
+                    LOGGER.error("Index {} does not exist", resourceIndex, e);
+                    listener.onFailure(e);
+                } else {
+                    LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
+                    listener.onFailure(new OpenSearchException("Failed to fetch resources: " + e.getMessage(), e));
+                }
+            }));
         }
-
-        return result;
     }
+
 }

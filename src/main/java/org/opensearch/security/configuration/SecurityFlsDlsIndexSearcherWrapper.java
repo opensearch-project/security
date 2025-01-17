@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -29,6 +31,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
@@ -48,6 +51,7 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.spi.resources.ResourceSharingException;
 import org.opensearch.security.support.ConfigConstants;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
@@ -119,60 +123,113 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
     @SuppressWarnings("unchecked")
     @Override
     protected DirectoryReader dlsFlsWrap(final DirectoryReader reader, boolean isAdmin) throws IOException {
-
         final ShardId shardId = ShardUtils.extractShardId(reader);
         PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        final String indexName = (shardId != null) ? shardId.getIndexName() : null;
 
         if (log.isTraceEnabled()) {
-            log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), privilegesEvaluationContext);
+            log.trace("dlsFlsWrap(); index: {}; isAdmin: {}", indexName, isAdmin);
         }
 
-        String indexName = shardId != null ? shardId.getIndexName() : null;
-        Set<String> resourceIds;
-        if (this.isResourceSharingEnabled
-            && !Strings.isNullOrEmpty(indexName)
-            && OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
-            resourceIds = this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(indexName);
-            // resourceIds.isEmpty() indicates that the index is a resource index but the user does not have access to any resource under
-            // the
-            // index
-            if (resourceIds.isEmpty()) {
-                return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
-            }
-            // Create a resource DLS query for the current user
-            QueryShardContext queryShardContext = this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null);
-            Query resourceQuery = this.resourceAccessHandler.createResourceDLSQuery(resourceIds, queryShardContext);
-
-            // TODO the FlsRule must still be checked
-            return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
-                reader,
-                FieldPrivileges.FlsRule.ALLOW_ALL,
-                resourceQuery,
-                indexService,
-                threadContext,
-                clusterService,
-                auditlog,
-                FieldMasking.FieldMaskingRule.ALLOW_ALL,
-                shardId,
-                metaFields
-            );
+        // 1. If user is admin, or we have no shard/index info, just wrap with default logic (no doc-level restriction).
+        if (isAdmin || Strings.isNullOrEmpty(indexName)) {
+            return wrapWithDefaultDlsFls(reader, shardId);
         }
 
-        if (isAdmin || privilegesEvaluationContext == null) {
-            return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
-                reader,
-                FieldPrivileges.FlsRule.ALLOW_ALL,
-                null,
-                indexService,
-                threadContext,
-                clusterService,
-                auditlog,
-                FieldMasking.FieldMaskingRule.ALLOW_ALL,
-                shardId,
-                metaFields
-            );
+        // 2. If resource sharing is disabled or this is not a resource index, fallback to standard DLS/FLS logic.
+        if (!this.isResourceSharingEnabled || !OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
+            return wrapStandardDlsFls(privilegesEvaluationContext, reader, shardId, indexName, isAdmin);
         }
 
+        // TODO see if steps 3,4,5 can be changed to be completely asynchronous
+        // 3.Since we need DirectoryReader *now*, we'll block the thread using a CountDownLatch until the async call completes.
+        final AtomicReference<Set<String>> resourceIdsRef = new AtomicReference<>(Collections.emptySet());
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<>(null);
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        // 4. Perform the async call to fetch resource IDs
+        this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(indexName, ActionListener.wrap(resourceIds -> {
+            log.debug("Fetched resource IDs for index '{}': {}", indexName, resourceIds);
+            resourceIdsRef.set(resourceIds);
+            latch.countDown();
+        }, ex -> {
+            log.error("Failed to fetch resource IDs for index '{}': {}", indexName, ex.getMessage(), ex);
+            exceptionRef.set(ex);
+            latch.countDown();
+        }));
+
+        // 5. Block until the async call completes
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for resource IDs", e);
+        }
+
+        // 6. Throw any errors
+        if (exceptionRef.get() != null) {
+            throw new ResourceSharingException("Failed to get resource IDs for index: " + indexName, exceptionRef.get());
+        }
+
+        // 7. If the user has no accessible resources, produce a reader that yields zero documents
+        final Set<String> resourceIds = resourceIdsRef.get();
+        if (resourceIds.isEmpty()) {
+            log.debug("User has no accessible resources in index '{}'; returning EmptyDirectoryReader.", indexName);
+            return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
+        }
+
+        // 8. Build the resource-based query to restrict docs
+        final QueryShardContext queryShardContext = this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null);
+        final Query resourceQuery = this.resourceAccessHandler.createResourceDLSQuery(resourceIds, queryShardContext);
+
+        log.debug("Applying resource-based DLS query for index '{}'", indexName);
+
+        // 9. Wrap with a DLS/FLS DirectoryReader that includes doc-level restriction (resourceQuery),
+        // with FLS (ALLOW_ALL) since we don't need field-level restrictions here.
+        return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
+            reader,
+            FieldPrivileges.FlsRule.ALLOW_ALL,
+            resourceQuery,
+            indexService,
+            threadContext,
+            clusterService,
+            auditlog,
+            FieldMasking.FieldMaskingRule.ALLOW_ALL,
+            shardId,
+            metaFields
+        );
+    }
+
+    /**
+     * Wrap the reader with an "ALLOW_ALL" doc-level filter and field privileges,
+     * i.e., no doc-level or field-level restrictions.
+     */
+    private DirectoryReader wrapWithDefaultDlsFls(DirectoryReader reader, ShardId shardId) throws IOException {
+        return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
+            reader,
+            FieldPrivileges.FlsRule.ALLOW_ALL,
+            null,  // no doc-level restriction
+            indexService,
+            threadContext,
+            clusterService,
+            auditlog,
+            FieldMasking.FieldMaskingRule.ALLOW_ALL,
+            shardId,
+            metaFields
+        );
+    }
+
+    /**
+     * Fallback to your existing logic to handle DLS/FLS if the index is not a resource index,
+     * or if other conditions apply (like dlsFlsBaseContext usage, etc.).
+     */
+    private DirectoryReader wrapStandardDlsFls(
+        PrivilegesEvaluationContext privilegesEvaluationContext,
+        DirectoryReader reader,
+        ShardId shardId,
+        String indexName,
+        boolean isAdmin
+    ) throws IOException {
         try {
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfigSupplier.get();
             DlsRestriction dlsRestriction;
@@ -244,4 +301,5 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             throw new OpenSearchException("Error while evaluating DLS/FLS", e);
         }
     }
+
 }

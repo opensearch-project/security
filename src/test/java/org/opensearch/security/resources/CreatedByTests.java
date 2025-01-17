@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 public class CreatedByTests extends SingleClusterTest {
 
-    private static final String CREATOR_TYPE = "user";
+    private static final Enum<Creator> CREATOR_TYPE = Creator.USER;
 
     public void testCreatedByConstructorWithValidUser() {
         String expectedUser = "testUser";
@@ -45,7 +45,7 @@ public class CreatedByTests extends SingleClusterTest {
         String expectedUser = "testUser";
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            out.writeString(CREATOR_TYPE);
+            out.writeEnum(Creator.valueOf(CREATOR_TYPE.name()));
             out.writeString(expectedUser);
 
             StreamInput in = out.bytes().streamInput();

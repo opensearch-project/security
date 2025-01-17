@@ -41,22 +41,33 @@ public class TransportVerifyResourceAccessAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, VerifyResourceAccessRequest request, ActionListener<VerifyResourceAccessResponse> listener) {
         try {
-            boolean hasRequestedScopeAccess = this.resourceAccessHandler.hasPermission(
+            resourceAccessHandler.hasPermission(
                 request.getResourceId(),
                 request.getResourceIndex(),
-                request.getScope()
+                request.getScope(),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(Boolean hasRequestedScopeAccess) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("User ");
+                        sb.append(hasRequestedScopeAccess ? "has" : "does not have");
+                        sb.append(" requested scope ");
+                        sb.append(request.getScope());
+                        sb.append(" access to ");
+                        sb.append(request.getResourceId());
+
+                        log.info(sb.toString());
+
+                        listener.onResponse(new VerifyResourceAccessResponse(sb.toString()));
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.info("Failed to check user permissions for resource {}", request.getResourceId(), e);
+                        listener.onFailure(e);
+                    }
+                }
             );
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("User ");
-            sb.append(hasRequestedScopeAccess ? "has" : "does not have");
-            sb.append(" requested scope ");
-            sb.append(request.getScope());
-            sb.append(" access to ");
-            sb.append(request.getResourceId());
-
-            log.info(sb.toString());
-            listener.onResponse(new VerifyResourceAccessResponse(sb.toString()));
         } catch (Exception e) {
             log.info("Failed to check user permissions for resource {}", request.getResourceId(), e);
             listener.onFailure(e);

@@ -58,6 +58,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -2306,6 +2307,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     public static Map<String, ResourceProvider> getResourceProviders() {
         return ImmutableMap.copyOf(RESOURCE_PROVIDERS);
+    }
+
+    // TODO following should be removed once core test framework allows loading extensions
+    @VisibleForTesting
+    public static Map<String, ResourceProvider> getResourceProvidersMutable() {
+        return RESOURCE_PROVIDERS;
     }
 
     public static Set<String> getResourceIndices() {

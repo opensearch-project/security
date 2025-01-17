@@ -17,7 +17,6 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourceSharing;
 import org.opensearch.security.rest.resources.access.share.ShareResourceAction;
 import org.opensearch.security.rest.resources.access.share.ShareResourceRequest;
 import org.opensearch.security.rest.resources.access.share.ShareResourceResponse;
@@ -40,22 +39,27 @@ public class TransportShareResourceAction extends HandledTransportAction<ShareRe
 
     @Override
     protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
-        ResourceSharing sharing = null;
         try {
-            sharing = shareResource(request);
-            if (sharing == null) {
-                log.error("Failed to share resource {}", request.getResourceId());
-                listener.onFailure(new OpenSearchException("Failed to share resource " + request.getResourceId()));
-                return;
-            }
-            log.info("Shared resource : {} with {}", request.getResourceId(), sharing.toString());
-            listener.onResponse(new ShareResourceResponse("Resource " + request.getResourceId() + " shared successfully."));
+            this.resourceAccessHandler.shareWith(
+                request.getResourceId(),
+                request.getResourceIndex(),
+                request.getShareWith(),
+                ActionListener.wrap(resourceSharing -> {
+                    if (resourceSharing == null) {
+                        log.error("Failed to share resource {}", request.getResourceId());
+                        listener.onFailure(new OpenSearchException("Failed to share resource " + request.getResourceId()));
+                    } else {
+                        log.info("Shared resource : {} with {}", request.getResourceId(), resourceSharing.toString());
+                        listener.onResponse(new ShareResourceResponse("Resource " + request.getResourceId() + " shared successfully."));
+                    }
+                }, e -> {
+                    log.error("Error while sharing resource {}: {}", request.getResourceId(), e.getMessage(), e);
+                    listener.onFailure(e);
+                })
+            );
         } catch (Exception e) {
+            log.error("Exception while trying to share resource {}: {}", request.getResourceId(), e.getMessage(), e);
             listener.onFailure(e);
         }
-    }
-
-    private ResourceSharing shareResource(ShareResourceRequest request) throws Exception {
-        return this.resourceAccessHandler.shareWith(request.getResourceId(), request.getResourceIndex(), request.getShareWith());
     }
 }
