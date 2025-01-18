@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -58,7 +60,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -828,7 +829,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
+                    CompletableFuture.runAsync(
+                        () -> { dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get()); },
+                        threadPool.generic()
+                    ).orTimeout(5, TimeUnit.SECONDS).join();
                 }
 
                 @Override
@@ -1194,6 +1198,22 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             namedXContentRegistry.get()
         );
 
+        final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(
+            resourceSharingIndex,
+            localClient,
+            threadPool,
+            auditLog
+        );
+        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
+        resourceAccessHandler.initializeRecipientTypes();
+        // Resource Sharing index is enabled by default
+        boolean isResourceSharingEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler, isResourceSharingEnabled);
+
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
 
         if (SSLConfig.isSslOnlyMode()) {
@@ -1273,22 +1293,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
             e.subscribeForChanges(dcf);
         }
-
-        final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(
-            resourceSharingIndex,
-            localClient,
-            threadPool,
-            auditLog
-        );
-        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
-        resourceAccessHandler.initializeRecipientTypes();
-        // Resource Sharing index is enabled by default
-        boolean isResourceSharingEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler, isResourceSharingEnabled);
 
         components.add(adminDns);
         components.add(cr);
@@ -2190,10 +2194,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         // rmr will be null when sec plugin is disabled or is in SSLOnly mode, hence rmr will not be instantiated
-        if (settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        ) && rmr != null) {
+        if (settings != null
+            && settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )
+            && rmr != null) {
             // create resource sharing index if absent
             rmr.createResourceSharingIndexIfAbsent();
         }
@@ -2310,14 +2316,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return ImmutableMap.copyOf(RESOURCE_PROVIDERS);
     }
 
+    public static Set<String> getResourceIndices() {
+        return ImmutableSet.copyOf(RESOURCE_INDICES);
+    }
+
     // TODO following should be removed once core test framework allows loading extended classes
-    @VisibleForTesting
     public static Map<String, ResourceProvider> getResourceProvidersMutable() {
         return RESOURCE_PROVIDERS;
     }
 
-    public static Set<String> getResourceIndices() {
-        return ImmutableSet.copyOf(RESOURCE_INDICES);
+    public static Set<String> getResourceIndicesMutable() {
+        return RESOURCE_INDICES;
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings

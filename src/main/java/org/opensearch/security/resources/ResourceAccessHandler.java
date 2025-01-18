@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.LogManager;
@@ -87,7 +88,7 @@ public class ResourceAccessHandler {
      * @param listener The listener to be notified with the set of accessible resource IDs.
      *
      */
-    public void getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
+    public Future<Void> getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -97,7 +98,7 @@ public class ResourceAccessHandler {
         if (user == null) {
             LOGGER.info("Unable to fetch user details.");
             listener.onResponse(Collections.emptySet());
-            return;
+            return null;
         }
 
         LOGGER.info("Listing accessible resources within the resource index {} for user: {}", resourceIndex, user.getName());
@@ -115,7 +116,7 @@ public class ResourceAccessHandler {
                     listener.onFailure(e);
                 }
             });
-            return;
+            return null;
         }
 
         // StepListener for the user’s "own" resources
@@ -179,6 +180,7 @@ public class ResourceAccessHandler {
             LOGGER.debug("Found {} accessible resources for user {}", allResources.size(), user.getName());
             listener.onResponse(allResources);
         }, listener::onFailure);
+        return null;
     }
 
     /**
@@ -627,7 +629,7 @@ public class ResourceAccessHandler {
 
         // resourceIds.isEmpty() is true when user doesn't have access to any resources
         if (resourceIds.isEmpty()) {
-            LOGGER.debug("No resources found for user");
+            LOGGER.info("No resources found for user. Enforcing full restriction.");
             return DlsRestriction.FULL;
         }
 

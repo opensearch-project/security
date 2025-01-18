@@ -17,6 +17,7 @@ import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -385,27 +386,42 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
 
-            if (privilegesEvaluationContext == null && !OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
+            if (privilegesEvaluationContext == null) {
                 return;
             }
 
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
             if (this.isResourceSharingEnabled && OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
-                this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(index, ActionListener.wrap(resourceIds -> {
+                CountDownLatch latch = new CountDownLatch(1);
 
-                    log.info("Creating a DLS restriction for resource IDs: {}", resourceIds);
-                    // Create a DLS restriction to filter search results with accessible resources only
-                    DlsRestriction dlsRestriction = this.resourceAccessHandler.createResourceDLSRestriction(
-                        resourceIds,
-                        namedXContentRegistry
+                threadPool.generic()
+                    .submit(
+                        () -> this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(index, ActionListener.wrap(resourceIds -> {
+                            try {
+                                log.info("Creating a DLS restriction for resource IDs: {}", resourceIds);
+                                // Create a DLS restriction and apply it
+                                DlsRestriction dlsRestriction = this.resourceAccessHandler.createResourceDLSRestriction(
+                                    resourceIds,
+                                    namedXContentRegistry
+                                );
+                                applyDlsRestrictionToSearchContext(dlsRestriction, index, searchContext, mode);
+                            } catch (Exception e) {
+                                log.error("Error while creating or applying DLS restriction for index '{}': {}", index, e.getMessage());
+                                applyDlsRestrictionToSearchContext(DlsRestriction.FULL, index, searchContext, mode);
+                            } finally {
+                                latch.countDown(); // Release the latch
+                            }
+                        }, exception -> {
+                            log.error("Failed to fetch resource IDs for index '{}': {}", index, exception.getMessage());
+                            // Apply a default restriction on failure
+                            applyDlsRestrictionToSearchContext(DlsRestriction.FULL, index, searchContext, mode);
+                            latch.countDown();
+                        }))
                     );
-                    applyDlsRestrictionToSearchContext(dlsRestriction, index, searchContext, mode);
-                }, exception -> {
-                    log.error("Failed to fetch resource IDs for index '{}': {}", index, exception.getMessage());
-                    applyDlsRestrictionToSearchContext(DlsRestriction.FULL, index, searchContext, mode);
-                }));
+
             } else {
+                // Synchronous path for non-resource-sharing-enabled cases
                 DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
                 applyDlsRestrictionToSearchContext(dlsRestriction, index, searchContext, mode);
             }

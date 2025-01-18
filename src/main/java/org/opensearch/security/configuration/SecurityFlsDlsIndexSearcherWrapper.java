@@ -132,10 +132,11 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         }
 
         // 1. If user is admin, or we have no shard/index info, just wrap with default logic (no doc-level restriction).
-        if (isAdmin || Strings.isNullOrEmpty(indexName)) {
+        if (isAdmin || privilegesEvaluationContext == null) {
             return wrapWithDefaultDlsFls(reader, shardId);
         }
 
+        assert !Strings.isNullOrEmpty(indexName);
         // 2. If resource sharing is disabled or this is not a resource index, fallback to standard DLS/FLS logic.
         if (!this.isResourceSharingEnabled || !OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
             return wrapStandardDlsFls(privilegesEvaluationContext, reader, shardId, indexName, isAdmin);
