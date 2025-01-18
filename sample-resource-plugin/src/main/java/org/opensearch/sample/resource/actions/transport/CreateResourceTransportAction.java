@@ -51,9 +51,6 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             createResource(request, listener);
-            listener.onResponse(
-                new CreateResourceResponse("Resource " + request.getResource().getResourceName() + " created successfully.")
-            );
         } catch (Exception e) {
             log.info("Failed to create resource", e);
             listener.onFailure(e);
@@ -71,10 +68,10 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
             log.info("Index Request: {}", ir.toString());
 
-            nodeClient.index(
-                ir,
-                ActionListener.wrap(idxResponse -> { log.info("Created resource: {}", idxResponse.toString()); }, listener::onFailure)
-            );
+            nodeClient.index(ir, ActionListener.wrap(idxResponse -> {
+                log.info("Created resource: {}", idxResponse.getId());
+                listener.onResponse(new CreateResourceResponse("Created resource: " + idxResponse.getId()));
+            }, listener::onFailure));
         } catch (IOException e) {
             listener.onFailure(new RuntimeException(e));
         }

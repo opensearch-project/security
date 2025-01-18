@@ -10,4 +10,7 @@ package org.opensearch.sample.utils;
 
 public class Constants {
     public static final String RESOURCE_INDEX_NAME = ".sample_resource_sharing_plugin";
+
+    public static final String SAMPLE_RESOURCE_PLUGIN_PREFIX = "_plugins/sample_resource_sharing";
+    public static final String SAMPLE_RESOURCE_PLUGIN_API_PREFIX = "/" + SAMPLE_RESOURCE_PLUGIN_PREFIX;
 }

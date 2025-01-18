@@ -21,6 +21,7 @@ import org.opensearch.sample.SampleResource;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 public class CreateResourceRestAction extends BaseRestHandler {
 
@@ -29,8 +30,8 @@ public class CreateResourceRestAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-            new Route(PUT, "/_plugins/sample_resource_sharing/create"),
-            new Route(POST, "/_plugins/sample_resource_sharing/update/{resourceId}")
+            new Route(PUT, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/create"),
+            new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/update/{resourceId}")
         );
     }
 

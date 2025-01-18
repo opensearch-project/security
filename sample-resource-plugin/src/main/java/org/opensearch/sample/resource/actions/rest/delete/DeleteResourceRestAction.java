@@ -18,6 +18,7 @@ import org.opensearch.rest.action.RestToXContentListener;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 public class DeleteResourceRestAction extends BaseRestHandler {
 
@@ -25,7 +26,7 @@ public class DeleteResourceRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(DELETE, "/_plugins/sample_resource_sharing/delete/{resource_id}"));
+        return singletonList(new Route(DELETE, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/delete/{resource_id}"));
     }
 
     @Override
