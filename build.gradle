@@ -402,6 +402,7 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+    extendedPlugins = ['lang-painless']
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -503,6 +504,8 @@ configurations {
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.15.2"
             force "net.bytebuddy:byte-buddy:1.15.11"
+            force "org.ow2.asm:asm:9.7.1"
+            force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
     }
 
@@ -556,6 +559,7 @@ allprojects {
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+        integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
     }
 }
 
@@ -628,6 +632,7 @@ check.dependsOn integrationTest
 
 dependencies {
     implementation project(path: ":opensearch-resource-sharing-spi")
+    implementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
