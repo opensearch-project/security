@@ -2,6 +2,7 @@ package org.opensearch.sample;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +54,16 @@ public class SampleResourcePluginTests {
         .users(USER_ADMIN, SHARED_WITH_USER)
         .build();
 
+    @After
+    public void clearIndices() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.delete(RESOURCE_INDEX_NAME);
+            client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
+            OpenSearchSecurityPlugin.getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
+            OpenSearchSecurityPlugin.getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
+        }
+    }
+
     @Test
     public void testPluginInstalledCorrectly() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -73,7 +84,6 @@ public class SampleResourcePluginTests {
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-            Thread.sleep(2000);
         }
 
         // Create an entry in resource-sharing index
@@ -101,16 +111,15 @@ public class SampleResourcePluginTests {
             );
             OpenSearchSecurityPlugin.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
-            Thread.sleep(1000);
+            Thread.sleep(3000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
+            response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
             assertThat(response.getBody(), containsString("sample"));
         }
 
         // Update sample resource (admin should be able to update resource)
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
-
             String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             updateResponse.assertStatusCode(HttpStatus.SC_OK);
@@ -164,31 +173,14 @@ public class SampleResourcePluginTests {
         // share resource with shared_with user
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             Thread.sleep(1000);
-            String shareWithPayload = "{"
-                + "\"resource_id\":\""
-                + resourceId
-                + "\","
-                + "\"resource_index\":\""
-                + RESOURCE_INDEX_NAME
-                + "\","
-                + "\"share_with\":{"
-                + "\""
-                + SampleResourceScope.PUBLIC.value()
-                + "\":{"
-                + "\"users\": [\""
-                + SHARED_WITH_USER.getName()
-                + "\"]"
-                + "}"
-                + "}"
-                + "}";
-            HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload);
+
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("message").asText(), containsString(resourceId));
         }
 
         // resource should now be visible to shared_with_user
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            Thread.sleep(3000); // allow changes to be reflected
             HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
@@ -197,7 +189,6 @@ public class SampleResourcePluginTests {
 
         // resource is still visible to super-admin
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-
             HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
@@ -206,7 +197,6 @@ public class SampleResourcePluginTests {
 
         // verify access
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            Thread.sleep(1000);
             String verifyAccessPayload = "{\"resource_id\":\""
                 + resourceId
                 + "\",\"resource_index\":\""
@@ -221,25 +211,7 @@ public class SampleResourcePluginTests {
 
         // shared_with user should not be able to revoke access to admin's resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            Thread.sleep(1000);
-            String revokePayload = "{"
-                + "\"resource_id\": \""
-                + resourceId
-                + "\","
-                + "\"resource_index\": \""
-                + RESOURCE_INDEX_NAME
-                + "\","
-                + "\"entities\": {"
-                + "\"users\": [\""
-                + SHARED_WITH_USER.getName()
-                + "\"]"
-                + "},"
-                + "\"scopes\": [\""
-                + ResourceAccessScope.PUBLIC
-                + "\"]"
-                + "}";
-
-            HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokePayload);
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokeAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             assertThat(response.bodyAsJsonNode().toString(), containsString("User " + SHARED_WITH_USER.getName() + " is not authorized"));
             // TODO these tests must check for unauthorized instead of internal-server-error
@@ -247,34 +219,15 @@ public class SampleResourcePluginTests {
             // assertThat(response.bodyAsJsonNode().get("message").asText(), containsString("User is not authorized"));
         }
 
-        // revoke share_wit_user's access
+        // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
-            String revokePayload = "{"
-                + "\"resource_id\": \""
-                + resourceId
-                + "\","
-                + "\"resource_index\": \""
-                + RESOURCE_INDEX_NAME
-                + "\","
-                + "\"entities\": {"
-                + "\"users\": [\""
-                + SHARED_WITH_USER.getName()
-                + "\"]"
-                + "},"
-                + "\"scopes\": [\""
-                + ResourceAccessScope.PUBLIC
-                + "\"]"
-                + "}";
-
-            HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokePayload);
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokeAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().toString(), containsString("Resource " + resourceId + " access revoked successfully."));
         }
 
         // verify access - share_with_user should no longer have access to admin's resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            Thread.sleep(1000);
             String verifyAccessPayload = "{\"resource_id\":\""
                 + resourceId
                 + "\",\"resource_index\":\""
@@ -291,7 +244,6 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
-            Thread.sleep(2000);
         }
 
         // corresponding entry should be removed from resource-sharing index
@@ -308,4 +260,129 @@ public class SampleResourcePluginTests {
     }
 
     // TODO add test case for updating the resource directly
+    @Test
+    public void testDLSRestrictionForResourceByDirectlyUpdatingTheResourceIndex() throws Exception {
+        String resourceId;
+        // create sample resource
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            String sampleResource = "{\"name\":\"sample\"}";
+            HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sampleResource);
+            response.assertStatusCode(HttpStatus.SC_CREATED);
+
+            resourceId = response.bodyAsJsonNode().get("_id").asText();
+        }
+
+        // Create an entry in resource-sharing index
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
+            String json = String.format(
+                "{"
+                    + "  \"source_idx\": \".sample_resource_sharing_plugin\","
+                    + "  \"resource_id\": \"%s\","
+                    + "  \"created_by\": {"
+                    + "    \"user\": \"admin\""
+                    + "  }"
+                    + "}",
+                resourceId
+            );
+            HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
+            assertThat(response.getStatusReason(), containsString("Created"));
+            // Also update the in-memory map and list
+            OpenSearchSecurityPlugin.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            ResourceProvider provider = new ResourceProvider(
+                SampleResource.class.getCanonicalName(),
+                RESOURCE_INDEX_NAME,
+                new SampleResourceParser()
+            );
+            OpenSearchSecurityPlugin.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+
+            Thread.sleep(1000);
+        }
+
+        // resource is still visible to super-admin
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+
+            HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_search", "{\"query\" : {\"match_all\" : {}}}");
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
+            assertThat(response.getBody(), containsString("sample"));
+        }
+
+        String updatePayload = "{" + "\"doc\": {" + "\"name\": \"sampleUpdated\"" + "}" + "}";
+
+        // Update sample resource with shared_with user. This will fail since the resource has not been shared
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse updateResponse = client.postJson(RESOURCE_INDEX_NAME + "/_update/" + resourceId, updatePayload);
+            // it will show not found since the resource is not visible to shared_with_user
+            updateResponse.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+        }
+
+        // Admin is still allowed to update its own resource
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse updateResponse = client.postJson(RESOURCE_INDEX_NAME + "/_update/" + resourceId, updatePayload);
+            // it will show not found since the resource is not visible to shared_with_user
+            updateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(updateResponse.bodyAsJsonNode().get("_shards").get("successful").asInt(), equalTo(1));
+        }
+
+        // Verify that share_with user does not have access to the resource
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse getResponse = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            // it will show not found since the resource is not visible to shared_with_user
+            getResponse.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+        }
+
+        // share the resource with shared_with_user
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload(resourceId));
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Verify that share_with user now has access to the resource
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse getResponse = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            // it will show not found since the resource is not visible to shared_with_user
+            getResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(getResponse.getBody(), containsString("sampleUpdated"));
+        }
+    }
+
+    private static String shareWithPayload(String resourceId) {
+        return "{"
+            + "\"resource_id\":\""
+            + resourceId
+            + "\","
+            + "\"resource_index\":\""
+            + RESOURCE_INDEX_NAME
+            + "\","
+            + "\"share_with\":{"
+            + "\""
+            + SampleResourceScope.PUBLIC.value()
+            + "\":{"
+            + "\"users\": [\""
+            + SHARED_WITH_USER.getName()
+            + "\"]"
+            + "}"
+            + "}"
+            + "}";
+    }
+
+    private static String revokeAccessPayload(String resourceId) {
+        return "{"
+            + "\"resource_id\": \""
+            + resourceId
+            + "\","
+            + "\"resource_index\": \""
+            + RESOURCE_INDEX_NAME
+            + "\","
+            + "\"entities\": {"
+            + "\"users\": [\""
+            + SHARED_WITH_USER.getName()
+            + "\"]"
+            + "},"
+            + "\"scopes\": [\""
+            + ResourceAccessScope.PUBLIC
+            + "\"]"
+            + "}";
+    }
 }

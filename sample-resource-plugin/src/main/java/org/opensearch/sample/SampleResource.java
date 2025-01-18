@@ -23,6 +23,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.Resource;
 
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
+import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
 public class SampleResource extends Resource {
 
@@ -61,8 +62,8 @@ public class SampleResource extends Resource {
 
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
-        PARSER.declareStringOrNull(constructorArg(), new ParseField("description"));
-        PARSER.declareObjectOrNull(constructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
+        PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("description"));
+        PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
     }
 
     public static SampleResource fromXContent(XContentParser parser) throws IOException {
