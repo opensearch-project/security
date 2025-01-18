@@ -632,7 +632,7 @@ check.dependsOn integrationTest
 
 dependencies {
     implementation project(path: ":opensearch-resource-sharing-spi")
-    implementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
+    compileOnly "org.opensearch.plugin:lang-painless:${opensearch_version}"
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
