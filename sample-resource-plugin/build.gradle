@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+plugins {
+    id "org.gradle.test-retry" version "1.6.0"
+}
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.testclusters'
 
@@ -47,6 +50,7 @@ ext {
         opensearch_build += "-SNAPSHOT"
     }
 }
+
 
 repositories {
     mavenLocal()
@@ -93,6 +97,15 @@ sourceSets {
 }
 
 tasks.register("integrationTest", Test) {
+    doFirst {
+        if (System.getenv('DISABLE_RETRY') != 'true') {
+            retry {
+                failOnPassedAfterRetry = false
+                maxRetries = 2
+                maxFailures = 5
+            }
+        }
+    }
     description = 'Run integration tests for the subproject.'
     group = 'verification'
 

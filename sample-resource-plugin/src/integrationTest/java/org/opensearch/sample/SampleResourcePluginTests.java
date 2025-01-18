@@ -111,7 +111,7 @@ public class SampleResourcePluginTests {
             );
             OpenSearchSecurityPlugin.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
-            Thread.sleep(3000);
+            Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
@@ -221,6 +221,7 @@ public class SampleResourcePluginTests {
 
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            Thread.sleep(1000);
             HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokeAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().toString(), containsString("Resource " + resourceId + " access revoked successfully."));
