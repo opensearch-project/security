@@ -74,7 +74,7 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
-                creatorType = Creator.valueOf(parser.currentName());
+                creatorType = Creator.fromName(parser.currentName());
             } else if (token == XContentParser.Token.VALUE_STRING) {
                 creator = parser.text();
             }

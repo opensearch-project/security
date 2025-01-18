@@ -20,4 +20,13 @@ public enum Creator {
     public String getName() {
         return name;
     }
+
+    public static Creator fromName(String name) {
+        for (Creator creator : values()) {
+            if (creator.name.equalsIgnoreCase(name)) { // Case-insensitive comparison
+                return creator;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant for name: " + name);
+    }
 }

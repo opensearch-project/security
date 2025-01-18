@@ -12,18 +12,10 @@ package org.opensearch.security.resources;
  * This class determines a type of recipient a resource can be shared with.
  * An example type would be a user or a role.
  * This class is used to determine the type of recipient a resource can be shared with.
+ *
  * @opensearch.experimental
  */
-public class RecipientType {
-    private final String type;
-
-    public RecipientType(String type) {
-        this.type = type;
-    }
-
-    public String getType() {
-        return type;
-    }
+public record RecipientType(String type) {
 
     @Override
     public String toString() {

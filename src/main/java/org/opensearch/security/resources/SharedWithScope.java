@@ -150,7 +150,7 @@ public class SharedWithScope implements ToXContentFragment, NamedWriteable {
         public void writeTo(StreamOutput out) throws IOException {
             out.writeMap(
                 recipients,
-                (streamOutput, recipientType) -> streamOutput.writeString(recipientType.getType()),
+                (streamOutput, recipientType) -> streamOutput.writeString(recipientType.type()),
                 (streamOutput, strings) -> streamOutput.writeCollection(strings, StreamOutput::writeString)
             );
         }
@@ -161,7 +161,7 @@ public class SharedWithScope implements ToXContentFragment, NamedWriteable {
                 return builder;
             }
             for (Map.Entry<RecipientType, Set<String>> entry : recipients.entrySet()) {
-                builder.array(entry.getKey().getType(), entry.getValue().toArray());
+                builder.array(entry.getKey().type(), entry.getValue().toArray());
             }
             return builder;
         }

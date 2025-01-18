@@ -50,7 +50,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         out.writeString(resourceIndex);
         out.writeMap(
             revokeAccess,
-            (streamOutput, recipientType) -> streamOutput.writeString(recipientType.getType()),
+            (streamOutput, recipientType) -> streamOutput.writeString(recipientType.type()),
             StreamOutput::writeStringCollection
         );
         out.writeStringCollection(scopes);

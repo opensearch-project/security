@@ -855,7 +855,9 @@ public class ResourceSharingIndexHandler {
             if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-                throw new ResourceSharingException("User " + requestUserName + " is not authorized to share resource " + resourceId);
+                listener.onFailure(
+                    new ResourceSharingException("User " + requestUserName + " is not authorized to share resource " + resourceId)
+                );
             }
 
             Script updateScript = new Script(ScriptType.INLINE, "painless", """
@@ -1099,14 +1101,16 @@ public class ResourceSharingIndexHandler {
             currentSharingListener.whenComplete(currentSharingInfo -> {
                 // Only admin or the creator of the resource is currently allowed to revoke access
                 if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
-                    throw new ResourceSharingException(
-                        "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
+                    listener.onFailure(
+                        new ResourceSharingException(
+                            "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
+                        )
                     );
                 }
 
                 Map<String, Object> revoke = new HashMap<>();
                 for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
-                    revoke.put(entry.getKey().getType().toLowerCase(), new ArrayList<>(entry.getValue()));
+                    revoke.put(entry.getKey().type().toLowerCase(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> scopesToUse = (scopes != null) ? new ArrayList<>(scopes) : new ArrayList<>();
 

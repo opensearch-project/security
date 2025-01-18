@@ -139,7 +139,7 @@ public class ResourceAccessHandler {
             ownResources -> loadSharedWithResources(
                 resourceIndex,
                 Set.of(user.getName()),
-                Recipient.USERS.toString(),
+                Recipient.USERS.getName(),
                 userNameResourcesListener
             ),
             listener::onFailure
@@ -150,7 +150,7 @@ public class ResourceAccessHandler {
             userNameResources -> loadSharedWithResources(
                 resourceIndex,
                 user.getSecurityRoles(),
-                Recipient.ROLES.toString(),
+                Recipient.ROLES.getName(),
                 rolesResourcesListener
             ),
             listener::onFailure
@@ -161,7 +161,7 @@ public class ResourceAccessHandler {
             rolesResources -> loadSharedWithResources(
                 resourceIndex,
                 user.getRoles(),
-                Recipient.BACKEND_ROLES.toString(),
+                Recipient.BACKEND_ROLES.getName(),
                 backendRolesResourcesListener
             ),
             listener::onFailure

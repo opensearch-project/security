@@ -26,7 +26,7 @@ public class RecipientTypeRegistryTests extends SingleClusterTest {
         // Valid Value
         RecipientType type = RecipientTypeRegistry.fromValue("ble1");
         MatcherAssert.assertThat(type, notNullValue());
-        MatcherAssert.assertThat(type.getType(), is(equalTo("ble1")));
+        MatcherAssert.assertThat(type.type(), is(equalTo("ble1")));
 
         // Invalid Value
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> RecipientTypeRegistry.fromValue("bleble"));
