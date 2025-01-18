@@ -61,7 +61,7 @@ public class SampleResource extends Resource {
 
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
-        PARSER.declareString(constructorArg(), new ParseField("description"));
+        PARSER.declareStringOrNull(constructorArg(), new ParseField("description"));
         PARSER.declareObjectOrNull(constructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
     }
 
