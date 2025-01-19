@@ -190,7 +190,7 @@ import org.opensearch.security.rest.SecurityHealthAction;
 import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
-import org.opensearch.security.rest.resources.access.ResourceApiAction;
+import org.opensearch.security.rest.resources.access.ResourceAccessRestAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -689,7 +689,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
                 )) {
-                    handlers.add(new ResourceApiAction(resourceAccessHandler));
+                    handlers.add(new ResourceAccessRestAction(resourceAccessHandler));
                 }
                 log.debug("Added {} rest handler(s)", handlers.size());
             }

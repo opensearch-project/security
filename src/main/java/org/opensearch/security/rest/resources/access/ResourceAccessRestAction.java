@@ -47,12 +47,15 @@ import static org.opensearch.security.dlic.rest.api.Responses.unauthorized;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class ResourceApiAction extends BaseRestHandler {
-    private static final Logger LOGGER = LogManager.getLogger(ResourceApiAction.class);
+/**
+ * This class handles the REST API for resource access management.
+ */
+public class ResourceAccessRestAction extends BaseRestHandler {
+    private static final Logger LOGGER = LogManager.getLogger(ResourceAccessRestAction.class);
 
     private final ResourceAccessHandler resourceAccessHandler;
 
-    public ResourceApiAction(ResourceAccessHandler resourceAccessHandler) {
+    public ResourceAccessRestAction(ResourceAccessHandler resourceAccessHandler) {
         this.resourceAccessHandler = resourceAccessHandler;
     }
 
@@ -87,10 +90,19 @@ public class ResourceApiAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Consume params early to avoid 400s.
+     * @param request from which the params must be consumed
+     */
     private void consumeParams(RestRequest request) {
         request.param("resourceIndex", "");
     }
 
+    /**
+     * Handle the list resources request.
+     * @param request the request to handle
+     * @param channel the channel to send the response to
+     */
     private void handleListResources(RestRequest request, RestChannel channel) {
         String resourceIndex = request.param("resourceIndex", "");
         resourceAccessHandler.getAccessibleResourcesForCurrentUser(
@@ -99,6 +111,12 @@ public class ResourceApiAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Handle the share resource request.
+     * @param request the request to handle
+     * @param channel the channel to send the response to
+     * @throws IOException if an I/O error occurs
+     */
     private void handleShareResource(RestRequest request, RestChannel channel) throws IOException {
         Map<String, Object> source;
         try (XContentParser parser = request.contentParser()) {
@@ -116,6 +134,12 @@ public class ResourceApiAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Handle the revoke resource request.
+     * @param request the request to handle
+     * @param channel the channel to send the response to
+     * @throws IOException if an I/O error occurs
+     */
     @SuppressWarnings("unchecked")
     private void handleRevokeResource(RestRequest request, RestChannel channel) throws IOException {
         Map<String, Object> source;
@@ -140,6 +164,12 @@ public class ResourceApiAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Handle the verify request.
+     * @param request the request to handle
+     * @param channel the channel to send the response to
+     * @throws IOException if an I/O error occurs
+     */
     private void handleVerifyRequest(RestRequest request, RestChannel channel) throws IOException {
         Map<String, Object> source;
         try (XContentParser parser = request.contentParser()) {
@@ -158,9 +188,14 @@ public class ResourceApiAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Parse the share with structure from the request body.
+     * @param source the request body
+     * @return the parsed ShareWith object
+     * @throws IOException if an I/O error occurs
+     */
     @SuppressWarnings("unchecked")
     private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
-        // Parse request body into ShareWith object
         Map<String, Object> shareWithMap = (Map<String, Object>) source.get("share_with");
         if (shareWithMap == null || shareWithMap.isEmpty()) {
             throw new IllegalArgumentException("share_with is required and cannot be empty");
@@ -178,18 +213,30 @@ public class ResourceApiAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Send the appropriate response to the channel.
+     * @param channel the channel to send the response to
+     * @param response the response to send
+     * @throws IOException if an I/O error occurs
+     */
     @SuppressWarnings("unchecked")
     private void sendResponse(RestChannel channel, Object response) throws IOException {
-        if (response instanceof Set) {
+        if (response instanceof Set) { // list
             Set<Resource> resources = (Set<Resource>) response;
             ok(channel, (builder, params) -> builder.startObject().field("resources", resources).endObject());
-        } else if (response instanceof ResourceSharing resourceSharing) {
+        } else if (response instanceof ResourceSharing resourceSharing) { // share & revoke
             ok(channel, (resourceSharing::toXContent));
-        } else if (response instanceof Boolean) {
+        } else if (response instanceof Boolean) { // verify_access
             ok(channel, (builder, params) -> builder.startObject().field("has_permission", String.valueOf(response)).endObject());
         }
     }
 
+    /**
+     * Handle errors that occur during request processing.
+     * @param channel the channel to send the error response to
+     * @param message the error message
+     * @param e the exception that caused the error
+     */
     private void handleError(RestChannel channel, String message, Exception e) {
         LOGGER.error(message, e);
         if (message.contains("not authorized")) {
