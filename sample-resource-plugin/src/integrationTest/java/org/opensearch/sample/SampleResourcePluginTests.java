@@ -17,8 +17,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -131,11 +130,11 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
 
             HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload(resourceId));
-            response.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            assertThat(response.bodyAsJsonNode().toString(), containsString("User " + SHARED_WITH_USER.getName() + " is not authorized"));
-            // TODO these tests must check for unauthorized instead of internal-server-error
-            // response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
-            // assertThat(response.bodyAsJsonNode().get("message").asText(), containsString("User is not authorized"));
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+            assertThat(
+                response.bodyAsJsonNode().get("message").asText(),
+                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
+            );
         }
 
         // share resource with shared_with user
@@ -144,7 +143,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
 
             HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("message").asText(), containsString(resourceId));
+            assertThat(
+                response.bodyAsJsonNode().get("share_with").get(SampleResourceScope.PUBLIC.value()).get("users").get(0).asText(),
+                containsString(SHARED_WITH_USER.getName())
+            );
         }
 
         // resource should now be visible to shared_with_user
@@ -174,17 +176,17 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
                 + "\"}";
             HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("User has requested scope " + ResourceAccessScope.PUBLIC + " access"));
+            assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(true));
         }
 
         // shared_with user should not be able to revoke access to admin's resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokeAccessPayload(resourceId));
-            response.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            assertThat(response.bodyAsJsonNode().toString(), containsString("User " + SHARED_WITH_USER.getName() + " is not authorized"));
-            // TODO these tests must check for unauthorized instead of internal-server-error
-            // response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
-            // assertThat(response.bodyAsJsonNode().get("message").asText(), containsString("User is not authorized"));
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+            assertThat(
+                response.bodyAsJsonNode().get("message").asText(),
+                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
+            );
         }
 
         // revoke share_with_user's access
@@ -192,7 +194,7 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             Thread.sleep(1000);
             HttpResponse response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, revokeAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().toString(), containsString("Resource " + resourceId + " access revoked successfully."));
+            assertThat(response.bodyAsJsonNode().get("share_with"), nullValue());
         }
 
         // verify access - share_with_user should no longer have access to admin's resource
@@ -206,7 +208,7 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
                 + "\"}";
             HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("User does not have requested scope " + ResourceAccessScope.PUBLIC + " access"));
+            assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(false));
         }
 
         // delete sample resource

@@ -105,17 +105,7 @@ public class ResourceAccessHandler {
 
         // 2. If the user is admin, simply fetch all resources
         if (adminDNs.isAdmin(user)) {
-            loadAllResources(resourceIndex, new ActionListener<>() {
-                @Override
-                public void onResponse(Set<String> allResources) {
-                    listener.onResponse(allResources);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            });
+            loadAllResources(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return null;
         }
 
