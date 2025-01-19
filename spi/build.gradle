@@ -69,7 +69,7 @@ publishing {
     }
     repositories {
         maven {
-            name = "Snapshots" //  optional target repository name
+            name = "Snapshots"
             url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
             credentials {
                 username "$System.env.SONATYPE_USERNAME"
