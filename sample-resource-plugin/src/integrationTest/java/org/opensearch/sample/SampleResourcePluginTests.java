@@ -26,11 +26,11 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
- * These tests run with security enabled
+ * These tests run with resource sharing enabled
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginWithSecurityTests {
+public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -131,24 +131,7 @@ public class SampleResourcePluginWithSecurityTests {
         // shared_with_user should not be able to share admin's resource with itself
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
 
-            String shareWithPayload = "{"
-                + "\"resource_id\":\""
-                + resourceId
-                + "\","
-                + "\"resource_index\":\""
-                + RESOURCE_INDEX_NAME
-                + "\","
-                + "\"share_with\":{"
-                + "\""
-                + SampleResourceScope.PUBLIC.value()
-                + "\":{"
-                + "\"users\": [\""
-                + SHARED_WITH_USER.getName()
-                + "\"]"
-                + "}"
-                + "}"
-                + "}";
-            HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload);
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, shareWithPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             assertThat(response.bodyAsJsonNode().toString(), containsString("User " + SHARED_WITH_USER.getName() + " is not authorized"));
             // TODO these tests must check for unauthorized instead of internal-server-error
@@ -190,7 +173,7 @@ public class SampleResourcePluginWithSecurityTests {
                 + "\",\"scope\":\""
                 + ResourceAccessScope.PUBLIC
                 + "\"}";
-            HttpResponse response = client.getWithJsonBody(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("User has requested scope " + ResourceAccessScope.PUBLIC + " access"));
         }
@@ -222,7 +205,7 @@ public class SampleResourcePluginWithSecurityTests {
                 + "\",\"scope\":\""
                 + ResourceAccessScope.PUBLIC
                 + "\"}";
-            HttpResponse response = client.getWithJsonBody(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
+            HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("User does not have requested scope " + ResourceAccessScope.PUBLIC + " access"));
         }
@@ -246,7 +229,6 @@ public class SampleResourcePluginWithSecurityTests {
         }
     }
 
-    // TODO add test case for updating the resource directly
     @Test
     public void testDLSRestrictionForResourceByDirectlyUpdatingTheResourceIndex() throws Exception {
         String resourceId;
@@ -334,42 +316,4 @@ public class SampleResourcePluginWithSecurityTests {
         }
     }
 
-    private static String shareWithPayload(String resourceId) {
-        return "{"
-            + "\"resource_id\":\""
-            + resourceId
-            + "\","
-            + "\"resource_index\":\""
-            + RESOURCE_INDEX_NAME
-            + "\","
-            + "\"share_with\":{"
-            + "\""
-            + SampleResourceScope.PUBLIC.value()
-            + "\":{"
-            + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
-            + "\"]"
-            + "}"
-            + "}"
-            + "}";
-    }
-
-    private static String revokeAccessPayload(String resourceId) {
-        return "{"
-            + "\"resource_id\": \""
-            + resourceId
-            + "\","
-            + "\"resource_index\": \""
-            + RESOURCE_INDEX_NAME
-            + "\","
-            + "\"entities\": {"
-            + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
-            + "\"]"
-            + "},"
-            + "\"scopes\": [\""
-            + ResourceAccessScope.PUBLIC
-            + "\"]"
-            + "}";
-    }
 }
