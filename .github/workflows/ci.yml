@@ -122,7 +122,7 @@ jobs:
       with:
         cache-disabled: true
         arguments: |
-          integrationTest -Dbuild.snapshot=false
+          :integrationTest -Dbuild.snapshot=false
 
     - name: Run SampleResourcePlugin Integration Tests
       uses: gradle/gradle-build-action@v3
@@ -169,7 +169,7 @@ jobs:
       with:
         cache-disabled: true
         arguments: |
-            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+            :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
   backward-compatibility-build:
     runs-on: ubuntu-latest
@@ -248,12 +248,6 @@ jobs:
           security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
           security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
           test_qualifier=alpha2
-
-          # Export variables to GitHub Environment
-          echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
-          echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
-          echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV
-          echo "TEST_QUALIFIER=$test_qualifier" >> $GITHUB_ENV
 
           # Debug print versions
           echo "Versions:"
