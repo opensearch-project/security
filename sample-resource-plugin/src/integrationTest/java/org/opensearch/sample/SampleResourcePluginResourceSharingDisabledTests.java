@@ -4,7 +4,9 @@ import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
-import org.junit.*;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;

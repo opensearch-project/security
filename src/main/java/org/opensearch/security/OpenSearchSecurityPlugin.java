@@ -190,13 +190,10 @@ import org.opensearch.security.rest.SecurityHealthAction;
 import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
+import org.opensearch.security.rest.resources.access.RestResourceAccessAction;
 import org.opensearch.security.rest.resources.access.list.ListAccessibleResourcesAction;
-import org.opensearch.security.rest.resources.access.list.RestListAccessibleResourcesAction;
-import org.opensearch.security.rest.resources.access.revoke.RestRevokeResourceAccessAction;
 import org.opensearch.security.rest.resources.access.revoke.RevokeResourceAccessAction;
-import org.opensearch.security.rest.resources.access.share.RestShareResourceAction;
 import org.opensearch.security.rest.resources.access.share.ShareResourceAction;
-import org.opensearch.security.rest.resources.access.verify.RestVerifyResourceAccessAction;
 import org.opensearch.security.rest.resources.access.verify.VerifyResourceAccessAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -700,14 +697,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
                 )) {
-                    handlers.addAll(
-                        List.of(
-                            new RestShareResourceAction(),
-                            new RestRevokeResourceAccessAction(),
-                            new RestListAccessibleResourcesAction(),
-                            new RestVerifyResourceAccessAction()
-                        )
-                    );
+                    handlers.add(new RestResourceAccessAction());
                 }
                 log.debug("Added {} rest handler(s)", handlers.size());
             }
