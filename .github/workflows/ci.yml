@@ -111,18 +111,18 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v4
 
+    - name: Publish SPI to Local Maven
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-disabled: true
+        arguments: :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
+
     - name: Run Integration Tests
       uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
           integrationTest -Dbuild.snapshot=false
-
-    - name: Publish SPI to Local Maven
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Run SampleResourcePlugin Integration Tests
       uses: gradle/gradle-build-action@v3
@@ -157,6 +157,12 @@ jobs:
 
     - name: Checkout security
       uses: actions/checkout@v4
+
+    - name: Publish SPI to Local Maven
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-disabled: true
+        arguments: :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Run Resource Tests
       uses: gradle/gradle-build-action@v3
@@ -284,6 +290,6 @@ jobs:
           test -s ./build/distributions/opensearch-security-$security_plugin_version.pom && \
           test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version.pom
 
-          - name: List files in build directory on failure
-            if: failure()
-            run: ls -al ./build/distributions/
+      - name: List files in build directory on failure
+        if: failure()
+        run: ls -al ./build/distributions/
