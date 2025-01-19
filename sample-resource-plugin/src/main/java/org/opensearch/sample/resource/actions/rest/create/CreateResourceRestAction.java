@@ -57,6 +57,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;

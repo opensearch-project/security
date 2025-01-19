@@ -31,12 +31,19 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.resources.*;
+import org.opensearch.security.resources.RecipientType;
+import org.opensearch.security.resources.RecipientTypeRegistry;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceSharing;
+import org.opensearch.security.resources.ShareWith;
 import org.opensearch.security.spi.resources.Resource;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.api.Responses.*;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.unauthorized;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
