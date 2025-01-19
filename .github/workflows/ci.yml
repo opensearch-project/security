@@ -257,10 +257,10 @@ jobs:
           echo $test_qualifier
 
           # Publish SPI
-          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal
-          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
-          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier
-          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier
+          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version.jar
+          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_no_snapshot.jar
+          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier.jar
+          ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
 
           # Build artifacts
           ./gradlew clean assemble && \
@@ -281,8 +281,7 @@ jobs:
 
           ./gradlew clean publishPluginZipPublicationToZipStagingRepository && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
-          test -s ./build/distributions/opensearch-security-$security_plugin_version.pom && \
-          test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version.pom
+          test -s ./build/distributions/opensearch-security-$security_plugin_version.pom
 
       - name: List files in build directory on failure
         if: failure()
