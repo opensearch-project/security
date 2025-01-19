@@ -11,7 +11,6 @@ import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceProvider;
-import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -20,9 +19,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sample.AbstractSampleResourcePluginTests.*;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -32,19 +30,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginTests {
-
-    public final static TestSecurityConfig.User SHARED_WITH_USER = new TestSecurityConfig.User("resource_sharing_test_user").roles(
-        new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*")
-    );
-
-    private static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
-    private static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
-    private static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
-    private static final String SECURITY_RESOURCE_LIST_ENDPOINT = PLUGINS_PREFIX + "/resources/list";
-    private static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGINS_PREFIX + "/resources/share";
-    private static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGINS_PREFIX + "/resources/verify_access";
-    private static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGINS_PREFIX + "/resources/revoke";
+public class SampleResourcePluginWithSecurityTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

@@ -20,7 +20,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 
-import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -30,7 +30,7 @@ public class RestVerifyResourceAccessAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return addRoutesPrefix(ImmutableList.of(new Route(GET, "/resources/verify_access")), PLUGIN_ROUTE_PREFIX);
+        return addRoutesPrefix(ImmutableList.of(new Route(POST, "/resources/verify_access")), PLUGIN_ROUTE_PREFIX);
     }
 
     @Override
