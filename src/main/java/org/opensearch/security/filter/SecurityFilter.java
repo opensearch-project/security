@@ -339,7 +339,6 @@ public class SecurityFilter implements ActionFilter {
                         log.info("Transport auth in passive mode and no user found. Injecting default user");
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                     } else {
                         log.error(
                             "No user found for "

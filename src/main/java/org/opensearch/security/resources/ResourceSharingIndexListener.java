@@ -19,6 +19,7 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -87,8 +88,9 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
         String resourceId = index.id();
 
-        User user = (User) threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
-
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadPool.getThreadContext()
+            .getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        final User user = userSubject.getUser();
         try {
             ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
                 resourceId,
