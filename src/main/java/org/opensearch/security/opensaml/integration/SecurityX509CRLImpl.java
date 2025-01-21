@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 
-import net.shibboleth.utilities.java.support.collection.IndexingObjectStore;
+import net.shibboleth.shared.collection.IndexingObjectStore;
 import org.opensaml.core.xml.AbstractXMLObject;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.xmlsec.signature.X509CRL;
