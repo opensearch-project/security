@@ -32,6 +32,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -40,6 +41,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.quality.Strictness;
@@ -149,6 +151,8 @@ public class RestLayerPrivilegesEvaluatorTest {
     }
 
     PrivilegesEvaluator createPrivilegesEvaluator(SecurityDynamicConfiguration<RoleV7> roles) {
+        ApiTokenRepository mockApiTokenRepository = mock(ApiTokenRepository.class);
+        when(mockApiTokenRepository.getApiTokenPermissionsForUser(ArgumentMatchers.any())).thenReturn(new Permissions());
         PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
             clusterService,
             () -> clusterService.state(),
@@ -162,7 +166,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             null,
             null,
             null,
-            mock(ApiTokenRepository.class)
+            mockApiTokenRepository
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);
