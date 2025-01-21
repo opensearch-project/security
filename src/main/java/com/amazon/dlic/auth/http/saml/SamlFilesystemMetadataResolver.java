@@ -20,7 +20,7 @@ import java.security.PrivilegedExceptionAction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import net.shibboleth.shared.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
 
 public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
@@ -33,12 +33,7 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
     @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
-                @Override
-                public byte[] run() throws ResolverException {
-                    return SamlFilesystemMetadataResolver.super.fetchMetadata();
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) SamlFilesystemMetadataResolver.super::fetchMetadata);
         } catch (PrivilegedActionException e) {
 
             if (e.getCause() instanceof ResolverException) {

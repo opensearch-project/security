@@ -17,7 +17,7 @@ import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.shibboleth.utilities.java.support.primitive.StringSupport;
+import net.shibboleth.shared.primitive.StringSupport;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.xml.config.XMLConfigurationException;
 import org.opensaml.core.xml.config.XMLConfigurator;
