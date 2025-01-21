@@ -22,7 +22,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -32,7 +32,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class IndexPatternTest {
     final static int CURRENT_YEAR = ZonedDateTime.now().get(ChronoField.YEAR);
@@ -249,7 +248,7 @@ public class IndexPatternTest {
             indexResolverReplacer,
             indexNameExpressionResolver,
             () -> CLUSTER_STATE,
-            mock(ApiTokenRepository.class)
+            new Permissions()
         );
     }
 }

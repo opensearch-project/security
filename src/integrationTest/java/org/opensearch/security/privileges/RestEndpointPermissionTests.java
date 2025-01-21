@@ -44,7 +44,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.PermissionBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -57,7 +57,6 @@ import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvalua
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.mockito.Mockito.mock;
 
 /**
  * Moved from https://github.com/opensearch-project/security/blob/54361468f5c4b3a57f3ecffaf1bbe8dccee562be/src/test/java/org/opensearch/security/securityconf/SecurityRolesPermissionsTest.java
@@ -262,7 +261,7 @@ public class RestEndpointPermissionTests {
             null,
             null,
             null,
-            mock(ApiTokenRepository.class)
+            new Permissions()
         );
     }
 

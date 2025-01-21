@@ -487,7 +487,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             // Check for pattern matches (like "cluster:*")
             for (String permission : resolvedClusterPermissions) {
                 // skip pure *, which was evaluated above
-                if (permission != "*") {
+                if (!"*".equals(permission)) {
                     // Skip exact matches as we already checked those
                     if (!permission.contains("*")) {
                         continue;

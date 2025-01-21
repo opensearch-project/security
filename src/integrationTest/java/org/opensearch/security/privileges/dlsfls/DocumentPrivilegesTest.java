@@ -51,7 +51,7 @@ import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -69,7 +69,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for the DocumentPrivileges class and the underlying AbstractRuleBasedPrivileges class. As these classes
@@ -529,7 +528,7 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                mock(ApiTokenRepository.class)
+                new Permissions()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -845,7 +844,7 @@ public class DocumentPrivilegesTest {
                 RESOLVER_REPLACER,
                 INDEX_NAME_EXPRESSION_RESOLVER,
                 () -> CLUSTER_STATE,
-                mock(ApiTokenRepository.class)
+                new Permissions()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1131,7 +1130,7 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                mock(ApiTokenRepository.class)
+                new Permissions()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1161,7 +1160,7 @@ public class DocumentPrivilegesTest {
                         null,
                         null,
                         null,
-                        mock(ApiTokenRepository.class)
+                        new Permissions()
                     )
                 );
         }

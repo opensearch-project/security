@@ -318,7 +318,7 @@ public class PrivilegesEvaluator {
             irr,
             resolver,
             clusterStateSupplier,
-            apiTokenRepository
+            apiTokenRepository.getApiTokenPermissionsForUser(user)
         );
     }
 

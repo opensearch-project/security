@@ -63,7 +63,7 @@ public class JwtVendorTest {
     public void testCreateJwkFromSettings() {
         final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
-        final Tuple<JWK, JWSSigner> jwk = OBOJwtVendor.createJwkFromSettings(settings);
+        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
         assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
         assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
         Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
@@ -72,14 +72,14 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> OBOJwtVendor.createJwkFromSettings(settings));
+        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> OBOJwtVendor.createJwkFromSettings(settings));
+        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
@@ -87,7 +87,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithRoles() throws Exception {
+    public void testCreateOBOJwtWithRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -100,8 +100,8 @@ public class JwtVendorTest {
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
-        OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createOBOJwt(
             issuer,
             subject,
             audience,
@@ -126,7 +126,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithBackendRolesIncluded() throws Exception {
+    public void testCreateOBOJwtWithBackendRolesIncluded() throws Exception {
         final String issuer = "cluster_0";
         final String subject = "admin";
         final String audience = "audience_0";
@@ -145,8 +145,8 @@ public class JwtVendorTest {
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
             // CS-ENFORCE-SINGLE
             .build();
-        final OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createOBOJwt(
             issuer,
             subject,
             audience,
@@ -171,7 +171,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithNegativeExpiry() {
+    public void testCreateOBOJwtWithNegativeExpiry() {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -179,11 +179,11 @@ public class JwtVendorTest {
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.empty());
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.empty());
 
         final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                OBOJwtVendor.createOBOJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -192,7 +192,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithExceededExpiry() throws Exception {
+    public void testCreateOBOJwtWithExceededExpiry() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -202,9 +202,9 @@ public class JwtVendorTest {
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
-        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createOBOJwt(
             issuer,
             subject,
             audience,
@@ -219,7 +219,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithBadEncryptionKey() {
+    public void testCreateOBOJwtWithBadEncryptionKey() {
         final String issuer = "cluster_0";
         final String subject = "admin";
         final String audience = "audience_0";
@@ -230,7 +230,7 @@ public class JwtVendorTest {
 
         final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                new OBOJwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                new JwtVendor(settings, Optional.empty()).createOBOJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -239,7 +239,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithBadRoles() {
+    public void testCreateOBOJwtWithBadRoles() {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -247,11 +247,11 @@ public class JwtVendorTest {
         Integer expirySeconds = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.empty());
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.empty());
 
         final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                OBOJwtVendor.createOBOJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -260,12 +260,12 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtLogsCorrectly() throws Exception {
+    public void testCreateOBOJwtLogsCorrectly() throws Exception {
         mockAppender = mock(Appender.class);
         logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
         when(mockAppender.getName()).thenReturn("MockAppender");
         when(mockAppender.isStarted()).thenReturn(true);
-        final Logger logger = (Logger) LogManager.getLogger(OBOJwtVendor.class);
+        final Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
         logger.addAppender(mockAppender);
         logger.setLevel(Level.DEBUG);
 
@@ -281,9 +281,9 @@ public class JwtVendorTest {
         final List<String> backendRoles = List.of("Sales", "Support");
         final int expirySeconds = 300;
 
-        final OBOJwtVendor OBOJwtVendor = new OBOJwtVendor(settings, Optional.of(currentTime));
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
-        OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        OBOJwtVendor.createOBOJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
         verify(mockAppender, times(1)).append(logEventCaptor.capture());
 
@@ -296,7 +296,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtForApiTokenSuccess() throws Exception {
+    public void testCreateOBOJwtForApiTokenSuccess() throws Exception {
         final String issuer = "cluster_0";
         final String subject = "test-token";
         final String audience = "test-token";
@@ -304,8 +304,8 @@ public class JwtVendorTest {
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        final ApiTokenJwtVendor apiTokenJwtVendor = new ApiTokenJwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(issuer, subject, audience, Long.MAX_VALUE);
+        final JwtVendor apiTokenJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createApiTokenJwt(issuer, subject, audience, Long.MAX_VALUE);
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -322,7 +322,7 @@ public class JwtVendorTest {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
         Settings settings = Settings.builder().put("signing_key", tooShortKey).put("encryption_key", claimsEncryptionKey).build();
-        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new ApiTokenJwtVendor(settings, Optional.empty()); });
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings, Optional.empty()); });
 
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }

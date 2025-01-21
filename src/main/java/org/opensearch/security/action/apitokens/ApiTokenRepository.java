@@ -37,8 +37,8 @@ public class ApiTokenRepository {
     private final Map<String, Permissions> jtis = new ConcurrentHashMap<>();
 
     void reloadApiTokensFromIndex() {
-        jtis.clear();
         Map<String, ApiToken> tokensFromIndex = apiTokenIndexHandler.getTokenMetadatas();
+        jtis.keySet().removeIf(key -> !tokensFromIndex.containsKey(key));
         tokensFromIndex.forEach(
             (key, apiToken) -> jtis.put(key, new Permissions(apiToken.getClusterPermissions(), apiToken.getIndexPermissions()))
         );

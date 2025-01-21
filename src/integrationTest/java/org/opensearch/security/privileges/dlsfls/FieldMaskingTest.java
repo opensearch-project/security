@@ -22,7 +22,7 @@ import org.junit.runners.Suite;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -36,7 +36,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests on the FieldMasking class - top-level functionality is tested in FieldMaskingTest.Basic. The inner classes FieldMasking.Field
@@ -126,7 +125,7 @@ public class FieldMaskingTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                mock(ApiTokenRepository.class)
+                new Permissions()
             );
         }
     }

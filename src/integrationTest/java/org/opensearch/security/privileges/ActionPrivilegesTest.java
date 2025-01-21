@@ -63,7 +63,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for ActionPrivileges. As the ActionPrivileges provides quite a few different code paths for checking
@@ -1157,14 +1156,13 @@ public class ActionPrivilegesTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             null,
-            mock(ApiTokenRepository.class)
+            new Permissions()
         );
     }
 
     static PrivilegesEvaluationContext ctxForApiToken(String userName, Permissions permissions) {
         User user = new User(userName);
         user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
-        ApiTokenRepository mockRepository = Mockito.mock(ApiTokenRepository.class);
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.of(),
@@ -1190,7 +1188,7 @@ public class ActionPrivilegesTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             null,
-            mock(ApiTokenRepository.class)
+            new Permissions()
         );
     }
 }

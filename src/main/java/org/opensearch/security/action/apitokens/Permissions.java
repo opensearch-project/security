@@ -8,6 +8,7 @@
 
 package org.opensearch.security.action.apitokens;
 
+import java.util.Collections;
 import java.util.List;
 
 public class Permissions {
@@ -17,6 +18,11 @@ public class Permissions {
     public Permissions(List<String> clusterPerm, List<ApiToken.IndexPermission> indexPermission) {
         this.clusterPerm = clusterPerm;
         this.indexPermission = indexPermission;
+    }
+
+    public Permissions() {
+        this.clusterPerm = Collections.emptyList();
+        this.indexPermission = Collections.emptyList();
     }
 
     public List<String> getClusterPerm() {

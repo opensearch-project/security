@@ -11,25 +11,20 @@
 package org.opensearch.security.privileges;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
-
-import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
 /**
  * Request-scoped context information for privilege evaluation.
@@ -68,7 +63,7 @@ public class PrivilegesEvaluationContext {
         IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<ClusterState> clusterStateSupplier,
-        ApiTokenRepository apiTokenRepository
+        Permissions permissions
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
@@ -78,7 +73,7 @@ public class PrivilegesEvaluationContext {
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
-        this.permissionsForApiToken = extractApiTokenPermissionsForUser(apiTokenRepository);
+        this.permissionsForApiToken = permissions;
     }
 
     public User getUser() {
@@ -183,38 +178,5 @@ public class PrivilegesEvaluationContext {
 
     public Permissions getPermissionsForApiToken() {
         return permissionsForApiToken;
-    }
-
-    @VisibleForTesting
-    PrivilegesEvaluationContext(
-        User user,
-        ImmutableSet<String> mappedRoles,
-        String action,
-        ActionRequest request,
-        Task task,
-        IndexResolverReplacer indexResolverReplacer,
-        IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<ClusterState> clusterStateSupplier,
-        Permissions permissions
-    ) {
-        this.user = user;
-        this.mappedRoles = mappedRoles;
-        this.action = action;
-        this.request = request;
-        this.clusterStateSupplier = clusterStateSupplier;
-        this.indexResolverReplacer = indexResolverReplacer;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.task = task;
-        this.permissionsForApiToken = permissions;
-    }
-
-    private Permissions extractApiTokenPermissionsForUser(ApiTokenRepository apiTokenRepository) {
-        if (user.getName().startsWith(API_TOKEN_USER_PREFIX)) {
-            String jti = user.getName().split(API_TOKEN_USER_PREFIX)[1];
-            if (apiTokenRepository.isValidToken(jti)) {
-                return apiTokenRepository.getPermissionsForJti(jti);
-            }
-        }
-        return new Permissions(List.of(), List.of());
     }
 }

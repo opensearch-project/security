@@ -119,7 +119,7 @@ public class ApiTokenAuthenticatorTest {
         AuthCredentials ac = authenticator.extractCredentials(request, threadcontext);
 
         assertNull("Should return null when JTI is expired", ac);
-        verify(log).debug(eq("Invalid or expired JWT token."), any(ExpiredJwtException.class));
+        verify(log).debug(eq("Invalid or expired api token."), any(ExpiredJwtException.class));
 
     }
 
