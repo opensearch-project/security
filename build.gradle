@@ -29,7 +29,7 @@ buildscript {
         open_saml_version = '4.3.2'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
-        guava_version = '32.1.3-jre'
+        guava_version = '33.4.0-jre'
         jaxb_version = '2.3.9'
         spring_version = '5.3.39'
 
@@ -626,7 +626,7 @@ dependencies {
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.2'
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.29"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.30"
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
