@@ -29,6 +29,7 @@ package org.opensearch.security.privileges.legacy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -94,6 +95,8 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.InMemorySecurityRoles;
+import org.opensearch.security.securityconf.InMemorySecurityRolesV7;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.support.ConfigConstants;
@@ -147,6 +150,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
+    private final Map<String, InMemorySecurityRoles> pluginRoles;
 
     public PrivilegesEvaluatorImpl(
         final ClusterService clusterService,
@@ -168,6 +172,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
         this.threadContext = threadPool.getThreadContext();
         this.privilegesInterceptor = privilegesInterceptor;
+        this.pluginRoles = new HashMap<>();
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
@@ -194,8 +199,33 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    public SecurityRoles getSecurityRoles(Set<String> roles) {
+    public SecurityRoles getSecurityRoles(User user, Set<String> roles) {
+        SecurityRoles securityRoles;
+        if (user.isPluginUser()) {
+            securityRoles = getSecurityRoleForPlugin(user.getName());
+        } else {
+            securityRoles = filterSecurityRolesFromCache(roles);
+
+            // Add the security roles for this user so that they can be used for DLS parameter substitution.
+            user.addSecurityRoles(roles);
+            setUserInfoInThreadContext(user);
+        }
+
+        return securityRoles;
+    }
+
+    public SecurityRoles filterSecurityRolesFromCache(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
+    }
+
+    public SecurityRoles getSecurityRoleForPlugin(String pluginIdentifier) {
+        InMemorySecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
+        if (pluginRole == null) {
+            pluginRole = new InMemorySecurityRolesV7(1);
+            pluginRole.addSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Map.of());
+            pluginRoles.put(pluginIdentifier, pluginRole);
+        }
+        return pluginRole;
     }
 
     public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permissions) {
@@ -204,7 +234,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     private boolean hasRestAdminPermissions(final Set<String> roles, String permission) {
-        final SecurityRoles securityRoles = getSecurityRoles(roles);
+        final SecurityRoles securityRoles = filterSecurityRolesFromCache(roles);
         return securityRoles.hasExplicitClusterPermissionPermission(permission);
     }
 
@@ -287,11 +317,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
             context.setMappedRoles(mappedRoles);
         }
-        final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
-
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
-        setUserInfoInThreadContext(user);
+        final SecurityRoles securityRoles = getSecurityRoles(user, mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
@@ -334,7 +360,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             return presponse;
         }
 
-        // Security index access
+        // System index access
         if (systemIndexAccessEvaluator.evaluate(
             request,
             task,
@@ -601,7 +627,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(PrivilegesEvaluationContext context, Set<String> actions, String index) {
-        SecurityRoles securityRoles = getSecurityRoles(context.getMappedRoles());
+        SecurityRoles securityRoles = filterSecurityRolesFromCache(context.getMappedRoles());
         if (securityRoles.isPermittedOnSystemIndex(index)) {
             return PrivilegesEvaluatorResponse.ok();
         } else {

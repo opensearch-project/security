@@ -219,11 +219,11 @@ public class ConfigModelV7 extends ConfigModel {
 
         final Set<SecurityRole> roles;
 
-        private SecurityRoles(int roleCount) {
+        protected SecurityRoles(int roleCount) {
             roles = new HashSet<>(roleCount);
         }
 
-        private SecurityRoles addSecurityRole(SecurityRole securityRole) {
+        protected SecurityRoles addSecurityRole(SecurityRole securityRole) {
             if (securityRole != null) {
                 this.roles.add(securityRole);
             }
@@ -536,7 +536,7 @@ public class ConfigModelV7 extends ConfigModel {
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
+        SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
