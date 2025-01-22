@@ -35,8 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
-import org.opensearch.security.action.apitokens.Permissions;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.RoleBasedPrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
@@ -339,7 +338,7 @@ public class DlsFlsLegacyHeadersTest {
         User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
 
-        PrivilegesEvaluationContext ctx = new PrivilegesEvaluationContext(
+        RoleBasedPrivilegesEvaluationContext ctx = new RoleBasedPrivilegesEvaluationContext(
             user,
             ImmutableSet.of("test_role"),
             null,
@@ -347,19 +346,18 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState,
-            new Permissions()
+            () -> clusterState
         );
 
         DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
         assertTrue(threadContext.getResponseHeaders().containsKey(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
     }
 
-    static PrivilegesEvaluationContext ctx(Metadata metadata, String... roles) {
+    static RoleBasedPrivilegesEvaluationContext ctx(Metadata metadata, String... roles) {
         User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
 
-        return new PrivilegesEvaluationContext(
+        return new RoleBasedPrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
             null,
@@ -367,8 +365,7 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState,
-            new Permissions()
+            () -> clusterState
         );
     }
 

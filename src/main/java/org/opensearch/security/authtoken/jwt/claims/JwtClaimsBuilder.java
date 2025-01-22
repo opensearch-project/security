@@ -13,21 +13,13 @@ package org.opensearch.security.authtoken.jwt.claims;
 
 import java.util.Date;
 
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-
 import com.nimbusds.jwt.JWTClaimsSet;
 
 public class JwtClaimsBuilder {
     private final JWTClaimsSet.Builder builder;
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     public JwtClaimsBuilder() {
         this.builder = new JWTClaimsSet.Builder();
-    }
-
-    public JwtClaimsBuilder encryptionKey(String encryptionKey) {
-        this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
-        return this;
     }
 
     public JwtClaimsBuilder issueTime(Date issueTime) {
@@ -62,14 +54,6 @@ public class JwtClaimsBuilder {
 
     public JwtClaimsBuilder expirationTime(Date expirationTime) {
         builder.expirationTime(expirationTime);
-        return this;
-    }
-
-    public JwtClaimsBuilder addCustomClaimWithEncryption(String claimName, String value) {
-        if (this.encryptionDecryptionUtil == null) {
-            throw new IllegalArgumentException("Cannot add encrypted field without encryption key");
-        }
-        builder.claim(claimName, encryptionDecryptionUtil.encrypt(value));
         return this;
     }
 

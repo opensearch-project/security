@@ -13,16 +13,19 @@ package org.opensearch.security.authtoken.jwt.claims;
 
 import java.util.List;
 
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+
 public class OBOJwtClaimsBuilder extends JwtClaimsBuilder {
+    private final EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     public OBOJwtClaimsBuilder(String encryptionKey) {
         super();
-        this.encryptionKey(encryptionKey);
+        this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
     }
 
     public OBOJwtClaimsBuilder addRoles(List<String> roles) {
         final String listOfRoles = String.join(",", roles);
-        this.addCustomClaimWithEncryption("er", listOfRoles);
+        this.addCustomClaim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
         return this;
     }
 

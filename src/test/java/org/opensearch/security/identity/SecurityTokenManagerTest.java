@@ -12,9 +12,11 @@
 package org.opensearch.security.identity;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.io.BaseEncoding;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,11 +44,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -61,9 +61,7 @@ public class SecurityTokenManagerTest {
     private SecurityTokenManager tokenManager;
 
     @Mock
-    private JwtVendor oboJwtVendor;
-    @Mock
-    private JwtVendor apiTokenJwtVendor;
+    private JwtVendor jwtVendor;
     @Mock
     private ClusterService cs;
     @Mock
@@ -79,9 +77,12 @@ public class SecurityTokenManagerTest {
     @After
     public void after() {
         verifyNoMoreInteractions(cs);
-        verifyNoMoreInteractions(threadPool);
         verifyNoMoreInteractions(userService);
     }
+
+    final static String signingKey =
+        "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
+    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
 
     @Test
     public void onConfigModelChanged_oboNotSupported() {
@@ -120,21 +121,15 @@ public class SecurityTokenManagerTest {
 
     /** Creates the jwt vendor and returns a mock for validation if needed */
     private DynamicConfigModel createMockJwtVendorInTokenManager() {
-        final Settings settings = Settings.builder().put("enabled", true).build();
+        final Settings settings = Settings.builder()
+            .put("enabled", true)
+            .put("encryption_key", "1234567890")
+            .put("signing_key", signingKeyB64Encoded)
+            .build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
-        doAnswer((invocation) -> oboJwtVendor).when(tokenManager).createJwtVendor(settings);
-        tokenManager.onDynamicConfigModelChanged(dcm);
-        return dcm;
-    }
-
-    private DynamicConfigModel createMockApiTokenJwtVendorInTokenManager() {
-        final Settings settings = Settings.builder().put("enabled", true).build();
-        final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
-        when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
-        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
-        doAnswer((invocation) -> apiTokenJwtVendor).when(tokenManager).createJwtVendor(settings);
+        doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
     }
@@ -225,9 +220,7 @@ public class SecurityTokenManagerTest {
 
         createMockJwtVendorInTokenManager();
 
-        when(oboJwtVendor.createOBOJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenThrow(
-            new RuntimeException("foobar")
-        );
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenThrow(new RuntimeException("foobar"));
         final OpenSearchSecurityException exception = assertThrows(
             OpenSearchSecurityException.class,
             () -> tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L))
@@ -252,13 +245,35 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(oboJwtVendor.createOBOJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenReturn(authToken);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L));
 
         assertThat(returnedToken, equalTo(authToken));
 
         verify(cs).getClusterName();
         verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void testCreateJwtWithNegativeExpiry() {
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
+
+        createMockJwtVendorInTokenManager();
+
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
+            try {
+                final AuthToken returnedToken = tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", -300L));
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: The expiration time should be a positive integer"));
     }
 
     @Test
@@ -270,10 +285,10 @@ public class SecurityTokenManagerTest {
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
 
-        createMockApiTokenJwtVendorInTokenManager();
+        createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(apiTokenJwtVendor.createApiTokenJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));

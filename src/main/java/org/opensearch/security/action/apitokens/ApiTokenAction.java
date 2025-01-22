@@ -24,7 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -60,10 +59,8 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-    @Inject
     public ApiTokenAction(ApiTokenRepository apiTokenRepository) {
         this.apiTokenRepository = apiTokenRepository;
-        // this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
     }
 
     @Override

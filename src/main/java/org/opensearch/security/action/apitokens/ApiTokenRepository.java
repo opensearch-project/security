@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.inject.Inject;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -68,7 +67,6 @@ public class ApiTokenRepository {
         return jtis;
     }
 
-    @Inject
     public ApiTokenRepository(Client client, ClusterService clusterService, SecurityTokenManager tokenManager) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
         securityTokenManager = tokenManager;

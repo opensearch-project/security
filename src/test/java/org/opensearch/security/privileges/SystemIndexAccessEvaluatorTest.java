@@ -32,7 +32,6 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -155,8 +154,8 @@ public class SystemIndexAccessEvaluatorTest {
         when(log.isInfoEnabled()).thenReturn(true);
     }
 
-    PrivilegesEvaluationContext ctx(String action) {
-        return new PrivilegesEvaluationContext(
+    RoleBasedPrivilegesEvaluationContext ctx(String action) {
+        return new RoleBasedPrivilegesEvaluationContext(
             user,
             ImmutableSet.of("role_a"),
             action,
@@ -164,8 +163,7 @@ public class SystemIndexAccessEvaluatorTest {
             null,
             null,
             indexNameExpressionResolver,
-            null,
-            new Permissions()
+            null
         );
     }
 

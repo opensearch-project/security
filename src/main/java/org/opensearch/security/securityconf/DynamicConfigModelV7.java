@@ -47,7 +47,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
@@ -247,9 +246,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             .build();
     }
 
-    @Inject
-    private ApiTokenRepository apiTokenRepository;
-
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
@@ -393,7 +389,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -2 - prioritize the Api token authentication when it gets enabled
          */
         Settings apiTokenSettings = getDynamicApiTokenSettings();
-        log.info("APITOKENSETTINGS" + apiTokenSettings.toString());
         if (!isKeyNull(apiTokenSettings, "signing_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),

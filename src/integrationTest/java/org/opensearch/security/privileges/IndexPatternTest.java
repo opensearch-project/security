@@ -22,7 +22,6 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -232,14 +231,14 @@ public class IndexPatternTest {
         assertFalse(a1.equals(a1.toString()));
     }
 
-    private static PrivilegesEvaluationContext ctx() {
+    private static RoleBasedPrivilegesEvaluationContext ctx() {
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
         IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, () -> CLUSTER_STATE, null);
         User user = new User("test_user");
         user.addAttributes(ImmutableMap.of("attrs.a11", "a11"));
         user.addAttributes(ImmutableMap.of("attrs.year", "year"));
 
-        return new PrivilegesEvaluationContext(
+        return new RoleBasedPrivilegesEvaluationContext(
             user,
             ImmutableSet.of(),
             "indices:action/test",
@@ -247,8 +246,7 @@ public class IndexPatternTest {
             null,
             indexResolverReplacer,
             indexNameExpressionResolver,
-            () -> CLUSTER_STATE,
-            new Permissions()
+            () -> CLUSTER_STATE
         );
     }
 }

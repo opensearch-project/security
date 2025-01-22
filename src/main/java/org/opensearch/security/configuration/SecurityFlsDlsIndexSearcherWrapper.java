@@ -110,13 +110,13 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
     protected DirectoryReader dlsFlsWrap(final DirectoryReader reader, boolean isAdmin) throws IOException {
 
         final ShardId shardId = ShardUtils.extractShardId(reader);
-        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        PrivilegesEvaluationContext PrivilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
 
         if (log.isTraceEnabled()) {
-            log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), privilegesEvaluationContext);
+            log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), PrivilegesEvaluationContext);
         }
 
-        if (isAdmin || privilegesEvaluationContext == null) {
+        if (isAdmin || PrivilegesEvaluationContext == null) {
             return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
                 reader,
                 FieldPrivileges.FlsRule.ALLOW_ALL,
@@ -137,13 +137,13 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             DlsRestriction dlsRestriction;
 
             if (!this.dlsFlsBaseContext.isDlsDoneOnFilterLevel()) {
-                dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index.getName());
+                dlsRestriction = config.getDocumentPrivileges().getRestriction(PrivilegesEvaluationContext, index.getName());
             } else {
                 dlsRestriction = DlsRestriction.NONE;
             }
 
-            FieldPrivileges.FlsRule flsRule = config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index.getName());
-            FieldMasking.FieldMaskingRule fmRule = config.getFieldMasking().getRestriction(privilegesEvaluationContext, index.getName());
+            FieldPrivileges.FlsRule flsRule = config.getFieldPrivileges().getRestriction(PrivilegesEvaluationContext, index.getName());
+            FieldMasking.FieldMaskingRule fmRule = config.getFieldMasking().getRestriction(PrivilegesEvaluationContext, index.getName());
 
             Query dlsQuery;
 
