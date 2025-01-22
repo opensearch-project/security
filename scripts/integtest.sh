@@ -4,7 +4,7 @@ set -e
 
 function usage() {
     echo ""
-    echo "This script is used to run integration tests for plugin installed on a remote OpenSearch/Dashboards cluster."
+    echo "This script is used to run integration tests for a plugin installed on a remote OpenSearch/Dashboards cluster."
     echo "--------------------------------------------------------------------------"
     echo "Usage: $0 [args]"
     echo ""
