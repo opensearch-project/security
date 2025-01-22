@@ -846,6 +846,9 @@ task integTestRemote(type: RestIntegTestTask) {
 }
 
 integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
+
+tasks.integTestRemote.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
+
 // should be updated appropriately, when we add integTests in future
 integTest.enabled = false
 
