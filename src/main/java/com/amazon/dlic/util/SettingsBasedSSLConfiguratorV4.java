@@ -478,6 +478,15 @@ public class SettingsBasedSSLConfiguratorV4 {
             return new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
         }
 
+        public org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory toSSLConnectionSocketFactory5() {
+            return new org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory(
+                sslContext,
+                supportedProtocols,
+                supportedCipherSuites,
+                hostnameVerifier
+            );
+        }
+
         public boolean isStartTlsEnabled() {
             return startTlsEnabled;
         }
