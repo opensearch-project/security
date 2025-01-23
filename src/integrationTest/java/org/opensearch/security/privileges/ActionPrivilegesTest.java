@@ -457,7 +457,7 @@ public class ActionPrivilegesTest {
                 );
 
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(context, requiredActions, resolved("index_a11"));
-                assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                assertThat(result, isForbidden());
             }
 
             @Test
@@ -499,7 +499,7 @@ public class ActionPrivilegesTest {
 
                 PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(context, requiredActions, resolved("index_a11"));
 
-                assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                assertThat(result, isForbidden());
 
             }
 
