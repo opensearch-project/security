@@ -192,7 +192,6 @@ public class ApiTokenIndexHandlerTest {
         );
         ApiToken token = new ApiToken(
                 "test-token-description",
-                "test-token-jti",
                 clusterPermissions,
                 indexPermissions,
                 Instant.now(),
@@ -231,7 +230,6 @@ public class ApiTokenIndexHandlerTest {
         String source = capturedRequest.source().utf8ToString();
         assertThat(source, containsString("test-token-description"));
         assertThat(source, containsString("cluster:admin/something"));
-        assertThat(source, containsString("test-token-jti"));
         assertThat(source, containsString("test-index-*"));
     }
 
@@ -245,7 +243,6 @@ public class ApiTokenIndexHandlerTest {
         // First token
         ApiToken token1 = new ApiToken(
                 "token1-description",
-                "token1-jti",
                 Arrays.asList("cluster:admin/something"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index1-*"),
@@ -258,7 +255,6 @@ public class ApiTokenIndexHandlerTest {
         // Second token
         ApiToken token2 = new ApiToken(
                 "token2-description",
-                "token2-jti",
                 Arrays.asList("cluster:admin/other"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index2-*"),
