@@ -304,7 +304,7 @@ public class SystemIndexAccessEvaluator {
 
         // cluster actions will return true for requestedResolved.isLocalAll()
         // the following section should only be run for index actions
-        if (user.isPluginUser() && !requestedResolved.isLocalAll()) {
+        if (this.isSystemIndexEnabled && user.isPluginUser() && !requestedResolved.isLocalAll()) {
             Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
                 user.getName().replace("plugin:", ""),
                 requestedResolved.getAllIndices()
