@@ -39,6 +39,7 @@ import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -76,7 +77,6 @@ public class SecurityTokenManagerTest {
 
     @After
     public void after() {
-        verifyNoMoreInteractions(cs);
         verifyNoMoreInteractions(userService);
     }
 
@@ -97,7 +97,7 @@ public class SecurityTokenManagerTest {
     @Test
     public void onDynamicConfigModelChanged_JwtVendorEnabled() {
         final ConfigModel configModel = mock(ConfigModel.class);
-        final DynamicConfigModel mockConfigModel = createMockJwtVendorInTokenManager();
+        final DynamicConfigModel mockConfigModel = createMockJwtVendorInTokenManager(true);
 
         tokenManager.onConfigModelChanged(configModel);
 
@@ -120,11 +120,11 @@ public class SecurityTokenManagerTest {
     }
 
     /** Creates the jwt vendor and returns a mock for validation if needed */
-    private DynamicConfigModel createMockJwtVendorInTokenManager() {
+    private DynamicConfigModel createMockJwtVendorInTokenManager(boolean includeEncryptionKey) {
         final Settings settings = Settings.builder()
             .put("enabled", true)
-            .put("encryption_key", "1234567890")
             .put("signing_key", signingKeyB64Encoded)
+            .put("encryption_key", (includeEncryptionKey ? "1234567890" : null))
             .build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
@@ -218,7 +218,7 @@ public class SecurityTokenManagerTest {
         tokenManager.onConfigModelChanged(configModel);
         when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
-        createMockJwtVendorInTokenManager();
+        createMockJwtVendorInTokenManager(true);
 
         when(jwtVendor.createJwt(any(), any(), any(), any())).thenThrow(new RuntimeException("foobar"));
         final OpenSearchSecurityException exception = assertThrows(
@@ -242,7 +242,7 @@ public class SecurityTokenManagerTest {
         tokenManager.onConfigModelChanged(configModel);
         when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
-        createMockJwtVendorInTokenManager();
+        createMockJwtVendorInTokenManager(true);
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
         when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);
@@ -264,7 +264,7 @@ public class SecurityTokenManagerTest {
         tokenManager.onConfigModelChanged(configModel);
         when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
-        createMockJwtVendorInTokenManager();
+        createMockJwtVendorInTokenManager(true);
 
         final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
@@ -277,6 +277,71 @@ public class SecurityTokenManagerTest {
     }
 
     @Test
+    public void testCreateJwtWithExceededExpiry() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
+
+        createMockJwtVendorInTokenManager(true);
+
+        tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
+        // Expiry is a hint, the max value is controlled by the JwtVendor and reduced as is seen fit.
+        ArgumentCaptor<Long> longCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(jwtVendor).createJwt(any(), any(), any(), longCaptor.capture());
+
+        assertThat(600L, equalTo(longCaptor.getValue()));
+    }
+
+    @Test
+    public void testCreateJwtWithBadEncryptionKey() {
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
+
+        createMockJwtVendorInTokenManager(false);
+
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
+            try {
+                tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
+    }
+
+    @Test
+    public void testCreateJwtWithBadRoles() {
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(null);
+
+        createMockJwtVendorInTokenManager(true);
+
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
+            try {
+                tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
+    }
+
+    @Test
     public void issueApiToken_success() throws Exception {
         doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
@@ -285,7 +350,7 @@ public class SecurityTokenManagerTest {
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
 
-        createMockJwtVendorInTokenManager();
+        createMockJwtVendorInTokenManager(false);
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
         when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);

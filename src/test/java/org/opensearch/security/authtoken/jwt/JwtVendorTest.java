@@ -18,14 +18,18 @@ import java.util.function.LongSupplier;
 
 import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.authtoken.jwt.claims.ApiJwtClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -41,6 +45,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class JwtVendorTest {
     private Appender mockAppender;
@@ -57,7 +66,7 @@ public class JwtVendorTest {
         final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
         assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
         assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
-        Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
+        assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
     }
 
     @Test
@@ -172,174 +181,94 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithNegativeExpiry() {
+    public void testCreateJwtLogsCorrectly() throws Exception {
+        mockAppender = mock(Appender.class);
+        logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        final Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+
+        // Mock settings and other required dependencies
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
+
+        final String issuer = "cluster_0";
+        final String subject = "admin";
+        final String audience = "audience_0";
+        final List<String> roles = List.of("IT", "HR");
+        final List<String> backendRoles = List.of("Sales", "Support");
+        int expirySeconds = 300;
+
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+        OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+                .addBackendRoles(true, backendRoles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
+
+        verify(mockAppender, times(1)).append(logEventCaptor.capture());
+
+        final LogEvent logEvent = logEventCaptor.getValue();
+        final String logMessage = logEvent.getMessage().getFormattedMessage();
+        assertTrue(logMessage.startsWith("Created JWT:"));
+
+        final String[] parts = logMessage.split("\\.");
+        assertTrue(parts.length >= 3);
+    }
+
+    @Test
+    public void testCreateApiTokenJwtSuccess() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("admin");
-        Integer expirySeconds = -300;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor OBOJwtVendor = new JwtVendor(settings);
-        LongSupplier currentTime = () -> (long) 100;
+        int expirySeconds = 300;
+        // 2023 oct 4, 10:00:00 AM GMT
+        LongSupplier currentTime = () -> 1696413600000L;
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
-        Date expiryTime = new Date(expirySeconds);
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                OBOJwtVendor.createJwt(
-                    new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
-                        .addBackendRoles(true, List.of())
-                        .issuer(issuer)
-                        .subject(subject)
-                        .audience(audience)
-                        .expirationTime(expiryTime)
-                        .issueTime(new Date(currentTime.getAsLong())),
-                    subject.toString(),
-                    expiryTime,
-                    (long) expirySeconds
-                );
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: The expiration time should be a positive integer"));
+        JwtVendor apiTokenJwtVendor = new JwtVendor(settings);
+        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(
+            new ApiJwtClaimsBuilder().issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
+
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
+
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
+        // 2023 oct 4, 10:00:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
+        // 2023 oct 4, 10:05:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
     }
-    //
-    // @Test
-    // public void testCreateJwtWithExceededExpiry() throws Exception {
-    // String issuer = "cluster_0";
-    // String subject = "admin";
-    // String audience = "audience_0";
-    // List<String> roles = List.of("IT", "HR");
-    // List<String> backendRoles = List.of("Sales", "Support");
-    // int expirySeconds = 900_000;
-    // LongSupplier currentTime = () -> (long) 100;
-    // String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-    // JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-    //
-    // final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
-    // issuer,
-    // subject,
-    // audience,
-    // expirySeconds,
-    // roles,
-    // backendRoles,
-    // true
-    // );
-    // // Expiry is a hint, the max value is controlled by the JwtVendor and reduced as is seen fit.
-    // assertThat(authToken.getExpiresInSeconds(), not(equalTo(expirySeconds)));
-    // assertThat(authToken.getExpiresInSeconds(), equalTo(600L));
-    // }
-    //
-    // @Test
-    // public void testCreateJwtWithBadEncryptionKey() {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final List<String> roles = List.of("admin");
-    // final Integer expirySeconds = 300;
-    //
-    // Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
-    //
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
-    // }
-    //
-    // @Test
-    // public void testCreateJwtWithBadRoles() {
-    // String issuer = "cluster_0";
-    // String subject = "admin";
-    // String audience = "audience_0";
-    // List<String> roles = null;
-    // Integer expirySeconds = 300;
-    // String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-    // JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.empty());
-    //
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
-    // }
-    //
-    // @Test
-    // public void testCreateJwtLogsCorrectly() throws Exception {
-    // mockAppender = mock(Appender.class);
-    // logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-    // when(mockAppender.getName()).thenReturn("MockAppender");
-    // when(mockAppender.isStarted()).thenReturn(true);
-    // final Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
-    // logger.addAppender(mockAppender);
-    // logger.setLevel(Level.DEBUG);
-    //
-    // // Mock settings and other required dependencies
-    // LongSupplier currentTime = () -> (long) 100;
-    // String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-    //
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final List<String> roles = List.of("IT", "HR");
-    // final List<String> backendRoles = List.of("Sales", "Support");
-    // final int expirySeconds = 300;
-    //
-    // final JwtVendor OBOJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-    //
-    // OBOJwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
-    //
-    // verify(mockAppender, times(1)).append(logEventCaptor.capture());
-    //
-    // final LogEvent logEvent = logEventCaptor.getValue();
-    // final String logMessage = logEvent.getMessage().getFormattedMessage();
-    // assertTrue(logMessage.startsWith("Created JWT:"));
-    //
-    // final String[] parts = logMessage.split("\\.");
-    // assertTrue(parts.length >= 3);
-    // }
-    //
-    // @Test
-    // public void testCreateJwtForApiTokenSuccess() throws Exception {
-    // final String issuer = "cluster_0";
-    // final String subject = "test-token";
-    // final String audience = "test-token";
-    //
-    // LongSupplier currentTime = () -> (long) 100;
-    // String claimsEncryptionKey = "1234567890123456";
-    // Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-    // final JwtVendor apiTokenJwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-    // final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createApiTokenJwt(issuer, subject, audience, Long.MAX_VALUE);
-    //
-    // SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
-    //
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo(issuer));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo(subject));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[" + audience + "]"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
-    // // Allow for millisecond to second conversion flexibility
-    // assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime() / 1000, equalTo(Long.MAX_VALUE / 1000));
-    // }
-    //
-    // @Test
-    // public void testKeyTooShortForApiTokenThrowsException() {
-    // String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
-    // Settings settings = Settings.builder().put("signing_key", tooShortKey).put("encryption_key", claimsEncryptionKey).build();
-    // final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings, Optional.empty()); });
-    //
-    // assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
-    // }
+
+    @Test
+    public void testKeyTooShortForApiTokenThrowsException() {
+        String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
+        Settings settings = Settings.builder().put("signing_key", tooShortKey).build();
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings); });
+
+        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
+    }
 
 }

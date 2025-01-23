@@ -149,7 +149,7 @@ public class SecurityTokenManager implements TokenManager {
         final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
 
         // Add obo claims
-        claimsBuilder.issuer(cs.getClusterName().toString());
+        claimsBuilder.issuer(cs.getClusterName().value());
         claimsBuilder.issueTime(now);
         claimsBuilder.subject(user.getName());
         claimsBuilder.audience(claims.getAudience());
@@ -178,7 +178,7 @@ public class SecurityTokenManager implements TokenManager {
         final Date now = new Date(currentTimeMs);
 
         final ApiJwtClaimsBuilder claimsBuilder = new ApiJwtClaimsBuilder();
-        claimsBuilder.issuer(cs.getClusterName().toString());
+        claimsBuilder.issuer(cs.getClusterName().value());
         claimsBuilder.issueTime(now);
         claimsBuilder.subject(name);
         claimsBuilder.audience(name);
