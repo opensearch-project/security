@@ -13,8 +13,10 @@ package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -34,6 +36,8 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
     protected final Client clientProvider;
     private final ThreadPool threadPool;
     private final DocWriteRequest.OpType storeOpType;
+    private String lastUsedIndexName;
+    final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
 
     public AbstractInternalOpenSearchSink(
         final String name,
@@ -48,6 +52,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
         this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.storeOpType = storeOpType;
+        this.lastUsedIndexName = null;
     }
 
     @Override
@@ -55,21 +60,15 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     }
 
-    private boolean indexExists(String  indexName) {
-        return clientProvider
-            .admin()
-            .indices()
-            .prepareExists(indexName)
-            .execute()
-            .actionGet()
-            .isExists();
-    }
+    private boolean createIndexIfAbsent(String indexName) {
+        if (Objects.equals(indexName, lastUsedIndexName)) {
+            return false;
+        }
 
-    private boolean createIndexIfAbsent(String indexName){
         try {
-            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
             final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            lastUsedIndexName = indexName;
             log.info("Index {} created?: {}", indexName, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
@@ -89,9 +88,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
             return true;
         }
 
-        if(!indexExists(indexName)){
-            createIndexIfAbsent(indexName);
-        }
+        createIndexIfAbsent(indexName);
 
         try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             try {
