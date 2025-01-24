@@ -37,7 +37,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
     private final ThreadPool threadPool;
     private final DocWriteRequest.OpType storeOpType;
     private String lastUsedIndexName;
-    final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
+    final static Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
 
     public AbstractInternalOpenSearchSink(
         final String name,
@@ -61,9 +61,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
     }
 
     private boolean createIndexIfAbsent(String indexName) {
-        if (Objects.equals(indexName, lastUsedIndexName)) {
-            return false;
-        }
+        if (Objects.equals(indexName, lastUsedIndexName)) return true;
 
         try {
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
@@ -73,7 +71,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
             log.info("Index {} already exists", indexName);
-            return false;
+            return true;
         }
     }
 
@@ -88,10 +86,14 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
             return true;
         }
 
-        createIndexIfAbsent(indexName);
-
         try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             try {
+                boolean ok = createIndexIfAbsent(indexName);
+                if (!ok) {
+                    log.error("Server not acknowledge for creation of index {}", indexName);
+                    return false;
+                }
+
                 final IndexRequestBuilder irb = clientProvider.prepareIndex(indexName)
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setSource(msg.getAsMap());
