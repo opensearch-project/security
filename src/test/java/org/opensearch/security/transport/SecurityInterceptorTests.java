@@ -171,7 +171,6 @@ public class SecurityInterceptorTests {
             transportService,
             mock(IndicesService.class),
             mock(PitService.class),
-            mock(ClusterService.class),
             mock(ExtensionsManager.class)
         );
         // CS-ENFORCE-SINGLE
