@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
@@ -36,9 +37,10 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
         final Path configPath,
         final Client clientProvider,
         ThreadPool threadPool,
-        AuditLogSink fallbackSink
+        AuditLogSink fallbackSink,
+        ClusterService clusterService
     ) {
-        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, null);
+        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, null, clusterService);
 
         Settings sinkSettings = getSinkSettings(settingsPrefix);
         this.index = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");

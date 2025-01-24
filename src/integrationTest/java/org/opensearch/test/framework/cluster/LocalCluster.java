@@ -475,6 +475,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder internalAudit(AuditConfiguration auditConfiguration) {
+            if (auditConfiguration != null) {
+                testSecurityConfig.audit(auditConfiguration);
+            }
+            if (auditConfiguration.isEnabled()) {
+                nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "internal_opensearch");
+            } else {
+                nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "noop");
+            }
+            return this;
+        }
+
         public List<TestSecurityConfig.User> getUsers() {
             return testSecurityConfig.getUsers();
         }

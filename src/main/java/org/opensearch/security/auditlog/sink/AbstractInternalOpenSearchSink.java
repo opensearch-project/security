@@ -13,7 +13,6 @@ package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -23,6 +22,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -35,8 +35,8 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     protected final Client clientProvider;
     private final ThreadPool threadPool;
+    private final ClusterService clusterService;
     private final DocWriteRequest.OpType storeOpType;
-    private String lastUsedIndexName;
     final static Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
 
     public AbstractInternalOpenSearchSink(
@@ -46,13 +46,14 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
         final Client clientProvider,
         ThreadPool threadPool,
         AuditLogSink fallbackSink,
-        DocWriteRequest.OpType storeOpType
+        DocWriteRequest.OpType storeOpType,
+        ClusterService clusterService
     ) {
         super(name, settings, settingsPrefix, fallbackSink);
         this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.storeOpType = storeOpType;
-        this.lastUsedIndexName = null;
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -61,12 +62,13 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
     }
 
     private boolean createIndexIfAbsent(String indexName) {
-        if (Objects.equals(indexName, lastUsedIndexName)) return true;
+        if (clusterService.state().metadata().hasIndex(indexName)) {
+            return true;
+        }
 
         try {
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
             final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-            lastUsedIndexName = indexName;
             log.info("Index {} created?: {}", indexName, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
