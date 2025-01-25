@@ -27,7 +27,8 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
 
         kafka_version  = '3.7.1'
-        open_saml_version = '4.3.2'
+        open_saml_version = '5.1.3'
+        open_saml_shib_version = "9.1.3"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
         guava_version = '33.4.0-jre'
@@ -680,16 +681,21 @@ dependencies {
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.3'
 
-    //OpenSAML
-    implementation 'net.shibboleth.utilities:java-support:8.4.2'
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.29"
+    //Onelogin OpenSaml
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
-    implementation "org.opensaml:opensaml-core:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+    //OpenSAML
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.30"
+    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
+    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
     implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+
     implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
     implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
         exclude(group: 'org.apache.velocity', module: 'velocity')
@@ -699,6 +705,7 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
@@ -723,6 +730,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
@@ -733,11 +741,9 @@ dependencies {
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-    testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
@@ -878,6 +884,9 @@ task integTestRemote(type: RestIntegTestTask) {
 }
 
 integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
+
+tasks.integTestRemote.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
+
 // should be updated appropriately, when we add integTests in future
 integTest.enabled = false
 
