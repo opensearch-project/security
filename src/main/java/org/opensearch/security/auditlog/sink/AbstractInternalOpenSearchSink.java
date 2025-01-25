@@ -16,9 +16,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
@@ -35,7 +33,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     protected final Client clientProvider;
     private final ThreadPool threadPool;
-    private final ClusterService clusterService;
+    protected final ClusterService clusterService;
     private final DocWriteRequest.OpType storeOpType;
     final static Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
 
@@ -61,21 +59,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     }
 
-    private boolean createIndexIfAbsent(String indexName) {
-        if (clusterService.state().metadata().hasIndex(indexName)) {
-            return true;
-        }
-
-        try {
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
-            final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-            log.info("Index {} created?: {}", indexName, ok);
-            return ok;
-        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            log.info("Index {} already exists", indexName);
-            return true;
-        }
-    }
+    protected abstract boolean createIndexIfAbsent(String indexName);
 
     public boolean doStore(final AuditMessage msg, String indexName) {
 

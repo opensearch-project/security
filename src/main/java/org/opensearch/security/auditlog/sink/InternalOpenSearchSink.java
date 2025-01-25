@@ -14,6 +14,8 @@ package org.opensearch.security.auditlog.sink;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -53,6 +55,23 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
                 "Unable to parse index pattern due to {}. " + "If you have no date pattern configured you can safely ignore this message",
                 e.getMessage()
             );
+        }
+    }
+
+    @Override
+    public boolean createIndexIfAbsent(String indexName) {
+        if (clusterService.state().metadata().hasIndex(indexName)) {
+            return true;
+        }
+
+        try {
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
+            final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            log.info("Index {} created?: {}", indexName, ok);
+            return ok;
+        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
+            log.info("Index {} already exists", indexName);
+            return true;
         }
     }
 

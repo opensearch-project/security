@@ -135,6 +135,12 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
     }
 
     @Override
+    public boolean createIndexIfAbsent(String indexName) {
+        // datastream is initialized in initDataStream
+        return true;
+    }
+
+    @Override
     public void close() throws IOException {
 
     }
