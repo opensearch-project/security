@@ -139,6 +139,13 @@ public class WhoAmITests {
     }
 
     @Test
+    public void testWhoAmIWithoutGetPermissionsWithoutLeadingSlashInPath() {
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
+            assertThat(client.getWithoutLeadingSlash(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        }
+    }
+
+    @Test
     public void testWhoAmIPost() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
