@@ -30,6 +30,7 @@ import static java.util.Objects.isNull;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
@@ -54,7 +55,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYP
 
 public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
 
-    static final Function<String, String> resolveKeyStoreType = s -> isNull(s) ? KeyStore.getDefaultType() : s;
+    static final Function<String, String> resolveKeyStoreType = s -> isNull(s) ? DEFAULT_STORE_TYPE : s;
 
     static final String SERVER_TRUSTSTORE_ALIAS = "server-truststore-alias";
 
@@ -289,7 +290,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     Path createKeyStore(final String type, final String password, final Map<String, Tuple<PrivateKey, X509Certificate>> keysAndCertificates)
         throws Exception {
         final var keyStore = keyStore(type);
-        final var keyStorePath = path(String.format("keystore.%s", isNull(type) ? "jsk" : type));
+        final var keyStorePath = path(String.format("keystore.%s", isNull(type) ? "jks" : type));
         for (final var alias : keysAndCertificates.keySet()) {
             final var keyAndCertificate = keysAndCertificates.get(alias);
             keyStore.setKeyEntry(

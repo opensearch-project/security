@@ -31,6 +31,7 @@ package org.opensearch.test.framework.cluster;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -413,10 +414,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         /**
-        * Adds additional plugins to the cluster
-        */
-        public Builder plugin(Class<? extends Plugin> plugin) {
-            this.plugins.add(plugin);
+         * Adds additional plugins to the cluster
+         */
+        @SafeVarargs
+        public final Builder plugin(Class<? extends Plugin>... plugins) {
+            this.plugins.addAll(List.of(plugins));
 
             return this;
         }
@@ -443,6 +445,14 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         */
         public Builder indices(TestIndex... indices) {
             this.testIndices.addAll(Arrays.asList(indices));
+            return this;
+        }
+
+        /**
+         * Specifies test indices that shall be created upon startup of the cluster.
+         */
+        public Builder indices(Collection<TestIndex> indices) {
+            this.testIndices.addAll(indices);
             return this;
         }
 

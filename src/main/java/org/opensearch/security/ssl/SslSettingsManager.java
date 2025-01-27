@@ -11,11 +11,15 @@
 
 package org.opensearch.security.ssl;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.crypto.Cipher;
 
 import com.google.common.collect.ImmutableMap;
@@ -23,11 +27,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.Booleans;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.SslCertificatesLoader;
 import org.opensearch.security.ssl.config.SslParameters;
+import org.opensearch.watcher.FileChangesListener;
+import org.opensearch.watcher.FileWatcher;
+import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
@@ -107,28 +115,28 @@ public class SslSettingsManager {
 
     public synchronized void reloadSslContext(final CertType certType) {
         sslContextHandler(certType).ifPresentOrElse(sscContextHandler -> {
-            LOGGER.info("Reloading {} SSL context", certType.name());
             try {
-                sscContextHandler.reloadSslContext();
+                if (sscContextHandler.reloadSslContext()) {
+                    LOGGER.info("{} SSL context reloaded", certType.name());
+                }
             } catch (CertificateException e) {
                 throw new OpenSearchException(e);
             }
-            LOGGER.info("{} SSL context reloaded", certType.name());
         }, () -> LOGGER.error("Missing SSL Context for {}", certType.name()));
     }
 
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
         final var settings = environment.settings();
         final var httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
-        final var transpotSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
-        if (httpSettings.isEmpty() && transpotSettings.isEmpty()) {
+        final var transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
+        if (httpSettings.isEmpty() && transportSettings.isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
         openSslWarnings(settings);
 
         final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-        final var transportEnabled = transpotSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
+        final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
 
         final var configurationBuilder = ImmutableMap.<CertType, SslConfiguration>builder();
         if (httpEnabled && !clientNode(settings)) {
@@ -142,10 +150,10 @@ public class SslSettingsManager {
             LOGGER.info("TLS HTTP Provider                    : {}", httpSslParameters.provider());
             LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslParameters.allowedProtocols());
         }
-        final var transportSslParameters = SslParameters.loader(transpotSettings).load(false);
+        final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
         if (transportEnabled) {
-            if (hasExtendedKeyUsageEnabled(transpotSettings)) {
-                validateTransportSettings(transpotSettings);
+            if (hasExtendedKeyUsageEnabled(transportSettings)) {
+                validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
                     CertType.TRANSPORT.sslConfigPrefix(),
                     SSL_TRANSPORT_SERVER_EXTENDED_PREFIX
@@ -163,7 +171,7 @@ public class SslSettingsManager {
                     new SslConfiguration(transportSslParameters, transportClientTrustAndKeyStore.v1(), transportClientTrustAndKeyStore.v2())
                 );
             } else {
-                validateTransportSettings(transpotSettings);
+                validateTransportSettings(transportSettings);
                 final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslConfigPrefix()).loadConfiguration(
                     environment
                 );
@@ -177,6 +185,50 @@ public class SslSettingsManager {
             LOGGER.info("Enabled TLS protocols for Transport layer : {}", transportSslParameters.allowedProtocols());
         }
         return configurationBuilder.build();
+    }
+
+    public void addSslConfigurationsChangeListener(final ResourceWatcherService resourceWatcherService) {
+        for (final var directoryToMonitor : directoriesToMonitor()) {
+            final var fileWatcher = new FileWatcher(directoryToMonitor);
+            fileWatcher.addListener(new FileChangesListener() {
+                @Override
+                public void onFileCreated(final Path file) {
+                    onFileChanged(file);
+                }
+
+                @Override
+                public void onFileDeleted(final Path file) {
+                    onFileChanged(file);
+                }
+
+                @Override
+                public void onFileChanged(final Path file) {
+                    for (final var e : sslSettingsContexts.entrySet()) {
+                        final var certType = e.getKey();
+                        final var sslConfiguration = e.getValue().sslConfiguration();
+                        if (sslConfiguration.dependentFiles().contains(file)) {
+                            SslSettingsManager.this.reloadSslContext(certType);
+                        }
+                    }
+                }
+            });
+            try {
+                resourceWatcherService.add(fileWatcher, ResourceWatcherService.Frequency.HIGH);
+                LOGGER.info("Added SSL configuration change listener for: {}", directoryToMonitor);
+            } catch (IOException e) {
+                // TODO: should we fail here, or are error logs sufficient?
+                throw new OpenSearchException("Couldn't add SSL configurations change listener", e);
+            }
+        }
+    }
+
+    private Set<Path> directoriesToMonitor() {
+        return sslSettingsContexts.values()
+            .stream()
+            .map(SslContextHandler::sslConfiguration)
+            .flatMap(c -> c.dependentFiles().stream())
+            .map(Path::getParent)
+            .collect(Collectors.toSet());
     }
 
     private boolean clientNode(final Settings settings) {
@@ -374,10 +426,23 @@ public class SslSettingsManager {
 
             LOGGER.debug("OpenSSL available ciphers {}", OpenSsl.availableOpenSslCipherSuites());
         } else {
-            LOGGER.warn(
-                "OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of {}",
-                OpenSsl.unavailabilityCause()
-            );
+            boolean openSslIsEnabled = false;
+
+            if (settings.hasValue(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
+                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE));
+            }
+
+            if (settings.hasValue(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
+                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE));
+            }
+
+            if (openSslIsEnabled == true) {
+                /* only print warning if OpenSsl is enabled explicitly but not available */
+                LOGGER.warn(
+                    "OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of ",
+                    OpenSsl.unavailabilityCause()
+                );
+            }
         }
     }
 

@@ -69,7 +69,7 @@ public class Salt {
      * Returns a new salt array every time it is called.
      * @return salt in bytes
      */
-    byte[] getSalt16() {
+    public byte[] getSalt16() {
         return salt16;
     }
 
