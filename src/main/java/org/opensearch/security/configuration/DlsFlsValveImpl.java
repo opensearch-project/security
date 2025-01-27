@@ -130,7 +130,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            return true;
+        }
         EvaluatedDlsFlsConfig evaluatedDlsFlsConfig = configModel.getSecurityRoles()
             .filter(context.getMappedRoles())
             .getDlsFls(context.getUser(), dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
