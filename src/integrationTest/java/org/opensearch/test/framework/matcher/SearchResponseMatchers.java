@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.TotalHits;
 import org.hamcrest.Matcher;
 
 import org.opensearch.action.search.SearchResponse;
@@ -85,7 +86,7 @@ public class SearchResponseMatchers {
         return Optional.ofNullable(searchResponse)
             .map(SearchResponse::getHits)
             .map(SearchHits::getTotalHits)
-            .map(totalHits -> totalHits.value)
+            .map(TotalHits::value)
             .orElse(null);
     }
 }

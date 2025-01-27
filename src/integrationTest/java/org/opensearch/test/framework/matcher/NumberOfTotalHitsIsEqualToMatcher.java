@@ -39,7 +39,7 @@ class NumberOfTotalHitsIsEqualToMatcher extends TypeSafeDiagnosingMatcher<Search
             mismatchDescription.appendText("Total hits number is null.");
             return false;
         }
-        if (expectedNumberOfHits != totalHits.value) {
+        if (expectedNumberOfHits != totalHits.value()) {
             String documentIds = Arrays.stream(searchResponse.getHits().getHits())
                 .map(hit -> hit.getIndex() + "/" + hit.getId())
                 .collect(Collectors.joining(","));
