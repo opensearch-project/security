@@ -64,6 +64,8 @@ public class Utils {
 
     public final static String LEGACY_PLUGIN_API_ROUTE_PREFIX = LEGACY_PLUGIN_ROUTE_PREFIX + "/api";
 
+    public final static String PLUGIN_RESOURCE_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/resources";
+
     private static final ObjectMapper internalMapper = new ObjectMapper();
 
     public static Map<String, Object> convertJsonToxToStructuredMap(ToXContent jsonContent) {
