@@ -128,7 +128,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         final String indexName = (shardId != null) ? shardId.getIndexName() : null;
 
         if (log.isTraceEnabled()) {
-            log.trace("dlsFlsWrap(); index: {}; isAdmin: {}", indexName, isAdmin);
+            log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), privilegesEvaluationContext);
         }
 
         // 1. If user is admin, or we have no shard/index info, just wrap with default logic (no doc-level restriction).

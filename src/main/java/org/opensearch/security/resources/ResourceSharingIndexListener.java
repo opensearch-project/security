@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,6 +93,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
             .getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         final User user = userSubject.getUser();
         try {
+            Objects.requireNonNull(user);
             ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
                 resourceId,
                 resourceIndex,

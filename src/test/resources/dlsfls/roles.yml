@@ -2491,3 +2491,16 @@ terms_index_with_dls:
       masked_fields: null
       allowed_actions:
         - "OPENDISTRO_SECURITY_READ"
+
+opendistro_security_resources_access:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "resources*"
+      allowed_actions:
+        - "*"
+  tenant_permissions: []

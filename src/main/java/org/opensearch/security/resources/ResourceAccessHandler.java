@@ -617,12 +617,6 @@ public class ResourceAccessHandler {
     public DlsRestriction createResourceDLSRestriction(Set<String> resourceIds, NamedXContentRegistry xContentRegistry)
         throws JsonProcessingException, PrivilegesConfigurationValidationException {
 
-        // resourceIds.isEmpty() is true when user doesn't have access to any resources
-        if (resourceIds.isEmpty()) {
-            LOGGER.info("No resources found for user. Enforcing full restriction.");
-            return DlsRestriction.FULL;
-        }
-
         String jsonQuery = String.format(
             "{ \"bool\": { \"filter\": [ { \"terms\": { \"_id\": %s } } ] } }",
             DefaultObjectMapper.writeValueAsString(resourceIds, true)
