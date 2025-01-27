@@ -66,7 +66,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.10.1"
-    id "org.gradle.test-retry" version "1.6.0"
+    id "org.gradle.test-retry" version "1.6.1"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -754,7 +754,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.1'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.2'
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'

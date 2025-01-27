@@ -338,7 +338,6 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = SECURITY_SETTINGS_PREFIX + "unsupported.load_static_resources";
     public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = SECURITY_SETTINGS_PREFIX + "unsupported.accept_invalid_config";
 
-    // Protected indices settings. Marked for deprecation, after all config indices move to System indices.
     public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_PROTECTED_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.indices";
