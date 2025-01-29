@@ -79,10 +79,10 @@ anomaly_read_access:
 anomaly_full_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro/ad/*'
-    - 'cluster_monitor'
     - "cluster:admin/ingest/pipeline/put"
     - "cluster:admin/ingest/pipeline/delete"
+    - 'cluster:admin/opendistro/ad/*'
+    - 'cluster_monitor'
   index_permissions:
     - index_patterns:
         - '*'
