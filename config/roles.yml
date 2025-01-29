@@ -466,10 +466,4 @@ ltr_read_access:
 ltr_full_access:
     reserved: true
     cluster_permissions:
-      - cluster:admin/ltr/caches/stats
-      - cluster:admin/ltr/featurestore/list
-      - cluster:admin/ltr/stats
-      - cluster:admin/ltr/caches
-      - cluster:admin/ltr/store/add-features-to-set
-      - cluster:admin/ltr/store/create-model-from-set
-      - cluster:admin/ltr/featurestore/data
+      - cluster:admin/ltr/*
