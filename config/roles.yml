@@ -81,6 +81,8 @@ anomaly_full_access:
   cluster_permissions:
     - 'cluster:admin/opendistro/ad/*'
     - 'cluster_monitor'
+    - "cluster:admin/ingest/pipeline/put"
+    - "cluster:admin/ingest/pipeline/delete"
   index_permissions:
     - index_patterns:
         - '*'
@@ -90,6 +92,7 @@ anomaly_full_access:
         - 'indices:admin/mappings/fields/get*'
         - 'indices:admin/mappings/get'
         - 'indices:admin/resolve/index'
+        - 'indices:admin/setting/put'
         - 'indices:data/read/field_caps*'
         - 'indices:data/read/search'
         - 'indices_monitor'
