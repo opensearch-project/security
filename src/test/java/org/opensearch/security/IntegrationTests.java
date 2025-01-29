@@ -272,14 +272,14 @@ public class IntegrationTests extends SingleClusterTest {
 
         HttpResponse resp;
         resp = rh.executeGetRequest(
-            "/_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "knuddel"),
             encodeBasicHeader("worf", "worf")
         );
         assertThat(resp.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         resp = rh.executeGetRequest(
-            "/_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "knuddel"),
             encodeBasicHeader("spock", "spock")
         );
@@ -288,14 +288,14 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertFalse(resp.getBody().contains("spock"));
 
         resp = rh.executeGetRequest(
-            "/_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "userwhonotexists"),
             encodeBasicHeader("spock", "spock")
         );
         assertThat(resp.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         resp = rh.executeGetRequest(
-            "/_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "invalid"),
             encodeBasicHeader("spock", "spock")
         );
@@ -352,7 +352,7 @@ public class IntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("x-forwarded-for", "10.0.0.7"),
             encodeBasicHeader("worf", "worf")
         );

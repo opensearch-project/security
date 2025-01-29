@@ -729,7 +729,7 @@ public class MultitenancyTests extends SingleClusterTest {
         );
         assertThat(adminIndexDocToCreateTenant.getBody(), adminIndexDocToCreateTenant.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
 
-        final HttpResponse authInfo = rh.executeGetRequest("/_opendistro/_security/authinfo?pretty", inTenant, asUser);
+        final HttpResponse authInfo = rh.executeGetRequest("_plugins/_security/authinfo?pretty", inTenant, asUser);
         assertThat(authInfo.getBody(), authInfo.findValueInJson("tenants." + tenant), equalTo(tenantExpectation.isTenantWritable));
 
         final HttpResponse search = rh.executeGetRequest(".kibana/_search", inTenant, asUser);

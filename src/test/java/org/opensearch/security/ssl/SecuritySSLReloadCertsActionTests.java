@@ -38,9 +38,9 @@ import static org.hamcrest.Matchers.is;
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
     private final ClusterConfiguration clusterConfiguration = ClusterConfiguration.DEFAULT;
-    private final String GET_CERT_DETAILS_ENDPOINT = "_opendistro/_security/api/ssl/certs";
-    private final String RELOAD_TRANSPORT_CERTS_ENDPOINT = "_opendistro/_security/api/ssl/transport/reloadcerts";
-    private final String RELOAD_HTTP_CERTS_ENDPOINT = "_opendistro/_security/api/ssl/http/reloadcerts";
+    private final String GET_CERT_DETAILS_ENDPOINT = "_plugins/_security/api/ssl/certs";
+    private final String RELOAD_TRANSPORT_CERTS_ENDPOINT = "_plugins/_security/api/ssl/transport/reloadcerts";
+    private final String RELOAD_HTTP_CERTS_ENDPOINT = "_plugins/_security/api/ssl/http/reloadcerts";
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 

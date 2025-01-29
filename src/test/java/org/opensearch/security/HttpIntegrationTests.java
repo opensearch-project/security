@@ -334,7 +334,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("\"status\":201"));
 
         res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("security_tenant", "unittesttenant"),
             encodeBasicHeader("worf", "worf")
         );
@@ -344,7 +344,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("\"kltentrw\":true"));
         Assert.assertTrue(res.getBody().contains("\"user_name\":\"worf\""));
 
-        res = rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("worf", "worf"));
+        res = rh.executeGetRequest("_plugins/_security/authinfo", encodeBasicHeader("worf", "worf"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(res.getBody().contains("tenant"));
         Assert.assertTrue(res.getBody().contains("\"user_requested_tenant\":null"));
@@ -353,7 +353,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("\"custom_attribute_names\":[]"));
         Assert.assertFalse(res.getBody().contains("attributes="));
 
-        res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("custattr", "nagilum"));
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("custattr", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(res.getBody().contains("tenants"));
         Assert.assertTrue(res.getBody().contains("\"user_requested_tenant\" : null"));
@@ -385,7 +385,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         // rest impersonation
         res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "knuddel"),
             encodeBasicHeader("worf", "worf")
         );
@@ -395,14 +395,14 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("worf"));
 
         res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "nonexists"),
             encodeBasicHeader("worf", "worf")
         );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "notallowed"),
             encodeBasicHeader("worf", "worf")
         );
@@ -420,7 +420,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); // ssl resthelper
 
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
 
@@ -440,7 +440,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); // ssl resthelper
 
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
 
@@ -461,15 +461,15 @@ public class HttpIntegrationTests extends SingleClusterTest {
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
 
-        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
+        HttpResponse resc = rh.executeGetRequest("_plugins/_security/authinfo");
         Assert.assertTrue(resc.getBody().contains("opendistro_security_anonymous"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true");
+        resc = rh.executeGetRequest("_plugins/_security/authinfo?pretty=true");
         Assert.assertTrue(resc.getBody().contains("\"remote_address\" : \"")); // check pretty print
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("nagilum", "nagilum"));
+        resc = rh.executeGetRequest("_plugins/_security/authinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertTrue(resc.getBody().contains("nagilum"));
         Assert.assertFalse(resc.getBody().contains("opendistro_security_anonymous"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -494,7 +494,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         }
 
         assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        assertThat(rh.executeGetRequest("_opendistro/_security/authinfo").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
+        assertThat(rh.executeGetRequest("_plugins/_security/authinfo").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
     }
@@ -538,7 +538,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         rh.keystore = "kirk-keystore.jks";
         assertThat(rh.executePutRequest(".opendistro_security/_doc/y", "{}").getStatusCode(), is(HttpStatus.SC_CREATED));
-        assertThat(rh.executeGetRequest("_opendistro/_security/authinfo").getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(rh.executeGetRequest("_plugins/_security/authinfo").getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -651,7 +651,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         // separator is configured as ";" so separating roles with "," leads to one (wrong) backend role
         HttpResponse res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
             new BasicHeader("user", "scotty"),
             new BasicHeader("roles", "starfleet,engineer")
@@ -662,7 +662,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         );
         // correct separator, now we should see two backend roles
         res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
             new BasicHeader("user", "scotty"),
             new BasicHeader("roles", "starfleet;engineer")
@@ -1091,10 +1091,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         final RestHelper rh = nonSslRestHelper();
 
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("itt1635", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_plugins/_security/tenantinfo?pretty", encodeBasicHeader("itt1635", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
-        res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
+        res = rh.executeGetRequest("_plugins/_security/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(res.getBody().contains("\".kibana_-1139640511_admin1\" : \"admin_1\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-1386441176_praxisrw\" : \"praxisrw\""));
@@ -1117,7 +1117,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         // rest impersonation
         HttpResponse res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "someotherusernotininternalusersfile"),
             encodeBasicHeader("worf", "worf")
         );
@@ -1132,7 +1132,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
+        HttpResponse res = rh.executeGetRequest("_security/sslinfo");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executePutRequest("/xyz/_doc/1", "{\"a\":5}");

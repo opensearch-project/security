@@ -11,8 +11,6 @@
 
 package org.opensearch.security.api;
 
-import java.util.List;
-
 import org.junit.Test;
 
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -20,7 +18,6 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
@@ -36,7 +33,7 @@ public class DashboardsInfoTest extends AbstractApiIntegrationTest {
     }
 
     private String apiPath() {
-        return randomFrom(List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo"));
+        return PLUGINS_PREFIX + "/dashboardsinfo";
     }
 
     @Test

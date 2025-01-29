@@ -53,7 +53,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
-                "_opendistro/_security/api/internalusers/compuser?pretty",
+                "_plugins/_security/api/internalusers/compuser?pretty",
                 body,
                 encodeBasicHeader("admin", "admin")
             );
@@ -87,7 +87,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
+            HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/compuser?pretty", body);
             assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         });
         validateMsgs(List.of(message));
@@ -115,7 +115,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
+            HttpResponse response = rh.executeGetRequest("_plugins/_security/api/rolesmapping/opendistro_security_all_access?pretty");
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
         validateMsgs(List.of(message));
@@ -164,7 +164,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
-                "_opendistro/_security/api/internalusers/compuser?pretty",
+                "_plugins/_security/api/internalusers/compuser?pretty",
                 body,
                 encodeBasicHeader("admin", "admin")
             );
@@ -198,7 +198,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
+            HttpResponse response = rh.executeGetRequest("_plugins/_security/api/internalusers/admin?pretty");
             String auditLogImpl = TestAuditlogImpl.sb.toString();
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -222,15 +222,15 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
 
         // read internal users and verify no BCrypt hash is present in audit logs
-        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-        });
+        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(
+            () -> { rh.executeGetRequest("_plugins/_security/api/internalusers"); }
+        );
 
         Assert.assertFalse(AuditMessage.HASH_REGEX_PATTERN.matcher(message1.toString()).matches());
 
         // read internal user worf and verify no BCrypt hash is present in audit logs
         final AuditMessage message2 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
+            rh.executeGetRequest("_plugins/_security/api/internalusers/worf");
             Assert.assertFalse(AuditMessage.HASH_REGEX_PATTERN.matcher(TestAuditlogImpl.sb.toString()).matches());
         });
 
@@ -238,7 +238,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // create internal user and verify no BCrypt hash is present in audit logs
         final AuditMessage message3 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
+            rh.executePutRequest("_plugins/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
         });
 
         Assert.assertFalse(AuditMessage.HASH_REGEX_PATTERN.matcher(message3.toString()).matches());
@@ -261,9 +261,9 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
 
         // read internal users and verify no PBKDF2 hash is present in audit logs
-        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-        });
+        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(
+            () -> { rh.executeGetRequest("_plugins/_security/api/internalusers"); }
+        );
 
         Assert.assertFalse(
             message1.toString()
@@ -275,7 +275,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // read internal user and verify no PBKDF2 hash is present in audit logs
         final AuditMessage message2 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers/user1");
+            rh.executeGetRequest("_plugins/_security/api/internalusers/user1");
         });
 
         Assert.assertFalse(
@@ -288,7 +288,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // create internal user and verify no PBKDF2 hash is present in audit logs
         final AuditMessage message3 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
+            rh.executePutRequest("_plugins/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
         });
 
         Assert.assertFalse(
@@ -301,7 +301,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // test with various users and different PBKDF2 hash formats to make sure they all get redacted
         final AuditMessage message4 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("user1", "user1"));
+            rh.executeGetRequest("_plugins/_security/api/internalusers", encodeBasicHeader("user1", "user1"));
         });
 
         Assert.assertFalse(
@@ -313,7 +313,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(message4.toString().contains("__HASH__"));
 
         final AuditMessage message5 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("user2", "user2"));
+            rh.executeGetRequest("_plugins/_security/api/internalusers", encodeBasicHeader("user2", "user2"));
         });
 
         Assert.assertFalse(
@@ -325,7 +325,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(message5.toString().contains("__HASH__"));
 
         final AuditMessage message6 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("user3", "user3"));
+            rh.executeGetRequest("_plugins/_security/api/internalusers", encodeBasicHeader("user3", "user3"));
         });
 
         Assert.assertFalse(
@@ -337,7 +337,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(message6.toString().contains("__HASH__"));
 
         final AuditMessage message7 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("user4", "user4"));
+            rh.executeGetRequest("_plugins/_security/api/internalusers", encodeBasicHeader("user4", "user4"));
         });
 
         Assert.assertFalse(
@@ -349,7 +349,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(message7.toString().contains("__HASH__"));
 
         final AuditMessage message8 = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("user5", "user5"));
+            rh.executeGetRequest("_plugins/_security/api/internalusers", encodeBasicHeader("user5", "user5"));
         });
 
         Assert.assertFalse(

@@ -55,7 +55,7 @@ public class TracingTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest(
-            "_opendistro/_security/api/audit/config",
+            "_security/api/audit/config",
             AuditTestUtils.createAuditPayload(settings),
             encodeBasicHeader("admin", "admin")
         );
@@ -80,7 +80,7 @@ public class TracingTests extends SingleClusterTest {
         rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("admin", "admin"));
 
         // check shards
-        rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("admin", "admin"));
+        rh.executeGetRequest("_security/authinfo", encodeBasicHeader("admin", "admin"));
 
         // _bulk
         String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
@@ -368,7 +368,7 @@ public class TracingTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest(
-            "_opendistro/_security/api/audit/config",
+            "_security/api/audit/config",
             AuditTestUtils.createAuditPayload(settings),
             encodeBasicHeader("admin", "admin")
         );
@@ -437,7 +437,7 @@ public class TracingTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest(
-            "_opendistro/_security/api/audit/config",
+            "_security/api/audit/config",
             AuditTestUtils.createAuditPayload(Settings.EMPTY),
             encodeBasicHeader("admin", "admin")
         );

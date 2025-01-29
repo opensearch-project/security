@@ -55,12 +55,12 @@ public class SecurityRolesTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse resc = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         Assert.assertTrue(resc.getBody().contains("anonymous"));
         Assert.assertFalse(resc.getBody().contains("xyz_sr"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
+        resc = rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
         Assert.assertTrue(resc.getBody().contains("sr_user"));
         Assert.assertTrue(resc.getBody().contains("xyz_sr"));
         Assert.assertFalse(resc.getBody().contains("opendistro_security_kibana_server"));
@@ -81,7 +81,7 @@ public class SecurityRolesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         rh.sendAdminCertificate = false;
 
-        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
+        HttpResponse resc = rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
         Assert.assertTrue(resc.getBody().contains("sr_user"));
         Assert.assertTrue(resc.getBody().contains("xyz_sr"));
 
@@ -110,7 +110,7 @@ public class SecurityRolesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         HttpResponse resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo?pretty",
+            "_plugins/_security/authinfo?pretty",
             encodeBasicHeader("sr_user", "nagilum"),
             new BasicHeader("opendistro_security_impersonate_as", "sr_impuser")
         );

@@ -57,55 +57,55 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         HttpResponse resc;
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, null)
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|||")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "||127.0.0:80|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||ip|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||ip:port|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||ip:80|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||127.0.x:80|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||127.0.0:80|key1,value1,key2")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "||127.0.0:80|key1,value1,key2,value2")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
@@ -125,7 +125,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         HttpResponse resc;
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -135,7 +135,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -145,7 +145,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1,role2||key1,value1")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -156,7 +156,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1,role2|8.8.8.8:8|key1,value1,key2,value2")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -167,7 +167,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "nagilum|role1,role2|8.8.8.8:8|key1,value1,key2,value2")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -180,7 +180,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
@@ -194,7 +194,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
 
         // add requested tenant
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
                 "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|"
@@ -210,7 +210,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
                 "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|mytenant"
@@ -226,7 +226,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
                 "myuser|role1,vulcanadmin|8.8.8.8:8||mytenant with whitespace"
@@ -257,7 +257,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         HttpResponse resc;
 
         resc = rh.executeGetRequest(
-            "_opendistro/_security/authinfo",
+            "_plugins/_security/authinfo",
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1")
         );
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));

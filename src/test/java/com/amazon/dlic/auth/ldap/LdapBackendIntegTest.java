@@ -84,7 +84,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
             HttpStatus.SC_OK,
             is(
                 (res = rh.executeGetRequest(
-                    "_opendistro/_security/authinfo",
+                    "_plugins/_security/authinfo",
                     new BasicHeader("opendistro_security_impersonate_as", "jacksonm"),
                     encodeBasicHeader("spock", "spocksecret")
                 )).getStatusCode()

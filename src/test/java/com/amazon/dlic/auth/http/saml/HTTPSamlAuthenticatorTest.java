@@ -933,7 +933,7 @@ public class HTTPSamlAuthenticatorTest {
                 + "\" }";
         }
 
-        return new FakeRestRequest.Builder().withPath("/_opendistro/_security/api/authtoken")
+        return new FakeRestRequest.Builder().withPath("/_plugins/_security/api/authtoken")
             .withMethod(Method.POST)
             .withContent(new BytesArray(authtokenPostJson))
             .withHeaders(ImmutableMap.of("Content-Type", "application/json"))

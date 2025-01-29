@@ -106,7 +106,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         assertThat("", "bug108", is(settings.getAsList("opendistro_security_zdummy_all.users").get(0)));
 
         // Deprecated get configuration API, acessible for sarek
-        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/internalusers", encodeBasicHeader("sarek", "sarek"));
+        // response = rh.executeGetRequest("_security/api/configuration/internalusers", encodeBasicHeader("sarek", "sarek"));
         // settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         // assertThat(settings.get("admin.hash"), is(""));
@@ -114,7 +114,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // assertThat(settings.get("worf.hash"), is(""));
 
         // Deprecated get configuration API, acessible for sarek
-        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("sarek", "sarek"));
+        // response = rh.executeGetRequest("_security/api/configuration/actiongroups", encodeBasicHeader("sarek", "sarek"));
         // settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         // assertThat("indices:*", is("", settings.getAsList("ALL").get(0)));
@@ -123,17 +123,17 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // assertThat("READ_UT", is("", settings.getAsList("CRUD.permissions").get(0)));
 
         // configuration API, not accessible for worf
-        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("worf", "worf"));
+        // response = rh.executeGetRequest("_security/api/configuration/actiongroups", encodeBasicHeader("worf", "worf"));
         // assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         // Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CONFIGURATION"));
 
         // cache API, not accessible for worf since it's disabled globally
-        response = rh.executeDeleteRequest("_opendistro/_security/api/cache", encodeBasicHeader("worf", "worf"));
+        response = rh.executeDeleteRequest(ENDPOINT + "/cache", encodeBasicHeader("worf", "worf"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CACHE"));
 
         // cache API, not accessible for sarek since it's disabled globally
-        response = rh.executeDeleteRequest("_opendistro/_security/api/cache", encodeBasicHeader("sarek", "sarek"));
+        response = rh.executeDeleteRequest(ENDPOINT + "/cache", encodeBasicHeader("sarek", "sarek"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CACHE"));
 
@@ -243,11 +243,11 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         assertThat(settings.get("admin.hash"), is(""));
 
         // worf and config
-        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("bla", "fasel"));
+        // response = rh.executeGetRequest("_security/api/configuration/actiongroups", encodeBasicHeader("bla", "fasel"));
         // assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // cache
-        response = rh.executeDeleteRequest("_opendistro/_security/api/cache", encodeBasicHeader("wrong", "wrong"));
+        response = rh.executeDeleteRequest(ENDPOINT + "/cache", encodeBasicHeader("wrong", "wrong"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // -- test user, does not have any endpoints disabled, but has access to API, i.e. full access
@@ -255,14 +255,14 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
 
         // GET actiongroups
-        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("test", "test"));
+        // response = rh.executeGetRequest("_security/api/configuration/actiongroups", encodeBasicHeader("test", "test"));
         // assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
-        response = rh.executeGetRequest("_opendistro/_security/api/actiongroups", encodeBasicHeader("test", "test"));
+        response = rh.executeGetRequest(ENDPOINT + "/actiongroups", encodeBasicHeader("test", "test"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // clear cache - globally disabled, has to fail
-        response = rh.executeDeleteRequest("_opendistro/_security/api/cache", encodeBasicHeader("test", "test"));
+        response = rh.executeDeleteRequest(ENDPOINT + "/cache", encodeBasicHeader("test", "test"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // PUT roles

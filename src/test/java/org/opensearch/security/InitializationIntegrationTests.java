@@ -202,8 +202,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                         + TransportAddress.getAddress()
                         + ":"
                         + TransportAddress.getPort()
-                        + "/"
-                        + "_opendistro/_security/authinfo?pretty=true"
+                        + "/_plugins/_security/authinfo?pretty=true"
                 ),
                 spock
             );
@@ -235,8 +234,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                         + TransportAddress.getAddress()
                         + ":"
                         + TransportAddress.getPort()
-                        + "/"
-                        + "_opendistro/_security/authinfo?pretty=true"
+                        + "/_plugins/_security/authinfo?pretty=true"
                 ),
                 spock
             );
@@ -266,8 +264,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                         + TransportAddress.getAddress()
                         + ":"
                         + TransportAddress.getPort()
-                        + "/"
-                        + "_opendistro/_security/authinfo?pretty=true"
+                        + "/_plugins/_security/authinfo?pretty=true"
                 )
             );
             log.debug(res.getBody());

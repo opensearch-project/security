@@ -128,7 +128,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
+        rh.executePutRequest("_plugins/_security/api/audit/config", payload);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }

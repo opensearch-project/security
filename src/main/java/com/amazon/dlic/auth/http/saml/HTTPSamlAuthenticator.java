@@ -73,7 +73,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -85,7 +84,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     public static final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
     private static final String AUTHINFO_SUFFIX = "authinfo";
-    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    private static final String REGEX_PATH_PREFIX = "/(" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     private static boolean openSamlInitialized = false;

@@ -46,7 +46,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 /**
  * Rest handler for fetching and updating audit configuration.
  * Supported REST endpoints
- * GET _opendistro/_security/api/audit/
+ * GET _security/api/audit/
  * {
  *   "config" : {
  *     "audit" : {
@@ -83,7 +83,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *   }
  * }
  *
- * PUT _opendistro/_security/api/audit/config
+ * PUT _security/api/audit/config
  * {
  *   "audit":{
  *     "enable_rest":true,
@@ -116,7 +116,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *   }
  * }
  *
- * PATCH _opendistro/_security/api/audit
+ * PATCH _security/api/audit
  * [{"op": "replace", "path": "/config/audit/enable_rest", "value": "true"}]
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */

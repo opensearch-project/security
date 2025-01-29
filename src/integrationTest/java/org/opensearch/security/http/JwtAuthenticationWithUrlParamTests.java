@@ -112,7 +112,7 @@ public class JwtAuthenticationWithUrlParamTests {
             Map<String, String> expectedParams = Map.of("token", "REDACTED", "verbose", "true");
 
             auditLogsRule.assertExactlyOne(
-                userAuthenticated(ADMIN_USER).withRestRequest(GET, "/_opendistro/_security/authinfo").withRestParams(expectedParams)
+                userAuthenticated(ADMIN_USER).withRestRequest(GET, "/_plugins/_security/authinfo").withRestParams(expectedParams)
             );
         }
     }
