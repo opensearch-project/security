@@ -456,3 +456,17 @@ query_insights_full_access:
         - 'top_queries_by_*'
       allowed_actions:
         - "indices_all"
+
+# Allow users to execute read only LTR actions
+ltr_read_access:
+    reserved: true
+    cluster_permissions:
+      - cluster:admin/ltr/caches/stats
+      - cluster:admin/ltr/featurestore/list
+      - cluster:admin/ltr/stats
+
+# Allow users to execute all LTR actions
+ltr_full_access:
+    reserved: true
+    cluster_permissions:
+      - cluster:admin/ltr/*
