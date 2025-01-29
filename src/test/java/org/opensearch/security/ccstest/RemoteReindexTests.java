@@ -76,7 +76,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
     }
 
     private Settings crossClusterNodeSettings(ClusterInfo remote) {
-        Settings.Builder builder = Settings.builder().putList("reindex.remote.whitelist", remote.httpHost + ":" + remote.httpPort);
+        Settings.Builder builder = Settings.builder().putList("reindex.remote.allowlist", remote.httpHost + ":" + remote.httpPort);
         return builder.build();
     }
 
