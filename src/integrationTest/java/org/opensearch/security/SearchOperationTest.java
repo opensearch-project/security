@@ -143,6 +143,7 @@ import static org.opensearch.security.Song.TITLE_NEXT_SONG;
 import static org.opensearch.security.Song.TITLE_POISON;
 import static org.opensearch.security.Song.TITLE_SONG_1_PLUS_1;
 import static org.opensearch.security.auditlog.impl.AuditCategory.INDEX_EVENT;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
@@ -383,6 +384,7 @@ public class SearchOperationTest {
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true))
         )
+        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false))
         .build();
 
     @Rule
