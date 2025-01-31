@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.TrustManagerFactory;
@@ -46,7 +47,7 @@ public interface TrustStoreConfiguration {
         }
 
         @Override
-        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates) {
+        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<String> issuerDns) {
             return null;
         }
     };
@@ -55,10 +56,10 @@ public interface TrustStoreConfiguration {
 
     List<Certificate> loadCertificates();
 
-    default TrustManagerFactory createTrustManagerFactory(boolean validateCertificates) {
+    default TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<String> issuerDns) {
         final var trustStore = createTrustStore();
         if (validateCertificates) {
-            KeyStoreUtils.validateKeyStoreCertificates(trustStore);
+            KeyStoreUtils.validateKeyStoreCertificates(trustStore, issuerDns);
         }
         return buildTrustManagerFactory(trustStore);
     }
