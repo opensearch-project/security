@@ -139,7 +139,7 @@ class AuthTokenProcessorHandler {
         String acsEndpoint,
         Saml2Settings saml2Settings,
         String requestPath // the parameter will be removed in the future as soon as we will read of legacy paths aka
-                           // /_opendistro/_security/...
+                           // /_security/...
     ) {
         if (token_log.isDebugEnabled()) {
             try {

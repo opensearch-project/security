@@ -78,7 +78,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -274,7 +274,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -360,7 +360,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -406,7 +406,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -454,7 +454,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         HttpResponse res;
 
-        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
