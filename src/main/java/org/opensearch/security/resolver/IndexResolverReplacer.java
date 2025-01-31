@@ -781,6 +781,8 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((Replaceable) request).indices(newIndices);
+        } else if (request instanceof IndicesRequest) {
+            provider.provide(((IndicesRequest) request).indices(), request, false);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
