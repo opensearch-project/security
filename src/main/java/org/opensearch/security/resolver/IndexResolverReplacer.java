@@ -80,6 +80,7 @@ import org.opensearch.action.support.single.shard.SingleShardRequest;
 import org.opensearch.action.termvectors.MultiTermVectorsRequest;
 import org.opensearch.action.termvectors.TermVectorsRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.client.indices.rollover.RolloverRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -781,8 +782,8 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((Replaceable) request).indices(newIndices);
-        } else if (request instanceof IndicesRequest) {
-            provider.provide(((IndicesRequest) request).indices(), request, false);
+        } else if (request instanceof RolloverRequest) {
+            provider.provide(((RolloverRequest) request).indices(), request, false);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
