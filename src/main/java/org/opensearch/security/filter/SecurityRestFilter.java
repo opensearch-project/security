@@ -333,6 +333,9 @@ public class SecurityRestFilter {
      * @return true if the request path matches the route
      */
     private boolean restPathMatches(String requestPath, String handlerPath) {
+        // Trim leading and trailing slashes
+        requestPath = requestPath.replaceAll("^/+", "").replaceAll("/+$", "");
+        handlerPath = handlerPath.replaceAll("^/+", "").replaceAll("/+$", "");
         // Check exact match
         if (handlerPath.equals(requestPath)) {
             return true;

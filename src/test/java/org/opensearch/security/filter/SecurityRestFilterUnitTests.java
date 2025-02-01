@@ -100,4 +100,7 @@ public class SecurityRestFilterUnitTests {
 
         verify(testRestHandlerSpy).handleRequest(any(), any(), any());
     }
+
+    // unit tests for restPathMatches are in RestPathMatchesTests.java
+
 }

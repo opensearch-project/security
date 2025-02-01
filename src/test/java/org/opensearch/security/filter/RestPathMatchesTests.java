@@ -72,16 +72,37 @@ public class RestPathMatchesTests {
     }
 
     @Test
-    public void testRequestPathMismatch() throws InvocationTargetException, IllegalAccessException {
-        String requestPath = "_plugins/security/api/x/y";
-        String handlerPath = "_plugins/security/api/z/y";
+    public void testMatchWithLeadingSlashDifference() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "api/v1/resource";
+        String handlerPath = "/api/v1/resource";
+        assertTrue((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
+
+    @Test
+    public void testMatchWithTrailingSlashDifference() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "/api/v1/resource/";
+        String handlerPath = "/api/v1/resource";
+        assertTrue((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
+
+    @Test
+    public void testPathsMatchWithMultipleNamedParameters() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "/api/v1/resource/123/details";
+        String handlerPath = "/api/v1/resource/{id}/details";
+        assertTrue((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
+
+    @Test
+    public void testPathsDoNotMatchWithNonMatchingNamedParameterSegment() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "/api/v1/resource/123/details";
+        String handlerPath = "/api/v1/resource/{id}/summary";
         assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
     }
 
     @Test
-    public void testRequestPathWithExtraSegments() throws InvocationTargetException, IllegalAccessException {
-        String requestPath = "_plugins/security/api/x/y/z";
-        String handlerPath = "_plugins/security/api/x/y";
+    public void testDifferentSegmentCount() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "/api/v1/resource/123/extra";
+        String handlerPath = "/api/v1/resource/{id}";
         assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
     }
 }
