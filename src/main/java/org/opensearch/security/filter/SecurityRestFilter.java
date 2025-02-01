@@ -72,6 +72,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_IMPERSONATION_INITIATING_USER;
 
 public class SecurityRestFilter {
 
@@ -156,6 +157,7 @@ public class SecurityRestFilter {
 
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
+            String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_IMPERSONATION_INITIATING_USER);
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
                 // we aren't authenticated so we should skip this step
@@ -170,10 +172,13 @@ public class SecurityRestFilter {
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
                 delegate.handleRequest(request, channel, client);
                 return;
             }
-
+            if (user != null || intiatingUser != null) {
+                auditLog.logSucceededLogin(user == null ? null : user.getName(), false, intiatingUser, requestChannel);
+            }
             final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
