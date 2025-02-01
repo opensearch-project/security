@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,8 +113,9 @@ public class TestRestClient implements AutoCloseable {
     }
 
     public HttpResponse getWithoutLeadingSlash(String path, Header... headers) {
-        HttpUriRequest req = new HttpGet(getHttpServerUri());
-        req.setPath(path);
+        URI uri = URI.create(getHttpServerUri());
+        uri = uri.resolve(path);
+        HttpUriRequest req = new HttpGet(uri);
         return executeRequest(req, headers);
     }
 
