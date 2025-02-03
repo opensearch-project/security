@@ -76,7 +76,7 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
             try {
                 boolean ok = createIndexIfAbsent(indexName);
                 if (!ok) {
-                    log.error("Server not acknowledge for creation of index {}", indexName);
+                    log.error("Failed to create index {}", indexName);
                     return false;
                 }
 

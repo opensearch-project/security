@@ -50,6 +50,7 @@ public class InternalAuditLogTest {
     @Test
     public void testAuditLogShouldBeGreenInSingleNodeCluster() throws IOException {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            client.get(""); // demo request for insuring audit-log index is created beforehand
             TestRestClient.HttpResponse indicesResponse = client.get("_cat/indices");
 
             assertThat(indicesResponse.getBody(), containsString("security-auditlog"));
