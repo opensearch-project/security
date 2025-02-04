@@ -584,22 +584,24 @@ public abstract class AbstractAuditLog implements AuditLog {
                     originalSource = "{}";
                 }
                 if (securityIndicesMatcher.test(shardId.getIndexName())) {
-                    try (
-                        XContentParser parser = XContentHelper.createParser(
-                            NamedXContentRegistry.EMPTY,
-                            THROW_UNSUPPORTED_OPERATION,
-                            originalResult.internalSourceRef(),
-                            XContentType.JSON
-                        )
-                    ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                        } else {
-                            originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    if (originalSource == null) {
+                        try (
+                            XContentParser parser = XContentHelper.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                THROW_UNSUPPORTED_OPERATION,
+                                originalResult.internalSourceRef(),
+                                XContentType.JSON
+                            )
+                        ) {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
+                            } else {
+                                originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            }
+                        } catch (Exception e) {
+                            log.error(e.toString());
                         }
-                    } catch (Exception e) {
-                        log.error(e.toString());
                     }
 
                     try (
@@ -640,7 +642,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
-        if (!complianceConfig.shouldLogWriteMetadataOnly()) {
+        if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
             if (securityIndicesMatcher.test(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (

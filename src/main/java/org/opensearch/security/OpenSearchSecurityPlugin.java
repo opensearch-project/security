@@ -133,6 +133,9 @@ import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
+import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
+import org.opensearch.security.action.apitokens.TransportApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -256,6 +259,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
+    private volatile ApiTokenRepository ar;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -645,7 +649,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(cs, localClient, tokenManager));
+                handlers.add(new ApiTokenAction(ar));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -687,6 +691,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, TransportApiTokenUpdateAction.class));
             // external storage does not support reload and does not provide SSL certs info
             if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
@@ -719,6 +724,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
+
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
                 @Override
@@ -1105,6 +1111,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        ar = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
@@ -1120,7 +1127,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            namedXContentRegistry.get()
+            namedXContentRegistry.get(),
+            ar
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -1162,7 +1170,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, ar);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -1212,6 +1220,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
+        components.add(ar);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {

@@ -23,10 +23,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
 public class ApiTokenActionTest {
 
-    private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null);
+    private final ApiTokenAction apiTokenAction = new ApiTokenAction(mock(ApiTokenRepository.class));
 
     @Test
     public void testCreateIndexPermission() {

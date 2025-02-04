@@ -11,16 +11,11 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,9 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.security.action.apitokens.ApiToken;
+import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -41,7 +34,6 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
@@ -51,21 +43,11 @@ public class JwtVendor {
 
     private final JWK signingKey;
     private final JWSSigner signer;
-    private final LongSupplier timeProvider;
-    private final EncryptionDecryptionUtil encryptionDecryptionUtil;
-    private static final Integer MAX_EXPIRY_SECONDS = 600;
 
-    public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
+    public JwtVendor(Settings settings) {
         final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings);
         signingKey = tuple.v1();
         signer = tuple.v2();
-
-        if (isKeyNull(settings, "encryption_key")) {
-            throw new IllegalArgumentException("encryption_key cannot be null");
-        } else {
-            this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(settings.get("encryption_key"));
-        }
-        this.timeProvider = timeProvider.orElse(System::currentTimeMillis);
     }
 
     /*
@@ -103,97 +85,11 @@ public class JwtVendor {
         }
     }
 
-    public ExpiringBearerAuthToken createJwt(
-        final String issuer,
-        final String subject,
-        final String audience,
-        final long requestedExpirySeconds,
-        final List<String> roles,
-        final List<String> backendRoles,
-        final boolean includeBackendRoles
-    ) throws JOSEException, ParseException {
-        final long currentTimeMs = timeProvider.getAsLong();
-        final Date now = new Date(currentTimeMs);
-
-        final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-        claimsBuilder.issuer(issuer);
-        claimsBuilder.issueTime(now);
-        claimsBuilder.subject(subject);
-        claimsBuilder.audience(audience);
-        claimsBuilder.notBeforeTime(now);
-
-        final long expirySeconds = Math.min(requestedExpirySeconds, MAX_EXPIRY_SECONDS);
-        if (expirySeconds <= 0) {
-            throw new IllegalArgumentException("The expiration time should be a positive integer");
-        }
-        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
-        claimsBuilder.expirationTime(expiryTime);
-
-        if (roles != null) {
-            final String listOfRoles = String.join(",", roles);
-            claimsBuilder.claim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
-        } else {
-            throw new IllegalArgumentException("Roles cannot be null");
-        }
-
-        if (includeBackendRoles && backendRoles != null) {
-            final String listOfBackendRoles = String.join(",", backendRoles);
-            claimsBuilder.claim("br", listOfBackendRoles);
-        }
-
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
-        final SignedJWT signedJwt = new SignedJWT(header, claimsBuilder.build());
-
-        // Sign the JWT so it can be serialized
-        signedJwt.sign(signer);
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(
-                "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
-            );
-        }
-
-        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
-    }
-
     @SuppressWarnings("removal")
-    public ExpiringBearerAuthToken createJwt(
-        final String issuer,
-        final String subject,
-        final String audience,
-        final long expiration,
-        final List<String> clusterPermissions,
-        final List<ApiToken.IndexPermission> indexPermissions
-    ) throws JOSEException, ParseException, IOException {
-        final long currentTimeMs = timeProvider.getAsLong();
-        final Date now = new Date(currentTimeMs);
-
-        final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-        claimsBuilder.issuer(issuer);
-        claimsBuilder.issueTime(now);
-        claimsBuilder.subject(subject);
-        claimsBuilder.audience(audience);
-        claimsBuilder.notBeforeTime(now);
-
-        final Date expiryTime = new Date(expiration);
-        claimsBuilder.expirationTime(expiryTime);
-
-        if (clusterPermissions != null) {
-            final String listOfClusterPermissions = String.join(",", clusterPermissions);
-            claimsBuilder.claim("cp", encryptString(listOfClusterPermissions));
-        }
-
-        if (indexPermissions != null) {
-            List<String> permissionStrings = new ArrayList<>();
-            for (ApiToken.IndexPermission permission : indexPermissions) {
-                permissionStrings.add(permission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
-            }
-            final String listOfIndexPermissions = String.join(",", permissionStrings);
-            claimsBuilder.claim("ip", encryptString(listOfIndexPermissions));
-        }
+    public ExpiringBearerAuthToken createJwt(JwtClaimsBuilder claimsBuilder, String subject, Date expiryTime, Long expirySeconds)
+        throws JOSEException, ParseException {
 
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
-
         final SignedJWT signedJwt = AccessController.doPrivileged(
             (PrivilegedAction<SignedJWT>) () -> new SignedJWT(header, claimsBuilder.build())
         );
@@ -207,16 +103,6 @@ public class JwtVendor {
             );
         }
 
-        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime);
-    }
-
-    /* Returns the encrypted string based on encryption settings  */
-    public String encryptString(final String input) {
-        return encryptionDecryptionUtil.encrypt(input);
-    }
-
-    /* Returns the decrypted string based on encryption settings  */
-    public String decryptString(final String input) {
-        return encryptionDecryptionUtil.decrypt(input);
+        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
     }
 }

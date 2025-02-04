@@ -31,6 +31,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -160,7 +161,8 @@ public class RestLayerPrivilegesEvaluatorTest {
             null,
             null,
             null,
-            null
+            null,
+            mock(ApiTokenRepository.class)
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);
