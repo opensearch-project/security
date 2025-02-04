@@ -1026,11 +1026,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                .reason(
-                    resolvedIndices.getAllIndices().size() == 1
-                        ? "Insufficient permissions for the referenced index"
-                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
-                )
+                .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
         }
 
