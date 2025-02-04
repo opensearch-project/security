@@ -87,7 +87,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     private final ClusterInfoHolder cih;
-    private final ApiTokenRepository ar;
+    private final ApiTokenRepository apiTokenRepository;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
@@ -95,7 +95,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         Path configPath,
         InternalAuthenticationBackend iab,
         ClusterInfoHolder cih,
-        ApiTokenRepository ar
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.config = config;
@@ -103,7 +103,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.configPath = configPath;
         this.iab = iab;
         this.cih = cih;
-        this.ar = ar;
+        this.apiTokenRepository = apiTokenRepository;
         buildAAA();
     }
 
@@ -392,7 +392,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         if (!isKeyNull(apiTokenSettings, "signing_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), ar),
+                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), apiTokenRepository),
                 false,
                 -2
             );

@@ -128,7 +128,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Path configPath;
     private final InternalAuthenticationBackend iab;
     private final ClusterInfoHolder cih;
-    private final ApiTokenRepository ar;
+    private final ApiTokenRepository apiTokenRepository;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -140,7 +140,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         ThreadPool threadPool,
         ClusterInfoHolder cih,
         PasswordHasher passwordHasher,
-        ApiTokenRepository ar
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.cr = cr;
@@ -148,7 +148,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.configPath = configPath;
         this.cih = cih;
         this.iab = new InternalAuthenticationBackend(passwordHasher);
-        this.ar = ar;
+        this.apiTokenRepository = apiTokenRepository;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -273,7 +273,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         );
 
         // rebuild v7 Models
-        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, ar);
+        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, apiTokenRepository);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
         cm = new ConfigModelV7(roles, rolesmapping, actionGroups, tenants, dcm, opensearchSettings);
 

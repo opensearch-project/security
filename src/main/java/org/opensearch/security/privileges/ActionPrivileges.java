@@ -251,10 +251,12 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 indexMetadata
             );
         } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
+            Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
             return this.index.apiTokenProvidesIndexPrivilege(
                 (PermissionBasedPrivilegesEvaluationContext) context,
                 resolvedIndices,
                 actions,
+                indexMetadata,
                 false
             );
         } else {
@@ -284,6 +286,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 (PermissionBasedPrivilegesEvaluationContext) context,
                 resolvedIndices,
                 actions,
+                this.indexMetadataSupplier.get(),
                 true
             );
         } else {
@@ -1031,6 +1034,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             PermissionBasedPrivilegesEvaluationContext context,
             IndexResolverReplacer.Resolved resolvedIndices,
             Set<String> actions,
+            Map<String, IndexAbstraction> indexMetadata,
             Boolean explicit
         ) {
             Permissions permissions = context.getPermissions();
@@ -1042,14 +1046,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 // Check each index permission
                 for (ApiToken.IndexPermission indexPermission : indexPermissions) {
                     // First check if this permission applies to this index
+                    IndexPattern indexPattern = IndexPattern.from(indexPermission.getIndexPatterns());
                     boolean indexMatched = false;
-                    for (String pattern : indexPermission.getIndexPatterns()) {
-                        if (WildcardMatcher.from(pattern).test(concreteIndex)) {
-                            indexMatched = true;
-                            break;
-                        }
+                    try {
+                        indexMatched = indexPattern.matches(concreteIndex, context, indexMetadata);
+                    } catch (PrivilegesEvaluationException e) {
+                        // We can ignore these errors, as this max leads to fewer privileges than available
+                        log.error("Error while evaluating index pattern. Ignoring entry");
                     }
-
                     if (!indexMatched) {
                         continue;
                     }

@@ -373,14 +373,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return;
             }
 
-            PrivilegesEvaluationContext PrivilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-            if (PrivilegesEvaluationContext == null) {
+            PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+            if (privilegesEvaluationContext == null) {
                 return;
             }
 
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
-            DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(PrivilegesEvaluationContext, index);
+            DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
 
             if (log.isTraceEnabled()) {
                 log.trace("handleSearchContext(); index: {}; dlsRestriction: {}", index, dlsRestriction);
@@ -449,36 +449,36 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     @Override
     public boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException {
-        PrivilegesEvaluationContext PrivilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-        if (PrivilegesEvaluationContext == null) {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
             return false;
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return !config.getFieldPrivileges().isUnrestricted(PrivilegesEvaluationContext, index)
-            || !config.getFieldMasking().isUnrestricted(PrivilegesEvaluationContext, index);
+        return !config.getFieldPrivileges().isUnrestricted(privilegesEvaluationContext, index)
+            || !config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
     }
 
     @Override
     public boolean hasFieldMasking(String index) throws PrivilegesEvaluationException {
-        PrivilegesEvaluationContext PrivilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-        if (PrivilegesEvaluationContext == null) {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
             return false;
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return !config.getFieldMasking().isUnrestricted(PrivilegesEvaluationContext, index);
+        return !config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
     }
 
     @Override
     public boolean isFieldAllowed(String index, String field) throws PrivilegesEvaluationException {
-        PrivilegesEvaluationContext PrivilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-        if (PrivilegesEvaluationContext == null) {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
             return true;
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return config.getFieldPrivileges().getRestriction(PrivilegesEvaluationContext, index).isAllowed(field);
+        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowed(field);
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
