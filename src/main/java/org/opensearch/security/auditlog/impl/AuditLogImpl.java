@@ -69,7 +69,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
     ) {
         super(settings, threadPool, resolver, clusterService, environment);
         this.settings = settings;
-        this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
+        this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath, clusterService);
         this.messageRouterEnabled = this.messageRouter.isEnabled();
 
         log.info("Message routing enabled: {}", this.messageRouterEnabled);
