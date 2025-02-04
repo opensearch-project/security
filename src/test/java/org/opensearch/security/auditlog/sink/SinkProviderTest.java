@@ -29,7 +29,7 @@ public class SinkProviderTest {
         Settings settings = Settings.builder()
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_all_variants.yml"))
             .build();
-        SinkProvider provider = new SinkProvider(settings, null, null, null);
+        SinkProvider provider = new SinkProvider(settings, null, null, null, null);
 
         // make sure we have a debug sink as fallback
         assertThat(provider.fallbackSink.getClass(), is(DebugSink.class));
@@ -104,7 +104,7 @@ public class SinkProviderTest {
         Settings settings = Settings.builder()
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_no_multiple_endpoints.yml"))
             .build();
-        SinkProvider provider = new SinkProvider(settings, null, null, null);
+        SinkProvider provider = new SinkProvider(settings, null, null, null, null);
         InternalOpenSearchSink sink = (InternalOpenSearchSink) provider.defaultSink;
         assertThat(sink.index, is("myownindex"));
         assertThat(sink.type, is("auditevents"));
