@@ -38,8 +38,6 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
@@ -74,10 +72,10 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     /**
      * roles == backend_roles
      */
-    private final Set<String> roles = new CopyOnWriteArraySet<>();
-    private final Set<String> securityRoles = new CopyOnWriteArraySet<>();
+    private final Set<String> roles = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> securityRoles = Collections.synchronizedSet(new HashSet<String>());
     private String requestedTenant;
-    private final Map<String, String> attributes = new ConcurrentHashMap<>();
+    private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
 
     public User(final StreamInput in) throws IOException {
@@ -88,10 +86,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         if (requestedTenant.isEmpty()) {
             requestedTenant = null;
         }
-        Map<String, String> readAttributes = in.readMap(StreamInput::readString, StreamInput::readString);
-        if (readAttributes != null) {
-            attributes.putAll(readAttributes);
-        }
+        attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
     }
 
@@ -274,7 +269,10 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * @return A modifiable map with all the current custom attributes associated with this user
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
-        return Collections.unmodifiableMap(attributes);
+        if (attributes == null) {
+            attributes = Collections.synchronizedMap(new HashMap<>());
+        }
+        return attributes;
     }
 
     public final void addSecurityRoles(final Collection<String> securityRoles) {
@@ -284,7 +282,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     public final Set<String> getSecurityRoles() {
-        return Collections.unmodifiableSet(this.securityRoles);
+        return this.securityRoles == null
+            ? Collections.synchronizedSet(Collections.emptySet())
+            : Collections.unmodifiableSet(this.securityRoles);
     }
 
     /**
