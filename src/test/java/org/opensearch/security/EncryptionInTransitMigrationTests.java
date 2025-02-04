@@ -44,7 +44,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
+        HttpResponse res = rh.executeGetRequest("_security/sslinfo");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executePutRequest("/xyz/_doc/1", "{\"a\":5}");

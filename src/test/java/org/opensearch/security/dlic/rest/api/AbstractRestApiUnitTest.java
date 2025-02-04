@@ -116,7 +116,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
     protected void deleteUser(String username) throws Exception {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = true;
-        HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/" + username, new Header[0]);
+        HttpResponse response = rh.executeDeleteRequest("_plugins/_security/api/internalusers/" + username, new Header[0]);
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
@@ -129,7 +129,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest(
-            "/_opendistro/_security/api/internalusers/" + username,
+            "_plugins/_security/api/internalusers/" + username,
             "{\"password\": \"" + password + "\"}",
             new Header[0]
         );
@@ -151,7 +151,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
             }
         }
         payload += "]}";
-        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
+        HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + username, payload, new Header[0]);
         assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
@@ -167,7 +167,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
             }
         }
         payload += "]}";
-        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
+        HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + username, payload, new Header[0]);
         assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
@@ -180,7 +180,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest(
-            "/_opendistro/_security/api/internalusers/" + username,
+            "_plugins/_security/api/internalusers/" + username,
             "{\"hash\": \"" + hash + "\"}",
             new Header[0]
         );
@@ -192,7 +192,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest(
-            "/_opendistro/_security/api/internalusers/" + username,
+            "_plugins/_security/api/internalusers/" + username,
             "{\"hash\": \"" + hash + "\", \"password\": \"" + password + "\"}",
             new Header[0]
         );
@@ -239,10 +239,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
     }
 
     protected void assertHealthy() throws Exception {
-        assertThat(rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(rh.executeGetRequest("_plugins/_security/health?pretty").getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(
             HttpStatus.SC_OK,
-            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode())
+            is(rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode())
         );
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()));
     }

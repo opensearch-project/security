@@ -106,8 +106,8 @@ public class AllowlistingSettings {
      * For SuperAdmin this function is bypassed.
      * In a future version, should add a regex check to improve the functionality.
      * Currently, each individual PUT/PATCH request needs to be allowlisted separately for the specific resource to be changed/added.
-     * This should be improved so that, for example if PUT /_opendistro/_security/api/rolesmapping is allowlisted,
-     * then all PUT /_opendistro/_security/api/rolesmapping/{resource_name} work.
+     * This should be improved so that, for example if PUT /_security/api/rolesmapping is allowlisted,
+     * then all PUT /_security/api/rolesmapping/{resource_name} work.
      * Currently, each resource_name has to be allowlisted separately
      */
     public Optional<SecurityResponse> checkRequestIsAllowed(final SecurityRequest request) {

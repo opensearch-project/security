@@ -52,12 +52,12 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
             adminCredsHeader
         );
 
-        log.warn("the response is:" + rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader));
+        log.warn("the response is:" + rh.executeGetRequest("_plugins/_security/api/whitelist", adminCredsHeader));
 
         // NON ADMIN TRIES ACCESSING A WHITELISTED API - OK
         rh.sendAdminCertificate = false;
@@ -127,7 +127,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
             nonAdminCredsHeader
         );
@@ -193,7 +193,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
             nonAdminCredsHeader
         );
@@ -276,7 +276,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
             nonAdminCredsHeader
         );
@@ -389,7 +389,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}",
             nonAdminCredsHeader
         );
@@ -487,7 +487,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
-            "_opendistro/_security/api/whitelist",
+            "_plugins/_security/api/whitelist",
             "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
             nonAdminCredsHeader
         );

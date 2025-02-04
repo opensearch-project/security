@@ -70,7 +70,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityRestFilter {
@@ -91,7 +90,7 @@ public class SecurityRestFilter {
     public static final String HEALTH_SUFFIX = "health";
     public static final String WHO_AM_I_SUFFIX = "whoami";
 
-    public static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    public static final String REGEX_PATH_PREFIX = "/(" + PLUGINS_PREFIX + ")/" + "(.*)";
     public static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     public SecurityRestFilter(
@@ -202,7 +201,7 @@ public class SecurityRestFilter {
      * If allowlisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are allowlisted in {@link #requests}
      * For example: if allowlisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
-     * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
+     * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_security/api/whitelist is only accessible by SuperAdmin.
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */

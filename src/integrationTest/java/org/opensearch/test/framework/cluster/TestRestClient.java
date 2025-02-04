@@ -117,7 +117,7 @@ public class TestRestClient implements AutoCloseable {
     }
 
     public HttpResponse getAuthInfo(Header... headers) {
-        return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
+        return executeRequest(new HttpGet(getHttpServerUri() + "/_plugins/_security/authinfo?pretty"), headers);
     }
 
     public HttpResponse securityHealth(Header... headers) {
@@ -127,7 +127,7 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse getAuthInfo(Map<String, String> urlParams, Header... headers) {
         String urlParamsString = "?"
             + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
-        return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo" + urlParamsString), headers);
+        return executeRequest(new HttpGet(getHttpServerUri() + "/_plugins/_security/authinfo" + urlParamsString), headers);
     }
 
     public void confirmCorrectCredentials(String expectedUserName) {

@@ -18,7 +18,7 @@ plugins.security.nodes_dn:
 
 # The nodes_dn_dynamic_config_enabled settings is geared towards cross_cluster usecases where there is a need to
 # manage the whitelisted nodes_dn without having to restart the nodes everytime a new cross_cluster remote is configured
-# Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_opendistro/_security/api/nodesdn APIs
+# Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_security/api/nodesdn APIs
 # which provide means to update/retrieve nodesdn dynamically.
 #
 # NOTE: The overall whitelisted nodes_dn evaluated comes from both the plugins.security.nodes_dn and the ones stored

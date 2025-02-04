@@ -50,7 +50,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -59,9 +58,6 @@ public class DashboardsInfoAction extends BaseRestHandler {
     private static final List<Route> routes = ImmutableList.<Route>builder()
         .addAll(
             addRoutesPrefix(ImmutableList.of(new Route(GET, "/dashboardsinfo"), new Route(POST, "/dashboardsinfo")), PLUGIN_ROUTE_PREFIX)
-        )
-        .addAll(
-            addRoutesPrefix(ImmutableList.of(new Route(GET, "/kibanainfo"), new Route(POST, "/kibanainfo")), LEGACY_PLUGIN_ROUTE_PREFIX)
         )
         .build();
 

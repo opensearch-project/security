@@ -44,14 +44,12 @@ import org.opensearch.security.auth.BackendRegistry;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")),
-        LEGACY_PLUGIN_ROUTE_PREFIX,
         PLUGIN_ROUTE_PREFIX
     );
 

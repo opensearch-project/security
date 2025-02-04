@@ -44,11 +44,11 @@ public class CachingTest extends SingleClusterTest {
     public void testRestCaching() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         assertThat(DummyHTTPAuthenticator.getCount(), is(3L));
@@ -62,11 +62,11 @@ public class CachingTest extends SingleClusterTest {
         final Settings settings = Settings.builder().put("plugins.security.cache.ttl_minutes", 0).build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
-        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         assertThat(DummyHTTPAuthenticator.getCount(), is(3L));
@@ -81,24 +81,15 @@ public class CachingTest extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo?pretty",
+            "_plugins/_security/authinfo?pretty",
             new BasicHeader("opendistro_security_impersonate_as", "impuser")
         );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo?pretty",
-            new BasicHeader("opendistro_security_impersonate_as", "impuser")
-        );
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo?pretty",
-            new BasicHeader("opendistro_security_impersonate_as", "impuser")
-        );
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        res = rh.executeGetRequest(
-            "_opendistro/_security/authinfo?pretty",
-            new BasicHeader("opendistro_security_impersonate_as", "impuser2")
-        );
+        res = rh.executeGetRequest("_plugins/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser2"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         assertThat(DummyHTTPAuthenticator.getCount(), is(4L));

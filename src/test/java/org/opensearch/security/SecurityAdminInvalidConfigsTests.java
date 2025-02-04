@@ -74,10 +74,10 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(
             HttpStatus.SC_OK,
-            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
+            is(rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
     }
@@ -105,10 +105,10 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(
             HttpStatus.SC_OK,
-            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
+            is(rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
     }
@@ -144,10 +144,10 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(
             HttpStatus.SC_OK,
-            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
+            is(rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
     }
@@ -175,10 +175,10 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(
             HttpStatus.SC_OK,
-            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
+            is(rh.executeGetRequest("_plugins/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
     }
