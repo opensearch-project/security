@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -29,9 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -50,7 +47,6 @@ import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -92,9 +88,6 @@ public class ApiTokenAction extends BaseRestHandler {
     );
 
     public ApiTokenAction(
-        ClusterService clusterService,
-        Client client,
-        SecurityTokenManager securityTokenManager,
         ThreadPool threadpool,
         ConfigurationRepository configurationRepository,
         PrivilegesEvaluator privilegesEvaluator,
@@ -102,9 +95,10 @@ public class ApiTokenAction extends BaseRestHandler {
         AdminDNs adminDns,
         AuditLog auditLog,
         Path configPath,
-        PrincipalExtractor principalExtractor
+        PrincipalExtractor principalExtractor,
+        ApiTokenRepository apiTokenRepository
     ) {
-        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
+        this.apiTokenRepository = apiTokenRepository;
         this.threadPool = threadpool;
         this.configurationRepository = configurationRepository;
         this.privilegesEvaluator = privilegesEvaluator;
@@ -226,7 +220,6 @@ public class ApiTokenAction extends BaseRestHandler {
                     }
                 });
             } catch (final Exception exception) {
-                log.error(exception.toString());
                 sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
             }
         };
@@ -454,16 +447,6 @@ public class ApiTokenAction extends BaseRestHandler {
         if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
             || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
             throw new SecurityException("User does not have required security API access");
-        }
-    }
-
-    private <T> T withSecurityContext(NodeClient client, Supplier<T> operation) {
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-            return operation.get();
         }
     }
 }

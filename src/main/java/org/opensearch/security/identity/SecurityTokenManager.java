@@ -11,9 +11,12 @@
 
 package org.opensearch.security.identity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Optional;
+import java.util.Date;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,6 +32,8 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.claims.ApiJwtClaimsBuilder;
+import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -38,6 +43,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import joptsimple.internal.Strings;
 import org.greenrobot.eventbus.Subscribe;
+
+import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 /**
  * This class is the Security Plugin's implementation of the TokenManager used by all Identity Plugins.
@@ -50,9 +57,11 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
 
-    private JwtVendor oboJwtVendor = null;
-    private JwtVendor apiTokenJwtVendor = null;
+    private Settings oboSettings = null;
+    private Settings apiTokenSettings = null;
     private ConfigModel configModel = null;
+    private final LongSupplier timeProvider = System::currentTimeMillis;
+    private static final Integer OBO_MAX_EXPIRY_SECONDS = 600;
 
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
         this.cs = cs;
@@ -67,22 +76,22 @@ public class SecurityTokenManager implements TokenManager {
 
     @Subscribe
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
-        final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
-        final Boolean oboEnabled = oboSettings.getAsBoolean("enabled", false);
+        final Settings oboSettingsFromDcm = dcm.getDynamicOnBehalfOfSettings();
+        final Boolean oboEnabled = oboSettingsFromDcm.getAsBoolean("enabled", false);
         if (oboEnabled) {
-            oboJwtVendor = createJwtVendor(oboSettings);
+            oboSettings = oboSettingsFromDcm;
         }
-        final Settings apiTokenSettings = dcm.getDynamicApiTokenSettings();
-        final Boolean apiTokenEnabled = apiTokenSettings.getAsBoolean("enabled", false);
+        final Settings apiTokenSettingsFromDcm = dcm.getDynamicApiTokenSettings();
+        final Boolean apiTokenEnabled = apiTokenSettingsFromDcm.getAsBoolean("enabled", false);
         if (apiTokenEnabled) {
-            apiTokenJwtVendor = createJwtVendor(apiTokenSettings);
+            apiTokenSettings = apiTokenSettingsFromDcm;
         }
     }
 
     /** For testing */
     JwtVendor createJwtVendor(final Settings settings) {
         try {
-            return new JwtVendor(settings, Optional.empty());
+            return new JwtVendor(settings);
         } catch (final Exception ex) {
             logger.error("Unable to create the JwtVendor instance", ex);
             return null;
@@ -90,11 +99,11 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public boolean issueOnBehalfOfTokenAllowed() {
-        return oboJwtVendor != null && configModel != null;
+        return oboSettings != null && configModel != null;
     }
 
     public boolean issueApiTokenAllowed() {
-        return apiTokenJwtVendor != null && configModel != null;
+        return apiTokenSettings != null && configModel != null;
     }
 
     @Override
@@ -123,16 +132,36 @@ public class SecurityTokenManager implements TokenManager {
         final TransportAddress callerAddress = null; /* OBO tokens must not roles based on location from network address */
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
 
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date(currentTimeMs);
+
+        final long expirySeconds = Math.min(claims.getExpiration(), OBO_MAX_EXPIRY_SECONDS);
+        if (expirySeconds <= 0) {
+            throw new IllegalArgumentException("The expiration time should be a positive integer");
+        }
+        if (mappedRoles == null) {
+            throw new IllegalArgumentException("Roles cannot be null");
+        }
+        if (isKeyNull(oboSettings, "encryption_key")) {
+            throw new IllegalArgumentException("encryption_key cannot be null");
+        }
+
+        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
+
+        // Add obo claims
+        claimsBuilder.issuer(cs.getClusterName().value());
+        claimsBuilder.issueTime(now);
+        claimsBuilder.subject(user.getName());
+        claimsBuilder.audience(claims.getAudience());
+        claimsBuilder.notBeforeTime(now);
+        claimsBuilder.addBackendRoles(false, new ArrayList<>(user.getRoles()));
+        claimsBuilder.addRoles(new ArrayList<>(mappedRoles));
+
+        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
+        claimsBuilder.expirationTime(expiryTime);
+
         try {
-            return oboJwtVendor.createJwt(
-                cs.getClusterName().value(),
-                user.getName(),
-                claims.getAudience(),
-                claims.getExpiration(),
-                new ArrayList<>(mappedRoles),
-                new ArrayList<>(user.getRoles()),
-                false
-            );
+            return createJwtVendor(oboSettings).createJwt(claimsBuilder, user.getName(), expiryTime, expirySeconds);
         } catch (final Exception ex) {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");
@@ -140,22 +169,35 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public ExpiringBearerAuthToken issueApiToken(final String name, final Long expiration) {
+        if (!issueApiTokenAllowed()) {
+            throw new OpenSearchSecurityException("Api token generation is not enabled.");
+        }
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date(currentTimeMs);
+
+        final ApiJwtClaimsBuilder claimsBuilder = new ApiJwtClaimsBuilder();
+        claimsBuilder.issuer(cs.getClusterName().value());
+        claimsBuilder.issueTime(now);
+        claimsBuilder.subject(name);
+        claimsBuilder.audience(name);
+        claimsBuilder.notBeforeTime(now);
+
+        final Date expiryTime = new Date(expiration);
+        claimsBuilder.expirationTime(expiryTime);
+
         try {
-            return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
+            return createJwtVendor(apiTokenSettings).createJwt(
+                claimsBuilder,
+                name,
+                expiryTime,
+                Duration.between(Instant.now(), expiryTime.toInstant()).getSeconds()
+            );
         } catch (final Exception ex) {
             logger.error("Error creating Api Token for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate Api Token");
         }
-    }
-
-    public String encryptToken(final String token) {
-        return apiTokenJwtVendor.encryptString(token);
-    }
-
-    public String decryptString(final String input) {
-        return apiTokenJwtVendor.decryptString(input);
     }
 
     @Override

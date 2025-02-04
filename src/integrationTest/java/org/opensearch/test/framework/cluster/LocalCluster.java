@@ -414,10 +414,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         /**
-        * Adds additional plugins to the cluster
-        */
-        public Builder plugin(Class<? extends Plugin> plugin) {
-            this.plugins.add(plugin);
+         * Adds additional plugins to the cluster
+         */
+        @SafeVarargs
+        public final Builder plugin(Class<? extends Plugin>... plugins) {
+            this.plugins.addAll(List.of(plugins));
 
             return this;
         }

@@ -48,7 +48,6 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ApiTokenActionTest {
-
     @Mock
     private ThreadPool threadPool;
 
@@ -132,13 +131,12 @@ public class ApiTokenActionTest {
         when(configurationRepository.getConfiguration(CType.ACTIONGROUPS)).thenReturn(actionGroupsConfig);
 
         apiTokenAction = new ApiTokenAction(
-            null,
-            null,
-            null,
+
             threadPool,
             configurationRepository,
             privilegesEvaluator,
             Settings.EMPTY,
+            null,
             null,
             null,
             null,

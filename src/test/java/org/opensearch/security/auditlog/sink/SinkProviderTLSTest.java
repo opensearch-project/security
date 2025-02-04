@@ -65,7 +65,7 @@ public class SinkProviderTLSTest {
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
             .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();

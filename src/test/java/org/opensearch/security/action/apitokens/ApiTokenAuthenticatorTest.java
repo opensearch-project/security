@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
@@ -25,7 +24,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
@@ -36,7 +34,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.any;
@@ -52,21 +49,19 @@ public class ApiTokenAuthenticatorTest {
     @Mock
     private Logger log;
 
+    @Mock
+    private ApiTokenRepository apiTokenRepository;
+
     private ThreadContext threadcontext;
     private final String signingKey = Base64.getEncoder()
         .encodeToString("jwt signing key long enough for secure api token authentication testing".getBytes(StandardCharsets.UTF_8));
-    private final String encryptionKey = Base64.getEncoder().encodeToString("123456678910".getBytes(StandardCharsets.UTF_8));
-    private final EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+    private final String tokenName = "test-token";
 
     @Before
     public void setUp() {
-        Settings settings = Settings.builder()
-            .put("enabled", "true")
-            .put("signing_key", signingKey)
-            .put("encryption_key", encryptionKey)
-            .build();
+        Settings settings = Settings.builder().put("enabled", "true").put("signing_key", signingKey).build();
 
-        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster");
+        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster", apiTokenRepository);
         authenticator.log = log;
         when(log.isDebugEnabled()).thenReturn(true);
         threadcontext = new ThreadContext(Settings.EMPTY);
@@ -75,8 +70,6 @@ public class ApiTokenAuthenticatorTest {
     @Test
     public void testAuthenticationFailsWhenJtiNotInCache() {
         String testJti = "test-jti-not-in-cache";
-        ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        assertFalse(cache.isValidToken(testJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -91,15 +84,14 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsPassWhenJtiInCache() {
         String token = Jwts.builder()
             .setIssuer("opensearch-cluster")
-            .setSubject("test-token")
-            .setAudience("test-token")
+            .setSubject(tokenName)
+            .setAudience(tokenName)
             .setIssuedAt(Date.from(Instant.now()))
             .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        String encryptedToken = encryptionUtil.encrypt(token);
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(encryptedToken, new Permissions(List.of(), List.of()));
+        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -114,15 +106,12 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsFailWhenTokenIsExpired() {
         String token = Jwts.builder()
             .setIssuer("opensearch-cluster")
-            .setSubject("test-token")
-            .setAudience("test-token")
+            .setSubject(tokenName)
+            .setAudience(tokenName)
             .setIssuedAt(Date.from(Instant.now()))
             .setExpiration(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
-
-        String encryptedToken = encryptionUtil.encrypt(token);
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(encryptedToken, new Permissions(List.of(), List.of()));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -132,22 +121,20 @@ public class ApiTokenAuthenticatorTest {
 
         assertNull("Should return null when JTI is expired", ac);
         verify(log).debug(eq("Invalid or expired JWT token."), any(ExpiredJwtException.class));
-
     }
 
     @Test
     public void testExtractCredentialsFailWhenIssuerDoesNotMatch() {
         String token = Jwts.builder()
             .setIssuer("not-opensearch-cluster")
-            .setSubject("test-token")
-            .setAudience("test-token")
+            .setSubject(tokenName)
+            .setAudience(tokenName)
             .setIssuedAt(Date.from(Instant.now()))
             .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        String encryptedToken = encryptionUtil.encrypt(token);
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(encryptedToken, new Permissions(List.of(), List.of()));
+        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -163,15 +150,12 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsFailWhenAccessingRestrictedEndpoint() {
         String token = Jwts.builder()
             .setIssuer("opensearch-cluster")
-            .setSubject("test-token")
-            .setAudience("test-token")
+            .setSubject(tokenName)
+            .setAudience(tokenName)
             .setIssuedAt(Date.from(Instant.now()))
             .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
-
-        String encryptedToken = encryptionUtil.encrypt(token);
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(encryptedToken, new Permissions(List.of(), List.of()));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -187,14 +171,12 @@ public class ApiTokenAuthenticatorTest {
     public void testAuthenticatorNotEnabled() {
         String token = Jwts.builder()
             .setIssuer("opensearch-cluster")
-            .setSubject("test-token")
-            .setAudience("test-token")
+            .setSubject(tokenName)
+            .setAudience(tokenName)
             .setIssuedAt(Date.from(Instant.now()))
             .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
-        String encryptedToken = encryptionUtil.encrypt(token);
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(encryptedToken, new Permissions(List.of(), List.of()));
 
         SecurityRequest request = mock(SecurityRequest.class);
 
@@ -205,7 +187,7 @@ public class ApiTokenAuthenticatorTest {
             .build();
         ThreadContext threadContext = new ThreadContext(settings);
 
-        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster");
+        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster", apiTokenRepository);
         authenticator.log = log;
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);

@@ -27,9 +27,8 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -57,18 +56,15 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private static final String BEARER_PREFIX = "bearer ";
 
     private final JwtParser jwtParser;
-    private final String encryptionKey;
     private final Boolean apiTokenEnabled;
     private final String clusterName;
     public static final String API_TOKEN_USER_PREFIX = "apitoken:";
-
-    private final EncryptionDecryptionUtil encryptionUtil;
+    private final ApiTokenRepository apiTokenRepository;
 
     @SuppressWarnings("removal")
-    public ApiTokenAuthenticator(Settings settings, String clusterName) {
+    public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
         String apiTokenEnabledSetting = settings.get("enabled", "true");
         apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
-        encryptionKey = settings.get("encryption_key");
 
         final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
@@ -82,7 +78,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
         });
         this.clusterName = clusterName;
-        this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        this.apiTokenRepository = apiTokenRepository;
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
@@ -130,7 +126,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Api token authentication is disabled");
             return null;
         }
-        ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
@@ -141,18 +136,17 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        // TODO: handle revocation different from deletion?
-        if (!cache.isValidToken(encryptionUtil.encrypt(jwtToken))) {
-            log.error("Token is not allowlisted");
-            return null;
-        }
-
         try {
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
             final String subject = claims.getSubject();
             if (subject == null) {
-                log.error("Valid jwt api token with no subject");
+                log.error("Api token does not have a subject");
+                return null;
+            }
+
+            if (!apiTokenRepository.isValidToken(subject)) {
+                log.error("Api token is not allowlisted");
                 return null;
             }
 
@@ -162,14 +156,14 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            return new AuthCredentials(API_TOKEN_USER_PREFIX + encryptionUtil.encrypt(jwtToken), List.of(), "").markComplete();
+            return new AuthCredentials(API_TOKEN_USER_PREFIX + subject, List.of(), "").markComplete();
 
         } catch (WeakKeyException e) {
-            log.error("Cannot authenticate user with JWT because of ", e);
+            log.error("Cannot authenticate api token because of ", e);
             return null;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
-                log.debug("Invalid or expired JWT token.", e);
+                log.debug("Invalid or expired api token.", e);
             }
         }
 

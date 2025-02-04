@@ -32,7 +32,7 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
     TransportApiTokenUpdateAction.NodeApiTokenUpdateRequest,
     ApiTokenUpdateNodeResponse> {
 
-    private final ApiTokenIndexListenerCache apiTokenCache;
+    private final ApiTokenRepository apiTokenRepository;
     private final ClusterService clusterService;
 
     @Inject
@@ -41,7 +41,8 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
         ThreadPool threadPool,
         ClusterService clusterService,
         TransportService transportService,
-        ActionFilters actionFilters
+        ActionFilters actionFilters,
+        ApiTokenRepository apiTokenRepository
     ) {
         super(
             ApiTokenUpdateAction.NAME,
@@ -54,7 +55,7 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
             ThreadPool.Names.MANAGEMENT,
             ApiTokenUpdateNodeResponse.class
         );
-        this.apiTokenCache = ApiTokenIndexListenerCache.getInstance();
+        this.apiTokenRepository = apiTokenRepository;
         this.clusterService = clusterService;
     }
 
@@ -98,7 +99,7 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
 
     @Override
     protected ApiTokenUpdateNodeResponse nodeOperation(final NodeApiTokenUpdateRequest request) {
-        apiTokenCache.reloadApiTokensFromIndex();
+        apiTokenRepository.reloadApiTokensFromIndex();
         return new ApiTokenUpdateNodeResponse(clusterService.localNode());
     }
 }

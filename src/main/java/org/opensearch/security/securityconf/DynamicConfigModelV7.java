@@ -49,6 +49,7 @@ import com.google.common.collect.Multimaps;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -86,13 +87,15 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     private final ClusterInfoHolder cih;
+    private final ApiTokenRepository apiTokenRepository;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
         Settings opensearchSettings,
         Path configPath,
         InternalAuthenticationBackend iab,
-        ClusterInfoHolder cih
+        ClusterInfoHolder cih,
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.config = config;
@@ -100,6 +103,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.configPath = configPath;
         this.iab = iab;
         this.cih = cih;
+        this.apiTokenRepository = apiTokenRepository;
         buildAAA();
     }
 
@@ -385,10 +389,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -2 - prioritize the Api token authentication when it gets enabled
          */
         Settings apiTokenSettings = getDynamicApiTokenSettings();
-        if (!isKeyNull(apiTokenSettings, "signing_key") && !isKeyNull(apiTokenSettings, "encryption_key")) {
+        if (!isKeyNull(apiTokenSettings, "signing_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName()),
+                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), apiTokenRepository),
                 false,
                 -2
             );

@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,6 +70,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
@@ -110,7 +112,6 @@ import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.Subject;
-import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
@@ -132,7 +133,7 @@ import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
-import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
 import org.opensearch.security.action.apitokens.TransportApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
@@ -168,7 +169,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.NoopPluginSubject;
+import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -225,6 +226,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
@@ -257,6 +259,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
+    private volatile ApiTokenRepository apiTokenRepository;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -648,9 +651,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
                 handlers.add(
                     new ApiTokenAction(
-                        cs,
-                        localClient,
-                        tokenManager,
                         Objects.requireNonNull(threadPool),
                         cr,
                         evaluator,
@@ -658,7 +658,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         adminDns,
                         auditLog,
                         configPath,
-                        principalExtractor
+                        principalExtractor,
+                        apiTokenRepository
                     )
                 );
                 handlers.addAll(
@@ -1114,7 +1115,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         adminDns = new AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
-        ApiTokenIndexListenerCache.getInstance().initialize(clusterService, localClient);
 
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 
@@ -1123,6 +1123,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        apiTokenRepository = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
@@ -1138,7 +1139,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            namedXContentRegistry.get()
+            namedXContentRegistry.get(),
+            apiTokenRepository
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -1180,7 +1182,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -1230,6 +1232,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
+        components.add(apiTokenRepository);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -2161,8 +2164,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Subject getCurrentSubject() {
-        // Not supported
-        return new NoopSubject();
+        return (Subject) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_AUTHENTICATED_USER);
     }
 
     @Override
@@ -2172,7 +2174,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        return new NoopPluginSubject(threadPool);
+        Set<String> clusterActions = new HashSet<>();
+        clusterActions.add(BulkAction.NAME);
+        PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        return subject;
     }
 
     @Override
