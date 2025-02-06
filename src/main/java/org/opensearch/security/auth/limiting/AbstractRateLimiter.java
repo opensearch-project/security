@@ -21,6 +21,10 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.net.util.SubnetUtils;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
@@ -35,6 +39,8 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     protected final RateTracker<ClientIdType> rateTracker;
     protected final List<String> ignoreHosts;
     private WildcardMatcher ignoreHostMatcher;
+    // Cache for subnet matchers
+    private static final Map<String, SubnetUtils.SubnetInfo> SUBNET_CACHE = new ConcurrentHashMap<>();
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
         this.ignoreHosts = settings.getAsList("ignore_hosts", Collections.emptyList());
@@ -51,6 +57,11 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     }
 
     @Override
+    public List<String> getIgnoreHosts() {
+        return ignoreHosts;
+    }
+
+    @Override
     public abstract void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
     @Override
@@ -64,6 +75,16 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
         }
         this.ignoreHostMatcher = hostMatcher;
         return hostMatcher;
+    }
+
+    @Override
+    public SubnetUtils.SubnetInfo getSubnetForCidr(String cidr) {
+        return SUBNET_CACHE.computeIfAbsent(cidr, pattern -> {
+            SubnetUtils utils = new SubnetUtils(pattern);
+            // Include network and broadcast addresses
+            utils.setInclusiveHostCount(true);
+            return utils.getInfo();
+        });
     }
 
     @Override

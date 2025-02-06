@@ -26,16 +26,24 @@
 
 package org.opensearch.security.support;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.net.util.SubnetUtils.SubnetInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthFailureListener;
+import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.tools.Hasher;
 
 public final class SecurityUtils {
@@ -46,6 +54,7 @@ public final class SecurityUtils {
     static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc" + ENV_PATTERN_SUFFIX);
     static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64" + ENV_PATTERN_SUFFIX);
     public static Locale EN_Locale = forEN();
+    private static final Map<String, SubnetInfo> cidrCache = new ConcurrentHashMap<>();
 
     private SecurityUtils() {}
 
@@ -139,5 +148,59 @@ public final class SecurityUtils {
         } else {
             return bc ? Hasher.hash(envVarValue.toCharArray(), settings) : envVarValue;
         }
+    }
+
+    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
+        if (hostMatcher == null || address == null) {
+            return false;
+        }
+        List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+        if (hostResolverMode != null
+            && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
+            final String hostName = address.getHostName();
+            valuesToCheck.add(hostName);
+        }
+
+        return valuesToCheck.stream().anyMatch(hostMatcher);
+    }
+
+    /*
+    public static boolean matchesCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
+        if (clientBlockRegistry == null || address == null) {
+            return false;
+        }
+        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
+        List<String> patterns = authFailureListener.getIgnoreHosts();
+        for (String pattern : patterns) {
+            if (pattern.contains("/")) {
+                try {
+                    SubnetInfo subnetInfo = authFailureListener.getSubnetForCidr(pattern);
+                    if (subnetInfo.isInRange(address.getHostAddress())) {
+                        return true;
+                    }
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid CIDR pattern: {}", pattern);
+                    // do not break loop, continue through other patterns
+                }
+            }
+        }
+        return false;
+    }
+     */
+    public static boolean matchesCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
+        if (clientBlockRegistry == null || address == null) {
+            return false;
+        }
+        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
+        String hostAddress = address.getHostAddress();
+        return authFailureListener.getIgnoreHosts().parallelStream().filter(pattern -> pattern.indexOf('/') != -1).anyMatch(pattern -> {
+            try {
+                SubnetInfo subnetInfo = cidrCache.computeIfAbsent(pattern, authFailureListener::getSubnetForCidr);
+                return subnetInfo.isInRange(hostAddress);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid CIDR pattern: {}", pattern);
+                return false;
+            }
+        });
     }
 }

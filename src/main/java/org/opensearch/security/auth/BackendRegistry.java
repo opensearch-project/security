@@ -28,7 +28,6 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -76,11 +75,13 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.opensearch.security.support.SecurityUtils.matchesCidrPatterns;
+import static org.opensearch.security.support.SecurityUtils.matchesHostPatterns;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
 
@@ -696,8 +697,7 @@ public class BackendRegistry {
         }
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
-            WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
-            if (matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode)) {
+            if (matchesIgnoreHostPatterns(clientBlockRegistry, address, hostResolverMode)) {
                 return false;
             }
             if (clientBlockRegistry.isBlocked(address)) {
@@ -708,21 +708,16 @@ public class BackendRegistry {
         return false;
     }
 
-    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
-        if (hostMatcher == null) {
+    private static boolean matchesIgnoreHostPatterns(
+        ClientBlockRegistry<InetAddress> clientBlockRegistry,
+        InetAddress address,
+        String hostResolverMode
+    ) {
+        WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
+        if (ignoreHostsMatcher == null || address == null) {
             return false;
         }
-        if (address != null) {
-            List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
-            if (hostResolverMode != null
-                && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
-                final String hostName = address.getHostName();
-                valuesToCheck.add(hostName);
-            }
-
-            return valuesToCheck.stream().anyMatch(hostMatcher);
-        }
-        return false;
+        return matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode) || matchesCidrPatterns(clientBlockRegistry, address);
     }
 
     private boolean isBlocked(String authBackend, String userName) {
