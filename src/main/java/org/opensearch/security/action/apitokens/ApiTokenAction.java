@@ -29,6 +29,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -47,6 +49,8 @@ import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.privileges.IndexPattern;
+import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -82,6 +86,8 @@ public class ApiTokenAction extends BaseRestHandler {
     private final ConfigurationRepository configurationRepository;
     private final PrivilegesEvaluator privilegesEvaluator;
     private final SecurityApiDependencies securityApiDependencies;
+    private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
@@ -96,7 +102,9 @@ public class ApiTokenAction extends BaseRestHandler {
         AuditLog auditLog,
         Path configPath,
         PrincipalExtractor principalExtractor,
-        ApiTokenRepository apiTokenRepository
+        ApiTokenRepository apiTokenRepository,
+        ClusterService clusterService,
+        IndexNameExpressionResolver indexNameExpressionResolver
     ) {
         this.apiTokenRepository = apiTokenRepository;
         this.threadPool = threadpool;
@@ -116,6 +124,8 @@ public class ApiTokenAction extends BaseRestHandler {
             auditLog,
             settings
         );
+        this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
@@ -358,7 +368,8 @@ public class ApiTokenAction extends BaseRestHandler {
      *  Validates that the user has the required permissions to create an API token (must be a subset of their own permissions)
      * */
     @SuppressWarnings("unchecked")
-    void validateUserPermissions(List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions) {
+    void validateUserPermissions(List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions)
+        throws PrivilegesEvaluationException {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final Set<String> roles = privilegesEvaluator.mapRoles(user, caller);
@@ -366,9 +377,6 @@ public class ApiTokenAction extends BaseRestHandler {
         // Early return conditions
         if (roles.isEmpty()) {
             throw new OpenSearchException("User does not have any roles");
-        } else if (roles.contains("all_access")) {
-            // all_access == *
-            return;
         }
 
         // Verify user has all requested cluster permissions
@@ -418,8 +426,15 @@ public class ApiTokenAction extends BaseRestHandler {
                         List<String> rolePatterns = indexPermission.getIndex_patterns();
                         List<String> roleIndexPerms = indexPermission.getAllowed_actions();
 
+                        IndexPattern indexPattern = IndexPattern.from(rolePatterns);
+
                         // Check if this role's pattern covers the requested pattern
-                        if (WildcardMatcher.from(rolePatterns).test(requestedPattern)) {
+                        if (indexPattern.matches(
+                            requestedPattern,
+                            indexNameExpressionResolver,
+                            (String template) -> WildcardMatcher.NONE,
+                            clusterService.state().metadata().getIndicesLookup()
+                        )) {
                             // Get resolved actions for this role's index permissions
                             Set<String> roleActions = flattenedActionGroups.resolve(roleIndexPerms);
                             WildcardMatcher matcher = WildcardMatcher.from(roleActions);

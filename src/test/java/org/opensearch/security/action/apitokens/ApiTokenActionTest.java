@@ -25,6 +25,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.Version;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -56,6 +62,14 @@ public class ApiTokenActionTest {
 
     @Mock
     private ConfigurationRepository configurationRepository;
+
+    @Mock
+    private ClusterService clusterService;
+    @Mock
+    private ClusterState clusterState;
+
+    @Mock
+    private Metadata metadata;
 
     private SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfig;
     private SecurityDynamicConfiguration<RoleV7> rolesConfig;
@@ -119,6 +133,13 @@ public class ApiTokenActionTest {
                     Arrays.asList(ImmutableMap.of("index_patterns", List.of("lo*"), "allowed_actions", List.of("write_group"))),
                     "cluster_permissions",
                     Arrays.asList("cluster_monitor")
+                ),
+                "alias_group",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs"), "allowed_actions", List.of("read"))),
+                    "cluster_permissions",
+                    Arrays.asList("cluster_monitor")
                 )
 
             ),
@@ -129,6 +150,19 @@ public class ApiTokenActionTest {
 
         when(configurationRepository.getConfiguration(CType.ROLES)).thenReturn(rolesConfig);
         when(configurationRepository.getConfiguration(CType.ACTIONGROUPS)).thenReturn(actionGroupsConfig);
+        when(clusterService.state()).thenReturn(clusterState);
+
+        when(clusterState.metadata()).thenReturn(
+            Metadata.builder()
+                .put(
+                    IndexMetadata.builder("my-index")
+                        .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
+                        .numberOfShards(1)
+                        .numberOfReplicas(0)
+                        .putAlias(AliasMetadata.builder("logs").build())
+                )
+                .build()
+        );
 
         apiTokenAction = new ApiTokenAction(
 
@@ -140,6 +174,8 @@ public class ApiTokenActionTest {
             null,
             null,
             null,
+            null,
+            clusterService,
             null
         );
 
@@ -219,7 +255,7 @@ public class ApiTokenActionTest {
     }
 
     @Test
-    public void testExactMatchPermissionsWithActionGroups() {
+    public void testExactMatchPermissionsWithActionGroups() throws Exception {
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123"));
 
         apiTokenAction.validateUserPermissions(List.of(), List.of(new ApiToken.IndexPermission(
@@ -243,7 +279,7 @@ public class ApiTokenActionTest {
     }
 
     @Test
-    public void testMultipleRolesCoveringPermissions() {
+    public void testMultipleRolesCoveringPermissions() throws Exception {
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
 
         ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(List.of("logs-123"), List.of("read", "write"));
@@ -270,7 +306,7 @@ public class ApiTokenActionTest {
     }
 
     @Test
-    public void testActionGroupResolution() {
+    public void testActionGroupResolution() throws Exception{
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
 
         ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(
@@ -282,14 +318,14 @@ public class ApiTokenActionTest {
     }
 
     @Test
-    public void testEmptyIndexPermissions() {
+    public void testEmptyIndexPermissions() throws Exception {
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
 
         apiTokenAction.validateUserPermissions(List.of("cluster:monitor"), List.of());
     }
 
     @Test
-    public void testClusterPermissionsEvaluation() {
+    public void testClusterPermissionsEvaluation() throws Exception {
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("cluster_monitor"));
 
         apiTokenAction.validateUserPermissions(List.of("cluster_monitor"), List.of());
@@ -303,9 +339,21 @@ public class ApiTokenActionTest {
     }
 
     @Test
-    public void testClusterPermissionsFromMultipleRoles() {
+    public void testClusterPermissionsFromMultipleRoles() throws Exception{
         when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("cluster_monitor", "read_group_logs-123"));
 
         apiTokenAction.validateUserPermissions(List.of("cluster_monitor", "cluster_health"), List.of());
+    }
+
+    @Test
+    public void testAliasAllowsAccessOnUnderlyingIndices() throws Exception {
+        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("alias_group"));
+
+        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(
+                List.of("my-index"),
+                List.of("read")
+        );
+
+        apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm));
     }
 }

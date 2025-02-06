@@ -659,7 +659,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         auditLog,
                         configPath,
                         principalExtractor,
-                        apiTokenRepository
+                        apiTokenRepository,
+                        cs,
+                        indexNameExpressionResolver
                     )
                 );
                 handlers.addAll(
