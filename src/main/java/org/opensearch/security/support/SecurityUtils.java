@@ -164,29 +164,6 @@ public final class SecurityUtils {
         return valuesToCheck.stream().anyMatch(hostMatcher);
     }
 
-    /*
-    public static boolean matchesCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
-        if (clientBlockRegistry == null || address == null) {
-            return false;
-        }
-        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
-        List<String> patterns = authFailureListener.getIgnoreHosts();
-        for (String pattern : patterns) {
-            if (pattern.contains("/")) {
-                try {
-                    SubnetInfo subnetInfo = authFailureListener.getSubnetForCidr(pattern);
-                    if (subnetInfo.isInRange(address.getHostAddress())) {
-                        return true;
-                    }
-                } catch (IllegalArgumentException e) {
-                    log.warn("Invalid CIDR pattern: {}", pattern);
-                    // do not break loop, continue through other patterns
-                }
-            }
-        }
-        return false;
-    }
-     */
     public static boolean matchesCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
         if (clientBlockRegistry == null || address == null) {
             return false;
