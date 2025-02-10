@@ -66,7 +66,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.10.1"
-    id "org.gradle.test-retry" version "1.6.0"
+    id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -470,7 +470,7 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.17.2'
+            force 'commons-codec:commons-codec:1.18.0'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.16'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -497,7 +497,7 @@ configurations {
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
-            force "org.checkerframework:checker-qual:3.48.4"
+            force "org.checkerframework:checker-qual:3.49.0"
             force "ch.qos.logback:logback-classic:1.5.16"
             force "commons-io:commons-io:2.18.0"
         }
@@ -610,7 +610,7 @@ dependencies {
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.17.2'
+    runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.36.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
@@ -662,7 +662,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.48.4'
+    runtimeOnly 'org.checkerframework:checker-qual:3.49.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -692,7 +692,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.1'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.2'
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'

@@ -64,7 +64,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
             consumer.subscribe(Arrays.asList("compliance"));
 
             Settings settings = settingsBuilder.put("path.home", ".").build();
-            SinkProvider provider = new SinkProvider(settings, null, null, null);
+            SinkProvider provider = new SinkProvider(settings, null, null, null, null);
             AuditLogSink sink = provider.getDefaultSink();
             try {
                 assertThat(sink.getClass(), is(KafkaSink.class));

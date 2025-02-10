@@ -70,7 +70,7 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest {
                 )
             )
             .build();
-        AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
+        AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null, null);
         // no default sink, audit log not enabled
         assertThat(router.isEnabled(), is(false));
         assertThat(router.defaultSink, is(nullValue()));

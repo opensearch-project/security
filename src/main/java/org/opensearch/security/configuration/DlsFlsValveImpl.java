@@ -81,6 +81,7 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
@@ -135,6 +136,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            return true;
+        }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
