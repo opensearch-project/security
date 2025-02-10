@@ -32,7 +32,6 @@ import javax.net.ssl.SSLHandshakeException;
 
 import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.NoHttpResponseException;
-import org.apache.lucene.util.Constants;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -235,7 +234,6 @@ public class SSLTest extends SingleClusterTest {
                     || e.toString().contains("Unable to configure permitted SSL ciphers")
                     || e.toString().contains("OPENSSL_internal:NO_CIPHER_MATCH")
             );
-            Assert.assertTrue("Check if >= Java 8 and no openssl", allowOpenSSL ? true : Constants.JRE_IS_MINIMUM_JAVA8);
         }
     }
 
@@ -864,7 +862,7 @@ public class SSLTest extends SingleClusterTest {
                 )
             );
             log.debug("Index created");
-            assertThat(tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value, is(1L));
+            assertThat(tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value(), is(1L));
             log.debug("Search done");
             assertThat(tc.admin().cluster().health(new ClusterHealthRequest("test")).actionGet().getNumberOfNodes(), is(3));
             log.debug("ClusterHealth done");
