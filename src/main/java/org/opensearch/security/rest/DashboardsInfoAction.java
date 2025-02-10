@@ -50,6 +50,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
@@ -69,7 +70,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
                 ImmutableList.of(
                     new DeprecatedRoute(GET, "/kibanainfo", OPENDISTRO_API_DEPRECATION_MESSAGE),
                     new DeprecatedRoute(POST, "/kibanainfo", OPENDISTRO_API_DEPRECATION_MESSAGE)
-                )
+                ),
+                LEGACY_PLUGIN_ROUTE_PREFIX
             )
         )
         .build();

@@ -44,18 +44,20 @@ import org.opensearch.security.auth.BackendRegistry;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")));
 
-    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
         ImmutableList.of(
             new DeprecatedRoute(GET, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(POST, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE)
-        )
+        ),
+        LEGACY_PLUGIN_ROUTE_PREFIX
     );
 
     private final BackendRegistry registry;
