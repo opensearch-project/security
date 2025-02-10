@@ -64,6 +64,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class SecurityInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/authinfo"), new Route(POST, "/authinfo")),
+        // @Deprecated
+        // https://github.com/shikharj05/security/blob/962eafab80fac3064de02b76bc956ee031703e0e/src/main/java/org/opensearch/security/dlic/rest/support/Utils.java#L62
         LEGACY_PLUGIN_ROUTE_PREFIX,
         PLUGIN_ROUTE_PREFIX
     );

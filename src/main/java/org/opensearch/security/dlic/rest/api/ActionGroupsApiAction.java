@@ -40,6 +40,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends AbstractApiAction {
@@ -72,6 +74,22 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         )
     );
 
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/actiongroup/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/actiongroup", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/actiongroup/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/actiongroup/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+
+            new DeprecatedRoute(Method.GET, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/actiongroups", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/actiongroups", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
+    );
+
     @Inject
     public ActionGroupsApiAction(
         final ClusterService clusterService,
@@ -85,6 +103,11 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

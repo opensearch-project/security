@@ -61,6 +61,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
             addRoutesPrefix(ImmutableList.of(new Route(GET, "/dashboardsinfo"), new Route(POST, "/dashboardsinfo")), PLUGIN_ROUTE_PREFIX)
         )
         .addAll(
+            // @Deprecated
+            // https://github.com/shikharj05/security/blob/962eafab80fac3064de02b76bc956ee031703e0e/src/main/java/org/opensearch/security/dlic/rest/support/Utils.java#L62
             addRoutesPrefix(ImmutableList.of(new Route(GET, "/kibanainfo"), new Route(POST, "/kibanainfo")), LEGACY_PLUGIN_ROUTE_PREFIX)
         )
         .build();
