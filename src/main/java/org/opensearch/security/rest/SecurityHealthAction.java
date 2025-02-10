@@ -44,17 +44,18 @@ import org.opensearch.security.auth.BackendRegistry;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
-    private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")),
-        // @Deprecated
-        // https://github.com/shikharj05/security/blob/962eafab80fac3064de02b76bc956ee031703e0e/src/main/java/org/opensearch/security/dlic/rest/support/Utils.java#L62
-        LEGACY_PLUGIN_ROUTE_PREFIX,
-        PLUGIN_ROUTE_PREFIX
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")));
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(GET, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(POST, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
     );
 
     private final BackendRegistry registry;
@@ -67,6 +68,11 @@ public class SecurityHealthAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override
