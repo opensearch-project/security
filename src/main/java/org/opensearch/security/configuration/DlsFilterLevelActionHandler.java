@@ -37,7 +37,6 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollAction;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -67,6 +66,7 @@ import org.opensearch.security.queries.QueryBuilderTraverser;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ReflectiveAttributeAccessors;
+import org.opensearch.transport.client.Client;
 
 public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);

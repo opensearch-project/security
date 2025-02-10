@@ -17,9 +17,9 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
 import org.opensearch.action.admin.cluster.repositories.get.GetRepositoriesResponse;
-import org.opensearch.client.Client;
-import org.opensearch.client.ClusterAdminClient;
 import org.opensearch.repositories.RepositoryMissingException;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.ClusterAdminClient;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;

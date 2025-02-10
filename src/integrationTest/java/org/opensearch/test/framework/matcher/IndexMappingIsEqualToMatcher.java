@@ -16,9 +16,9 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.opensearch.client.Client;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
