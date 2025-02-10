@@ -163,7 +163,7 @@ public final class SecurityUtils {
                 List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
                 final String hostName = address.getHostName();
                 valuesToCheck.add(hostName);
-                return valuesToCheck.parallelStream().anyMatch(hostMatcher);
+                return valuesToCheck.stream().anyMatch(hostMatcher);
             } catch (Exception e) {
                 log.warn("Failed to resolve hostname for {}: {}", address.getHostAddress(), e.getMessage());
                 return false;
@@ -181,7 +181,7 @@ public final class SecurityUtils {
         AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
         final String hostAddress = address.getHostAddress();
 
-        return authFailureListener.getIgnoreHosts().parallelStream().anyMatch(pattern -> {
+        return authFailureListener.getIgnoreHosts().stream().anyMatch(pattern -> {
             // Handle CIDR patterns
             if (pattern.indexOf('/') != -1) {
                 try {
