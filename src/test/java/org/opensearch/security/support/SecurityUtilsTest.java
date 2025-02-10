@@ -79,21 +79,31 @@ public class SecurityUtilsTest {
     }
 
     @Test
-    public void testHostMatching() throws UnknownHostException {
-        assertThat(SecurityUtils.matchesHostPatterns(null, null, "ip-only"), is(false));
-        assertThat(SecurityUtils.matchesHostPatterns(null, null, null), is(false));
-        assertThat(SecurityUtils.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), null, "ip-only"), is(false));
-        assertThat(SecurityUtils.matchesHostPatterns(null, InetAddress.getByName("127.0.0.1"), "ip-only"), is(false));
+    public void testHostNameMatching() throws UnknownHostException {
+        assertThat(SecurityUtils.matchesHostNamePatterns(null, null, "ip-only"), is(false));
+        assertThat(SecurityUtils.matchesHostNamePatterns(null, null, null), is(false));
+        assertThat(SecurityUtils.matchesHostNamePatterns(WildcardMatcher.from(List.of("127.0.0.1")), null, "ip-only"), is(false));
+        assertThat(SecurityUtils.matchesHostNamePatterns(null, InetAddress.getByName("127.0.0.1"), "ip-only"), is(false));
+
+        // "ip-only" modes are handled by matchesIpAndCidrPatterns
         assertThat(
-            SecurityUtils.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("127.0.0.1"), "ip-only"),
-            is(true)
+            SecurityUtils.matchesHostNamePatterns(
+                WildcardMatcher.from(List.of("127.0.0.1")),
+                InetAddress.getByName("127.0.0.1"),
+                "ip-only"
+            ),
+            is(false)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.*")), InetAddress.getByName("127.0.0.1"), "ip-only"),
-            is(true)
+            SecurityUtils.matchesHostNamePatterns(
+                WildcardMatcher.from(List.of("127.0.0.*")),
+                InetAddress.getByName("127.0.0.1"),
+                "ip-only"
+            ),
+            is(false)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("127.0.0.1")),
                 InetAddress.getByName("localhost"),
                 "ip-hostname"
@@ -101,11 +111,7 @@ public class SecurityUtilsTest {
             is(true)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("localhost"), "ip-only"),
-            is(true)
-        );
-        assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("127.0.0.1")),
                 InetAddress.getByName("localhost"),
                 "ip-hostname"
@@ -113,7 +119,7 @@ public class SecurityUtilsTest {
             is(true)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("127.0.0.1")),
                 InetAddress.getByName("example.org"),
                 "ip-hostname"
@@ -121,7 +127,7 @@ public class SecurityUtilsTest {
             is(false)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("example.org")),
                 InetAddress.getByName("example.org"),
                 "ip-hostname"
@@ -129,7 +135,7 @@ public class SecurityUtilsTest {
             is(true)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("example.org")),
                 InetAddress.getByName("example.org"),
                 "ip-only"
@@ -137,7 +143,7 @@ public class SecurityUtilsTest {
             is(false)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("*example.org")),
                 InetAddress.getByName("example.org"),
                 "ip-hostname"
@@ -145,7 +151,7 @@ public class SecurityUtilsTest {
             is(true)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("example.*")),
                 InetAddress.getByName("example.org"),
                 "ip-hostname"
@@ -153,7 +159,7 @@ public class SecurityUtilsTest {
             is(true)
         );
         assertThat(
-            SecurityUtils.matchesHostPatterns(
+            SecurityUtils.matchesHostNamePatterns(
                 WildcardMatcher.from(List.of("opensearch.org")),
                 InetAddress.getByName("example.org"),
                 "ip-hostname"
@@ -168,17 +174,38 @@ public class SecurityUtilsTest {
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
 
-        assertThat(SecurityUtils.matchesCidrPatterns(null, address), is(false));
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, null), is(false));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(null, address), is(false));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, null), is(false));
     }
 
     @Test
-    public void testMatchesCidrPatternIpOnly() throws UnknownHostException {
+    public void testMatchesCidrPatternIpOnlyNoMatch() throws UnknownHostException {
         Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.0").build();
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
 
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(false));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(false));
+    }
+
+    @Test
+    public void testMatchesCidrPatternIpOnlyMatch() throws UnknownHostException {
+        Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.1").build();
+        InetAddress address = InetAddress.getByName("192.168.1.1");
+        ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
+
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
+    }
+
+    @Test
+    public void testMatchesCidrPatternIpAndCidrMatch() throws UnknownHostException {
+        Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.1/32,192.168.0.0/16").build();
+        InetAddress address = InetAddress.getByName("192.168.1.1");
+        ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
+
+        // match CIDR 192.168.0.0/16
+        address = InetAddress.getByName("192.168.0.2");
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
     }
 
     @Test
@@ -187,23 +214,23 @@ public class SecurityUtilsTest {
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
 
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(false));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(false));
     }
 
     @Test
-    public void testMatchesCidrPatternSingleValidCidrMatch() throws UnknownHostException {
+    public void testMatchesCidrPatternSingleValidIpAndCidrMatch() throws UnknownHostException {
         Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.0/24").build();
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(true));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
     }
 
     @Test
-    public void testMatchesCidrPatternSingleValidCidrNoMatch() throws UnknownHostException {
+    public void testMatchesCidrPatternSingleValidIpAndCidrNoMatch() throws UnknownHostException {
         Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.0/24").build();
         InetAddress address = InetAddress.getByName("10.0.0.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(false));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(false));
     }
 
     @Test
@@ -211,7 +238,7 @@ public class SecurityUtilsTest {
         Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.0/24,10.0.0.0/8").build();
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(true));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
     }
 
     @Test
@@ -219,7 +246,7 @@ public class SecurityUtilsTest {
         Settings settings = Settings.builder().put("ignore_hosts", "192.168.1.0/24, invalid/cidr").build();
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(true));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
     }
 
     @Test
@@ -227,6 +254,6 @@ public class SecurityUtilsTest {
         Settings settings = Settings.builder().put("ignore_hosts", "invalid/cidr, 192.168.1.0/24").build();
         InetAddress address = InetAddress.getByName("192.168.1.1");
         ClientBlockRegistry<InetAddress> clientBlockRegistry = new AddressBasedRateLimiter(settings, null);
-        assertThat(SecurityUtils.matchesCidrPatterns(clientBlockRegistry, address), is(true));
+        assertThat(SecurityUtils.matchesIpAndCidrPatterns(clientBlockRegistry, address), is(true));
     }
 }

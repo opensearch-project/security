@@ -150,34 +150,51 @@ public final class SecurityUtils {
         }
     }
 
-    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
-        if (hostMatcher == null || address == null) {
+    // This is used to match host names - for e.g. *.example.local to dev.example.local
+    public static boolean matchesHostNamePatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
+        if (address == null || hostMatcher == null) {
             return false;
         }
-        List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+
+        // Only proceed with hostname checks if hostResolverMode is configured
         if (hostResolverMode != null
             && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
-            final String hostName = address.getHostName();
-            valuesToCheck.add(hostName);
-        }
-
-        return valuesToCheck.stream().anyMatch(hostMatcher);
-    }
-
-    public static boolean matchesCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
-        if (clientBlockRegistry == null || address == null) {
-            return false;
-        }
-        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
-        String hostAddress = address.getHostAddress();
-        return authFailureListener.getIgnoreHosts().parallelStream().filter(pattern -> pattern.indexOf('/') != -1).anyMatch(pattern -> {
             try {
-                SubnetInfo subnetInfo = cidrCache.computeIfAbsent(pattern, authFailureListener::getSubnetForCidr);
-                return subnetInfo.isInRange(hostAddress);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid CIDR pattern: {}", pattern);
+                List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+                final String hostName = address.getHostName();
+                valuesToCheck.add(hostName);
+                return valuesToCheck.parallelStream().anyMatch(hostMatcher);
+            } catch (Exception e) {
+                log.warn("Failed to resolve hostname for {}: {}", address.getHostAddress(), e.getMessage());
                 return false;
             }
+        }
+        return false;
+    }
+
+    // This is used to match IP addresses - for e.g. 192.168.0.1 to 192.168.0.0/16
+    public static boolean matchesIpAndCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
+        if (address == null || clientBlockRegistry == null) {
+            return false;
+        }
+
+        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
+        final String hostAddress = address.getHostAddress();
+
+        return authFailureListener.getIgnoreHosts().parallelStream().anyMatch(pattern -> {
+            // Handle CIDR patterns
+            if (pattern.indexOf('/') != -1) {
+                try {
+                    SubnetInfo subnetInfo = cidrCache.computeIfAbsent(pattern, authFailureListener::getSubnetForCidr);
+                    return subnetInfo.isInRange(hostAddress);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid CIDR pattern: {}", pattern);
+                    return false;
+                }
+            }
+
+            // Handle both direct IPs and wildcard IP patterns using WildcardMatcher
+            return authFailureListener.getIgnoreHostsMatcher().test(hostAddress);
         });
     }
 }

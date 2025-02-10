@@ -75,8 +75,8 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.opensearch.security.support.SecurityUtils.matchesCidrPatterns;
-import static org.opensearch.security.support.SecurityUtils.matchesHostPatterns;
+import static org.opensearch.security.support.SecurityUtils.matchesHostNamePatterns;
+import static org.opensearch.security.support.SecurityUtils.matchesIpAndCidrPatterns;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
@@ -717,7 +717,8 @@ public class BackendRegistry {
         if (ignoreHostsMatcher == null || address == null) {
             return false;
         }
-        return matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode) || matchesCidrPatterns(clientBlockRegistry, address);
+        return matchesHostNamePatterns(ignoreHostsMatcher, address, hostResolverMode)
+            || matchesIpAndCidrPatterns(clientBlockRegistry, address);
     }
 
     private boolean isBlocked(String authBackend, String userName) {
