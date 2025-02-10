@@ -45,6 +45,7 @@ runs:
           bwcTestSuite
           -Dtests.security.manager=false
           -Dtests.opensearch.secure=true
+          -Dbuild.version_qualifier=alpha1
           -Dtests.opensearch.username=${{ inputs.username }}
           -Dtests.opensearch.password=${{ inputs.password }}
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
