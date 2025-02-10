@@ -61,9 +61,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -72,7 +70,7 @@ public class TenantInfoAction extends BaseRestHandler {
         ImmutableList.of(new Route(GET, "/tenantinfo"), new Route(POST, "/tenantinfo"))
     );
 
-    private static final List<DeprecatedRoute>  deprecatedRoutes = addLegacyRoutesPrefix(
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
         ImmutableList.of(
             new DeprecatedRoute(GET, "/tenantinfo", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(POST, "/tenantinfo", OPENDISTRO_API_DEPRECATION_MESSAGE)
