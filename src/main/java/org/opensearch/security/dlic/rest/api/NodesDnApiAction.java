@@ -104,7 +104,10 @@ public class NodesDnApiAction extends AbstractApiAction {
 
     @Override
     public List<DeprecatedRoute> deprecatedRoutes() {
-        return deprecatedRoutes;
+        if (securityApiDependencies.settings().getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
+            return deprecatedRoutes;
+        }
+        return Collections.emptyList();
     }
 
     @Override
