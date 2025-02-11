@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,7 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.Version;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -252,108 +250,5 @@ public class ApiTokenActionTest {
 
         requestBody.put("cluster_permissions", Arrays.asList("perm1", "perm2"));
         assertThat(apiTokenAction.extractClusterPermissions(requestBody), is(Arrays.asList("perm1", "perm2")));
-    }
-
-    @Test
-    public void testExactMatchPermissionsWithActionGroups() throws Exception {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123"));
-
-        apiTokenAction.validateUserPermissions(List.of(), List.of(new ApiToken.IndexPermission(
-                List.of("logs-123"),
-                List.of("read_group")
-        )));
-    }
-
-    @Test
-    public void testCreateWildcardPermissionWhenNoAccessThrowsException() {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123"));
-
-        assertThrows(OpenSearchException.class, () -> apiTokenAction.validateUserPermissions(List.of(), List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read")))));
-    }
-
-    @Test
-    public void testCreateMorePermissableWildcardPermissionWhenNoAccessThrowsException() {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("write_group_logs-star"));
-
-        assertThrows(OpenSearchException.class, () -> apiTokenAction.validateUserPermissions(List.of(), List.of(new ApiToken.IndexPermission(List.of("lo-*"), List.of("write")))));
-    }
-
-    @Test
-    public void testMultipleRolesCoveringPermissions() throws Exception {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
-
-        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(List.of("logs-123"), List.of("read", "write"));
-
-        apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm));
-    }
-
-    @Test
-    public void testInsufficientPermissions() {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-star"));
-
-        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(List.of("logs-2023"), List.of("read", "write"));
-
-        assertThrows(OpenSearchException.class, () -> apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm)));
-    }
-
-    @Test
-    public void testSeparateIndexPatternThrowsException() {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123"));
-
-        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(List.of("logs-123", "metrics-2023"), List.of("read"));
-
-        assertThrows(OpenSearchException.class, () -> apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm)));
-    }
-
-    @Test
-    public void testActionGroupResolution() throws Exception{
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
-
-        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(
-            List.of("logs-123"),
-            List.of("read", "write", "get", "create")
-        );
-
-        apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm));
-    }
-
-    @Test
-    public void testEmptyIndexPermissions() throws Exception {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("read_group_logs-123", "write_group_logs-123"));
-
-        apiTokenAction.validateUserPermissions(List.of("cluster:monitor"), List.of());
-    }
-
-    @Test
-    public void testClusterPermissionsEvaluation() throws Exception {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("cluster_monitor"));
-
-        apiTokenAction.validateUserPermissions(List.of("cluster_monitor"), List.of());
-    }
-
-    @Test
-    public void testClusterPermissionsMorePermissableRegexThrowsException() {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("cluster_monitor"));
-
-        assertThrows(OpenSearchException.class, () -> apiTokenAction.validateUserPermissions(List.of("*"), List.of()));
-    }
-
-    @Test
-    public void testClusterPermissionsFromMultipleRoles() throws Exception{
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("cluster_monitor", "read_group_logs-123"));
-
-        apiTokenAction.validateUserPermissions(List.of("cluster_monitor", "cluster_health"), List.of());
-    }
-
-    @Test
-    public void testAliasAllowsAccessOnUnderlyingIndices() throws Exception {
-        when(privilegesEvaluator.mapRoles(null, null)).thenReturn(Set.of("alias_group"));
-
-        ApiToken.IndexPermission requestedPerm = new ApiToken.IndexPermission(
-                List.of("my-index"),
-                List.of("read")
-        );
-
-        apiTokenAction.validateUserPermissions(List.of(), List.of(requestedPerm));
     }
 }
