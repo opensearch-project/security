@@ -32,15 +32,17 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
         tc.admin()
             .indices()
             .create(
+                // FieldExistsQuery matches documents that contain a field that indexes
+                // norms or doc values.
                 new CreateIndexRequest("data").simpleMapping(
                     "@timestamp",
                     "type=date",
                     "host",
-                    "type=text,norms=false",
+                    "type=text,doc_values=false,norms=true",
                     "response",
-                    "type=text,norms=false",
+                    "type=text,doc_values=false,norms=true",
                     "non-existing",
-                    "type=text,norms=false"
+                    "type=text,doc_values=false,norms=true"
                 )
             )
             .actionGet();
