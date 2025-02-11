@@ -95,9 +95,13 @@ String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
 
 // Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
 def String extractVersion(versionStr) {
-    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)(?:-(?:alpha|beta|rc)\d+)?$/
+    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)(-(alpha|beta|rc)\d+)?$/
     versionMatcher.find()
-    return versionMatcher.group(1)
+    if (versionMatcher.group(3) != null) { /* there is a qualifier */
+        return versionMatcher.group(1) + versionMatcher.group(3)
+    } else {
+        return versionMatcher.group(1)
+    }
 }
 
 2.times {i ->
