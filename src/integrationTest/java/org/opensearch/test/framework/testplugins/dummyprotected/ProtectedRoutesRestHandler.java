@@ -16,7 +16,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -24,6 +23,7 @@ import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.test.framework.testplugins.AbstractRestHandler;
 import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyAction;
 import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyRequest;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;

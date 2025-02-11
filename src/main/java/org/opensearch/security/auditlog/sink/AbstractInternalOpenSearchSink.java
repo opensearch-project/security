@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -28,6 +27,7 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 

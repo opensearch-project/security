@@ -18,7 +18,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.requireNonNull;
 

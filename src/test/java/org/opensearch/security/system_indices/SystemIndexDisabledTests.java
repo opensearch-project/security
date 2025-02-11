@@ -19,9 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

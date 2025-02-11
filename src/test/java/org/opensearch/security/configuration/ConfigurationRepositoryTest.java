@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateUpdateTask;
@@ -39,6 +38,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.transport.SecurityInterceptorTests;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
