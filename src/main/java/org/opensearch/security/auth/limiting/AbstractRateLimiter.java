@@ -21,6 +21,7 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.net.util.SubnetUtils;
 
@@ -30,6 +31,7 @@ import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.blocking.HeapBasedClientBlockRegistry;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.IPAddressUtils;
 import org.opensearch.security.util.ratetracking.RateTracker;
 
 public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureListener, ClientBlockRegistry<ClientIdType> {
@@ -37,6 +39,7 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     protected final RateTracker<ClientIdType> rateTracker;
     protected final List<String> ignoreHosts;
     private WildcardMatcher ignoreHostMatcher;
+    protected final Map<String, SubnetUtils.SubnetInfo> subnetUtilsMatcherMap;
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
         this.ignoreHosts = settings.getAsList("ignore_hosts", Collections.emptyList());
@@ -50,11 +53,19 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
             settings.getAsInt("allowed_tries", 10),
             settings.getAsInt("max_tracked_clients", 100_000)
         );
+        this.subnetUtilsMatcherMap = IPAddressUtils.createSubnetUtils(
+            ignoreHosts.stream().filter(IPAddressUtils::isValidIpv4Cidr).toList()
+        );
     }
 
     @Override
     public List<String> getIgnoreHosts() {
         return ignoreHosts;
+    }
+
+    @Override
+    public Map<String, SubnetUtils.SubnetInfo> getSubnetUtilsMatcherMap() {
+        return subnetUtilsMatcherMap;
     }
 
     @Override
@@ -71,14 +82,6 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
         }
         this.ignoreHostMatcher = hostMatcher;
         return hostMatcher;
-    }
-
-    @Override
-    public SubnetUtils.SubnetInfo getSubnetForCidr(String cidr) {
-        SubnetUtils utils = new SubnetUtils(cidr);
-        // Include network and broadcast addresses
-        utils.setInclusiveHostCount(true);
-        return utils.getInfo();
     }
 
     @Override

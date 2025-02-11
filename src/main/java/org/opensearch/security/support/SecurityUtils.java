@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.net.util.SubnetUtils;
 import org.apache.commons.net.util.SubnetUtils.SubnetInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -181,20 +182,21 @@ public final class SecurityUtils {
         AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
         final String hostAddress = address.getHostAddress();
 
-        return authFailureListener.getIgnoreHosts().stream().anyMatch(pattern -> {
-            // Handle CIDR patterns
-            if (pattern.indexOf('/') != -1) {
-                try {
-                    SubnetInfo subnetInfo = cidrCache.computeIfAbsent(pattern, authFailureListener::getSubnetForCidr);
-                    return subnetInfo.isInRange(hostAddress);
-                } catch (IllegalArgumentException e) {
-                    log.warn("Invalid CIDR pattern: {}", pattern);
-                    return false;
+        for (String pattern : authFailureListener.getIgnoreHosts()) {
+            // Handle CIDR patterns - SubnetUtilsMatcherMap holds a SubnetInfo object for valid IPv4 patterns
+            if (authFailureListener.getSubnetUtilsMatcherMap().containsKey(pattern)) {
+                SubnetUtils.SubnetInfo subnetInfo = authFailureListener.getSubnetUtilsMatcherMap().get(pattern);
+                if (subnetInfo != null && subnetInfo.isInRange(hostAddress)) {
+                    return true;
+                }
+            } else {
+                // Handle both direct IPs and wildcard IP patterns
+                if (authFailureListener.getIgnoreHostsMatcher().test(hostAddress)) {
+                    return true;
                 }
             }
+        }
+        return false;
 
-            // Handle both direct IPs and wildcard IP patterns using WildcardMatcher
-            return authFailureListener.getIgnoreHostsMatcher().test(hostAddress);
-        });
     }
 }

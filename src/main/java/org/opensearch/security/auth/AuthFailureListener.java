@@ -19,8 +19,9 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.commons.net.util.SubnetUtils.SubnetInfo;
+import org.apache.commons.net.util.SubnetUtils;
 
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
@@ -32,5 +33,5 @@ public interface AuthFailureListener {
 
     WildcardMatcher getIgnoreHostsMatcher();
 
-    SubnetInfo getSubnetForCidr(String cidr);
+    Map<String, SubnetUtils.SubnetInfo> getSubnetUtilsMatcherMap();
 }
