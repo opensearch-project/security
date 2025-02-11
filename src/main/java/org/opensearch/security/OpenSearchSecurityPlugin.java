@@ -259,7 +259,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
-    private volatile ApiTokenRepository ar;
+    private volatile ApiTokenRepository apiTokenRepository;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -649,7 +649,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(ar));
+                handlers.add(
+                    new ApiTokenAction(
+                        Objects.requireNonNull(threadPool),
+                        cr,
+                        evaluator,
+                        settings,
+                        adminDns,
+                        auditLog,
+                        configPath,
+                        principalExtractor,
+                        apiTokenRepository,
+                        cs,
+                        indexNameExpressionResolver
+                    )
+                );
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -1111,7 +1125,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
-        ar = new ApiTokenRepository(localClient, clusterService, tokenManager);
+        apiTokenRepository = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
@@ -1128,7 +1142,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cih,
             irr,
             namedXContentRegistry.get(),
-            ar
+            apiTokenRepository
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -1170,7 +1184,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, ar);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -1220,7 +1234,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
-        components.add(ar);
+        components.add(apiTokenRepository);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -2143,7 +2157,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        return Collections.singletonList(systemIndexDescriptor);
+        final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
+            ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
+            "Security API token index"
+        );
+        return List.of(systemIndexDescriptor, apiTokenSystemIndexDescriptor);
     }
 
     @Override

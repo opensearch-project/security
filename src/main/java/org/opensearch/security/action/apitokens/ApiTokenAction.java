@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -24,14 +25,29 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
+import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -44,23 +60,57 @@ import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FI
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.util.ParsingUtils.safeMapList;
 import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
 public class ApiTokenAction extends BaseRestHandler {
-    private ApiTokenRepository apiTokenRepository;
+    private final ApiTokenRepository apiTokenRepository;
     public Logger log = LogManager.getLogger(this.getClass());
+    private final ThreadPool threadPool;
+    private final ConfigurationRepository configurationRepository;
+    private final PrivilegesEvaluator privilegesEvaluator;
+    private final SecurityApiDependencies securityApiDependencies;
+    private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
-    private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(
-            new RestHandler.Route(POST, "/apitokens"),
-            new RestHandler.Route(DELETE, "/apitokens"),
-            new RestHandler.Route(GET, "/apitokens")
-        )
+    private static final List<Route> ROUTES = addRoutesPrefix(
+        ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
     );
 
-    public ApiTokenAction(ApiTokenRepository apiTokenRepository) {
+    public ApiTokenAction(
+        ThreadPool threadpool,
+        ConfigurationRepository configurationRepository,
+        PrivilegesEvaluator privilegesEvaluator,
+        Settings settings,
+        AdminDNs adminDns,
+        AuditLog auditLog,
+        Path configPath,
+        PrincipalExtractor principalExtractor,
+        ApiTokenRepository apiTokenRepository,
+        ClusterService clusterService,
+        IndexNameExpressionResolver indexNameExpressionResolver
+    ) {
         this.apiTokenRepository = apiTokenRepository;
+        this.threadPool = threadpool;
+        this.configurationRepository = configurationRepository;
+        this.privilegesEvaluator = privilegesEvaluator;
+        this.securityApiDependencies = new SecurityApiDependencies(
+            adminDns,
+            configurationRepository,
+            privilegesEvaluator,
+            new RestApiPrivilegesEvaluator(settings, adminDns, privilegesEvaluator, principalExtractor, configPath, threadPool),
+            new RestApiAdminPrivilegesEvaluator(
+                threadPool.getThreadContext(),
+                privilegesEvaluator,
+                adminDns,
+                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
+            ),
+            auditLog,
+            settings
+        );
+        this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
@@ -69,22 +119,28 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     @Override
-    public List<RestHandler.Route> routes() {
+    public List<Route> routes() {
         return ROUTES;
     }
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
-        // TODO: Authorize this API properly
-        switch (request.method()) {
-            case POST:
-                return handlePost(request, client);
-            case DELETE:
-                return handleDelete(request, client);
-            case GET:
-                return handleGet(request, client);
-            default:
-                throw new IllegalArgumentException(request.method() + " not supported");
+        authorizeSecurityAccess(request);
+        return doPrepareRequest(request, client);
+    }
+
+    RestChannelConsumer doPrepareRequest(RestRequest request, NodeClient client) {
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
+        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool()
+                .getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+            return switch (request.method()) {
+                case POST -> handlePost(request, client);
+                case DELETE -> handleDelete(request, client);
+                case GET -> handleGet(request, client);
+                default -> throw new IllegalArgumentException(request.method() + " not supported");
+            };
         }
     }
 
@@ -119,8 +175,6 @@ public class ApiTokenAction extends BaseRestHandler {
 
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
         return channel -> {
-            final XContentBuilder builder = channel.newBuilder();
-            BytesRestResponse response;
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
                 validateRequestParameters(requestBody);
@@ -245,8 +299,6 @@ public class ApiTokenAction extends BaseRestHandler {
 
     private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
         return channel -> {
-            final XContentBuilder builder = channel.newBuilder();
-            BytesRestResponse response;
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
@@ -295,4 +347,11 @@ public class ApiTokenAction extends BaseRestHandler {
         }
     }
 
+    protected void authorizeSecurityAccess(RestRequest request) throws IOException {
+        // Check if user has security API access
+        if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
+            || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
+            throw new SecurityException("User does not have required security API access");
+        }
+    }
 }

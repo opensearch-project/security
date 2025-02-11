@@ -61,29 +61,33 @@ public class IndexPattern {
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
     }
 
-    public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
-        throws PrivilegesEvaluationException {
+    @FunctionalInterface
+    public interface MatcherGenerator {
+        WildcardMatcher apply(String pattern) throws PrivilegesEvaluationException;
+    }
+
+    public boolean matches(
+        String index,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        MatcherGenerator matcherGenerator,
+        Map<String, IndexAbstraction> indexMetadata
+    ) throws PrivilegesEvaluationException {
         if (staticPattern != WildcardMatcher.NONE && staticPattern.test(index)) {
             return true;
         }
 
         if (!patternTemplates.isEmpty()) {
             for (String patternTemplate : this.patternTemplates) {
-                try {
-                    WildcardMatcher matcher = context.getRenderedMatcher(patternTemplate);
 
-                    if (matcher.test(index)) {
-                        return true;
-                    }
-                } catch (ExpressionEvaluationException e) {
-                    throw new PrivilegesEvaluationException("Error while evaluating dynamic index pattern: " + patternTemplate, e);
+                WildcardMatcher matcher = matcherGenerator.apply(patternTemplate);
+
+                if (matcher.test(index)) {
+                    return true;
                 }
             }
         }
 
         if (!dateMathExpressions.isEmpty()) {
-            IndexNameExpressionResolver indexNameExpressionResolver = context.getIndexNameExpressionResolver();
-
             // Note: The use of date math expressions in privileges is a bit odd, as it only provides a very limited
             // solution for the potential user case. A different approach might be nice.
 
@@ -108,7 +112,12 @@ public class IndexPattern {
             // Check for the privilege for aliases or data streams containing this index
 
             if (indexAbstraction.getParentDataStream() != null) {
-                if (matches(indexAbstraction.getParentDataStream().getName(), context, indexMetadata)) {
+                if (matches(
+                    indexAbstraction.getParentDataStream().getName(),
+                    indexNameExpressionResolver,
+                    matcherGenerator,
+                    indexMetadata
+                )) {
                     return true;
                 }
             }
@@ -116,13 +125,24 @@ public class IndexPattern {
             // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
             // alias metadata from here.
             for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
-                if (matches(alias, context, indexMetadata)) {
+                if (matches(alias, indexNameExpressionResolver, matcherGenerator, indexMetadata)) {
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
+        throws PrivilegesEvaluationException {
+        return matches(index, context.getIndexNameExpressionResolver(), (String patternTemplate) -> {
+            try {
+                return context.getRenderedMatcher(patternTemplate);
+            } catch (ExpressionEvaluationException e) {
+                throw new PrivilegesEvaluationException("Error while evaluating dynamic index pattern: " + patternTemplate, e);
+            }
+        }, indexMetadata);
     }
 
     @Override
