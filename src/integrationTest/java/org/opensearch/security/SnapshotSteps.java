@@ -42,7 +42,7 @@ class SnapshotSteps {
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
-    public org.opensearch.action.support.master.AcknowledgedResponse createSnapshotRepository(
+    public org.opensearch.action.support.clustermanager.AcknowledgedResponse createSnapshotRepository(
         String repositoryName,
         String snapshotDirPath,
         String type
@@ -78,14 +78,15 @@ class SnapshotSteps {
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
-    public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshotRepository(String repositoryName) throws IOException {
+    public org.opensearch.action.support.clustermanager.AcknowledgedResponse deleteSnapshotRepository(String repositoryName)
+        throws IOException {
         // CS-ENFORCE-SINGLE
         DeleteRepositoryRequest request = new DeleteRepositoryRequest(repositoryName);
         return snapshotClient.deleteRepository(request, DEFAULT);
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
-    public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName)
+    public org.opensearch.action.support.clustermanager.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName)
         throws IOException {
         // CS-ENFORCE-SINGLE
         return snapshotClient.delete(new DeleteSnapshotRequest(repositoryName, snapshotName), DEFAULT);

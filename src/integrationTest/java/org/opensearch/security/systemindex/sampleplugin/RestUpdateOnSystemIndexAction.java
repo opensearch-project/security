@@ -13,7 +13,6 @@ package org.opensearch.security.systemindex.sampleplugin;
 import java.util.List;
 
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
@@ -21,6 +20,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.PUT;

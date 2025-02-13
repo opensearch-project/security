@@ -54,8 +54,7 @@ import org.opensearch.action.admin.cluster.node.info.NodeInfo;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
@@ -71,6 +70,7 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.transport.TransportInfo;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

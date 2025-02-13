@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Randomness;
 import org.opensearch.common.inject.Inject;
@@ -53,6 +52,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.opensearch.transport.client.Client;
 
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;

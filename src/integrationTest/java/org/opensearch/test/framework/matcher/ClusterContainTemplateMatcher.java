@@ -13,7 +13,7 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.requireNonNull;
 

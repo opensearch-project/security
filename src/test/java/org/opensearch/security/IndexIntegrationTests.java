@@ -41,7 +41,6 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActi
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -54,6 +53,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

@@ -20,8 +20,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.Template;
@@ -31,6 +30,7 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteTransportException;
+import org.opensearch.transport.client.Client;
 
 public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpenSearchSink {
 
