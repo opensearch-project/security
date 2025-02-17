@@ -14,11 +14,14 @@ package org.opensearch.security.auditlog.sink;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.opensearch.client.Client;
+import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -36,9 +39,10 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
         final Path configPath,
         final Client clientProvider,
         ThreadPool threadPool,
-        AuditLogSink fallbackSink
+        AuditLogSink fallbackSink,
+        ClusterService clusterService
     ) {
-        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, null);
+        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, null, clusterService);
 
         Settings sinkSettings = getSinkSettings(settingsPrefix);
         this.index = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
@@ -51,6 +55,23 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
                 "Unable to parse index pattern due to {}. " + "If you have no date pattern configured you can safely ignore this message",
                 e.getMessage()
             );
+        }
+    }
+
+    @Override
+    public boolean createIndexIfAbsent(String indexName) {
+        if (clusterService.state().metadata().hasIndex(indexName)) {
+            return true;
+        }
+
+        try {
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
+            final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            log.info("Index {} created?: {}", indexName, ok);
+            return ok;
+        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
+            log.info("Index {} already exists", indexName);
+            return true;
         }
     }
 
