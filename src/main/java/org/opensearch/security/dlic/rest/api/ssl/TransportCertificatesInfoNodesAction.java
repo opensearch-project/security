@@ -13,7 +13,9 @@ package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -95,30 +97,54 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
         }
     }
 
-    protected CertificatesInfo loadCertificates(final CertificateType certificateType) {
+    protected CertificatesInfo loadCertificates(final Optional<String> certificateType) {
         var httpCertificates = List.<CertificateInfo>of();
-        var transportsCertificates = List.<CertificateInfo>of();
-        if (CertificateType.isHttp(certificateType)) {
+        var transportCertificates = List.<CertificateInfo>of();
+        var transportClientCertificates = List.<CertificateInfo>of();
+        final var certType = certificateType.map(t -> CertType.valueOf(t.toUpperCase(Locale.ROOT))).orElse(null);
+        if (certType == null || certType == CertType.HTTP) {
             httpCertificates = sslSettingsManager.sslContextHandler(CertType.HTTP)
-                .map(SslContextHandler::keyMaterialCertificates)
+                .map(SslContextHandler::certificates)
                 .map(this::certificatesDetails)
                 .orElse(List.of());
         }
-        if (CertificateType.isTransport(certificateType)) {
-            transportsCertificates = sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
-                .map(SslContextHandler::keyMaterialCertificates)
+        if (certType == null || certType == CertType.TRANSPORT) {
+            transportCertificates = sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
+                .map(SslContextHandler::certificates)
                 .map(this::certificatesDetails)
                 .orElse(List.of());
         }
-        return new CertificatesInfo(Map.of(CertificateType.HTTP, httpCertificates, CertificateType.TRANSPORT, transportsCertificates));
+        if (certType == null || certType == CertType.TRANSPORT_CLIENT) {
+            transportClientCertificates = sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
+                .map(SslContextHandler::certificates)
+                .map(this::certificatesDetails)
+                .orElse(List.of());
+        }
+        return new CertificatesInfo(
+            Map.of(
+                CertType.HTTP,
+                httpCertificates,
+                CertType.TRANSPORT,
+                transportCertificates,
+                CertType.TRANSPORT_CLIENT,
+                transportClientCertificates
+            )
+        );
     }
 
     private List<CertificateInfo> certificatesDetails(final Stream<Certificate> certificateStream) {
-        if (certificateStream == null) {
-            return null;
-        }
         return certificateStream.map(
-            c -> new CertificateInfo(c.subject(), c.subjectAlternativeNames(), c.issuer(), c.notAfter(), c.notBefore())
+            c -> new CertificateInfo(
+                c.format(),
+                c.alias(),
+                c.serialNumber(),
+                c.hasPrivateKey(),
+                c.subject(),
+                c.subjectAlternativeNames(),
+                c.issuer(),
+                c.notAfter(),
+                c.notBefore()
+            )
         ).collect(Collectors.toList());
     }
 
