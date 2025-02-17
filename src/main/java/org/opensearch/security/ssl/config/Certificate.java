@@ -68,12 +68,16 @@ public class Certificate {
         return alias;
     }
 
-    public boolean hasKey() {
+    public boolean hasPrivateKey() {
         return hasKey;
     }
 
     public String subjectAlternativeNames() {
         return loadSubjectAlternativeNames();
+    }
+
+    public byte[] signature() {
+        return certificate.getSignature();
     }
 
     @Deprecated(since = "since JDK 21", forRemoval = true)
