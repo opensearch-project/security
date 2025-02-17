@@ -49,7 +49,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import io.netty.handler.ssl.OpenSsl;
 
 public class SecuritySSLInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = Collections.singletonList(new Route(Method.GET, "/_opendistro/_security/sslinfo"));
+    private static final List<Route> routes = Collections.singletonList(new Route(Method.GET, "/_security/sslinfo"));
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final SslSettingsManager sslSettingsManager;

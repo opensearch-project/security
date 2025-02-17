@@ -55,7 +55,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -270,7 +269,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     }
 
     protected String apiPathPrefix() {
-        return randomFrom(List.of(LEGACY_OPENDISTRO_PREFIX, PLUGINS_PREFIX));
+        return PLUGINS_PREFIX;
     }
 
     protected String securityPath(String... path) {

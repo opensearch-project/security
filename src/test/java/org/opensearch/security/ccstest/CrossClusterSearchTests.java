@@ -1400,7 +1400,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         setupCcs(new DynamicSecurityConfig().setSecurityNodesDn("nodes_dn_empty.yml"), cluster1, cluster2);
 
         HttpResponse response = rh2.executePutRequest(
-            "_opendistro/_security/api/nodesdn/connection1",
+            "_plugins/_security/api/nodesdn/connection1",
             "{\"nodes_dn\": [\"CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE\"]}",
             encodeBasicHeader("sarek", "sarek")
         );

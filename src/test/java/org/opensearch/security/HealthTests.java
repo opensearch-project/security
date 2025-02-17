@@ -46,12 +46,12 @@ public class HealthTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()));
+        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_plugins/_security/health?pretty&mode=lenient")).getStatusCode()));
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
 
-        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -63,15 +63,12 @@ public class HealthTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()));
+        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_plugins/_security/health?pretty&mode=lenient")).getStatusCode()));
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
 
-        assertThat(
-            HttpStatus.SC_SERVICE_UNAVAILABLE,
-            is((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode())
-        );
+        assertThat(HttpStatus.SC_SERVICE_UNAVAILABLE, is((res = rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode()));
         assertContains(res, "*DOWN*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*UP*");

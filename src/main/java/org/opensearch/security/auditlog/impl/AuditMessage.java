@@ -56,7 +56,6 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public final class AuditMessage {
@@ -68,9 +67,7 @@ public final class AuditMessage {
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 
-    private static final Pattern SENSITIVE_PATHS = Pattern.compile(
-        "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/api/(account.*|internalusers.*|user.*)"
-    );
+    private static final Pattern SENSITIVE_PATHS = Pattern.compile("/(" + PLUGINS_PREFIX + ")/api/(account.*|internalusers.*|user.*)");
 
     @VisibleForTesting
     public static final String BCRYPT_REGEX = "\\$2[ayb]\\$.{56}";

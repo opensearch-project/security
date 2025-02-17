@@ -53,7 +53,7 @@ public class TlsTests {
 
     public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
     public static final String NOT_SUPPORTED_CIPHER_SUITE = "TLS_RSA_WITH_AES_128_CBC_SHA";
-    public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
+    public static final String AUTH_INFO_ENDPOINT = "/_plugins/_security/authinfo?pretty";
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)

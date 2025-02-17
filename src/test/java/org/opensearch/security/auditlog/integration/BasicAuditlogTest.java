@@ -227,7 +227,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         setupStarfleetIndex();
 
-        testPrivilegeRest(HttpStatus.SC_OK, "/_opendistro/_security/api/roles", AuditCategory.GRANTED_PRIVILEGES);
+        testPrivilegeRest(HttpStatus.SC_OK, "/_plugins/_security/api/roles", AuditCategory.GRANTED_PRIVILEGES);
     }
 
     @Test
@@ -240,7 +240,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         setupStarfleetIndex();
 
-        testPrivilegeRest(HttpStatus.SC_FORBIDDEN, "/_opendistro/_security/api/roles", AuditCategory.MISSING_PRIVILEGES);
+        testPrivilegeRest(HttpStatus.SC_FORBIDDEN, "/_plugins/_security/api/roles", AuditCategory.MISSING_PRIVILEGES);
     }
 
     private void testPrivilegeRest(final int expectedStatus, final String endpoint, final AuditCategory category) throws Exception {
@@ -916,13 +916,13 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         assertThat(messages.get(0).getRequestMethod(), is(POST));
 
         // test PATCH
-        messages = TestAuditlogImpl.doThenWaitForMessages(() -> { rh.executePatchRequest("/_opendistro/_security/api/audit", "[]"); }, 1);
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> { rh.executePatchRequest("_plugins/_security/api/audit", "[]"); }, 1);
         assertThat(messages.get(0).getRequestMethod(), is(PATCH));
 
         // test MISSING_PRIVILEGES
         // admin does not have REST role here
         messages = TestAuditlogImpl.doThenWaitForMessages(
-            () -> { rh.executePatchRequest("/_opendistro/_security/api/audit", "[]", adminHeader); },
+            () -> { rh.executePatchRequest("_plugins/_security/api/audit", "[]", adminHeader); },
             2
         );
         // The intital request is authenicated
@@ -967,14 +967,14 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // test PUT accounts API
         TestAuditlogImpl.clear();
-        rh.executePutRequest("/_opendistro/_security/api/account", "{\"password\":\"new-pass\", \"current_password\":\"curr-passs\"}");
+        rh.executePutRequest("_plugins/_security/api/account", "{\"password\":\"new-pass\", \"current_password\":\"curr-passs\"}");
         assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
 
         // test PUT internal users API
         TestAuditlogImpl.clear();
         rh.executePutRequest(
-            "/_opendistro/_security/api/internalusers/test1",
+            "_plugins/_security/api/internalusers/test1",
             "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}"
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
@@ -983,7 +983,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         // test PATCH internal users API
         TestAuditlogImpl.clear();
         rh.executePatchRequest(
-            "/_opendistro/_security/api/internalusers/test1",
+            "_plugins/_security/api/internalusers/test1",
             "[{\"op\":\"add\", \"path\":\"/password\", \"value\": \"test-pass\"}]"
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
@@ -991,10 +991,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // test PUT users API
         TestAuditlogImpl.clear();
-        rh.executePutRequest(
-            "/_opendistro/_security/api/user/test2",
-            "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}"
-        );
+        rh.executePutRequest("_plugins/_security/api/user/test2", "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}");
         assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
     }
