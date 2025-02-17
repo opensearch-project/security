@@ -611,7 +611,7 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.1'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.2'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
