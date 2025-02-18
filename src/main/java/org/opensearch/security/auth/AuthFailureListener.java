@@ -18,12 +18,20 @@
 package org.opensearch.security.auth;
 
 import java.net.InetAddress;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.net.util.SubnetUtils;
 
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 
 public interface AuthFailureListener {
+    List<String> getIgnoreHosts();
+
     void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
     WildcardMatcher getIgnoreHostsMatcher();
+
+    Map<String, SubnetUtils.SubnetInfo> getSubnetUtilsMatcherMap();
 }
