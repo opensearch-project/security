@@ -43,6 +43,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENDISTRO_SECURITY_ROLES;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENSEARCH_SECURITY_ROLES;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
@@ -149,11 +151,15 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 builder.field("attributes", attributes);
             }
             if (securityRoles != null) {
-                builder.field("opendistro_security_roles");
+                builder.field(getRoleField());
                 securityRoles.toXContent(builder, params);
             }
             return builder.endObject();
         };
+    }
+
+    private static String getRoleField() {
+        return randomFrom(List.of(OPENDISTRO_SECURITY_ROLES, OPENSEARCH_SECURITY_ROLES));
     }
 
     static ToXContentObject defaultServiceUser() {

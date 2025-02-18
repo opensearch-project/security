@@ -18,6 +18,8 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -51,7 +53,16 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class InternalUsersApiAction extends AbstractApiAction {
 
+    private static final Logger log = LogManager.getLogger(InternalUsersApiAction.class);
     private final PasswordHasher passwordHasher;
+
+    /**
+     * @deprecated Use opensearch_security_roles instead. This field will be removed in a future release.
+     */
+    @Deprecated
+    public static final String OPENDISTRO_SECURITY_ROLES = "opendistro_security_roles";
+
+    public static final String OPENSEARCH_SECURITY_ROLES = "opensearch_security_roles";
 
     @Override
     protected void consumeParameters(final RestRequest request) {
@@ -183,8 +194,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             rolesConfiguration -> loadConfiguration(CType.ROLESMAPPING, false, false).map(roleMappingsConfiguration -> {
                 final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
                 final var securityJsonNode = new SecurityJsonNode(contentAsNode);
-                var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-                securityRoles = securityRoles == null ? List.of() : securityRoles;
+                var securityRoles = getRoles(securityJsonNode);
                 final var rolesValid = endpointValidator.validateRoles(securityRoles, rolesConfiguration);
                 if (!rolesValid.isValid()) {
                     return ValidationResult.error(rolesValid.status(), rolesValid.errorMessage());
@@ -200,6 +210,22 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 return ValidationResult.success(securityConfiguration);
             })
         );
+    }
+
+    private List<String> getRoles(SecurityJsonNode content) {
+        List<String> roles = content.get(OPENSEARCH_SECURITY_ROLES).asList();
+        // Fall back to deprecated field if new field is not present
+        if (roles == null) {
+            roles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
+            if (roles != null) {
+                log.warn(
+                    "The field '{}' is deprecated and will be removed in a future release. Please use '{}' instead.",
+                    OPENDISTRO_SECURITY_ROLES,
+                    OPENSEARCH_SECURITY_ROLES
+                );
+            }
+        }
+        return roles != null ? roles : List.of();
     }
 
     ValidationResult<SecurityConfiguration> createOrUpdateAccount(
@@ -309,7 +335,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
                         return allowedKeys.put("backend_roles", DataType.ARRAY)
                             .put("attributes", DataType.OBJECT)
                             .put("description", DataType.STRING)
-                            .put("opendistro_security_roles", DataType.ARRAY)
+                            .put(OPENDISTRO_SECURITY_ROLES, DataType.ARRAY)
+                            .put(OPENSEARCH_SECURITY_ROLES, DataType.ARRAY)
                             .put("hash", DataType.STRING)
                             .put("password", DataType.STRING)
                             .build();
