@@ -26,7 +26,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -36,6 +35,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.log.LogsRule;
+import org.opensearch.transport.client.Client;
 
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;

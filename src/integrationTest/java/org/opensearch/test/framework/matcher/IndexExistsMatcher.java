@@ -14,8 +14,8 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.opensearch.client.Client;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.requireNonNull;
 

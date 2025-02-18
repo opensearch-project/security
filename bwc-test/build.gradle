@@ -44,7 +44,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
         opensearch_group = "org.opensearch"
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
         jackson_version = System.getProperty("jackson_version", "2.15.2")
@@ -82,7 +82,7 @@ loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
-String previousVersion = System.getProperty("bwc.version.previous", "2.4.0.0")
+String previousVersion = System.getProperty("bwc.version.previous", "2.19.0.0")
 String nextVersion = System.getProperty("bwc.version.next", "3.0.0.0")
 
 String bwcVersion = previousVersion
@@ -95,9 +95,13 @@ String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
 
 // Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
 def String extractVersion(versionStr) {
-    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)$/
+    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)(-(alpha|beta|rc)\d+)?$/
     versionMatcher.find()
-    return versionMatcher.group(1)
+    if (versionMatcher.group(3) != null) { /* there is a qualifier */
+        return versionMatcher.group(1) + versionMatcher.group(3)
+    } else {
+        return versionMatcher.group(1)
+    }
 }
 
 2.times {i ->
