@@ -12,12 +12,15 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -212,20 +215,35 @@ public class InternalUsersApiAction extends AbstractApiAction {
         );
     }
 
+    /**
+     * This method combines roles from both 'opensearch_security_roles' and the deprecated 'opendistro_security_roles' fields.
+     * If the deprecated field is used, a warning message is logged.
+     *
+     * @param content The SecurityJsonNode containing the security configuration
+     * @return A List of merged unique roles. Returns an empty list if no roles are found in either field.
+     */
     private List<String> getRoles(SecurityJsonNode content) {
-        List<String> roles = content.get(OPENSEARCH_SECURITY_ROLES).asList();
-        // Fall back to deprecated field if new field is not present
-        if (roles == null) {
-            roles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
-            if (roles != null) {
-                log.warn(
+        List<String> openSearchRoles = content.get(OPENSEARCH_SECURITY_ROLES).asList();
+        List<String> openDistroRoles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
+
+        Set<String> mergedRoles = new HashSet<>();
+
+        // Add OpenSearch roles if present
+        if (openSearchRoles != null) {
+            mergedRoles.addAll(openSearchRoles);
+        }
+
+        // Add OpenDistro roles if present
+        if (openDistroRoles != null) {
+            mergedRoles.addAll(openDistroRoles);
+            log.warn(
                     "The field '{}' is deprecated and will be removed in a future release. Please use '{}' instead.",
                     OPENDISTRO_SECURITY_ROLES,
                     OPENSEARCH_SECURITY_ROLES
-                );
-            }
+            );
         }
-        return roles != null ? roles : List.of();
+
+        return mergedRoles.isEmpty() ? List.of() : new ArrayList<>(mergedRoles);
     }
 
     ValidationResult<SecurityConfiguration> createOrUpdateAccount(
