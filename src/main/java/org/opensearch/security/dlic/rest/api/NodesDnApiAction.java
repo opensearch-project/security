@@ -39,6 +39,8 @@ import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -70,6 +72,17 @@ public class NodesDnApiAction extends AbstractApiAction {
         )
     );
 
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/nodesdn/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/nodesdn", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/nodesdn/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/nodesdn/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/nodesdn", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/nodesdn/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
+    );
+
     @Inject
     public NodesDnApiAction(
         final ClusterService clusterService,
@@ -85,6 +98,14 @@ public class NodesDnApiAction extends AbstractApiAction {
     public List<Route> routes() {
         if (securityApiDependencies.settings().getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
             return routes;
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        if (securityApiDependencies.settings().getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
+            return deprecatedRoutes;
         }
         return Collections.emptyList();
     }

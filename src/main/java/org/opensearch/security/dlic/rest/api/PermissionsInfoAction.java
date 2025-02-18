@@ -43,13 +43,20 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * Provides the evaluated REST API permissions for the currently logged in user
  */
 public class PermissionsInfoAction extends BaseRestHandler {
+
     private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/permissionsinfo")));
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(new DeprecatedRoute(Method.GET, "/permissionsinfo", OPENDISTRO_API_DEPRECATION_MESSAGE))
+    );
 
     private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
     private final ThreadPool threadPool;
@@ -91,6 +98,11 @@ public class PermissionsInfoAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override
