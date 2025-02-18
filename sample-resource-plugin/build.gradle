@@ -4,7 +4,7 @@
  */
 
 plugins {
-    id "org.gradle.test-retry" version "1.6.1"
+    id "org.gradle.test-retry"
 }
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.testclusters'

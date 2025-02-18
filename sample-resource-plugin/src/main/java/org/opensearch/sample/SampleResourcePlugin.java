@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -49,6 +48,7 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;

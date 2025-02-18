@@ -17,7 +17,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -29,6 +28,7 @@ import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;

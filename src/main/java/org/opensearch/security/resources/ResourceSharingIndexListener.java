@@ -14,7 +14,6 @@ import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
@@ -24,6 +23,7 @@ import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 /**
  * This class implements an index operation listener for operations performed on resources stored in plugin's indices

@@ -37,7 +37,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -71,6 +70,7 @@ import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceSharingException;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 

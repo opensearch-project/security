@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -37,6 +36,7 @@ import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceSharing;
 import org.opensearch.security.resources.ShareWith;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;

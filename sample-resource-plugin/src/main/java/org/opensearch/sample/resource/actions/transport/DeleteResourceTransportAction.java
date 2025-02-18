@@ -18,7 +18,6 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -27,6 +26,7 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRequest;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
