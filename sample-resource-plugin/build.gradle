@@ -36,7 +36,7 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
-    opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
     buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
