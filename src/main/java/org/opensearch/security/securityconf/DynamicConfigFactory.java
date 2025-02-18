@@ -359,12 +359,19 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
             // Security roles should only contain roles that exist in the roles dynamic config.
             // We should filter out any roles that have hidden rolesmapping.
-            return tmp == null
-                ? ImmutableList.of()
-                : tmp.getOpendistro_security_roles()
+            if (tmp == null) {
+                return ImmutableList.of();
+            } else if (!tmp.getOpensearch_security_roles().isEmpty()) {
+                return tmp.getOpensearch_security_roles()
                     .stream()
                     .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
                     .collect(ImmutableList.toImmutableList());
+            } else {
+                return tmp.getOpendistro_security_roles()
+                    .stream()
+                    .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
+                    .collect(ImmutableList.toImmutableList());
+            }
         }
 
         // Remove any hidden rolesmapping from the security roles
