@@ -420,14 +420,10 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("backend_roles"), is(expectedObjectNode.get("backend_roles")));
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("attributes"), is(expectedObjectNode.get("attributes")));
         // can be either of OPENSEARCH_SECURITY_ROLES or OPENDISTRO_SECURITY_ROLES
-        JsonNode expectedRoles = expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES) != null ?
-                expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES):
-                expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
-        assertThat(
-            actualObjectNode.toPrettyString(),
-            actualObjectNode.get("opendistro_security_roles"),
-            is(expectedRoles)
-        );
+        JsonNode expectedRoles = expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES) != null
+            ? expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES)
+            : expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
+        assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("opendistro_security_roles"), is(expectedRoles));
     }
 
     String filterBy(final String value) {
