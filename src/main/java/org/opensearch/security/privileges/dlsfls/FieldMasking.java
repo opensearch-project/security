@@ -302,9 +302,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             }
 
             private byte[] blake2bHash(byte[] in) {
-                // Salt is passed incorrectly but order of parameters is retained at present to ensure full backwards compatibility
-                // Tracking with https://github.com/opensearch-project/security/issues/4274
-                final Blake2b hash = new Blake2b(null, 32, null, saltBytes);
+                final Blake2b hash = new Blake2b(null, 32, saltBytes, null);
                 hash.update(in, 0, in.length);
                 final byte[] out = new byte[hash.getDigestSize()];
                 hash.digest(out, 0);
