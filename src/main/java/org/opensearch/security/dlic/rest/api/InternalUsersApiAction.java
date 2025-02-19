@@ -248,7 +248,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
      * @param content The SecurityJsonNode containing the security configuration
      * @return A List of merged unique roles. Returns an empty list if no roles are found in either field.
      */
-    private List<String> getRoles(SecurityJsonNode content) {
+    List<String> getRoles(SecurityJsonNode content) {
         List<String> openSearchRoles = content.get(DIRECT_SECURITY_ROLES).asList();
         List<String> openDistroRoles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
 
