@@ -43,8 +43,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENDISTRO_SECURITY_ROLES;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.DIRECT_SECURITY_ROLES;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENDISTRO_SECURITY_ROLES;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {

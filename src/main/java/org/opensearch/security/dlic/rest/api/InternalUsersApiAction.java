@@ -265,7 +265,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             log.warn(
                 "The field '{}' is deprecated and will be removed in a future release. Please use '{}' instead.",
                 OPENDISTRO_SECURITY_ROLES,
-                    DIRECT_SECURITY_ROLES
+                DIRECT_SECURITY_ROLES
             );
         }
 
