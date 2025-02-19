@@ -361,8 +361,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             // We should filter out any roles that have hidden rolesmapping.
             if (tmp == null) {
                 return ImmutableList.of();
-            } else if (!tmp.getOpensearch_security_roles().isEmpty()) {
-                return tmp.getOpensearch_security_roles()
+            } else if (!tmp.getDirect_security_roles().isEmpty()) {
+                return tmp.getDirect_security_roles()
                     .stream()
                     .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
                     .collect(ImmutableList.toImmutableList());

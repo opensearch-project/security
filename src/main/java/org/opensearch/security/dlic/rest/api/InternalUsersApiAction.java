@@ -67,7 +67,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
     @Deprecated
     public static final String OPENDISTRO_SECURITY_ROLES = "opendistro_security_roles";
 
-    public static final String OPENSEARCH_SECURITY_ROLES = "opensearch_security_roles";
+    public static final String DIRECT_SECURITY_ROLES = "direct_security_roles";
 
     @Override
     protected void consumeParameters(final RestRequest request) {
@@ -249,7 +249,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
      * @return A List of merged unique roles. Returns an empty list if no roles are found in either field.
      */
     private List<String> getRoles(SecurityJsonNode content) {
-        List<String> openSearchRoles = content.get(OPENSEARCH_SECURITY_ROLES).asList();
+        List<String> openSearchRoles = content.get(DIRECT_SECURITY_ROLES).asList();
         List<String> openDistroRoles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
 
         Set<String> mergedRoles = new HashSet<>();
@@ -265,7 +265,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             log.warn(
                 "The field '{}' is deprecated and will be removed in a future release. Please use '{}' instead.",
                 OPENDISTRO_SECURITY_ROLES,
-                OPENSEARCH_SECURITY_ROLES
+                    DIRECT_SECURITY_ROLES
             );
         }
 
@@ -380,7 +380,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
                             .put("attributes", DataType.OBJECT)
                             .put("description", DataType.STRING)
                             .put(OPENDISTRO_SECURITY_ROLES, DataType.ARRAY)
-                            .put(OPENSEARCH_SECURITY_ROLES, DataType.ARRAY)
+                            .put(DIRECT_SECURITY_ROLES, DataType.ARRAY)
                             .put("hash", DataType.STRING)
                             .put("password", DataType.STRING)
                             .build();

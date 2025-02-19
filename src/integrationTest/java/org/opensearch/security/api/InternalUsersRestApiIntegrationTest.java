@@ -44,7 +44,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENDISTRO_SECURITY_ROLES;
-import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENSEARCH_SECURITY_ROLES;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.DIRECT_SECURITY_ROLES;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
@@ -159,7 +159,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     }
 
     private static String getRoleField() {
-        return randomFrom(List.of(OPENDISTRO_SECURITY_ROLES, OPENSEARCH_SECURITY_ROLES));
+        return randomFrom(List.of(OPENDISTRO_SECURITY_ROLES, DIRECT_SECURITY_ROLES));
     }
 
     static ToXContentObject defaultServiceUser() {
@@ -420,8 +420,8 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("backend_roles"), is(expectedObjectNode.get("backend_roles")));
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("attributes"), is(expectedObjectNode.get("attributes")));
         // can be either of OPENSEARCH_SECURITY_ROLES or OPENDISTRO_SECURITY_ROLES
-        JsonNode expectedRoles = expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES) != null
-            ? expectedObjectNode.get(OPENSEARCH_SECURITY_ROLES)
+        JsonNode expectedRoles = expectedObjectNode.get(DIRECT_SECURITY_ROLES) != null
+            ? expectedObjectNode.get(DIRECT_SECURITY_ROLES)
             : expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("opendistro_security_roles"), is(expectedRoles));
     }

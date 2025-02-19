@@ -20,7 +20,7 @@ admin:
 anomalyadmin:
   hash: "$2y$12$TRwAAJgnNo67w3rVUz4FIeLx9Dy/llB79zf9I15CKJ9vkM4ZzAd3."
   reserved: false
-  opensearch_security_roles:
+  direct_security_roles:
   - "anomaly_full_access"
   description: "Demo anomaly admin user, using internal role"
 
