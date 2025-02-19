@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.rest.api;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.rest.RestRequest.Method;
@@ -21,10 +23,17 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
+
     private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(new Route(Method.POST, "/authtoken")));
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(new DeprecatedRoute(Method.POST, "/authtoken", OPENDISTRO_API_DEPRECATION_MESSAGE))
+    );
 
     @Inject
     public AuthTokenProcessorAction(
@@ -41,6 +50,11 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override
