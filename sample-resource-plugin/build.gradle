@@ -38,7 +38,7 @@ ext {
     noticeFile = rootProject.file('NOTICE.txt')
     opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
 
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
@@ -50,7 +50,6 @@ ext {
         opensearch_build += "-SNAPSHOT"
     }
 }
-
 
 repositories {
     mavenLocal()
