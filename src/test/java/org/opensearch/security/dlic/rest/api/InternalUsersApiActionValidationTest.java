@@ -30,6 +30,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -39,10 +40,12 @@ import org.mockito.Mockito;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 public class InternalUsersApiActionValidationTest extends AbstractApiActionValidationTest {
@@ -185,6 +188,62 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_reserved_mapping"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
         assertFalse(result.isValid());
+    }
+
+    @Test
+    public void testGetRolesOnlyNoRoles() throws IOException {
+        String jsonString = "{}";
+        var content = SecurityJsonNode.fromJson(jsonString);
+        List<String> result = createInternalUsersApiAction().getRoles(content);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testGetRolesOnlyOpenDistroRoles() throws IOException {
+        String jsonString = """
+             {
+                     "opendistro_security_roles": ["opendistro_security_role_1", "opendistro_security_role_2"]
+             }
+            """;
+        var content = SecurityJsonNode.fromJson(jsonString);
+        List<String> result = createInternalUsersApiAction().getRoles(content);
+
+        assertEquals(2, result.size());
+        assertThat(result, hasItem("opendistro_security_role_1"));
+        assertThat(result, hasItem("opendistro_security_role_2"));
+    }
+
+    @Test
+    public void testGetRolesOnlyDirectRoles() throws IOException {
+        String jsonString = """
+             {
+                     "direct_security_roles": ["direct_security_role_1", "direct_security_role_2"]
+             }
+            """;
+        var content = SecurityJsonNode.fromJson(jsonString);
+        List<String> result = createInternalUsersApiAction().getRoles(content);
+
+        assertEquals(2, result.size());
+        assertThat(result, hasItem("direct_security_role_1"));
+        assertThat(result, hasItem("direct_security_role_2"));
+    }
+
+    @Test
+    public void testGetRolesBothSettingsForRoles() throws IOException {
+        String jsonString = """
+             {
+                     "opendistro_security_roles": ["opendistro_security_role_1", "opendistro_security_role_2"],
+                     "direct_security_roles": ["direct_security_role_1", "direct_security_role_2"]
+             }
+            """;
+        List<String> result = createInternalUsersApiAction().getRoles(SecurityJsonNode.fromJson(jsonString));
+
+        assertEquals(4, result.size());
+        assertThat(result, hasItem("direct_security_role_1"));
+        assertThat(result, hasItem("direct_security_role_2"));
+        assertThat(result, hasItem("opendistro_security_role_1"));
+        assertThat(result, hasItem("opendistro_security_role_2"));
+
     }
 
     private InternalUsersApiAction createInternalUsersApiAction() {
