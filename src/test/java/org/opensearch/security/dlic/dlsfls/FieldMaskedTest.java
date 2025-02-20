@@ -26,6 +26,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 
 public class FieldMaskedTest extends AbstractDlsFlsTest {
 
@@ -231,6 +232,41 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("100.100.1.1"));
         Assert.assertFalse(res.getBody().contains("100.100.2.2"));
         Assert.assertTrue(res.getBody().contains("0e3f99018654fda6757601e88d4317f1649efae79126eb62c3f8c15105ba47ac"));
+
+    }
+
+    @Test
+    public void testMaskedSearchWithClusterLegacyDefault() throws Exception {
+
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, BLAKE2B_LEGACY_DEFAULT).build();
+        setup(settings);
+
+        HttpResponse res;
+
+        assertThat(
+                HttpStatus.SC_OK,
+                is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode())
+        );
+        Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertTrue(res.getBody().contains("cust2"));
+        Assert.assertTrue(res.getBody().contains("100.100.1.1"));
+        Assert.assertTrue(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+
+        assertThat(
+                HttpStatus.SC_OK,
+                is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("user_masked", "password"))).getStatusCode())
+        );
+        Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertTrue(res.getBody().contains("cust2"));
+        Assert.assertFalse(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertTrue(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
 
     }
 

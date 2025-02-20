@@ -235,12 +235,14 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             private final String hashAlgorithm;
             private final Salt salt;
             private final byte[] saltBytes;
+            private final boolean useLegacyDefaultAlgorithm;
 
             Field(FieldMaskingExpression expression, FieldMasking.Config fieldMaskingConfig) {
                 this.expression = expression;
                 this.hashAlgorithm = expression.getAlgoName() != null ? expression.getAlgoName()
                     : StringUtils.isNotEmpty(fieldMaskingConfig.getDefaultHashAlgorithm()) ? fieldMaskingConfig.getDefaultHashAlgorithm()
                     : null;
+                this.useLegacyDefaultAlgorithm = fieldMaskingConfig.useLegacyDefaultAlgorithm();
                 this.salt = fieldMaskingConfig.getSalt();
                 this.saltBytes = this.salt.getSalt16();
             }
@@ -252,10 +254,12 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             public byte[] apply(byte[] value) {
                 if (expression.getRegexReplacements() != null) {
                     return applyRegexReplacements(value, expression.getRegexReplacements());
-                } else if (this.hashAlgorithm != null) {
+                } else if (this.useLegacyDefaultAlgorithm) {
+                    return blake2bHash(value, true);
+                }else if (this.hashAlgorithm != null) {
                     return customHash(value, this.hashAlgorithm);
                 } else {
-                    return blake2bHash(value);
+                    return blake2bHash(value, false);
                 }
             }
 
@@ -301,8 +305,14 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 return string.getBytes(StandardCharsets.UTF_8);
             }
 
-            private byte[] blake2bHash(byte[] in) {
-                final Blake2b hash = new Blake2b(null, 32, saltBytes, null);
+            private byte[] blake2bHash(byte[] in, boolean useLegacyDefaultAlgorithm) {
+                final Blake2b hash;
+                if (useLegacyDefaultAlgorithm){
+                    hash = new Blake2b(null, 32, null, saltBytes);
+                }
+                else{
+                    hash = new Blake2b(null, 32, saltBytes, null);
+                }
                 hash.update(in, 0, in.length);
                 final byte[] out = new byte[hash.getDigestSize()];
                 hash.digest(out, 0);
@@ -459,6 +469,8 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
     }
 
     public static class Config {
+        public static final String BLAKE2B_LEGACY_DEFAULT = "BLAKE2B_LEGACY_DEFAULT";
+
         public static Config fromSettings(Settings settings) {
             return new Config(settings.get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT), Salt.from(settings));
         }
@@ -467,10 +479,12 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
         private final String defaultHashAlgorithm;
         private final Salt salt;
+        private final boolean useLegacyDefaultAlgorithm;
 
         Config(String defaultHashAlgorithm, Salt salt) {
             this.defaultHashAlgorithm = defaultHashAlgorithm;
             this.salt = salt;
+            this.useLegacyDefaultAlgorithm = BLAKE2B_LEGACY_DEFAULT.equalsIgnoreCase(defaultHashAlgorithm);
         }
 
         public String getDefaultHashAlgorithm() {
@@ -479,6 +493,10 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
         public Salt getSalt() {
             return salt;
+        }
+
+        public boolean useLegacyDefaultAlgorithm() {
+            return useLegacyDefaultAlgorithm;
         }
     }
 
