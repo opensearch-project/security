@@ -2110,6 +2110,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
             settings.add(
                 Setting.boolSetting(
+                    ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED,
+                    false,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.boolSetting(
                     ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG,
                     false,
                     Property.NodeScope,
