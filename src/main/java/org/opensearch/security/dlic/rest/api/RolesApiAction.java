@@ -39,6 +39,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends AbstractApiAction {
@@ -51,6 +53,17 @@ public class RolesApiAction extends AbstractApiAction {
             new Route(Method.PUT, "/roles/{name}"),
             new Route(Method.PATCH, "/roles"),
             new Route(Method.PATCH, "/roles/{name}")
+        )
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/roles", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/roles", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
         )
     );
 
@@ -113,6 +126,11 @@ public class RolesApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

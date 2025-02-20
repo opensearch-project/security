@@ -31,7 +31,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -41,18 +40,28 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")),
-        LEGACY_PLUGIN_ROUTE_PREFIX,
         PLUGIN_ROUTE_PREFIX
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(GET, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(POST, "/health", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        ),
+        LEGACY_PLUGIN_ROUTE_PREFIX
     );
 
     private final BackendRegistry registry;
@@ -65,6 +74,11 @@ public class SecurityHealthAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

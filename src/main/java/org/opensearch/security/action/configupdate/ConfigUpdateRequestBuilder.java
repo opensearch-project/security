@@ -28,7 +28,7 @@ package org.opensearch.security.action.configupdate;
 
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.nodes.NodesOperationRequestBuilder;
-import org.opensearch.client.OpenSearchClient;
+import org.opensearch.transport.client.OpenSearchClient;
 
 public class ConfigUpdateRequestBuilder extends NodesOperationRequestBuilder<
     ConfigUpdateRequest,
