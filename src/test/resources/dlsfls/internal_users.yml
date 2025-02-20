@@ -179,17 +179,3 @@ date_math:
 fls_exists:
   #password
   hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
-share_user:
-  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
-  reserved: false
-  hidden: false
-  backend_roles: []
-  attributes: {}
-  description: "Migrated from v6"
-non_share_user:
-  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
-  reserved: false
-  hidden: false
-  backend_roles: []
-  attributes: {}
-  description: "Migrated from v6"

@@ -743,8 +743,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ciol,
                     evaluator,
                     dlsFlsValve::getCurrentConfig,
-                    dlsFlsBaseContext,
-                    resourceAccessHandler
+                    dlsFlsBaseContext
                 )
             );
 
@@ -1194,8 +1193,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resolver,
                 xContentRegistry,
                 threadPool,
-                dlsFlsBaseContext,
-                resourceAccessHandler
+                dlsFlsBaseContext
             );
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }

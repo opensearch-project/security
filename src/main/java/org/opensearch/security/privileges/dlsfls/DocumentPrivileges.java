@@ -92,7 +92,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
     /**
      * The basic rules of DLS are queries. This class encapsulates single queries.
      */
-    public static abstract class DlsQuery {
+    static abstract class DlsQuery {
         final String queryString;
 
         DlsQuery(String queryString) {
@@ -118,7 +118,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             return Objects.equals(this.queryString, other.queryString);
         }
 
-        public static QueryBuilder parseQuery(String queryString, NamedXContentRegistry xContentRegistry)
+        protected QueryBuilder parseQuery(String queryString, NamedXContentRegistry xContentRegistry)
             throws PrivilegesConfigurationValidationException {
             try {
                 XContentParser parser = JsonXContent.jsonXContent.createParser(
@@ -193,7 +193,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
         private final QueryBuilder queryBuilder;
         private final String renderedSource;
 
-        public RenderedDlsQuery(QueryBuilder queryBuilder, String renderedSource) {
+        RenderedDlsQuery(QueryBuilder queryBuilder, String renderedSource) {
             this.queryBuilder = queryBuilder;
             this.renderedSource = renderedSource;
         }

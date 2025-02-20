@@ -251,7 +251,3 @@ logs_index_with_dls:
 terms_index_with_dls:
   users:
     - dept_manager
-
-opendistro_security_resources_access:
-  users:
-    - share_user

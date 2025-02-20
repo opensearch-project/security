@@ -17,7 +17,6 @@ import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -77,7 +76,6 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -101,8 +99,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
-    private final ResourceAccessHandler resourceAccessHandler;
-    private final boolean isResourceSharingEnabled;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -111,8 +107,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext,
-        ResourceAccessHandler resourceAccessHandler
+        DlsFlsBaseContext dlsFlsBaseContext
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -124,11 +119,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
-        this.resourceAccessHandler = resourceAccessHandler;
-        this.isResourceSharingEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -363,7 +353,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         try {
             String index = searchContext.indexShard().indexSettings().getIndex().getName();
 
-            assert !Strings.isNullOrEmpty(index);
             if (log.isTraceEnabled()) {
                 log.trace("handleSearchContext(); index: {}", index);
             }
@@ -389,93 +378,57 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-
             if (privilegesEvaluationContext == null) {
                 return;
             }
 
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
-            if (this.isResourceSharingEnabled && OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
-                CountDownLatch latch = new CountDownLatch(1);
+            DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
 
-                threadPool.generic()
-                    .submit(
-                        () -> this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(index, ActionListener.wrap(resourceIds -> {
-                            try {
-                                log.info("Creating a DLS restriction for resource IDs: {}", resourceIds);
-                                // Create a DLS restriction and apply it
-                                DlsRestriction dlsRestriction = this.resourceAccessHandler.createResourceDLSRestriction(
-                                    resourceIds,
-                                    namedXContentRegistry
-                                );
-                                applyDlsRestrictionToSearchContext(dlsRestriction, index, searchContext, mode);
-                            } catch (Exception e) {
-                                log.error("Error while creating or applying DLS restriction for index '{}': {}", index, e.getMessage());
-                                applyDlsRestrictionToSearchContext(DlsRestriction.FULL, index, searchContext, mode);
-                            } finally {
-                                latch.countDown(); // Release the latch
-                            }
-                        }, exception -> {
-                            log.error("Failed to fetch resource IDs for index '{}': {}", index, exception.getMessage());
-                            // Apply a default restriction on failure
-                            applyDlsRestrictionToSearchContext(DlsRestriction.FULL, index, searchContext, mode);
-                            latch.countDown();
-                        }))
-                    );
-
-            } else {
-                // Synchronous path for non-resource-sharing-enabled cases
-                DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
-                applyDlsRestrictionToSearchContext(dlsRestriction, index, searchContext, mode);
+            if (log.isTraceEnabled()) {
+                log.trace("handleSearchContext(); index: {}; dlsRestriction: {}", index, dlsRestriction);
             }
 
+            DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
+
+            if (documentAllowList.isEntryForIndexPresent(index)) {
+                // The documentAllowList is needed for two cases:
+                // - DLS rules which use "term lookup queries" and thus need to access indices for which no privileges are present
+                // - Dashboards multi tenancy which can redirect index accesses to indices for which no normal index privileges are present
+
+                if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
+                    dlsRestriction = DlsRestriction.NONE;
+                    log.debug("Lifting DLS for {} due to present document allowlist", index);
+                }
+            }
+
+            if (!dlsRestriction.isUnrestricted()) {
+                if (mode == Mode.ADAPTIVE && dlsRestriction.containsTermLookupQuery()) {
+                    // Special case for scroll operations:
+                    // Normally, the check dlsFlsBaseContext.isDlsDoneOnFilterLevel() already aborts early if DLS filter level mode
+                    // has been activated. However, this is not the case for scroll operations, as these lose the thread context value
+                    // on which dlsFlsBaseContext.isDlsDoneOnFilterLevel() is based on. Thus, we need to check here again the deeper
+                    // conditions.
+                    log.trace("DlsRestriction: contains TLQ.");
+                    return;
+                }
+
+                assert searchContext.parsedQuery() != null;
+
+                BooleanQuery.Builder queryBuilder = dlsRestriction.toBooleanQueryBuilder(
+                    searchContext.getQueryShardContext(),
+                    (q) -> new ConstantScoreQuery(q)
+                );
+
+                queryBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
+
+                searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
+                searchContext.preProcess(true);
+            }
         } catch (Exception e) {
             log.error("Error in handleSearchContext()", e);
             throw new RuntimeException("Error evaluating dls for a search query: " + e, e);
-        }
-    }
-
-    private void applyDlsRestrictionToSearchContext(DlsRestriction dlsRestriction, String index, SearchContext searchContext, Mode mode) {
-        if (log.isTraceEnabled()) {
-            log.trace("handleSearchContext(); index: {}; dlsRestriction: {}", index, dlsRestriction);
-        }
-
-        DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
-
-        if (documentAllowList.isEntryForIndexPresent(index)) {
-            // The documentAllowList is needed for two cases:
-            // - DLS rules which use "term lookup queries" and thus need to access indices for which no privileges are present
-            // - Dashboards multi tenancy which can redirect index accesses to indices for which no normal index privileges are present
-
-            if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
-                dlsRestriction = DlsRestriction.NONE;
-                log.debug("Lifting DLS for {} due to present document allowlist", index);
-            }
-        }
-
-        if (!dlsRestriction.isUnrestricted()) {
-            if (mode == Mode.ADAPTIVE && dlsRestriction.containsTermLookupQuery()) {
-                // Special case for scroll operations:
-                // Normally, the check dlsFlsBaseContext.isDlsDoneOnFilterLevel() already aborts early if DLS filter level mode
-                // has been activated. However, this is not the case for scroll operations, as these lose the thread context value
-                // on which dlsFlsBaseContext.isDlsDoneOnFilterLevel() is based on. Thus, we need to check here again the deeper
-                // conditions.
-                log.trace("DlsRestriction: contains TLQ.");
-                return;
-            }
-
-            assert searchContext.parsedQuery() != null;
-
-            BooleanQuery.Builder queryBuilder = dlsRestriction.toBooleanQueryBuilder(
-                searchContext.getQueryShardContext(),
-                (q) -> new ConstantScoreQuery(q)
-            );
-
-            queryBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
-
-            searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
-            searchContext.preProcess(true);
         }
     }
 
@@ -544,7 +497,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return aggregation;
     }
 
-    private static List<Bucket> mergeBuckets(List<Bucket> buckets, Comparator<MultiBucketsAggregation.Bucket> comparator) {
+    private static List<StringTerms.Bucket> mergeBuckets(
+        List<StringTerms.Bucket> buckets,
+        Comparator<MultiBucketsAggregation.Bucket> comparator
+    ) {
         if (log.isDebugEnabled()) {
             log.debug("Merging buckets: {}", buckets.stream().map(b -> b.getKeyAsString()).collect(ImmutableList.toImmutableList()));
         }
@@ -588,12 +544,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static class BucketMerger implements Consumer<Bucket> {
         private Comparator<MultiBucketsAggregation.Bucket> comparator;
-        private Bucket bucket = null;
+        private StringTerms.Bucket bucket = null;
         private int mergeCount;
         private long mergedDocCount;
         private long mergedDocCountError;
         private boolean showDocCountError = true;
-        private final ImmutableList.Builder<Bucket> builder;
+        private final ImmutableList.Builder<StringTerms.Bucket> builder;
 
         BucketMerger(Comparator<MultiBucketsAggregation.Bucket> comparator, int size) {
             this.comparator = Objects.requireNonNull(comparator);
@@ -605,7 +561,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 builder.add(this.bucket);
             } else {
                 builder.add(
-                    new Bucket(
+                    new StringTerms.Bucket(
                         StringTermsGetter.getTerm(bucket),
                         mergedDocCount,
                         (InternalAggregations) bucket.getAggregations(),
@@ -617,7 +573,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
-        private void merge(Bucket bucket) {
+        private void merge(StringTerms.Bucket bucket) {
             if (this.bucket != null && (bucket == null || comparator.compare(this.bucket, bucket) != 0)) {
                 finalizeBucket();
                 this.bucket = null;
@@ -628,13 +584,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
-        public List<Bucket> getBuckets() {
+        public List<StringTerms.Bucket> getBuckets() {
             merge(null);
             return builder.build();
         }
 
         @Override
-        public void accept(Bucket bucket) {
+        public void accept(StringTerms.Bucket bucket) {
             merge(bucket);
             mergeCount++;
             mergedDocCount += bucket.getDocCount();
@@ -651,7 +607,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static class StringTermsGetter {
         private static final Field REDUCE_ORDER = getField(InternalTerms.class, "reduceOrder");
-        private static final Field TERM_BYTES = getField(Bucket.class, "termBytes");
+        private static final Field TERM_BYTES = getField(StringTerms.Bucket.class, "termBytes");
         private static final Field FORMAT = getField(InternalTerms.Bucket.class, "format");
 
         private StringTermsGetter() {}
@@ -695,11 +651,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return getFieldValue(REDUCE_ORDER, stringTerms);
         }
 
-        public static BytesRef getTerm(Bucket bucket) {
+        public static BytesRef getTerm(StringTerms.Bucket bucket) {
             return getFieldValue(TERM_BYTES, bucket);
         }
 
-        public static DocValueFormat getDocValueFormat(Bucket bucket) {
+        public static DocValueFormat getDocValueFormat(StringTerms.Bucket bucket) {
             return getFieldValue(FORMAT, bucket);
         }
     }

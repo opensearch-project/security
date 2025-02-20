@@ -11,35 +11,21 @@
 
 package org.opensearch.security.resources;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.Query;
 
 import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.index.query.BoolQueryBuilder;
-import org.opensearch.index.query.ConstantScoreQueryBuilder;
-import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.query.QueryShardContext;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
-import org.opensearch.security.privileges.dlsfls.DlsRestriction;
-import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceSharingException;
@@ -590,40 +576,5 @@ public class ResourceAccessHandler {
                 throw new IllegalArgumentException("Arguments cannot be empty");
             }
         }
-    }
-
-    /**
-     * Creates a DLS query for the given resource IDs.
-     * @param resourceIds The resource IDs to create the query for.
-     * @param queryShardContext The query shard context.
-     * @return The DLS query.
-     * @throws IOException If an I/O error occurs.
-     */
-    public Query createResourceDLSQuery(Set<String> resourceIds, QueryShardContext queryShardContext) throws IOException {
-        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-        boolQueryBuilder.filter(QueryBuilders.termsQuery("_id", resourceIds));
-        ConstantScoreQueryBuilder builder = new ConstantScoreQueryBuilder(boolQueryBuilder);
-        return builder.toQuery(queryShardContext);
-    }
-
-    /**
-     * Creates a DLS restriction for the given resource IDs.
-     * @param resourceIds The resource IDs to create the restriction for.
-     * @param xContentRegistry The named XContent registry.
-     * @return The DLS restriction.
-     * @throws JsonProcessingException If an error occurs while processing JSON.
-     * @throws PrivilegesConfigurationValidationException If the privileges configuration is invalid.
-     */
-    public DlsRestriction createResourceDLSRestriction(Set<String> resourceIds, NamedXContentRegistry xContentRegistry)
-        throws JsonProcessingException, PrivilegesConfigurationValidationException {
-
-        String jsonQuery = String.format(
-            "{ \"bool\": { \"filter\": [ { \"terms\": { \"_id\": %s } } ] } }",
-            DefaultObjectMapper.writeValueAsString(resourceIds, true)
-        );
-        QueryBuilder queryBuilder = DocumentPrivileges.DlsQuery.parseQuery(jsonQuery, xContentRegistry);
-        DocumentPrivileges.RenderedDlsQuery renderedDlsQuery = new DocumentPrivileges.RenderedDlsQuery(queryBuilder, jsonQuery);
-        List<DocumentPrivileges.RenderedDlsQuery> documentPrivileges = List.of(renderedDlsQuery);
-        return new DlsRestriction(documentPrivileges);
     }
 }
