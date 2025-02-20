@@ -256,7 +256,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                     return applyRegexReplacements(value, expression.getRegexReplacements());
                 } else if (this.useLegacyDefaultAlgorithm) {
                     return blake2bHash(value, true);
-                }else if (this.hashAlgorithm != null) {
+                } else if (this.hashAlgorithm != null) {
                     return customHash(value, this.hashAlgorithm);
                 } else {
                     return blake2bHash(value, false);
@@ -307,10 +307,9 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
             private byte[] blake2bHash(byte[] in, boolean useLegacyDefaultAlgorithm) {
                 final Blake2b hash;
-                if (useLegacyDefaultAlgorithm){
+                if (useLegacyDefaultAlgorithm) {
                     hash = new Blake2b(null, 32, null, saltBytes);
-                }
-                else{
+                } else {
                     hash = new Blake2b(null, 32, saltBytes, null);
                 }
                 hash.update(in, 0, in.length);

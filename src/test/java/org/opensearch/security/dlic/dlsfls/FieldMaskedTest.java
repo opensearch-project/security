@@ -238,14 +238,16 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
     @Test
     public void testMaskedSearchWithClusterLegacyDefault() throws Exception {
 
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, BLAKE2B_LEGACY_DEFAULT).build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, BLAKE2B_LEGACY_DEFAULT)
+            .build();
         setup(settings);
 
         HttpResponse res;
 
         assertThat(
-                HttpStatus.SC_OK,
-                is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode())
+            HttpStatus.SC_OK,
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -257,8 +259,8 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
 
         assertThat(
-                HttpStatus.SC_OK,
-                is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("user_masked", "password"))).getStatusCode())
+            HttpStatus.SC_OK,
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("user_masked", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
