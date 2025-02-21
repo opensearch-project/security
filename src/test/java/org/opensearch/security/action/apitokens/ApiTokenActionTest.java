@@ -23,10 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.Version;
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -145,22 +142,6 @@ public class ApiTokenActionTest {
         );
 
         when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
-
-        when(configurationRepository.getConfiguration(CType.ROLES)).thenReturn(rolesConfig);
-        when(configurationRepository.getConfiguration(CType.ACTIONGROUPS)).thenReturn(actionGroupsConfig);
-        when(clusterService.state()).thenReturn(clusterState);
-
-        when(clusterState.metadata()).thenReturn(
-            Metadata.builder()
-                .put(
-                    IndexMetadata.builder("my-index")
-                        .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
-                        .numberOfShards(1)
-                        .numberOfReplicas(0)
-                        .putAlias(AliasMetadata.builder("logs").build())
-                )
-                .build()
-        );
 
         apiTokenAction = new ApiTokenAction(
 
