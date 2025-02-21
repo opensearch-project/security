@@ -39,7 +39,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.action.apitokens.ApiToken;
-import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -50,9 +49,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 
-import org.mockito.Mockito;
-
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.privileges.ActionPrivilegesTest.IndexPrivileges.IndicesAndAliases.resolved;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isPartiallyOk;
@@ -342,6 +340,7 @@ public class ActionPrivilegesTest {
                 "apitoken:" + token,
                 new Permissions(List.of("CLUSTER_ALL"), List.of())
             );
+
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
             // Not explicit succeeds
@@ -1152,7 +1151,6 @@ public class ActionPrivilegesTest {
     static RoleBasedPrivilegesEvaluationContext ctxWithUserName(String userName, String... roles) {
         User user = new User(userName);
         user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
-        ApiTokenRepository mockRepository = Mockito.mock(ApiTokenRepository.class);
         return new RoleBasedPrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),

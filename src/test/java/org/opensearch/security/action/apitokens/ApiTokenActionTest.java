@@ -17,17 +17,148 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.threadpool.ThreadPool;
+
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration.fromMap;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ApiTokenActionTest {
+    @Mock
+    private ThreadPool threadPool;
 
-    private final ApiTokenAction apiTokenAction = new ApiTokenAction(mock(ApiTokenRepository.class));
+    @Mock
+    private PrivilegesEvaluator privilegesEvaluator;
+
+    @Mock
+    private ConfigurationRepository configurationRepository;
+
+    @Mock
+    private ClusterService clusterService;
+    @Mock
+    private ClusterState clusterState;
+
+    @Mock
+    private Metadata metadata;
+
+    private SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfig;
+    private SecurityDynamicConfiguration<RoleV7> rolesConfig;
+    private FlattenedActionGroups flattenedActionGroups;
+    private ApiTokenAction apiTokenAction;
+
+    @Before
+    public void setUp() throws JsonProcessingException {
+        // Setup basic action groups
+
+        actionGroupsConfig = SecurityDynamicConfiguration.fromMap(
+            ImmutableMap.of(
+                "read_group",
+                Map.of("allowed_actions", List.of("read", "get", "search")),
+                "write_group",
+                Map.of("allowed_actions", List.of("write", "create", "index"))
+            ),
+            CType.ACTIONGROUPS
+        );
+
+        rolesConfig = fromMap(
+            ImmutableMap.of(
+                "read_group_logs-123",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs-123"), "allowed_actions", List.of("read_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                ),
+                "read_group_logs-star",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs-*"), "allowed_actions", List.of("read_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                ),
+                "write_group_logs-star",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs-*"), "allowed_actions", List.of("write_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                ),
+                "write_group_logs-123",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs-123"), "allowed_actions", List.of("write_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                ),
+                "more_permissable_write_group_lo-star",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("lo*"), "allowed_actions", List.of("write_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                ),
+                "cluster_monitor",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("lo*"), "allowed_actions", List.of("write_group"))),
+                    "cluster_permissions",
+                    Arrays.asList("cluster_monitor")
+                ),
+                "alias_group",
+                ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", List.of("logs"), "allowed_actions", List.of("read"))),
+                    "cluster_permissions",
+                    Arrays.asList("cluster_monitor")
+                )
+
+            ),
+            CType.ROLES
+        );
+
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
+
+        apiTokenAction = new ApiTokenAction(
+
+            threadPool,
+            configurationRepository,
+            privilegesEvaluator,
+            Settings.EMPTY,
+            null,
+            null,
+            null,
+            null,
+            null,
+            clusterService,
+            null
+        );
+
+    }
 
     @Test
     public void testCreateIndexPermission() {

@@ -126,7 +126,6 @@ public abstract class AbstractAuditLog implements AuditLog {
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
-        // TODO: support custom api tokens index?
         this.securityIndicesMatcher = WildcardMatcher.from(
             List.of(
                 settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),

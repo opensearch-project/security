@@ -26,7 +26,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
@@ -41,7 +40,6 @@ import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
 
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
@@ -57,14 +55,8 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public String indexTokenMetadata(ApiToken token) {
-        // TODO: move this out of index handler class, potentially create a layer in between baseresthandler and abstractapiaction which can
-        // abstract this complexity away
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+    public void indexTokenMetadata(ApiToken token) {
+        try {
 
             XContentBuilder builder = XContentFactory.jsonBuilder();
             String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
@@ -77,10 +69,7 @@ public class ApiTokenIndexHandler {
                 LOGGER.error(failResponse.getMessage());
                 LOGGER.info("Failed to create {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             });
-
             client.index(request, irListener);
-            return token.getName();
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -88,32 +77,21 @@ public class ApiTokenIndexHandler {
     }
 
     public void deleteToken(String name) throws ApiTokenException {
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-            DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
-                QueryBuilders.matchQuery(NAME_FIELD, name)
-            ).setRefresh(true);
+        DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
+            QueryBuilders.matchQuery(NAME_FIELD, name)
+        ).setRefresh(true);
 
-            BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, request).actionGet();
+        BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, request).actionGet();
 
-            long deletedDocs = response.getDeleted();
+        long deletedDocs = response.getDeleted();
 
-            if (deletedDocs == 0) {
-                throw new ApiTokenException("No token found with name " + name);
-            }
-            LOGGER.info("Deleted " + deletedDocs + " documents");
+        if (deletedDocs == 0) {
+            throw new ApiTokenException("No token found with name " + name);
         }
     }
 
     public Map<String, ApiToken> getTokenMetadatas() {
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+        try {
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             searchRequest.source(new SearchSourceBuilder());
 
@@ -145,24 +123,12 @@ public class ApiTokenIndexHandler {
     }
 
     public void createApiTokenIndexIfAbsent() {
-        // TODO: Decide if this should be done at bootstrap
         if (!apiTokenIndexExists()) {
-            final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-            try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-                client.threadPool()
-                    .getThreadContext()
-                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-                final Map<String, Object> indexSettings = ImmutableMap.of(
-                    "index.number_of_shards",
-                    1,
-                    "index.auto_expand_replicas",
-                    "0-all"
-                );
-                final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
-                    indexSettings
-                );
-                client.admin().indices().create(createIndexRequest);
-            }
+            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
+                indexSettings
+            );
+            client.admin().indices().create(createIndexRequest);
         }
     }
 

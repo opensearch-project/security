@@ -48,6 +48,7 @@ public class ApiTokenAuthenticatorTest {
     private ApiTokenAuthenticator authenticator;
     @Mock
     private Logger log;
+
     @Mock
     private ApiTokenRepository apiTokenRepository;
 

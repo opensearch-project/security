@@ -145,7 +145,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            // TODO: handle revocation different from deletion?
             if (!apiTokenRepository.isValidToken(subject)) {
                 log.error("Api token is not allowlisted");
                 return null;
