@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
@@ -27,7 +27,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
-public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitTest {
+public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogUnitTest {
 
     /**
      * Template for testing different configurations

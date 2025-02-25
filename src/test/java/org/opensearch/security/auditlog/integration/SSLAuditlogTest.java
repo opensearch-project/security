@@ -17,7 +17,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -30,7 +30,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
+public class SSLAuditlogTest extends AbstractAuditlogUnitTest {
 
     private ClusterInfo monitoringClusterInfo;
     private RestHelper rhMon;
