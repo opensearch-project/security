@@ -20,6 +20,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,6 +67,14 @@ public class SslConfiguration {
     public List<Certificate> certificates() {
         return Stream.concat(trustStoreConfiguration.loadCertificates().stream(), keyStoreConfiguration.loadCertificates().stream())
             .collect(Collectors.toList());
+    }
+
+    public KeyManagerFactory keyStoreFactory() {
+        return keyStoreConfiguration.createKeyManagerFactory(sslParameters.shouldValidateNewCertDNs());
+    }
+
+    public TrustManagerFactory trustStoreFactory() {
+        return trustStoreConfiguration.createTrustManagerFactory(sslParameters.shouldValidateNewCertDNs());
     }
 
     public SslParameters sslParameters() {
