@@ -696,7 +696,7 @@ dependencies {
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
-    testImplementation('org.awaitility:awaitility:4.2.2') {
+    testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
@@ -742,7 +742,7 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
+    integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
