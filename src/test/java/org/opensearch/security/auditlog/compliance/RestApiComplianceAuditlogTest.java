@@ -19,7 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
+public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
 
     @Test
     public void testRestApiRolesEnabled() throws Exception {
