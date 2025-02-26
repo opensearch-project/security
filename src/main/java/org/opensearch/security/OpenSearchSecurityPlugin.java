@@ -49,8 +49,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -796,10 +794,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    CompletableFuture.runAsync(
-                        () -> { dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get()); },
-                        threadPool.generic()
-                    ).orTimeout(5, TimeUnit.SECONDS).join();
+                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
                 }
 
                 @Override
@@ -1450,7 +1445,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN + ".", Property.NodeScope)); // not filtered
-            // here
+                                                                                                                            // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
 
@@ -1466,8 +1461,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );// not filtered here
 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));// not
-            // filtered
-            // here
+                                                                                                                                   // filtered
+                                                                                                                                   // here
 
             settings.add(
                 Setting.boolSetting(
@@ -1511,8 +1506,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
             );
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
-            // filtered
-            // here
+                                                                                                                                    // filtered
+                                                                                                                                    // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
             settings.add(
