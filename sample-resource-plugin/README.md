@@ -2,6 +2,13 @@
 
 This plugin demonstrates resource sharing and access control functionality, providing sample resource APIs and marking it as a resource sharing plugin via resource-sharing-spi. The access control is implemented on Security plugin and will be performed under the hood.
 
+## PreRequisites
+
+Publish SPI to local maven before proceeding:
+```shell
+./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal
+```
+
 ## Features
 
 - Create, update and delete resources.
