@@ -74,7 +74,6 @@ import org.opensearch.security.support.ConfigConstants;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
-    private static final String KEYWORD = ".keyword";
     private final FieldInfos flsFieldInfos;
     private final IndexService indexService;
     private final ThreadContext threadContext;
@@ -821,6 +820,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         @Override
         public long ord() throws IOException {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public IOBooleanSupplier prepareSeekExact(BytesRef text) throws IOException {
+            return isAllowed(text) ? in.prepareSeekExact(text) : () -> false;
         }
     }
 
