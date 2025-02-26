@@ -287,26 +287,12 @@ public class DefaultObjectMapper {
         return objectMapper.getTypeFactory();
     }
 
-    @SuppressWarnings("removal")
     public static Set<String> getFields(Class<?> cls) {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<Set<String>>) () -> objectMapper.getSerializationConfig()
-                    .introspect(getTypeFactory().constructType(cls))
-                    .findProperties()
-                    .stream()
-                    .map(BeanPropertyDefinition::getName)
-                    .collect(ImmutableSet.toImmutableSet())
-            );
-        } catch (final PrivilegedActionException e) {
-            throw (RuntimeException) e.getCause();
-        }
-
+        return objectMapper.getSerializationConfig()
+            .introspect(getTypeFactory().constructType(cls))
+            .findProperties()
+            .stream()
+            .map(BeanPropertyDefinition::getName)
+            .collect(ImmutableSet.toImmutableSet());
     }
 }
