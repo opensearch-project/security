@@ -8,26 +8,18 @@
 
 package org.opensearch.security.spi.resources;
 
-import java.io.IOException;
-
 import org.opensearch.core.common.io.stream.NamedWriteable;
-import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 
 /**
  * Marker interface for all resources
  */
-public abstract class Resource implements NamedWriteable, ToXContentFragment {
+public interface Resource extends NamedWriteable, ToXContentFragment {
     /**
      * Abstract method to get the resource name.
      * Must be implemented by subclasses.
      *
      * @return resource name
      */
-    public abstract String getResourceName();
-
-    /**
-     * Enforces that all subclasses have a constructor accepting StreamInput.
-     */
-    protected Resource(StreamInput in) throws IOException {}
+    String getResourceName();
 }

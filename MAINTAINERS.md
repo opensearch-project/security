@@ -19,7 +19,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Craig Perkins    | [cwperks](https://github.com/cwperks)                 | Amazon      |
 | Derek Ho         | [derek-ho](https://github.com/derek-ho)               | Amazon      |
 | Ryan Liang       | [RyanL1997](https://github.com/RyanL1997)             | Amazon      |
-| Andriy Redko     | [reta](https://github.com/reta)                       | Aiven       |
+| Andriy Redko     | [reta](https://github.com/reta)                       | Independent |
 | Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
 | Nils Bandener    | [nibix](https://github.com/nibix)                     | Eliatra     |
 

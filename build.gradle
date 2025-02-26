@@ -754,11 +754,11 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.2'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.3'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'
-    testImplementation('org.awaitility:awaitility:4.2.2') {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
+    testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"

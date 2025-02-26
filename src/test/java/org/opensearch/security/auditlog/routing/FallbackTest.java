@@ -20,7 +20,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.helper.FailingSink;
 import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
@@ -33,7 +33,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class FallbackTest extends AbstractAuditlogiUnitTest {
+public class FallbackTest extends AbstractAuditlogUnitTest {
 
     @Test
     public void testFallback() throws Exception {

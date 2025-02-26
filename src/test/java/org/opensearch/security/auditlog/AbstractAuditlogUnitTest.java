@@ -28,7 +28,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
-public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
+public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
 
     protected RestHelper rh = null;
     protected boolean init = true;

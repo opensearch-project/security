@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,12 +68,12 @@ public class ResourceAccessHandler {
     }
 
     /**
-     *  Returns a set of accessible resource IDs for the current user within the specified resource index.
-     * @param resourceIndex The resource index to check for accessible resources.
-     * @param listener The listener to be notified with the set of accessible resource IDs.
+     * Returns a set of accessible resource IDs for the current user within the specified resource index.
      *
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
-    public Future<Void> getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
+    public void getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -84,7 +83,7 @@ public class ResourceAccessHandler {
         if (user == null) {
             LOGGER.info("Unable to fetch user details.");
             listener.onResponse(Collections.emptySet());
-            return null;
+            return;
         }
 
         LOGGER.info("Listing accessible resources within the resource index {} for user: {}", resourceIndex, user.getName());
@@ -92,7 +91,7 @@ public class ResourceAccessHandler {
         // 2. If the user is admin, simply fetch all resources
         if (adminDNs.isAdmin(user)) {
             loadAllResources(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
-            return null;
+            return;
         }
 
         // StepListener for the user’s "own" resources
@@ -156,7 +155,6 @@ public class ResourceAccessHandler {
             LOGGER.debug("Found {} accessible resources for user {}", allResources.size(), user.getName());
             listener.onResponse(allResources);
         }, listener::onFailure);
-        return null;
     }
 
     /**

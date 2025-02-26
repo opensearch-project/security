@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.opensearch.core.ParseField;
-import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ConstructingObjectParser;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -25,21 +24,14 @@ import org.opensearch.security.spi.resources.Resource;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
-public class SampleResource extends Resource {
+public class SampleResource implements Resource {
 
     private String name;
     private String description;
     private Map<String, String> attributes;
 
     public SampleResource() throws IOException {
-        super(null);
-    }
-
-    public SampleResource(StreamInput in) throws IOException {
-        super(in);
-        this.name = in.readString();
-        this.description = in.readString();
-        this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
+        super();
     }
 
     @SuppressWarnings("unchecked")
