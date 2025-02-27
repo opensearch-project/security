@@ -146,7 +146,6 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS = SSL_TRANSPORT_PREFIX + "truststore_alias";
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = SSL_TRANSPORT_PREFIX + "truststore_filepath";
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_TRANSPORT_PREFIX
-        + ""
         + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + "pemtrustedcas_filepath";
 
