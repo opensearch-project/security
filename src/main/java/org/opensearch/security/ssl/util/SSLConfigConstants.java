@@ -99,7 +99,7 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + "pemtrustedcas_filepath";
 
     // http cert revocation list settings
-    public static final String SSECURITY_SSL_HTTP_CRL_FILE = SSL_HTTP_PREFIX + "crl.file_path";
+    public static final String SECURITY_SSL_HTTP_CRL_FILE = SSL_HTTP_PREFIX + "crl.file_path";
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATE = SSL_HTTP_PREFIX + "crl.validate";
     public static final String SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP = SSL_HTTP_PREFIX + "crl.prefer_crlfile_over_ocsp";
     public static final String SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES = SSL_HTTP_PREFIX + "crl.check_only_end_entities";
