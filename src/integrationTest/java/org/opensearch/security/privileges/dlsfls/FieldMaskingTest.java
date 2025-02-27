@@ -30,6 +30,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
+import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -141,6 +142,18 @@ public class FieldMaskingTest {
             assertNull(expression.getRegexReplacements());
 
             FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(expression, FieldMasking.Config.DEFAULT);
+            assertEquals("c042e214a8b49561577445be44c188a8e6274006b36cd0c6fba5312253cf9293", field.apply("foobar"));
+        }
+
+        @Test
+        public void simple_legacyDefaultAlgorithm() throws Exception {
+            FieldMasking.FieldMaskingExpression expression = new FieldMasking.FieldMaskingExpression("field_*");
+            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+                expression,
+                FieldMasking.Config.fromSettings(
+                    Settings.builder().put("plugins.security.masked_fields.algorithm.default", BLAKE2B_LEGACY_DEFAULT).build()
+                )
+            );
             assertEquals("96c8d1da7eb153db858d4f0585120319e17ed1162db9e94bee19fb10b6d19727", field.apply("foobar"));
         }
 
@@ -260,9 +273,9 @@ public class FieldMaskingTest {
             assertFalse("FieldMasking.FieldMaskingRule should return false for isAllowAll()", rule.isAllowAll());
             assertTrue("Rule applies to field field_masked_1", rule.isMasked("field_masked_1"));
             assertFalse("Rule does not apply to field field_other", rule.isMasked("field_other"));
-            assertEquals("96c8d1da7eb153db858d4f0585120319e17ed1162db9e94bee19fb10b6d19727", rule.get("field_masked_1").apply("foobar"));
+            assertEquals("c042e214a8b49561577445be44c188a8e6274006b36cd0c6fba5312253cf9293", rule.get("field_masked_1").apply("foobar"));
             assertEquals(
-                new BytesRef("96c8d1da7eb153db858d4f0585120319e17ed1162db9e94bee19fb10b6d19727".getBytes(StandardCharsets.UTF_8)),
+                new BytesRef("c042e214a8b49561577445be44c188a8e6274006b36cd0c6fba5312253cf9293".getBytes(StandardCharsets.UTF_8)),
                 rule.get("field_masked_1").apply(new BytesRef("foobar".getBytes(StandardCharsets.UTF_8)))
             );
             assertEquals("FM:[field_masked_*]", rule.toString());
@@ -275,7 +288,7 @@ public class FieldMaskingTest {
             assertTrue("Rule applies to field field_masked_1", rule.isMasked("field_masked"));
             assertTrue("Rule applies to field field_masked_1.keyword", rule.isMasked("field_masked.keyword"));
             assertEquals(
-                "96c8d1da7eb153db858d4f0585120319e17ed1162db9e94bee19fb10b6d19727",
+                "c042e214a8b49561577445be44c188a8e6274006b36cd0c6fba5312253cf9293",
                 rule.get("field_masked.keyword").apply("foobar")
             );
         }
