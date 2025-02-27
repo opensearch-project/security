@@ -95,7 +95,8 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = SSL_HTTP_PREFIX + "truststore_type";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = SSL_HTTP_PREFIX + "truststore_alias";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = SSL_HTTP_PREFIX + "truststore_filepath";
-    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_HTTP_PREFIX + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_HTTP_PREFIX
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + "pemtrustedcas_filepath";
 
     // http cert revocation list settings
@@ -144,7 +145,9 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE = SSL_TRANSPORT_PREFIX + "truststore_type";
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS = SSL_TRANSPORT_PREFIX + "truststore_alias";
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = SSL_TRANSPORT_PREFIX + "truststore_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_TRANSPORT_PREFIX + "" + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_TRANSPORT_PREFIX
+        + ""
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + "pemtrustedcas_filepath";
 
     // transport server keystore settings
@@ -154,10 +157,12 @@ public final class SSLConfigConstants {
 
     // transport server truststore settings
     public static final String SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS = SSL_TRANSPORT_PREFIX + "server.truststore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + "server.pemtrustedcas_filepath";
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX
+        + "server.pemtrustedcas_filepath";
 
     public static final String SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS = SSL_TRANSPORT_PREFIX + "principal_extractor_class";
-    public static final String SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION = "plugins.security.ssl.allow_client_initiated_renegotiation";
+    public static final String SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION =
+        "plugins.security.ssl.allow_client_initiated_renegotiation";
 
     // transport client keystore settings
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = SSL_TRANSPORT_PREFIX + "client.keystore_alias";
@@ -166,10 +171,13 @@ public final class SSLConfigConstants {
 
     // transport client truststore settings
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS = SSL_TRANSPORT_PREFIX + "client.truststore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + "client.pemtrustedcas_filepath";
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX
+        + "client.pemtrustedcas_filepath";
 
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = SSL_TRANSPORT_PREFIX + "enforce_hostname_verification";
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = SSL_TRANSPORT_PREFIX + "resolve_hostname";
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = SSL_TRANSPORT_PREFIX
+        + "enforce_hostname_verification";
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = SSL_TRANSPORT_PREFIX
+        + "resolve_hostname";
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = "plugins.security.ssl.client.external_context_id";
 
     public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
