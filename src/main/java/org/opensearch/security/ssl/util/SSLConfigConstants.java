@@ -116,9 +116,7 @@ public final class SSLConfigConstants {
     public static final String SSL_TRANSPORT_SERVER_EXTENDED_PREFIX = "server.";
     public static final String SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX = "client.";
     public static final String SSL_TRANSPORT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + ".";
-
-    // IS THIS SETTING CORRECT? "plugins.security.ssl.transportclient." BUT SHOULD BE SSL_TRANSPORT_PREFIX + "client."
-    public static final String SSL_TRANSPORT_CLIENT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
+    public static final String SSL_TRANSPORT_CLIENT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + "." + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 
     // transport enable settings
     public static final boolean SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
