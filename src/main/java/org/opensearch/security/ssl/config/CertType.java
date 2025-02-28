@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
@@ -22,7 +23,8 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 public enum CertType {
     HTTP(SSL_HTTP_PREFIX),
     TRANSPORT(SSL_TRANSPORT_PREFIX),
-    TRANSPORT_CLIENT(SSL_TRANSPORT_CLIENT_PREFIX);
+    TRANSPORT_CLIENT(SSL_TRANSPORT_CLIENT_PREFIX),
+    AUX(SSL_AUX_PREFIX);
 
     public static Set<String> TYPES = Arrays.stream(CertType.values())
         .map(CertType::name)
