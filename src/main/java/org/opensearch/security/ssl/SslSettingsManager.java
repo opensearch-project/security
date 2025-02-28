@@ -49,13 +49,9 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEP
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_DEFAULT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH;
@@ -104,6 +100,11 @@ public class SslSettingsManager {
                 sslConfiguration -> contexts.put(CertType.HTTP, new SslContextHandler(sslConfiguration)),
                 () -> LOGGER.warn("SSL Configuration for HTTP Layer hasn't been set")
             );
+        Optional.ofNullable(configurations.get(CertType.AUX))
+            .ifPresentOrElse(
+                sslConfiguration -> contexts.put(CertType.AUX, new SslContextHandler(sslConfiguration)),
+                () -> LOGGER.warn("SSL Configuration for optional auxiliary transport hasn't been set")
+            );
         Optional.ofNullable(configurations.get(CertType.TRANSPORT)).ifPresentOrElse(sslConfiguration -> {
             contexts.put(CertType.TRANSPORT, new SslContextHandler(sslConfiguration));
             final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
@@ -129,7 +130,9 @@ public class SslSettingsManager {
         final var settings = environment.settings();
         final var httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
         final var transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
-        if (httpSettings.isEmpty() && transportSettings.isEmpty()) {
+        final var auxTransportSettings = settings.getByPrefix(CertType.AUX.sslConfigPrefix());
+
+        if (httpSettings.isEmpty() && transportSettings.isEmpty() && auxTransportSettings.isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
@@ -137,10 +140,12 @@ public class SslSettingsManager {
 
         final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
+        final var auxEnabled = auxTransportSettings.getAsBoolean(ENABLED, SECURITY_SSL_AUX_ENABLED_DEFAULT);
 
         final var configurationBuilder = ImmutableMap.<CertType, SslConfiguration>builder();
+
         if (httpEnabled && !clientNode(settings)) {
-            validateHttpSettings(httpSettings);
+            validateHttpSettings(settings);
             final var httpSslParameters = SslParameters.loader(httpSettings).load(true);
             final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
@@ -150,6 +155,19 @@ public class SslSettingsManager {
             LOGGER.info("TLS HTTP Provider                    : {}", httpSslParameters.provider());
             LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslParameters.allowedProtocols());
         }
+
+        if (auxEnabled && !clientNode(settings)) {
+            validateAuxSettings(httpSettings);
+            final var auxSslParameters = SslParameters.loader(httpSettings).load(true);
+            final var auxTrustAndKeyStore = new SslCertificatesLoader(CertType.AUX.sslConfigPrefix()).loadConfiguration(environment);
+            configurationBuilder.put(
+                    CertType.AUX,
+                    new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
+            );
+            LOGGER.info("TLS auxiliary transport Provider                    : {}", auxSslParameters.provider());
+            LOGGER.info("Enabled TLS protocols for auxiliary transport layer : {}", auxSslParameters.allowedProtocols());
+        }
+
         final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
         if (transportEnabled) {
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
@@ -235,38 +253,94 @@ public class SslSettingsManager {
         return !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
     }
 
-    private void validateHttpSettings(final Settings httpSettings) {
-        if (httpSettings == null) return;
+    /**
+     * {@link org.opensearch.OpenSearchException} thrown on invalid configuration of HTTP transport pem store/keystore.
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validateHttpSettings(final Settings settings) {
+        final Settings httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
+        if (httpSettings.isEmpty()) return;
         if (!httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT)) return;
-
-        final var clientAuth = ClientAuth.valueOf(httpSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
-
         if (hasPemStoreSettings(httpSettings)) {
-            if (!httpSettings.hasValue(PEM_CERT_FILEPATH) || !httpSettings.hasValue(PEM_KEY_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. "
-                        + String.join(", ", SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMKEY_FILEPATH)
-                        + " must be set"
-                );
-            }
-            if (clientAuth == ClientAuth.REQUIRE && !httpSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH + " must be set if client auth is required"
-                );
-            }
+            validatePemStoreSettings(CertType.HTTP, settings);
         } else if (hasKeyOrTrustStoreSettings(httpSettings)) {
-            if (!httpSettings.hasValue(KEYSTORE_FILEPATH)) {
-                throw new OpenSearchException("Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_KEYSTORE_FILEPATH + " must be set");
-            }
-            if (clientAuth == ClientAuth.REQUIRE && !httpSettings.hasValue(TRUSTSTORE_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH + " must be set if client auth is required"
-                );
-            }
+            validateKeyStoreSettings(CertType.HTTP, settings);
         } else {
             throw new OpenSearchException(
                 "Wrong HTTP SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
                     + "PKCS#8 keys groups should be set to configure HTTP layer"
+            );
+        }
+    }
+
+    /**
+     * {@link org.opensearch.OpenSearchException} thrown on invalid configuration of aux transport pem store/keystore.
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validateAuxSettings(final Settings settings) {
+        final Settings auxSettings = settings.getByPrefix(CertType.AUX.sslConfigPrefix());
+        if (auxSettings.isEmpty()) return;
+        if (!auxSettings.getAsBoolean(ENABLED, SECURITY_SSL_AUX_ENABLED_DEFAULT)) return;
+        if (hasPemStoreSettings(auxSettings)) {
+            validatePemStoreSettings(CertType.AUX, settings);
+        } else if (hasKeyOrTrustStoreSettings(auxSettings)) {
+            validateKeyStoreSettings(CertType.AUX, settings);
+        } else {
+            throw new OpenSearchException(
+                "Wrong auxiliary transport SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
+                        + "PKCS#8 keys groups should be set to configure auxiliary transport."
+            );
+        }
+    }
+
+    /**
+     * Validate pem store settings for transport of given type.
+     * Throws an {@link org.opensearch.OpenSearchException} if:
+     * - Either of the pem certificate or pem private key paths are not set.
+     * - Client auth is set to REQUIRE but pem trusted certificates filepath is not set.
+     * @param transportType transport type to validate
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validatePemStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
+        final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
+        final var clientAuth = ClientAuth.valueOf(transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
+        if (!transportSettings.hasValue(PEM_CERT_FILEPATH) || !transportSettings.hasValue(PEM_KEY_FILEPATH)) {
+            throw new OpenSearchException(
+                "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
+                        + String.join(", ", transportSettings.get(PEM_CERT_FILEPATH), transportSettings.get(PEM_KEY_FILEPATH))
+                        + " must be set"
+            );
+        }
+        if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
+            throw new OpenSearchException(
+                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
+                        + transportSettings.get(PEM_TRUSTED_CAS_FILEPATH) + " must be set if client auth is required"
+            );
+        }
+    }
+
+    /**
+     * Validate key store settings for transport of given type.
+     * Throws an {@link org.opensearch.OpenSearchException} if:
+     * - Keystore filepath is not set.
+     * - Client auth is set to REQUIRE but trust store filepath is not set.
+     * @param transportType transport type to validate
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validateKeyStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
+        final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
+        final var clientAuth = ClientAuth.valueOf(transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
+        if (!transportSettings.hasValue(KEYSTORE_FILEPATH)) {
+            throw new OpenSearchException(
+                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
+                            + transportSettings.get(KEYSTORE_FILEPATH)
+                            + " must be set"
+            );
+        }
+        if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
+            throw new OpenSearchException(
+                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
+                            + transportSettings.get(TRUSTSTORE_FILEPATH) + " must be set if client auth is required"
             );
         }
     }
