@@ -21,9 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -35,7 +33,6 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
@@ -55,66 +52,69 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public void indexTokenMetadata(ApiToken token) {
+    public void indexTokenMetadata(ApiToken token, ActionListener<Void> listener) {
         try {
-
             XContentBuilder builder = XContentFactory.jsonBuilder();
             String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
 
             IndexRequest request = new IndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).source(jsonString, XContentType.JSON);
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+            client.index(request, ActionListener.wrap(indexResponse -> {
                 LOGGER.info("Created {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            }, (failResponse) -> {
-                LOGGER.error(failResponse.getMessage());
+                listener.onResponse(null);
+            }, exception -> {
+                LOGGER.error(exception.getMessage());
                 LOGGER.info("Failed to create {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            });
-            client.index(request, irListener);
+                listener.onFailure(exception);
+            }));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
 
-    public void deleteToken(String name) throws ApiTokenException {
+    public void deleteToken(String name, ActionListener<Void> listener) {
         DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
             QueryBuilders.matchQuery(NAME_FIELD, name)
         ).setRefresh(true);
 
-        BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, request).actionGet();
-
-        long deletedDocs = response.getDeleted();
-
-        if (deletedDocs == 0) {
-            throw new ApiTokenException("No token found with name " + name);
-        }
+        client.execute(DeleteByQueryAction.INSTANCE, request, ActionListener.wrap(response -> {
+            long deletedDocs = response.getDeleted();
+            if (deletedDocs == 0) {
+                listener.onFailure(new ApiTokenException("No token found with name " + name));
+            } else {
+                listener.onResponse(null);
+            }
+        }, exception -> listener.onFailure(exception)));
     }
 
-    public Map<String, ApiToken> getTokenMetadatas() {
+    public void getTokenMetadatas(ActionListener<Map<String, ApiToken>> listener) {
         try {
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             searchRequest.source(new SearchSourceBuilder());
 
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            Map<String, ApiToken> tokens = new HashMap<>();
-            for (SearchHit hit : response.getHits().getHits()) {
-                try (
-                    XContentParser parser = XContentType.JSON.xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            hit.getSourceRef().streamInput()
-                        )
-                ) {
-
-                    ApiToken token = ApiToken.fromXContent(parser);
-                    tokens.put(token.getName(), token);
+            client.search(searchRequest, ActionListener.wrap(response -> {
+                try {
+                    Map<String, ApiToken> tokens = new HashMap<>();
+                    for (SearchHit hit : response.getHits().getHits()) {
+                        try (
+                            XContentParser parser = XContentType.JSON.xContent()
+                                .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                    hit.getSourceRef().streamInput()
+                                )
+                        ) {
+                            ApiToken token = ApiToken.fromXContent(parser);
+                            tokens.put(token.getName(), token);
+                        }
+                    }
+                    listener.onResponse(tokens);
+                } catch (IOException e) {
+                    listener.onFailure(e);
                 }
-            }
-            return tokens;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            }, listener::onFailure));
+        } catch (Exception e) {
+            listener.onFailure(e);
         }
     }
 

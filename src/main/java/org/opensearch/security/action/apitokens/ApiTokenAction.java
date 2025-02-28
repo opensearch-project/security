@@ -146,30 +146,32 @@ public class ApiTokenAction extends BaseRestHandler {
 
     private RestChannelConsumer handleGet(RestRequest request, NodeClient client) {
         return channel -> {
-            final XContentBuilder builder = channel.newBuilder();
-            BytesRestResponse response;
-            try {
-                Map<String, ApiToken> tokens = apiTokenRepository.getApiTokens();
+            apiTokenRepository.getApiTokens(ActionListener.wrap(tokens -> {
+                try {
+                    XContentBuilder builder = channel.newBuilder();
+                    builder.startArray();
+                    for (ApiToken token : tokens.values()) {
+                        builder.startObject();
+                        builder.field(NAME_FIELD, token.getName());
+                        builder.field(CREATION_TIME_FIELD, token.getCreationTime().toEpochMilli());
+                        builder.field(EXPIRATION_FIELD, token.getExpiration());
+                        builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
+                        builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
+                        builder.endObject();
+                    }
+                    builder.endArray();
 
-                builder.startArray();
-                for (ApiToken token : tokens.values()) {
-                    builder.startObject();
-                    builder.field(NAME_FIELD, token.getName());
-                    builder.field(CREATION_TIME_FIELD, token.getCreationTime().toEpochMilli());
-                    builder.field(EXPIRATION_FIELD, token.getExpiration());
-                    builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
-                    builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
-                    builder.endObject();
+                    BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
+                    builder.close();
+                    channel.sendResponse(response);
+                } catch (final Exception exception) {
+                    sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
                 }
-                builder.endArray();
+            }, exception -> {
+                sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
 
-                response = new BytesRestResponse(RestStatus.OK, builder);
-            } catch (final Exception exception) {
-                builder.startObject().field("error", exception.getMessage()).endObject();
-                response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
-            }
-            builder.close();
-            channel.sendResponse(response);
+            }));
+
         };
     }
 
@@ -181,39 +183,66 @@ public class ApiTokenAction extends BaseRestHandler {
 
                 List<String> clusterPermissions = extractClusterPermissions(requestBody);
                 List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissions(requestBody);
-
-                String token = apiTokenRepository.createApiToken(
-                    (String) requestBody.get(NAME_FIELD),
-                    clusterPermissions,
-                    indexPermissions,
-                    (Long) requestBody.getOrDefault(EXPIRATION_FIELD, Instant.now().toEpochMilli() + TimeUnit.DAYS.toMillis(30))
+                String name = (String) requestBody.get(NAME_FIELD);
+                long expiration = (Long) requestBody.getOrDefault(
+                    EXPIRATION_FIELD,
+                    Instant.now().toEpochMilli() + TimeUnit.DAYS.toMillis(30)
                 );
 
-                // Then trigger the update action
-                ApiTokenUpdateRequest updateRequest = new ApiTokenUpdateRequest();
-                client.execute(ApiTokenUpdateAction.INSTANCE, updateRequest, new ActionListener<ApiTokenUpdateResponse>() {
-                    @Override
-                    public void onResponse(ApiTokenUpdateResponse updateResponse) {
-                        try {
-                            XContentBuilder builder = channel.newBuilder();
-                            builder.startObject();
-                            builder.field("Api Token: ", token);
-                            builder.endObject();
-
-                            BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
-                            channel.sendResponse(response);
-                        } catch (IOException e) {
-                            sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to send response after token creation");
-                        }
+                // First check token count
+                apiTokenRepository.getTokenCount(ActionListener.wrap(tokenCount -> {
+                    if (tokenCount >= 100) {
+                        sendErrorResponse(
+                            channel,
+                            RestStatus.TOO_MANY_REQUESTS,
+                            "Maximum limit of 100 API tokens reached. Please delete existing tokens before creating new ones."
+                        );
+                        return;
                     }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to propagate token creation");
-                    }
-                });
-            } catch (final Exception exception) {
-                sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+                    // If count is ok, create the token
+                    apiTokenRepository.createApiToken(name, clusterPermissions, indexPermissions, expiration, ActionListener.wrap(token -> {
+                        // After successful creation, trigger the update action
+                        ApiTokenUpdateRequest updateRequest = new ApiTokenUpdateRequest();
+                        client.execute(ApiTokenUpdateAction.INSTANCE, updateRequest, ActionListener.wrap(updateResponse -> {
+                            try {
+                                XContentBuilder builder = channel.newBuilder();
+                                builder.startObject();
+                                builder.field("Api Token: ", token);
+                                builder.endObject();
+                                channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                                builder.close();
+                            } catch (IOException e) {
+                                sendErrorResponse(
+                                    channel,
+                                    RestStatus.INTERNAL_SERVER_ERROR,
+                                    "Failed to send response after token creation"
+                                );
+                            }
+                        },
+                            updateException -> sendErrorResponse(
+                                channel,
+                                RestStatus.INTERNAL_SERVER_ERROR,
+                                "Failed to propagate token creation: " + updateException.getMessage()
+                            )
+                        ));
+                    },
+                        createException -> sendErrorResponse(
+                            channel,
+                            RestStatus.INTERNAL_SERVER_ERROR,
+                            "Failed to create token: " + createException.getMessage()
+                        )
+                    ));
+                },
+                    countException -> sendErrorResponse(
+                        channel,
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        "Failed to get token count: " + countException.getMessage()
+                    )
+                ));
+
+            } catch (Exception e) {
+                sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Invalid request: " + e.getMessage());
             }
         };
     }
@@ -303,32 +332,44 @@ public class ApiTokenAction extends BaseRestHandler {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
                 validateRequestParameters(requestBody);
-                apiTokenRepository.deleteApiToken((String) requestBody.get(NAME_FIELD));
+                apiTokenRepository.deleteApiToken((String) requestBody.get(NAME_FIELD), ActionListener.wrap(ignored -> {
+                    try {
+                        ApiTokenUpdateRequest updateRequest = new ApiTokenUpdateRequest();
+                        client.execute(ApiTokenUpdateAction.INSTANCE, updateRequest, new ActionListener<ApiTokenUpdateResponse>() {
+                            @Override
+                            public void onResponse(ApiTokenUpdateResponse updateResponse) {
+                                try {
+                                    XContentBuilder builder = channel.newBuilder();
+                                    builder.startObject();
+                                    builder.field("message", "Token " + requestBody.get(NAME_FIELD) + " deleted successfully.");
+                                    builder.endObject();
 
-                ApiTokenUpdateRequest updateRequest = new ApiTokenUpdateRequest();
-                client.execute(ApiTokenUpdateAction.INSTANCE, updateRequest, new ActionListener<ApiTokenUpdateResponse>() {
-                    @Override
-                    public void onResponse(ApiTokenUpdateResponse updateResponse) {
-                        try {
-                            XContentBuilder builder = channel.newBuilder();
-                            builder.startObject();
-                            builder.field("message", "token " + requestBody.get(NAME_FIELD) + " deleted successfully.");
-                            builder.endObject();
+                                    BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
+                                    channel.sendResponse(response);
+                                } catch (Exception e) {
+                                    sendErrorResponse(
+                                        channel,
+                                        RestStatus.INTERNAL_SERVER_ERROR,
+                                        "Failed to send response after token update"
+                                    );
+                                }
+                            }
 
-                            BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
-                            channel.sendResponse(response);
-                        } catch (Exception e) {
-                            sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to send response after token update");
-                        }
+                            @Override
+                            public void onFailure(Exception e) {
+                                sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to propagate token deletion");
+                            }
+                        });
+                    } catch (IOException e) {
+                        sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to build success response: " + e.getMessage());
                     }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, "Failed to propagate token deletion");
+                }, exception -> {
+                    RestStatus status = RestStatus.INTERNAL_SERVER_ERROR;
+                    if (exception instanceof ApiTokenException) {
+                        status = RestStatus.NOT_FOUND;
                     }
-                });
-            } catch (final ApiTokenException exception) {
-                sendErrorResponse(channel, RestStatus.NOT_FOUND, exception.getMessage());
+                    sendErrorResponse(channel, status, exception.getMessage());
+                }));
             } catch (final Exception exception) {
                 sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
             }
