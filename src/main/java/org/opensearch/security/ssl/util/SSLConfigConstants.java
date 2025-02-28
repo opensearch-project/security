@@ -135,7 +135,7 @@ public final class SSLConfigConstants {
     public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
 
     // aux enable settings
-    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false;
+    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
     public static final String SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE = SSL_AUX_PREFIX + "enable_openssl_if_available";
     public static final String SECURITY_SSL_AUX_ENABLED = SSL_AUX_PREFIX + "enabled";
     public static final String SECURITY_SSL_AUX_ENABLED_CIPHERS = SSL_AUX_PREFIX + "enabled_ciphers";
