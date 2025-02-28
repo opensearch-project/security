@@ -28,7 +28,7 @@ import io.netty.handler.ssl.OpenSsl;
 
 public final class SSLConfigConstants {
     /**
-     * Global configurations
+     * Global configurations.
      */
     public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
     public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
@@ -37,7 +37,7 @@ public final class SSLConfigConstants {
     public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
     /**
-     * Shared settings prefixes/postfixes
+     * Shared settings prefixes/postfixes.
      */
     public static final String ENABLED = "enabled";
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
@@ -67,7 +67,7 @@ public final class SSLConfigConstants {
     public static final String PEM_KEY_PASSWORD = "pemkey_password";
 
     /**
-     * HTTP transport security settings
+     * HTTP transport security settings.
      */
     public static final String HTTP_SETTINGS = "http";
     public static final String SSL_HTTP_PREFIX = SSL_PREFIX + HTTP_SETTINGS + ".";
@@ -129,7 +129,7 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
 
     /**
-     * Auxiliary transport security settings
+     * Auxiliary transport security settings.
      */
     public static final String AUX_SETTINGS = "aux";
     public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
