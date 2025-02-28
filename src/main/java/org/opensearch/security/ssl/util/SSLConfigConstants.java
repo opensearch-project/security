@@ -129,6 +129,47 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
 
     /**
+     * Auxiliary transport security settings
+     */
+    public static final String AUX_SETTINGS = "aux";
+    public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
+
+    // aux enable settings
+    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false;
+    public static final String SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE = SSL_AUX_PREFIX + "enable_openssl_if_available";
+    public static final String SECURITY_SSL_AUX_ENABLED = SSL_AUX_PREFIX + "enabled";
+    public static final String SECURITY_SSL_AUX_ENABLED_CIPHERS = SSL_AUX_PREFIX + "enabled_ciphers";
+    public static final String SECURITY_SSL_AUX_ENABLED_PROTOCOLS = SSL_AUX_PREFIX + "enabled_protocols";
+
+    // aux allowed settings
+    public static final String[] ALLOWED_OPENSSL_AUX_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
+    public static final String[] ALLOWED_OPENSSL_AUX_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1", "TLSv1" };
+
+    // aux keystore settings
+    public static final String SECURITY_SSL_AUX_KEYSTORE_TYPE = SSL_AUX_PREFIX + "keystore_type";
+    public static final String SECURITY_SSL_AUX_KEYSTORE_ALIAS = SSL_AUX_PREFIX + "keystore_alias";
+    public static final String SECURITY_SSL_AUX_KEYSTORE_FILEPATH = SSL_AUX_PREFIX + "keystore_filepath";
+    public static final String SECURITY_SSL_AUX_PEMKEY_FILEPATH = SSL_AUX_PREFIX + "pemkey_filepath";
+    public static final String SECURITY_SSL_AUX_PEMCERT_FILEPATH = SSL_AUX_PREFIX + "pemcert_filepath";
+
+    // aux truststore settings
+    public static final String SECURITY_SSL_AUX_CLIENTAUTH_MODE = SSL_AUX_PREFIX + "clientauth_mode";
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_TYPE = SSL_AUX_PREFIX + "truststore_type";
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = SSL_AUX_PREFIX + "truststore_alias";
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = SSL_AUX_PREFIX + "truststore_filepath";
+    public static final String SECURITY_SSL_AUX_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_AUX_PREFIX + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = SSL_AUX_PREFIX + "pemtrustedcas_filepath";
+
+    // aux cert revocation list settings
+    public static final String SECURITY_SSL_AUX_CRL_FILE = SSL_AUX_PREFIX + "crl.file_path";
+    public static final String SECURITY_SSL_AUX_CRL_VALIDATE = SSL_AUX_PREFIX + "crl.validate";
+    public static final String SECURITY_SSL_AUX_CRL_PREFER_CRLFILE_OVER_OCSP = SSL_AUX_PREFIX + "crl.prefer_crlfile_over_ocsp";
+    public static final String SECURITY_SSL_AUX_CRL_CHECK_ONLY_END_ENTITIES = SSL_AUX_PREFIX + "crl.check_only_end_entities";
+    public static final String SECURITY_SSL_AUX_CRL_DISABLE_OCSP = SSL_AUX_PREFIX + "crl.disable_ocsp";
+    public static final String SECURITY_SSL_AUX_CRL_DISABLE_CRLDP = SSL_AUX_PREFIX + "crl.disable_crldp";
+    public static final String SECURITY_SSL_AUX_CRL_VALIDATION_DATE = SSL_AUX_PREFIX + "crl.validation_date";
+
+    /**
      * Transport layer (node-to-node) settings.
      * Transport layer acts both as client and server within the cluster.
      * Security settings for each role may be configured separately.
