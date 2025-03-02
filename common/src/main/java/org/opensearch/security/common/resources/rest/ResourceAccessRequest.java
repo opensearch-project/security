@@ -9,9 +9,11 @@
 package org.opensearch.security.common.resources.rest;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
@@ -55,37 +57,35 @@ public class ResourceAccessRequest extends ActionRequest {
     }
 
     /**
-     * New Constructor: Initialize request from a `Map<String, Object>`
+     * Static factory method to initialize ResourceAccessRequest from a Map.
      */
     @SuppressWarnings("unchecked")
-    public ResourceAccessRequest(Map<String, Object> source, Map<String, String> params) throws IOException {
+    public static ResourceAccessRequest from(Map<String, Object> source, Map<String, String> params) throws IOException {
+        Builder builder = new Builder();
+
         if (source.containsKey("operation")) {
-            this.operation = (Operation) source.get("operation");
+            builder.operation(Operation.valueOf((String) source.get("operation")));
         } else {
             throw new IllegalArgumentException("Missing required field: operation");
         }
 
-        this.resourceId = (String) source.get("resource_id");
-        this.resourceIndex = params.containsKey("resource_index") ? params.get("resource_index") : (String) source.get("resource_index");
-        this.scope = (String) source.get("scope");
+        builder.resourceId((String) source.get("resource_id"));
+        builder.resourceIndex(params.getOrDefault("resource_index", (String) source.get("resource_index")));
+        builder.scope((String) source.get("scope"));
 
         if (source.containsKey("share_with")) {
-            this.shareWith = parseShareWith(source);
-        } else {
-            this.shareWith = null;
+            builder.shareWith(source);
         }
 
         if (source.containsKey("entities_to_revoke")) {
-            this.revokedEntities = ((Map<String, Set<String>>) source.get("entities_to_revoke"));
-        } else {
-            this.revokedEntities = null;
+            builder.revokedEntities(source);
         }
 
         if (source.containsKey("scopes")) {
-            this.scopes = Set.copyOf((List<String>) source.get("scopes"));
-        } else {
-            this.scopes = null;
+            builder.scopes(Set.copyOf((List<String>) source.get("scopes"))); // Ensuring Set<String> type
         }
+
+        return builder.build();
     }
 
     public ResourceAccessRequest(StreamInput in) throws IOException {
@@ -113,32 +113,6 @@ public class ResourceAccessRequest extends ActionRequest {
     @Override
     public ActionRequestValidationException validate() {
         return null;
-    }
-
-    /**
-     * Parse the share with structure from the request body.
-     *
-     * @param source the request body
-     * @return the parsed ShareWith object
-     * @throws IOException if an I/O error occurs
-     */
-    @SuppressWarnings("unchecked")
-    private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
-        Map<String, Object> shareWithMap = (Map<String, Object>) source.get("share_with");
-        if (shareWithMap == null || shareWithMap.isEmpty()) {
-            throw new IllegalArgumentException("share_with is required and cannot be empty");
-        }
-
-        String jsonString = XContentFactory.jsonBuilder().map(shareWithMap).toString();
-
-        try (
-            XContentParser parser = XContentType.JSON.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
-        ) {
-            return ShareWith.fromXContent(parser);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
-        }
     }
 
     public Operation getOperation() {
@@ -181,43 +155,70 @@ public class ResourceAccessRequest extends ActionRequest {
         private Map<String, Set<String>> revokedEntities;
         private Set<String> scopes;
 
-        public Builder setOperation(Operation operation) {
+        public Builder operation(Operation operation) {
             this.operation = operation;
             return this;
         }
 
-        public Builder setResourceId(String resourceId) {
+        public Builder resourceId(String resourceId) {
             this.resourceId = resourceId;
             return this;
         }
 
-        public Builder setResourceIndex(String resourceIndex) {
+        public Builder resourceIndex(String resourceIndex) {
             this.resourceIndex = resourceIndex;
             return this;
         }
 
-        public Builder setScope(String scope) {
+        public Builder scope(String scope) {
             this.scope = scope;
             return this;
         }
 
-        public Builder setShareWith(ShareWith shareWith) {
-            this.shareWith = shareWith;
+        public Builder shareWith(Map<String, Object> source) throws IOException {
+            this.shareWith = parseShareWith(source);
             return this;
         }
 
-        public Builder setRevokedEntities(Map<String, Set<String>> revokedEntities) {
-            this.revokedEntities = revokedEntities;
+        public Builder revokedEntities(Map<String, Object> source) throws IOException {
+            this.revokedEntities = parseRevokedEntities(source);
             return this;
         }
 
-        public Builder setScopes(Set<String> scopes) {
+        public Builder scopes(Set<String> scopes) {
             this.scopes = scopes;
             return this;
         }
 
         public ResourceAccessRequest build() {
             return new ResourceAccessRequest(this);
+        }
+
+        @SuppressWarnings("unchecked")
+        private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
+            Map<String, Object> shareWithMap = (Map<String, Object>) source.get("share_with");
+            if (shareWithMap == null || shareWithMap.isEmpty()) {
+                throw new IllegalArgumentException("share_with is required and cannot be empty");
+            }
+
+            String jsonString = XContentFactory.jsonBuilder().map(shareWithMap).toString();
+
+            try (
+                XContentParser parser = XContentType.JSON.xContent()
+                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
+            ) {
+                return ShareWith.fromXContent(parser);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private Map<String, Set<String>> parseRevokedEntities(Map<String, Object> source) throws IOException {
+
+            return ((Map<String, List<String>>) source.get("entities_to_revoke")).entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> new HashSet<>(e.getValue())));
         }
     }
 }

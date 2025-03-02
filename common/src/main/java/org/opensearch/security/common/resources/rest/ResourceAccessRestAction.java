@@ -87,7 +87,7 @@ public class ResourceAccessRestAction extends BaseRestHandler {
             }
         }
 
-        ResourceAccessRequest resourceAccessRequest = new ResourceAccessRequest(source, request.params());
+        ResourceAccessRequest resourceAccessRequest = ResourceAccessRequest.from(source, request.params());
         return channel -> {
             client.executeLocally(ResourceAccessAction.INSTANCE, resourceAccessRequest, new ActionListener<>() {
 
