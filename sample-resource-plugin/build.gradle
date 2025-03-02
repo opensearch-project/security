@@ -80,6 +80,7 @@ dependencies {
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
     integrationTestImplementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    integrationTestImplementation "org.opensearch:opensearch-security-common:${opensearch_build}"
 }
 
 sourceSets {

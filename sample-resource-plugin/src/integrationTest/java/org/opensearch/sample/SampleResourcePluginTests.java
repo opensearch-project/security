@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -53,8 +53,8 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            OpenSearchSecurityPlugin.getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
-            OpenSearchSecurityPlugin.getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
+            ResourcePluginInfo.getInstance().getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
+            ResourcePluginInfo.getInstance().getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
         }
     }
 
@@ -96,14 +96,14 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
             resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
-            // Also update the in-memory map and list
-            OpenSearchSecurityPlugin.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            // Also update the in-memory map and get
+            ResourcePluginInfo.getInstance().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
             ResourceProvider provider = new ResourceProvider(
                 SampleResource.class.getCanonicalName(),
                 RESOURCE_INDEX_NAME,
                 new SampleResourceParser()
             );
-            OpenSearchSecurityPlugin.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            ResourcePluginInfo.getInstance().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
@@ -199,6 +199,12 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             );
         }
 
+        // get sample resource with shared_with_user
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
+
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             Thread.sleep(1000);
@@ -219,6 +225,18 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(false));
+        }
+
+        // get sample resource with shared_with_user
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+        }
+
+        // delete sample resource with shared_with_user
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.delete(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // delete sample resource

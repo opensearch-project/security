@@ -41,8 +41,11 @@ import org.opensearch.sample.resource.actions.rest.create.CreateResourceRestActi
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
+import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
+import org.opensearch.sample.resource.actions.rest.get.GetResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
@@ -89,13 +92,14 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(new CreateResourceRestAction(), new DeleteResourceRestAction());
+        return List.of(new CreateResourceRestAction(), new GetResourceRestAction(), new DeleteResourceRestAction());
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
+            new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class),
             new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class),
             new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
         );
