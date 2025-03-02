@@ -67,7 +67,7 @@ public class AbstractSampleResourcePluginTests {
             + "\"resource_index\": \""
             + RESOURCE_INDEX_NAME
             + "\","
-            + "\"entities\": {"
+            + "\"entities_to_revoke\": {"
             + "\"users\": [\""
             + SHARED_WITH_USER.getName()
             + "\"]"

@@ -9,9 +9,9 @@
 package org.opensearch.security.common.resources.rest;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
@@ -22,11 +22,8 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.common.resources.RecipientType;
-import org.opensearch.security.common.resources.RecipientTypeRegistry;
 import org.opensearch.security.common.resources.ShareWith;
 
-// TODO: Fix revoked entries
 public class ResourceAccessRequest extends ActionRequest {
 
     public enum Operation {
@@ -40,9 +37,22 @@ public class ResourceAccessRequest extends ActionRequest {
     private final String resourceId;
     private final String resourceIndex;
     private final String scope;
-    private ShareWith shareWith;
-    private Map<RecipientType, Set<String>> revokedEntities;
-    private Set<String> scopes;
+    private final ShareWith shareWith;
+    private final Map<String, Set<String>> revokedEntities;
+    private final Set<String> scopes;
+
+    /**
+     * Private constructor to enforce usage of Builder
+     */
+    private ResourceAccessRequest(Builder builder) {
+        this.operation = builder.operation;
+        this.resourceId = builder.resourceId;
+        this.resourceIndex = builder.resourceIndex;
+        this.scope = builder.scope;
+        this.shareWith = builder.shareWith;
+        this.revokedEntities = builder.revokedEntities;
+        this.scopes = builder.scopes;
+    }
 
     /**
      * New Constructor: Initialize request from a `Map<String, Object>`
@@ -56,19 +66,25 @@ public class ResourceAccessRequest extends ActionRequest {
         }
 
         this.resourceId = (String) source.get("resource_id");
-        this.resourceIndex = params.containsKey("resource_index") ? params.get("resource_index") : (String) (source.get("resource_index"));
+        this.resourceIndex = params.containsKey("resource_index") ? params.get("resource_index") : (String) source.get("resource_index");
         this.scope = (String) source.get("scope");
 
         if (source.containsKey("share_with")) {
             this.shareWith = parseShareWith(source);
+        } else {
+            this.shareWith = null;
         }
 
-        if (source.containsKey("revoked_entities")) {
-            this.revokedEntities = parseRevokedEntities(source);
+        if (source.containsKey("entities_to_revoke")) {
+            this.revokedEntities = ((Map<String, Set<String>>) source.get("entities_to_revoke"));
+        } else {
+            this.revokedEntities = null;
         }
 
         if (source.containsKey("scopes")) {
-            this.scopes = Set.copyOf((Set<String>) source.get("scopes"));
+            this.scopes = Set.copyOf((List<String>) source.get("scopes"));
+        } else {
+            this.scopes = null;
         }
     }
 
@@ -79,7 +95,7 @@ public class ResourceAccessRequest extends ActionRequest {
         this.resourceIndex = in.readOptionalString();
         this.scope = in.readOptionalString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        // this.revokedEntities = in.readMap(StreamInput::readEnum, StreamInput::readSet);
+        this.revokedEntities = in.readMap(StreamInput::readString, valIn -> valIn.readSet(StreamInput::readString));
         this.scopes = in.readSet(StreamInput::readString);
     }
 
@@ -90,7 +106,7 @@ public class ResourceAccessRequest extends ActionRequest {
         out.writeOptionalString(resourceIndex);
         out.writeOptionalString(scope);
         out.writeOptionalWriteable(shareWith);
-        // out.writeMap(revokedEntities, StreamOutput::writeEnum, StreamOutput::writeStringCollection);
+        out.writeMap(revokedEntities, StreamOutput::writeString, StreamOutput::writeStringCollection);
         out.writeStringCollection(scopes);
     }
 
@@ -125,17 +141,6 @@ public class ResourceAccessRequest extends ActionRequest {
         }
     }
 
-    /**
-     * Helper method to parse revoked entities from a generic Map
-     */
-    @SuppressWarnings("unchecked")
-    private Map<RecipientType, Set<String>> parseRevokedEntities(Map<String, Object> source) {
-        Map<String, Set<String>> revokeSource = (Map<String, Set<String>>) source.get("entities");
-        return revokeSource.entrySet()
-            .stream()
-            .collect(Collectors.toMap(entry -> RecipientTypeRegistry.fromValue(entry.getKey()), Map.Entry::getValue));
-    }
-
     public Operation getOperation() {
         return operation;
     }
@@ -156,7 +161,7 @@ public class ResourceAccessRequest extends ActionRequest {
         return shareWith;
     }
 
-    public Map<RecipientType, Set<String>> getRevokedEntities() {
+    public Map<String, Set<String>> getRevokedEntities() {
         return revokedEntities;
     }
 
@@ -164,4 +169,55 @@ public class ResourceAccessRequest extends ActionRequest {
         return scopes;
     }
 
+    /**
+     * Builder for ResourceAccessRequest
+     */
+    public static class Builder {
+        private Operation operation;
+        private String resourceId;
+        private String resourceIndex;
+        private String scope;
+        private ShareWith shareWith;
+        private Map<String, Set<String>> revokedEntities;
+        private Set<String> scopes;
+
+        public Builder setOperation(Operation operation) {
+            this.operation = operation;
+            return this;
+        }
+
+        public Builder setResourceId(String resourceId) {
+            this.resourceId = resourceId;
+            return this;
+        }
+
+        public Builder setResourceIndex(String resourceIndex) {
+            this.resourceIndex = resourceIndex;
+            return this;
+        }
+
+        public Builder setScope(String scope) {
+            this.scope = scope;
+            return this;
+        }
+
+        public Builder setShareWith(ShareWith shareWith) {
+            this.shareWith = shareWith;
+            return this;
+        }
+
+        public Builder setRevokedEntities(Map<String, Set<String>> revokedEntities) {
+            this.revokedEntities = revokedEntities;
+            return this;
+        }
+
+        public Builder setScopes(Set<String> scopes) {
+            this.scopes = scopes;
+            return this;
+        }
+
+        public ResourceAccessRequest build() {
+            return new ResourceAccessRequest(this);
+        }
+    }
 }

@@ -8,10 +8,16 @@
 
 package org.opensearch.security.common.resources.rest;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.common.resources.RecipientType;
+import org.opensearch.security.common.resources.RecipientTypeRegistry;
 import org.opensearch.security.common.resources.ResourceAccessHandler;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -69,7 +75,7 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         resourceAccessHandler.revokeAccess(
             request.getResourceId(),
             request.getResourceIndex(),
-            request.getRevokedEntities(),
+            parseRevokedEntities(request.getRevokedEntities()),
             request.getScopes(),
             ActionListener.wrap(success -> listener.onResponse(new ResourceAccessResponse(success)), listener::onFailure)
         );
@@ -82,5 +88,12 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
             request.getScope(),
             ActionListener.wrap(hasPermission -> listener.onResponse(new ResourceAccessResponse(hasPermission)), listener::onFailure)
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<RecipientType, Set<String>> parseRevokedEntities(Map<String, Set<String>> revokeSource) {
+        return revokeSource.entrySet()
+            .stream()
+            .collect(Collectors.toMap(entry -> RecipientTypeRegistry.fromValue(entry.getKey()), Map.Entry::getValue));
     }
 }
