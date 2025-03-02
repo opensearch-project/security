@@ -66,7 +66,7 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
         builder.startObject();
         switch (responseType) {
             case RESOURCES -> builder.field("resources", responseData);
-            case RESOURCE_SHARING -> builder.field("sharing_info", responseData);
+            case RESOURCE_SHARING -> builder.field("resource_sharing", responseData);
             case BOOLEAN -> builder.field("has_permission", responseData);
         }
         return builder.endObject();
@@ -83,14 +83,5 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
 
     public Boolean getHasPermission() {
         return responseType == ResponseType.BOOLEAN ? (Boolean) responseData : null;
-    }
-
-    @Override
-    public String toString() {
-        if (responseData == null) {
-            return "ResourceAccessResponse{" + "responseType=" + responseType + ", responseData=null}";
-        }
-        return "ResourceAccessResponse{" + "responseType=" + responseType + ", responseData=" + responseData.toString() + "}";
-
     }
 }

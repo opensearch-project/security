@@ -10,6 +10,8 @@ package org.opensearch.security.resources;
 
 import org.hamcrest.MatcherAssert;
 
+import org.opensearch.security.common.resources.RecipientType;
+import org.opensearch.security.common.resources.RecipientTypeRegistry;
 import org.opensearch.security.test.SingleClusterTest;
 
 import static org.hamcrest.Matchers.equalTo;

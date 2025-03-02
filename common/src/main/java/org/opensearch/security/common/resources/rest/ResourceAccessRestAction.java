@@ -17,21 +17,19 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.common.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.common.dlic.rest.api.Responses.forbidden;
-import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.common.dlic.rest.api.Responses.unauthorized;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.LIST;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.REVOKE;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.SHARE;
@@ -89,20 +87,17 @@ public class ResourceAccessRestAction extends BaseRestHandler {
 
         ResourceAccessRequest resourceAccessRequest = new ResourceAccessRequest(source, request.params());
         return channel -> {
-            client.executeLocally(ResourceAccessAction.INSTANCE, resourceAccessRequest, new ActionListener<>() {
-
+            client.executeLocally(ResourceAccessAction.INSTANCE, resourceAccessRequest, new RestToXContentListener<>(channel) {
                 @Override
-                public void onResponse(ResourceAccessResponse response) {
-                    try {
-                        sendResponse(channel, response);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                public RestResponse buildResponse(ResourceAccessResponse response, XContentBuilder builder) throws Exception {
+                    assert !response.isFragment(); // would be nice if we could make default methods final
+                    response.toXContent(builder, channel.request());
+                    return new BytesRestResponse(getStatus(response), builder);
                 }
 
                 @Override
-                public void onFailure(Exception e) {
-                    handleError(channel, e);
+                protected RestStatus getStatus(ResourceAccessResponse response) {
+                    return RestStatus.OK;
                 }
 
             });
@@ -118,29 +113,37 @@ public class ResourceAccessRestAction extends BaseRestHandler {
         request.param("resource_index", "");
     }
 
-    /**
-    * Send the appropriate response to the channel.
-    * @param channel the channel to send the response to
-    * @param response the response to send
-    * @throws IOException if an I/O error occurs
-    */
-    private void sendResponse(RestChannel channel, ResourceAccessResponse response) throws IOException {
-        ok(channel, response::toXContent);
-    }
-
-    /**
-    * Handle errors that occur during request processing.
-    * @param channel the channel to send the error response to
-    * @param e the exception that caused the error
-    */
-    private void handleError(RestChannel channel, Exception e) {
-        String message = e.getMessage();
-        LOGGER.error(message, e);
-        if (message.contains("not authorized")) {
-            forbidden(channel, message);
-        } else if (message.contains("no authenticated")) {
-            unauthorized(channel);
-        }
-        channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
-    }
+    // /**
+    // * Send the appropriate response to the channel.
+    // * @param channel the channel to send the response to
+    // * @param response the response to send
+    // * @throws IOException if an I/O error occurs
+    // */
+    // @SuppressWarnings("unchecked")
+    // private void sendResponse(RestChannel channel, Object response) throws IOException {
+    // if (response instanceof Set) { // get
+    // Set<Resource> resources = (Set<Resource>) response;
+    // ok(channel, (builder, params) -> builder.startObject().field("resources", resources).endObject());
+    // } else if (response instanceof ResourceSharing resourceSharing) { // share & revoke
+    // ok(channel, (resourceSharing::toXContent));
+    // } else if (response instanceof Boolean) { // verify_access
+    // ok(channel, (builder, params) -> builder.startObject().field("has_permission", String.valueOf(response)).endObject());
+    // }
+    // }
+    //
+    // /**
+    // * Handle errors that occur during request processing.
+    // * @param channel the channel to send the error response to
+    // * @param message the error message
+    // * @param e the exception that caused the error
+    // */
+    // private void handleError(RestChannel channel, String message, Exception e) {
+    // LOGGER.error(message, e);
+    // if (message.contains("not authorized")) {
+    // forbidden(channel, message);
+    // } else if (message.contains("no authenticated")) {
+    // unauthorized(channel);
+    // }
+    // channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
+    // }
 }
