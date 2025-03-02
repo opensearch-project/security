@@ -158,12 +158,6 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v4
 
-    - name: Publish SPI to Local Maven
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
-
     - name: Run Resource Tests
       uses: gradle/gradle-build-action@v3
       with:
