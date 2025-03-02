@@ -562,6 +562,7 @@ allprojects {
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
         integrationTestImplementation project(path:":opensearch-security-common")
+        integrationTestImplementation project(path:":opensearch-security-client")
         integrationTestImplementation project(path:":opensearch-resource-sharing-spi")
     }
 }
