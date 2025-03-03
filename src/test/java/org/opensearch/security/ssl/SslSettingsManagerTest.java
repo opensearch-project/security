@@ -33,6 +33,10 @@ import io.netty.handler.ssl.SslContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
@@ -67,6 +71,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     @BeforeClass
     public static void setUp() throws Exception {
         writeCertificates("ca_http_certificate.pem", "access_http_certificate.pem", "access_http_certificate_pk.pem");
+        writeCertificates("ca_aux_certificate.pem", "access_aux_certificate.pem", "access_aux_certificate_pk.pem");
         writeCertificates("ca_transport_certificate.pem", "access_transport_certificate.pem", "access_transport_certificate_pk.pem");
     }
 
@@ -90,19 +95,16 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
-    @Test
-    public void transportFailsIfNoConfigDefine() throws Exception {
-        final var noTransportSettings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true).build();
+    private void transportFailsIfNoConfigDefine(String transportEnabledSetting) {
+        final var noTransportSettings = defaultSettingsBuilder().put(transportEnabledSetting, true).build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettings)));
     }
 
     @Test
-    public void transportFailsIfConfigEnabledButNotDefined() throws Exception {
-        final var noTransportSettingsButItEnabled = defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true).build();
-        assertThrows(
-            OpenSearchException.class,
-            () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettingsButItEnabled))
-        );
+    public void testFailsIfNoConfigDefine() {
+        transportFailsIfNoConfigDefine(SECURITY_SSL_HTTP_ENABLED);
+        transportFailsIfNoConfigDefine(SECURITY_SSL_AUX_ENABLED);
+        transportFailsIfNoConfigDefine(SECURITY_SSL_TRANSPORT_ENABLED);
     }
 
     @Test
@@ -453,6 +455,14 @@ public class SslSettingsManagerTest extends RandomizedTest {
             .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, path("ca_http_certificate.pem"))
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path("access_http_certificate.pem"))
             .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path("access_http_certificate_pk.pem"));
+    }
+
+    private void withAuxSslSettings(final Settings.Builder settingsBuilder) {
+        settingsBuilder.put(SECURITY_SSL_AUX_ENABLED, true)
+                .put(SECURITY_SSL_AUX_ENABLED, true)
+                .put(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, path("ca_aux_certificate.pem"))
+                .put(SECURITY_SSL_AUX_PEMCERT_FILEPATH, path("access_aux_certificate.pem"))
+                .put(SECURITY_SSL_AUX_PEMKEY_FILEPATH, path("access_aux_certificate_pk.pem"));
     }
 
     Settings.Builder defaultSettingsBuilder() {
