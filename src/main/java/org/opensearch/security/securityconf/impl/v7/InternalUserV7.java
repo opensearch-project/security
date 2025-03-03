@@ -33,12 +33,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
+
+    private final Logger log = LogManager.getLogger(InternalUserV7.class);
 
     private String hash;
     private boolean reserved;
@@ -117,6 +121,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
     }
 
     public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
+        log.warn("Deprecated configuration opendistro_security_roles set. Kindly use direct_security_roles instead.");
         this.opendistro_security_roles = opendistro_security_roles;
         this.direct_security_roles = opendistro_security_roles;
     }

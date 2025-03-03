@@ -62,7 +62,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
     private final PasswordHasher passwordHasher;
 
     /**
-     * @deprecated Use opensearch_security_roles instead. This field will be removed in a future release.
+     * @deprecated Use direct_security_roles instead. This field will be removed in a future release.
      */
     @Deprecated
     public static final String OPENDISTRO_SECURITY_ROLES = "opendistro_security_roles";
