@@ -33,6 +33,7 @@ import io.netty.handler.ssl.SslContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
@@ -185,13 +186,28 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 List.of(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH));
     }
 
-    @Test
-    public void httpConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, certificatesRule.configRootFolder().toString())
-            .build();
+    private void configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+            String transportEnabledSetting,
+            String clientAuthEnabledSetting,
+            String keystorePathSetting
+    ) {
+        final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
+                .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+                .put(keystorePathSetting, certificatesRule.configRootFolder().toString())
+                .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    }
+
+    @Test
+    public void serverTransportConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() throws Exception {
+        configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+                SECURITY_SSL_HTTP_ENABLED,
+                SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
+                SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
+        configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+                SECURITY_SSL_AUX_ENABLED,
+                SECURITY_SSL_AUX_CLIENTAUTH_MODE,
+                SECURITY_SSL_AUX_KEYSTORE_FILEPATH);
     }
 
     @Test
@@ -203,7 +219,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
             .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
-    
+
     @Test
     public void loadConfigurationAndBuildHSslContextForSslOnlyMode() throws Exception {
         final var securitySettings = new MockSecureSettings();
