@@ -45,7 +45,7 @@ repositories {
 dependencies {
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     compileOnly "org.opensearch.plugin:lang-painless:${opensearch_version}"
-    compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
     compileOnly "com.google.guava:guava:${guava_version}"
     compileOnly "org.apache.commons:commons-lang3:${versions.commonslang}"
     compileOnly 'com.password4j:password4j:1.8.2'
