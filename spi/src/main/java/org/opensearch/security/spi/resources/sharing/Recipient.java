@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.spi.resources.sharing;
 
 public enum Recipient {
     USERS("users"),

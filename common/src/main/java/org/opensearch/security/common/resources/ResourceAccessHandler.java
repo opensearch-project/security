@@ -29,6 +29,12 @@ import org.opensearch.security.common.user.User;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.RecipientType;
+import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.spi.resources.sharing.SharedWithScope;
 import org.opensearch.threadpool.ThreadPool;
 
 /**

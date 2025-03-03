@@ -67,6 +67,10 @@ import org.opensearch.security.common.DefaultObjectMapper;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.sharing.CreatedBy;
+import org.opensearch.security.spi.resources.sharing.RecipientType;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -804,7 +808,7 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceId      The unique identifier of the resource whose sharing configuration needs to be updated
      * @param sourceIdx       The source index where the original resource is stored
-     * @param requestUserName The user requesting to share the resource
+     * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
      *                        "scope": {
@@ -813,7 +817,7 @@ public class ResourceSharingIndexHandler {
      *                        "backend_roles": ["backend_role1"]
      *                        }
      *                        }
-     * @param isAdmin         Boolean indicating whether the user requesting to share is an admin or not
+     * @param isAdmin         Boolean indicating whether the user requesting to revoke is an admin or not
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */

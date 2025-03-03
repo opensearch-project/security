@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -16,8 +16,6 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.

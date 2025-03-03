@@ -20,6 +20,7 @@ repositories {
 
 dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
+    compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_version}"
 }
 
 java {

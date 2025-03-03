@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.spi.resources;
+package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
 import java.util.HashMap;

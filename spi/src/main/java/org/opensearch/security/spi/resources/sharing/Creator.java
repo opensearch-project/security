@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.spi.resources;
+package org.opensearch.security.spi.resources.sharing;
 
 public enum Creator {
     USER("user");

@@ -6,9 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
-
-import org.opensearch.security.spi.resources.sharing.RecipientType;
+package org.opensearch.security.spi.resources.sharing;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,9 +17,14 @@ import java.util.Map;
  * @opensearch.experimental
  */
 public final class RecipientTypeRegistry {
-    private static final Map<String, RecipientType> REGISTRY = new HashMap<>();
+    // TODO: Check what size should this be. A cap should be added to avoid infinite addition of objects
+    private static final Integer REGISTRY_MAX_SIZE = 20;
+    private static final Map<String, RecipientType> REGISTRY = new HashMap<>(10);
 
     public static void registerRecipientType(String key, RecipientType recipientType) {
+        if (REGISTRY.size() == REGISTRY_MAX_SIZE) {
+            throw new IllegalArgumentException("RecipientTypeRegistry is full. Cannot register more recipient types.");
+        }
         REGISTRY.put(key, recipientType);
     }
 

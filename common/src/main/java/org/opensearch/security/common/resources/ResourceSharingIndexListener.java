@@ -24,6 +24,9 @@ import org.opensearch.security.common.auth.UserSubjectImpl;
 import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.common.user.User;
+import org.opensearch.security.spi.resources.sharing.CreatedBy;
+import org.opensearch.security.spi.resources.sharing.Creator;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 

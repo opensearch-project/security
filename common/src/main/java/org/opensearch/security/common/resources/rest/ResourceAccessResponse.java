@@ -17,8 +17,8 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.common.resources.ResourceSharing;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
 public class ResourceAccessResponse extends ActionResponse implements ToXContentObject {
     public enum ResponseType {

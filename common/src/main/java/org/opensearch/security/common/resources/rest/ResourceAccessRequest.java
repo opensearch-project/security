@@ -24,7 +24,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.common.resources.ShareWith;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 public class ResourceAccessRequest extends ActionRequest {
 

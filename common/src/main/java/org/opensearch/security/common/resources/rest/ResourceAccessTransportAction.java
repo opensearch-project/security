@@ -16,9 +16,9 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.common.resources.RecipientType;
-import org.opensearch.security.common.resources.RecipientTypeRegistry;
 import org.opensearch.security.common.resources.ResourceAccessHandler;
+import org.opensearch.security.spi.resources.sharing.RecipientType;
+import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -90,7 +90,6 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         );
     }
 
-    @SuppressWarnings("unchecked")
     private Map<RecipientType, Set<String>> parseRevokedEntities(Map<String, Set<String>> revokeSource) {
         return revokeSource.entrySet()
             .stream()
