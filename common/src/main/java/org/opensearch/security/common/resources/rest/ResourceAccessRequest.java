@@ -9,7 +9,7 @@
 package org.opensearch.security.common.resources.rest;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,11 +74,11 @@ public class ResourceAccessRequest extends ActionRequest {
         builder.scope((String) source.get("scope"));
 
         if (source.containsKey("share_with")) {
-            builder.shareWith(source);
+            builder.shareWith((Map<String, Object>) source.get("share_with"));
         }
 
         if (source.containsKey("entities_to_revoke")) {
-            builder.revokedEntities(source);
+            builder.revokedEntities((Map<String, Object>) source.get("entities_to_revoke"));
         }
 
         if (source.containsKey("scopes")) {
@@ -202,31 +202,38 @@ public class ResourceAccessRequest extends ActionRequest {
             return new ResourceAccessRequest(this);
         }
 
-        @SuppressWarnings("unchecked")
         private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
-            Map<String, Object> shareWithMap = (Map<String, Object>) source.get("share_with");
-            if (shareWithMap == null || shareWithMap.isEmpty()) {
+            if (source == null || source.isEmpty()) {
                 throw new IllegalArgumentException("share_with is required and cannot be empty");
             }
 
-            String jsonString = XContentFactory.jsonBuilder().map(shareWithMap).toString();
+            String jsonString = XContentFactory.jsonBuilder().map(source).toString();
 
             try (
                 XContentParser parser = XContentType.JSON.xContent()
                     .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
             ) {
+
                 return ShareWith.fromXContent(parser);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private Map<String, Set<String>> parseRevokedEntities(Map<String, Object> source) throws IOException {
+        private Map<String, Set<String>> parseRevokedEntities(Map<String, Object> source) {
 
-            return ((Map<String, List<String>>) source.get("entities_to_revoke")).entrySet()
+            return source.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> new HashSet<>(e.getValue())));
+                .filter(entry -> entry.getValue() instanceof Collection<?>)
+                .collect(
+                    Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> ((Collection<?>) entry.getValue()).stream()
+                            .filter(String.class::isInstance)
+                            .map(String.class::cast)
+                            .collect(Collectors.toSet())
+                    )
+                );
         }
     }
 }
