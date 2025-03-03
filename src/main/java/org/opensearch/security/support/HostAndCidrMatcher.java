@@ -71,23 +71,22 @@ public class HostAndCidrMatcher {
      * @implNote This method may perform DNS lookups which could impact performance
      */
     public boolean matchesHostname(InetAddress address, String hostResolverMode) {
-        if (address == null || hostMatcher == null || hostResolverMode == null) {
+        if (address == null || hostMatcher == null) {
             return false;
         }
 
-        if (!hostResolverMode.equalsIgnoreCase(IP_HOSTNAME) && !hostResolverMode.equalsIgnoreCase(IP_HOSTNAME_LOOKUP)) {
-            return false;
+        List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+        if (hostResolverMode != null
+            && (hostResolverMode.equalsIgnoreCase(IP_HOSTNAME) || hostResolverMode.equalsIgnoreCase(IP_HOSTNAME_LOOKUP))) {
+            try {
+                final String hostName = address.getHostName();  // potential blocking call
+                valuesToCheck.add(hostName);
+            } catch (Exception e) {
+                log.warn("Failed to resolve hostname for {}: {}", address.getHostAddress(), e.getMessage());
+                return false;
+            }
         }
-
-        try {
-            List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
-            final String hostName = address.getHostName();  // potential blocking call
-            valuesToCheck.add(hostName);
-            return valuesToCheck.stream().anyMatch(hostMatcher);
-        } catch (Exception e) {
-            log.warn("Failed to resolve hostname for {}: {}", address.getHostAddress(), e.getMessage());
-            return false;
-        }
+        return valuesToCheck.stream().anyMatch(hostMatcher);
     }
 
     /**

@@ -64,6 +64,34 @@ public class HostAndCidrMatcherTest {
     }
 
     @Test
+    public void shouldReturnTrueForExactMatch() throws Exception {
+        matcher = new HostAndCidrMatcher(Arrays.asList("127.0.0.1"));
+        InetAddress address = InetAddress.getByName("127.0.0.1");
+        assertThat(matcher.matchesHostname(address, "ip-only"), is(true));
+    }
+
+    @Test
+    public void shouldReturnTrueForIpPatternMatch() throws Exception {
+        matcher = new HostAndCidrMatcher(Arrays.asList("127.0.0.*"));
+        InetAddress address = InetAddress.getByName("127.0.0.1");
+        assertThat(matcher.matchesHostname(address, "ip-only"), is(true));
+    }
+
+    @Test
+    public void shouldReturnFalseForHostMatchWithIpResolve() throws Exception {
+        matcher = new HostAndCidrMatcher(Arrays.asList("127.0.0.1"));
+        InetAddress address = InetAddress.getByName("localhost");
+        assertThat(matcher.matchesHostname(address, "ip-only"), is(true));
+    }
+
+    @Test
+    public void shouldReturnTrueForHostMatchWithIpResolve() throws Exception {
+        matcher = new HostAndCidrMatcher(Arrays.asList("127.0.0.1"));
+        InetAddress address = InetAddress.getByName("localhost");
+        assertThat(matcher.matchesHostname(address, "ip-hostname"), is(true));
+    }
+
+    @Test
     public void shouldMatchIpv4WithinCidrRange() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR, PRIVATE_CLASS_A_CIDR));
         InetAddress address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
