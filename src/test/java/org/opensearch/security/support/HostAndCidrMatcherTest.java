@@ -6,8 +6,8 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class HostAndCidrMatcherTest {
 
@@ -39,103 +39,103 @@ public class HostAndCidrMatcherTest {
     public void shouldReturnFalseForEmptyResolverMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertFalse(matcher.matchesHostname(address, ""));
+        assertThat(matcher.matchesHostname(address, ""), is(false));
     }
 
     @Test
     public void shouldReturnFalseForInvalidResolverMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertFalse(matcher.matchesHostname(address, "invalid-mode"));
+        assertThat(matcher.matchesHostname(address, "invalid-mode"), is(false));
     }
 
     @Test
     public void shouldReturnFalseForNullResolverMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertFalse(matcher.matchesHostname(address, null));
+        assertThat(matcher.matchesHostname(address, null), is(false));
     }
 
     @Test
     public void shouldReturnFalseForWrongCaseResolverMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertFalse(matcher.matchesHostname(address, "IP_HOSTNAME"));
+        assertThat(matcher.matchesHostname(address, "IP_HOSTNAME"), is(false));
     }
 
     @Test
     public void shouldMatchIpv4WithinCidrRange() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR, PRIVATE_CLASS_A_CIDR));
         InetAddress address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
-        assertTrue(matcher.matchesCidr(address));
+        assertThat(matcher.matchesCidr(address), is(true));
     }
 
     @Test
     public void shouldNotMatchIpv4OutsideCidrRange() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR, PRIVATE_CLASS_A_CIDR));
         InetAddress address = InetAddress.getByName("192.168.2.100");
-        assertFalse(matcher.matchesCidr(address));
+        assertThat(matcher.matchesCidr(address), is(false));
     }
 
     @Test
     public void shouldMatchIpv6WithinCidrRange() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(IPV6_DOCUMENTATION_CIDR));
         InetAddress address = InetAddress.getByName(IPV6_DOCUMENTATION_IP);
-        assertTrue(matcher.matchesCidr(address));
+        assertThat(matcher.matchesCidr(address), is(true));
     }
 
     @Test
     public void shouldHandleNullAddressInCidrMatching() {
         matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR));
-        assertFalse(matcher.matchesCidr(null));
+        assertThat(matcher.matchesCidr(null), is(false));
     }
 
     @Test
     public void shouldMatchValidHostnamePattern() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(EXAMPLE_DOMAIN, OPENSEARCH_WWW));
         InetAddress address = InetAddress.getByName(EXAMPLE_WWW);
-        assertTrue(matcher.matchesHostname(address, "ip-hostname"));
+        assertThat(matcher.matchesHostname(address, "ip-hostname"), is(true));
     }
 
     @Test
     public void shouldHandleNullAddressInHostnameMatching() {
         matcher = new HostAndCidrMatcher(Arrays.asList(EXAMPLE_DOMAIN));
-        assertFalse(matcher.matchesHostname(null, "ip-hostname"));
+        assertThat(matcher.matchesHostname(null, "ip-hostname"), is(false));
     }
 
     @Test
     public void shouldMatchWhenIpMatchesCidrOnly() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(EXAMPLE_DOMAIN, PRIVATE_CLASS_C_CIDR));
         InetAddress address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
-        assertTrue(matcher.matches(address, "ip-hostname"));
+        assertThat(matcher.matches(address, "ip-hostname"), is(true));
     }
 
     @Test
     public void shouldMatchWhenHostnameMatchesOnly() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(EXAMPLE_DOMAIN, PRIVATE_CLASS_C_CIDR));
         InetAddress address = InetAddress.getByName(EXAMPLE_WWW);
-        assertTrue(matcher.matches(address, "ip-hostname"));
+        assertThat(matcher.matches(address, "ip-hostname"), is(true));
     }
 
     @Test
     public void shouldNotMatchWhenNeitherMatches() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(EXAMPLE_DOMAIN, PRIVATE_CLASS_C_CIDR));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertFalse(matcher.matches(address, "ip-hostname"));
+        assertThat(matcher.matches(address, "ip-hostname"), is(false));
     }
 
     @Test
     public void shouldHandleEmptyPatternList() throws Exception {
         matcher = new HostAndCidrMatcher(Collections.emptyList());
         InetAddress address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
-        assertFalse(matcher.matches(address, "ip-hostname"));
+        assertThat(matcher.matches(address, "ip-hostname"), is(false));
     }
 
     @Test
     public void shouldHandleInvalidCidrNotation() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList("invalid/cidr/notation"));
         InetAddress address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
-        assertFalse(matcher.matchesCidr(address));
+        assertThat(matcher.matchesCidr(address), is(false));
     }
 
     @Test(expected = Exception.class)
@@ -149,20 +149,19 @@ public class HostAndCidrMatcherTest {
     public void shouldMatchIpHostnameLookupMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));
         InetAddress address = InetAddress.getByName(OPENSEARCH_WWW);
-        assertTrue(matcher.matchesHostname(address, "ip-hostname-lookup"));
+        assertThat(matcher.matchesHostname(address, "ip-hostname-lookup"), is(true));
     }
 
     @Test
     public void shouldHandleMultipleCidrRanges() throws Exception {
-        matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_A_CIDR, PRIVATE_CLASS_B_CIDR, PRIVATE_CLASS_C_CIDR));
+        matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR, PRIVATE_CLASS_A_CIDR, PRIVATE_CLASS_B_CIDR));
+        InetAddress address1 = InetAddress.getByName(PRIVATE_CLASS_C_IP);
+        InetAddress address2 = InetAddress.getByName(PRIVATE_CLASS_A_IP);
+        InetAddress address3 = InetAddress.getByName(PRIVATE_CLASS_B_IP);
 
-        InetAddress address1 = InetAddress.getByName(PRIVATE_CLASS_A_IP);
-        InetAddress address2 = InetAddress.getByName(PRIVATE_CLASS_B_IP);
-        InetAddress address3 = InetAddress.getByName(PRIVATE_CLASS_C_IP);
-
-        assertTrue(matcher.matchesCidr(address1));
-        assertTrue(matcher.matchesCidr(address2));
-        assertTrue(matcher.matchesCidr(address3));
+        assertThat(matcher.matchesCidr(address1), is(true));
+        assertThat(matcher.matchesCidr(address2), is(true));
+        assertThat(matcher.matchesCidr(address3), is(true));
     }
 
     @Test
@@ -171,8 +170,8 @@ public class HostAndCidrMatcherTest {
         InetAddress address1 = InetAddress.getByName(EXAMPLE_WWW);
         InetAddress address2 = InetAddress.getByName(OPENSEARCH_WWW);
 
-        assertTrue(matcher.matchesHostname(address1, "ip-hostname"));
-        assertTrue(matcher.matchesHostname(address2, "ip-hostname"));
+        assertThat(matcher.matchesHostname(address1, "ip-hostname"), is(true));
+        assertThat(matcher.matchesHostname(address2, "ip-hostname"), is(true));
     }
 
     @Test
@@ -181,7 +180,7 @@ public class HostAndCidrMatcherTest {
         InetAddress ipv4Address = InetAddress.getByName(PRIVATE_CLASS_C_IP);
         InetAddress ipv6Address = InetAddress.getByName(IPV6_DOCUMENTATION_IP);
 
-        assertTrue(matcher.matchesCidr(ipv4Address));
-        assertTrue(matcher.matchesCidr(ipv6Address));
+        assertThat(matcher.matchesCidr(ipv4Address), is(true));
+        assertThat(matcher.matchesCidr(ipv6Address), is(true));
     }
 }
