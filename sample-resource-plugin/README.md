@@ -29,9 +29,10 @@ The plugin exposes the following six API endpoints:
 - **Response:**
   ```json
   {
-    "message": "Resource <resource_name> created successfully."
+    "message": "Created resource: 9UdrWpUB99GNznAOkx43"
   }
   ```
+
 ### 2. Update Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/update/{resourceId}`
 - **Description:** Updates a resource.
@@ -56,6 +57,64 @@ The plugin exposes the following six API endpoints:
   {
     "message": "Resource <resource_id> deleted successfully."
   }
+  ```
+
+
+### 4. Get Resource
+- **Endpoint:** `GET /_plugins/sample_resource_sharing/get/{resource_id}`
+- **Description:** Get a specified resource owned by the requesting user, if the user has access to the resource, else fails.
+- **Response:**
+  ```json
+  {
+    "resource" : {
+      "name" : "<resource_name>",
+      "description" : null,
+      "attributes" : null
+    }
+  }
+  ```
+
+### 5. Share Resource
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
+- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+- **Request Body:**
+  ```json
+  {
+    "share_with": {
+       "public": {
+         "users": [ "sample_user" ]
+       }
+    }
+  }
+  ```
+- **Response:**
+  ```json
+    {
+      "share_with": {
+        "public": {
+          "users": [ "sample_user" ]
+        }
+      }
+    }
+  ```
+
+### 6. Revoke Resource Access
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
+- **Description:** Shares a resource with the intended entities for given scopes. At present, only admin and resource owners can share the resource.
+- **Request Body:**
+  ```json
+    {
+      "entities_to_revoke": {
+        "users": [ "sample_user" ]
+      },
+      "scopes": [ "public" ]
+    }
+  ```
+- **Response:**
+  ```json
+    {
+      "share_with" : { }
+    }
   ```
 
 ## Installation

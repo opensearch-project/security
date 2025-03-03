@@ -7,7 +7,7 @@
  */
 
 /**
- * This package defines class required to implement resource access control in OpenSearch.
+ * This package defines a resource sharing client that will be utilized by resource plugins to call security plugin's APIs
  *
  * @opensearch.experimental
  */

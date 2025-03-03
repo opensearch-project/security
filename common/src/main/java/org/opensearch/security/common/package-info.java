@@ -7,8 +7,8 @@
  */
 
 /**
- * This package defines class required to implement resource access control in OpenSearch.
+ * This package defines common classes required to implement resource access control in OpenSearch.
  *
  * @opensearch.experimental
  */
-package org.opensearch.security.common.resources;
+package org.opensearch.security.common;
