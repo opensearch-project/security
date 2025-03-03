@@ -8,23 +8,26 @@
 
 package org.opensearch.security.client.resources;
 
-import org.opensearch.core.action.ActionListener;
+import java.util.Map;
+import java.util.Set;
 
-import java.util.List;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.common.resources.ResourceSharing;
+import org.opensearch.security.spi.resources.Resource;
 
 public interface ResourceSharingClient {
 
     void verifyResourceAccess(String resourceId, String resourceIndex, String scope, ActionListener<Boolean> listener);
 
-    void grantResourceAccess(
+    void shareResource(String resourceId, String resourceIndex, Map<String, Object> shareWith, ActionListener<ResourceSharing> listener);
+
+    void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
-        String userOrRole,
-        String accessLevel,
-        ActionListener<Boolean> listener
+        Map<String, Object> entitiesToRevoke,
+        Set<String> scopes,
+        ActionListener<ResourceSharing> listener
     );
 
-    void revokeResourceAccess(String resourceId, String resourceIndex, String userOrRole, ActionListener<Boolean> listener);
-
-    void listAccessibleResources(String userOrRole, ActionListener<List<String>> listener);
+    void listAccessibleResourcesForCurrentUser(String resourceIndex, ActionListener<Set<? extends Resource>> listener);
 }
