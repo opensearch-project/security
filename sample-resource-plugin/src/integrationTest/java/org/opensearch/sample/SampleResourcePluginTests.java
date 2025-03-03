@@ -236,38 +236,41 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
         // get sample resource with shared_with_user
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            // TODO change this to forbidden once client has been implemented
-            response.assertStatusCode(HttpStatus.SC_OK);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // delete sample resource with shared_with_user
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
-            // TODO change this to forbidden once client has been implemented
-            response.assertStatusCode(HttpStatus.SC_OK);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // delete sample resource
-        // TODO uncomment once client has been implemented
-        // try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-        // HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
-        // response.assertStatusCode(HttpStatus.SC_OK);
-        // }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
 
         // corresponding entry should be removed from resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             // Since test framework doesn't yet allow loading ex tensions we need to delete the resource sharing entry manually
             HttpResponse response = client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc/" + resourceSharingDocId);
-            assertThat(response.getStatusReason(), containsString("OK"));
+            response.assertStatusCode(HttpStatus.SC_OK);
 
             Thread.sleep(1000);
             response = client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search");
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("hits\":[]"));
+            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
         }
 
         // get sample resource with shared_with_user
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+        }
+
+        // get sample resource with admin
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }

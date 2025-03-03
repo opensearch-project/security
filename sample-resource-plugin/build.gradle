@@ -74,6 +74,7 @@ configurations.all {
 dependencies {
     // Main implementation dependencies
     compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    compileOnly "org.opensearch:opensearch-security-client:${opensearch_build}"
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
@@ -81,6 +82,7 @@ dependencies {
     integrationTestImplementation rootProject.sourceSets.main.output
     integrationTestImplementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
     integrationTestImplementation "org.opensearch:opensearch-security-common:${opensearch_build}"
+    integrationTestImplementation "org.opensearch:opensearch-security-client:${opensearch_build}"
 }
 
 sourceSets {

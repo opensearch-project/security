@@ -28,12 +28,16 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
+import org.opensearch.security.client.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
@@ -41,10 +45,10 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private static final Logger log = LogManager.getLogger(GetResourceTransportAction.class);
 
     private final TransportService transportService;
-    private final Client nodeClient;
+    private final NodeClient nodeClient;
 
     @Inject
-    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, Client nodeClient) {
+    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
@@ -57,27 +61,41 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             return;
         }
 
-        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            getResource(request, ActionListener.wrap(getResponse -> {
-                if (getResponse.isSourceEmpty()) {
-                    listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
-                } else {
-                    // String jsonString = XContentFactory.jsonBuilder().map(getResponse.getSourceAsMap()).toString();
-                    try (
-                        XContentParser parser = XContentType.JSON.xContent()
-                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
-                    ) {
-                        listener.onResponse(new GetResourceResponse(SampleResource.fromXContent(parser)));
-                    } catch (IllegalArgumentException e) {
-                        throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
-                    }
+        // Check permission to resource
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
+        resourceSharingClient.verifyResourceAccess(
+            request.getResourceId(),
+            RESOURCE_INDEX_NAME,
+            SampleResourceScope.PUBLIC.value(),
+            ActionListener.wrap(isAuthorized -> {
+                if (!isAuthorized) {
+                    listener.onFailure(
+                        new ResourceSharingException("Current user is not authorized to access resource: " + request.getResourceId())
+                    );
+                    return;
                 }
-            }, exception -> {
-                log.error("Failed to fetch resource: " + request.getResourceId(), exception);
-                listener.onFailure(exception);
-            }));
-        }
+
+                ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+                try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+                    getResource(request, ActionListener.wrap(getResponse -> {
+                        if (getResponse.isSourceEmpty()) {
+                            listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
+                        } else {
+                            try (
+                                XContentParser parser = XContentType.JSON.xContent()
+                                    .createParser(
+                                        NamedXContentRegistry.EMPTY,
+                                        LoggingDeprecationHandler.INSTANCE,
+                                        getResponse.getSourceAsString()
+                                    )
+                            ) {
+                                listener.onResponse(new GetResourceResponse(SampleResource.fromXContent(parser)));
+                            }
+                        }
+                    }, listener::onFailure));
+                }
+            }, listener::onFailure)
+        );
     }
 
     private void getResource(GetResourceRequest request, ActionListener<GetResponse> listener) {
