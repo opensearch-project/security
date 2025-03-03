@@ -30,6 +30,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class FlushCacheApiAction extends AbstractApiAction {
@@ -37,6 +39,10 @@ public class FlushCacheApiAction extends AbstractApiAction {
     private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(Method.DELETE, "/cache")));
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE))
+    );
 
     @Inject
     public FlushCacheApiAction(
@@ -51,6 +57,11 @@ public class FlushCacheApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
