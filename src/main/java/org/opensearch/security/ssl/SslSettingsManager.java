@@ -50,6 +50,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEP
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_DEFAULT;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS;
@@ -471,6 +472,7 @@ public class SslSettingsManager {
         if (!OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED
             && OpenSsl.isAvailable()
             && (settings.getAsBoolean(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true)
+                || settings.getAsBoolean(SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE, true)
                 || settings.getAsBoolean(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true))) {
             if (PlatformDependent.javaVersion() < 12) {
                 LOGGER.warn(
@@ -504,6 +506,10 @@ public class SslSettingsManager {
 
             if (settings.hasValue(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
                 openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE));
+            }
+
+            if (settings.hasValue(SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
+                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE));
             }
 
             if (settings.hasValue(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
