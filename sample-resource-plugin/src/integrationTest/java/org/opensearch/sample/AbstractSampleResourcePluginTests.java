@@ -33,13 +33,15 @@ public class AbstractSampleResourcePluginTests {
     static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
     static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
+    static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
+    static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
     private static final String PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH = PLUGIN_RESOURCE_ROUTE_PREFIX.replaceFirst("/", "");
     static final String SECURITY_RESOURCE_LIST_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/list";
     static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/share";
     static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
     static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
 
-    static String shareWithPayload(String resourceId) {
+    static String shareWithPayloadSecurityApi(String resourceId) {
         return "{"
             + "\"resource_id\":\""
             + resourceId
@@ -59,7 +61,21 @@ public class AbstractSampleResourcePluginTests {
             + "}";
     }
 
-    static String revokeAccessPayload(String resourceId) {
+    static String shareWithPayload() {
+        return "{"
+            + "\"share_with\":{"
+            + "\""
+            + SampleResourceScope.PUBLIC.value()
+            + "\":{"
+            + "\"users\": [\""
+            + SHARED_WITH_USER.getName()
+            + "\"]"
+            + "}"
+            + "}"
+            + "}";
+    }
+
+    static String revokeAccessPayloadSecurityApi(String resourceId) {
         return "{"
             + "\"resource_id\": \""
             + resourceId
@@ -67,6 +83,19 @@ public class AbstractSampleResourcePluginTests {
             + "\"resource_index\": \""
             + RESOURCE_INDEX_NAME
             + "\","
+            + "\"entities_to_revoke\": {"
+            + "\"users\": [\""
+            + SHARED_WITH_USER.getName()
+            + "\"]"
+            + "},"
+            + "\"scopes\": [\""
+            + ResourceAccessScope.PUBLIC
+            + "\"]"
+            + "}";
+    }
+
+    static String revokeAccessPayload() {
+        return "{"
             + "\"entities_to_revoke\": {"
             + "\"users\": [\""
             + SHARED_WITH_USER.getName()
