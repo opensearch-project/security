@@ -34,7 +34,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "get_sample_resource";
+        return "revoke_sample_resource";
     }
 
     @SuppressWarnings("unchecked")

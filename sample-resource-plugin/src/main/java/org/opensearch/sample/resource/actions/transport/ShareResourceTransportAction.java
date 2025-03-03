@@ -15,7 +15,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
+import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
@@ -33,7 +33,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
 
     @Inject
     public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
-        super(GetResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
+        super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
         this.nodeClient = nodeClient;
     }
 

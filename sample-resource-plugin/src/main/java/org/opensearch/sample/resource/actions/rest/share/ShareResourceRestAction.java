@@ -34,7 +34,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "get_sample_resource";
+        return "share_sample_resource";
     }
 
     @SuppressWarnings("unchecked")
@@ -54,7 +54,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
 
         Map<String, Object> shareWith = (Map<String, Object>) source.get("share_with");
 
-        final ShareResourceRequest getResourceRequest = new ShareResourceRequest(resourceId, shareWith);
-        return channel -> client.executeLocally(ShareResourceAction.INSTANCE, getResourceRequest, new RestToXContentListener<>(channel));
+        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, shareWith);
+        return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
     }
 }

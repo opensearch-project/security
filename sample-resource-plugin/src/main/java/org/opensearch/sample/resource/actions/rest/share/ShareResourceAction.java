@@ -21,7 +21,7 @@ public class ShareResourceAction extends ActionType<ShareResourceResponse> {
     /**
      * Share sample resource action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/revoke";
+    public static final String NAME = "cluster:admin/sample-resource-plugin/share";
 
     private ShareResourceAction() {
         super(NAME, ShareResourceResponse::new);
