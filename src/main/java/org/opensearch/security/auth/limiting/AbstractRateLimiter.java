@@ -51,11 +51,6 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     }
 
     @Override
-    public List<String> getIgnoreHosts() {
-        return ignoreHosts;
-    }
-
-    @Override
     public abstract void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
     @Override
