@@ -158,7 +158,7 @@ public class SslSettingsManager {
         }
 
         if (auxEnabled && !clientNode(settings)) {
-            validateAuxSettings(httpSettings);
+            validateAuxSettings(settings);
             final var auxSslParameters = SslParameters.loader(httpSettings).load(true);
             final var auxTrustAndKeyStore = new SslCertificatesLoader(CertType.AUX.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
