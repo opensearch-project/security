@@ -20,7 +20,7 @@ import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
-import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 public class RevokeResourceAccessRestAction extends BaseRestHandler {
@@ -29,7 +29,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/revoke/{resource_id}"));
+        return singletonList(new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/revoke/{resource_id}"));
     }
 
     @Override

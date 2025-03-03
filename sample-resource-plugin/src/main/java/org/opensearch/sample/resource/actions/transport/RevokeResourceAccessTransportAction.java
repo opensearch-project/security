@@ -39,7 +39,6 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
 
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
-        // Check permission to resource
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
         resourceSharingClient.revokeResourceAccess(
             request.getResourceId(),
@@ -47,6 +46,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
             request.getEntitiesToRevoke(),
             request.getScopes(),
             ActionListener.wrap(success -> {
+
                 RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());
                 listener.onResponse(response);
             }, listener::onFailure)

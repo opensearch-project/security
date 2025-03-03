@@ -44,7 +44,6 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        // Check permission to resource
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
         resourceSharingClient.shareResource(
             request.getResourceId(),
