@@ -199,7 +199,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void serverTransportConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() throws Exception {
+    public void serverTransportConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() {
         configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
                 SECURITY_SSL_HTTP_ENABLED,
                 SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
@@ -210,14 +210,34 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 SECURITY_SSL_AUX_KEYSTORE_FILEPATH);
     }
 
-    @Test
-    public void httpConfigFailsIfClientAuthRequiredAndPemTrustedCasNotSet() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "aaa")
-            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "bbb")
-            .build();
+    private void configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+            String transportEnabledSetting,
+            String clientAuthEnabledSetting,
+            String pemkeyPathSetting,
+            String pemcertPathSetting
+    ) {
+        final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
+                .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+                .put(pemkeyPathSetting, "aaa")
+                .put(pemcertPathSetting, "bbb")
+                .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    }
+
+    @Test
+    public void serverTransportConfigFailsIfClientAuthRequiredAndPemTrustedCasNotSet() {
+        configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+            SECURITY_SSL_HTTP_ENABLED,
+            SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
+            SECURITY_SSL_HTTP_PEMKEY_FILEPATH,
+            SECURITY_SSL_HTTP_PEMCERT_FILEPATH
+        );
+        configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+            SECURITY_SSL_AUX_ENABLED,
+            SECURITY_SSL_AUX_CLIENTAUTH_MODE,
+            SECURITY_SSL_AUX_PEMKEY_FILEPATH,
+            SECURITY_SSL_AUX_PEMCERT_FILEPATH
+        );
     }
 
     @Test
