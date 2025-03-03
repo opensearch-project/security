@@ -99,7 +99,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         final var noTransportSettings = defaultSettingsBuilder().put(transportEnabledSetting, true).build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettings)));
     }
-
+    
     @Test
     public void testFailsIfNoConfigDefine() {
         transportFailsIfNoConfigDefine(SECURITY_SSL_HTTP_ENABLED);
@@ -162,12 +162,6 @@ public class SslSettingsManagerTest extends RandomizedTest {
             .put(keyStoreSettings, "aaa")
             .put(pemKeyStoreSettings, "bbb")
             .build();
-        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
-    }
-
-    @Test
-    public void httpConfigFailsIfHttpEnabledButButNotDefined() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true).build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
