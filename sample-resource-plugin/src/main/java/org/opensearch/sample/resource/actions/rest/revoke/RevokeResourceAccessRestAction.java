@@ -6,11 +6,14 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.resource.actions.rest.get;
+package org.opensearch.sample.resource.actions.rest.revoke;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
@@ -20,13 +23,13 @@ import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
-public class GetResourceRestAction extends BaseRestHandler {
+public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
-    public GetResourceRestAction() {}
+    public RevokeResourceAccessRestAction() {}
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/get/{resource_id}"));
+        return singletonList(new Route(GET, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/revoke/{resource_id}"));
     }
 
     @Override
@@ -34,14 +37,29 @@ public class GetResourceRestAction extends BaseRestHandler {
         return "get_sample_resource";
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         String resourceId = request.param("resource_id");
         if (Strings.isNullOrEmpty(resourceId)) {
             throw new IllegalArgumentException("resource_id parameter is required");
         }
+        Map<String, Object> source;
+        try (XContentParser parser = request.contentParser()) {
+            source = parser.map();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        final GetResourceRequest getResourceRequest = new GetResourceRequest(resourceId);
-        return channel -> client.executeLocally(GetResourceAction.INSTANCE, getResourceRequest, new RestToXContentListener<>(channel));
+        final RevokeResourceAccessRequest getResourceRequest = new RevokeResourceAccessRequest(
+            resourceId,
+            (Map<String, Object>) source.get("entities_to_revoke"),
+            (List<String>) source.get("scopes")
+        );
+        return channel -> client.executeLocally(
+            RevokeResourceAccessAction.INSTANCE,
+            getResourceRequest,
+            new RestToXContentListener<>(channel)
+        );
     }
 }

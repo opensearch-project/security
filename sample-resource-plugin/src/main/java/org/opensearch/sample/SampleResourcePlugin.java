@@ -43,9 +43,15 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRestAction;
+import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
+import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRestAction;
+import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
+import org.opensearch.sample.resource.actions.rest.share.ShareResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
+import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
@@ -92,7 +98,13 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(new CreateResourceRestAction(), new GetResourceRestAction(), new DeleteResourceRestAction());
+        return List.of(
+            new CreateResourceRestAction(),
+            new GetResourceRestAction(),
+            new DeleteResourceRestAction(),
+            new ShareResourceRestAction(),
+            new RevokeResourceAccessRestAction()
+        );
     }
 
     @Override
@@ -101,7 +113,9 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
             new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class),
             new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class),
-            new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
+            new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class),
+            new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
+            new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class)
         );
     }
 
