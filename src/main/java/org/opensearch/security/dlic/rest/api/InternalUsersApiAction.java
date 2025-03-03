@@ -242,7 +242,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     /**
-     * This method combines roles from both 'opensearch_security_roles' and the deprecated 'opendistro_security_roles' fields.
+     * This method combines roles from both 'direct_security_roles' and the deprecated 'opendistro_security_roles' fields.
      * If the deprecated field is used, a warning message is logged.
      *
      * @param content The SecurityJsonNode containing the security configuration
