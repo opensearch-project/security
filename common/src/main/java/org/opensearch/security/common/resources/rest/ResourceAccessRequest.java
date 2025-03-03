@@ -64,7 +64,7 @@ public class ResourceAccessRequest extends ActionRequest {
         Builder builder = new Builder();
 
         if (source.containsKey("operation")) {
-            builder.operation(Operation.valueOf((String) source.get("operation")));
+            builder.operation((Operation) source.get("operation"));
         } else {
             throw new IllegalArgumentException("Missing required field: operation");
         }
@@ -175,13 +175,21 @@ public class ResourceAccessRequest extends ActionRequest {
             return this;
         }
 
-        public Builder shareWith(Map<String, Object> source) throws IOException {
-            this.shareWith = parseShareWith(source);
+        public Builder shareWith(Map<String, Object> source) {
+            try {
+                this.shareWith = parseShareWith(source);
+            } catch (Exception e) {
+                this.shareWith = null;
+            }
             return this;
         }
 
-        public Builder revokedEntities(Map<String, Object> source) throws IOException {
-            this.revokedEntities = parseRevokedEntities(source);
+        public Builder revokedEntities(Map<String, Object> source) {
+            try {
+                this.revokedEntities = parseRevokedEntities(source);
+            } catch (Exception e) {
+                this.revokedEntities = null;
+            }
             return this;
         }
 

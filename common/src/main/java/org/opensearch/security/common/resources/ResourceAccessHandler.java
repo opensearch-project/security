@@ -28,6 +28,7 @@ import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.common.user.User;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -231,7 +232,7 @@ public class ResourceAccessHandler {
         this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
                 LOGGER.warn("Resource '{}' not found in index '{}'", resourceId, resourceIndex);
-                listener.onResponse(false);
+                listener.onFailure(new ResourceSharingException("Resource " + resourceId + " not found in index " + resourceIndex));
                 return;
             }
 

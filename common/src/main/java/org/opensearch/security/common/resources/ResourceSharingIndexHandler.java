@@ -66,6 +66,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.common.DefaultObjectMapper;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 

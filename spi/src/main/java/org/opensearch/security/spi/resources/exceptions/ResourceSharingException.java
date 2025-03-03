@@ -9,12 +9,13 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.spi.resources.exceptions;
 
 import java.io.IOException;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.rest.RestStatus;
 
 /**
  * This class represents an exception that occurs during resource sharing operations.
@@ -35,5 +36,19 @@ public class ResourceSharingException extends OpenSearchException {
 
     public ResourceSharingException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public RestStatus status() {
+        String message = getMessage();
+        if (message.contains("not authorized")) {
+            return RestStatus.FORBIDDEN;
+        } else if (message.contains("no authenticated")) {
+            return RestStatus.UNAUTHORIZED;
+        } else if (message.contains("not found")) {
+            return RestStatus.NOT_FOUND;
+        }
+
+        return RestStatus.INTERNAL_SERVER_ERROR;
     }
 }

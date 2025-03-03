@@ -43,10 +43,8 @@ repositories {
 }
 
 dependencies {
-    // Main implementation dependencies
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     compileOnly "org.opensearch.plugin:lang-painless:${opensearch_version}"
-//    compileOnly "org.opensearch:opensearch:${opensearch_version}"
     compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
     compileOnly "com.google.guava:guava:${guava_version}"
     compileOnly "org.apache.commons:commons-lang3:${versions.commonslang}"
