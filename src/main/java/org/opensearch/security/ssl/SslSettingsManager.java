@@ -315,7 +315,7 @@ public class SslSettingsManager {
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
             throw new OpenSearchException(
                     "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                        + transportSettings.get(PEM_TRUSTED_CAS_FILEPATH) + " must be set if client auth is required"
+                        + PEM_TRUSTED_CAS_FILEPATH + " must be set if client auth is required"
             );
         }
     }
@@ -341,7 +341,7 @@ public class SslSettingsManager {
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
             throw new OpenSearchException(
                     "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                            + transportSettings.get(TRUSTSTORE_FILEPATH) + " must be set if client auth is required"
+                            + TRUSTSTORE_FILEPATH + " must be set if client auth is required"
             );
         }
     }
