@@ -19,8 +19,8 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.common.resources.CreatedBy;
-import org.opensearch.security.common.resources.Creator;
+import org.opensearch.security.spi.resources.sharing.CreatedBy;
+import org.opensearch.security.spi.resources.sharing.Creator;
 import org.opensearch.security.test.SingleClusterTest;
 
 import static org.hamcrest.Matchers.equalTo;

@@ -25,11 +25,11 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.common.resources.RecipientType;
-import org.opensearch.security.common.resources.RecipientTypeRegistry;
-import org.opensearch.security.common.resources.ShareWith;
-import org.opensearch.security.common.resources.SharedWithScope;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
+import org.opensearch.security.spi.resources.sharing.RecipientType;
+import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.spi.resources.sharing.SharedWithScope;
 import org.opensearch.security.test.SingleClusterTest;
 
 import org.mockito.Mockito;
