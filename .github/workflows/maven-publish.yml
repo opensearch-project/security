@@ -34,3 +34,5 @@ jobs:
           echo "::add-mask::$SONATYPE_PASSWORD"
           ./gradlew --no-daemon publishPluginZipPublicationToSnapshotsRepository
           ./gradlew --no-daemon :opensearch-resource-sharing-spi:publishMavenJavaPublicationToSnapshotsRepository
+          ./gradlew --no-daemon :opensearch-security-client:publishMavenJavaPublicationToSnapshotsRepository
+          ./gradlew --no-daemon :opensearch-security-common:publishMavenJavaPublicationToSnapshotsRepository
