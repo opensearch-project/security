@@ -23,7 +23,6 @@ import org.opensearch.security.support.HostAndCidrMatcher;
 import org.opensearch.security.user.AuthCredentials;
 
 public interface AuthFailureListener {
-
     void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
     HostAndCidrMatcher getIgnoreHostsMatcher();
