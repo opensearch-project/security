@@ -34,6 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
@@ -99,7 +100,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         final var noTransportSettings = defaultSettingsBuilder().put(transportEnabledSetting, true).build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettings)));
     }
-    
+
     @Test
     public void testFailsIfNoConfigDefine() {
         transportFailsIfNoConfigDefine(SECURITY_SSL_HTTP_ENABLED);
@@ -152,17 +153,36 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
-    @Test
-    public void httpConfigFailsIfBothPemAndJDKSettingsWereSet() throws Exception {
-        final var keyStoreSettings = randomFrom(List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH));
-        final var pemKeyStoreSettings = randomFrom(
-            List.of(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH)
-        );
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(keyStoreSettings, "aaa")
-            .put(pemKeyStoreSettings, "bbb")
-            .build();
+    /**
+     * Security plugin enforces common store type for a single transport configuration.
+     * Pem store and JKS (Java KeyStore) cannot both be used for transport.
+     */
+    private void configFailsIfBothPemAndJDKSettingsWereSet(
+           String transportEnabledSetting,
+           List<String> transportJKSSettings,
+           List<String> transportPemStoreSettings
+    ){
+        final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
+                .put(randomFrom(transportJKSSettings), "aaa")
+                .put(randomFrom(transportPemStoreSettings), "bbb")
+                .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    }
+
+    @Test
+    public void configFailsIfBothPemAndJDKSettingsWereSet() throws Exception {
+        configFailsIfBothPemAndJDKSettingsWereSet(
+                SECURITY_SSL_HTTP_ENABLED,
+                List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH),
+                List.of(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH));
+        configFailsIfBothPemAndJDKSettingsWereSet(
+                SECURITY_SSL_AUX_ENABLED,
+                List.of(SECURITY_SSL_AUX_KEYSTORE_FILEPATH),
+                List.of(SECURITY_SSL_AUX_PEMKEY_FILEPATH, SECURITY_SSL_AUX_PEMCERT_FILEPATH, SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH));
+        configFailsIfBothPemAndJDKSettingsWereSet(
+                SECURITY_SSL_TRANSPORT_ENABLED,
+                List.of(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
+                List.of(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH));
     }
 
     @Test
@@ -183,7 +203,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
             .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
-
+    
     @Test
     public void loadConfigurationAndBuildHSslContextForSslOnlyMode() throws Exception {
         final var securitySettings = new MockSecureSettings();
