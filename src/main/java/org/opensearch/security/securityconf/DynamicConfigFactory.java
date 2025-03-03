@@ -308,6 +308,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     private static class InternalUsersModelV7 extends InternalUsersModel {
 
+        protected final Logger log = LogManager.getLogger(InternalUsersModelV7.class);
+
         private final SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
 
         private final SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration;
@@ -357,21 +359,35 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         public List<String> getSecurityRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
-            // Security roles should only contain roles that exist in the roles dynamic config.
-            // We should filter out any roles that have hidden rolesmapping.
             if (tmp == null) {
                 return ImmutableList.of();
-            } else if (!tmp.getDirect_security_roles().isEmpty()) {
+            }
+
+            // Log opendistro_security_roles regardless of which path we take
+            if (tmp.getOpendistro_security_roles() != null && !tmp.getOpendistro_security_roles().isEmpty()) {
+                log.warn(
+                    "Deprecated configuration opendistro_security_roles set for: {} "
+                        + "opendistro_security_roles will not be used in favor of direct_security_roles.",
+                    user
+                );
+            }
+
+            // Security roles should only contain roles that exist in the roles dynamic config.
+            // We should filter out any roles that have hidden rolesmapping.
+            if (tmp.getDirect_security_roles() != null && !tmp.getDirect_security_roles().isEmpty()) {
                 return tmp.getDirect_security_roles()
                     .stream()
                     .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
                     .collect(ImmutableList.toImmutableList());
-            } else {
+            }
+
+            if (tmp.getOpendistro_security_roles() != null && !tmp.getOpendistro_security_roles().isEmpty()) {
                 return tmp.getOpendistro_security_roles()
                     .stream()
                     .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
                     .collect(ImmutableList.toImmutableList());
             }
+            return ImmutableList.of();
         }
 
         // Remove any hidden rolesmapping from the security roles

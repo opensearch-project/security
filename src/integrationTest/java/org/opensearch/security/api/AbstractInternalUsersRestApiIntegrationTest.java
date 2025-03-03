@@ -11,8 +11,6 @@
 
 package org.opensearch.security.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -22,9 +20,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -58,12 +60,12 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
 
     static {
         testSecurityConfig.withRestAdminUser(REST_API_ADMIN_INTERNAL_USERS_ONLY, restAdminPermission(Endpoint.INTERNALUSERS))
-                .user(new TestSecurityConfig.User(SERVICE_ACCOUNT_USER).attr("service", "true").attr("enabled", "true"))
-                .roles(
-                        new TestSecurityConfig.Role(HIDDEN_ROLE).hidden(true),
-                        new TestSecurityConfig.Role(RESERVED_ROLE).reserved(true),
-                        new TestSecurityConfig.Role(SOME_ROLE)
-                );
+            .user(new TestSecurityConfig.User(SERVICE_ACCOUNT_USER).attr("service", "true").attr("enabled", "true"))
+            .roles(
+                new TestSecurityConfig.Role(HIDDEN_ROLE).hidden(true),
+                new TestSecurityConfig.Role(RESERVED_ROLE).reserved(true),
+                new TestSecurityConfig.Role(SOME_ROLE)
+            );
     }
 
     public AbstractInternalUsersRestApiIntegrationTest() {
@@ -92,10 +94,10 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     }
 
     static ToXContentObject internalUserInitWithoutRoles(
-            final Boolean hidden,
-            final Boolean reserved,
-            final Boolean _static,
-            final String password
+        final Boolean hidden,
+        final Boolean reserved,
+        final Boolean _static,
+        final String password
     ) {
         return (builder, params) -> {
             builder.startObject();
@@ -122,33 +124,33 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     }
 
     ToXContentObject internalUser(
-            final Boolean hidden,
-            final Boolean reserved,
-            final String password,
-            final ToXContentObject backendRoles,
-            final ToXContentObject attributes,
-            final ToXContentObject securityRoles
+        final Boolean hidden,
+        final Boolean reserved,
+        final String password,
+        final ToXContentObject backendRoles,
+        final ToXContentObject attributes,
+        final ToXContentObject securityRoles
     ) {
         return internalUser(hidden, reserved, null, password, backendRoles, attributes, securityRoles);
     }
 
     ToXContentObject internalUser(
-            final String password,
-            final ToXContentObject backendRoles,
-            final ToXContentObject attributes,
-            final ToXContentObject securityRoles
+        final String password,
+        final ToXContentObject backendRoles,
+        final ToXContentObject attributes,
+        final ToXContentObject securityRoles
     ) {
         return internalUser(null, null, null, password, backendRoles, attributes, securityRoles);
     }
 
     ToXContentObject internalUser(
-            final Boolean hidden,
-            final Boolean reserved,
-            final Boolean _static,
-            final String password,
-            final ToXContentObject backendRoles,
-            final ToXContentObject attributes,
-            final ToXContentObject securityRoles
+        final Boolean hidden,
+        final Boolean reserved,
+        final Boolean _static,
+        final String password,
+        final ToXContentObject backendRoles,
+        final ToXContentObject attributes,
+        final ToXContentObject securityRoles
     ) {
         return (builder, params) -> {
             builder.startObject();
@@ -223,10 +225,10 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         badRequest(() -> client.get(apiPath() + "?aaaaa=bbbbb"));
         final var predefinedUserName = randomAsciiAlphanumOfLength(4);
         created(
-                () -> client.putJson(
-                        apiPath(predefinedUserName),
-                        internalUser(randomAsciiAlphanumOfLength(10), configJsonArray(generateArrayValues(false)), null, null)
-                )
+            () -> client.putJson(
+                apiPath(predefinedUserName),
+                internalUser(randomAsciiAlphanumOfLength(10), configJsonArray(generateArrayValues(false)), null, null)
+            )
         );
         invalidJson(client, predefinedUserName);
     }
@@ -251,43 +253,43 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
             return builder.endObject();
         })), "unknown_json_property");
         assertWrongDataType(
-                client.putJson(
-                        apiPath(randomAsciiAlphanumOfLength(10)),
-                        (builder, params) -> builder.startObject()
-                                .field("password", configJsonArray("a", "b"))
-                                .field("hash")
-                                .nullValue()
-                                .field("backend_roles", "c")
-                                .field("attributes", "d")
-                                .field("opendistro_security_roles", "e")
-                                .endObject()
-                ),
-                Map.of(
-                        "password",
-                        "String expected",
-                        "hash",
-                        "String expected",
-                        "backend_roles",
-                        "Array expected",
-                        "attributes",
-                        "Object expected",
-                        "opendistro_security_roles",
-                        "Array expected"
-                )
+            client.putJson(
+                apiPath(randomAsciiAlphanumOfLength(10)),
+                (builder, params) -> builder.startObject()
+                    .field("password", configJsonArray("a", "b"))
+                    .field("hash")
+                    .nullValue()
+                    .field("backend_roles", "c")
+                    .field("attributes", "d")
+                    .field("opendistro_security_roles", "e")
+                    .endObject()
+            ),
+            Map.of(
+                "password",
+                "String expected",
+                "hash",
+                "String expected",
+                "backend_roles",
+                "Array expected",
+                "attributes",
+                "Object expected",
+                "opendistro_security_roles",
+                "Array expected"
+            )
         );
         assertNullValuesInArray(
-                client.putJson(
-                        apiPath(randomAsciiAlphanumOfLength(10)),
-                        (builder, params) -> builder.startObject().field("backend_roles", configJsonArray(generateArrayValues(true))).endObject()
-                )
+            client.putJson(
+                apiPath(randomAsciiAlphanumOfLength(10)),
+                (builder, params) -> builder.startObject().field("backend_roles", configJsonArray(generateArrayValues(true))).endObject()
+            )
         );
         // patch
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), EMPTY_BODY))));
         badRequest(
-                () -> client.patch(
-                        apiPath(predefinedUserName),
-                        patch(replaceOp(randomFrom(List.of("opendistro_security_roles", "backend_roles", "attributes")), EMPTY_BODY))
-                )
+            () -> client.patch(
+                apiPath(predefinedUserName),
+                patch(replaceOp(randomFrom(List.of("opendistro_security_roles", "backend_roles", "attributes")), EMPTY_BODY))
+            )
         );
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
             builder.startObject();
@@ -298,50 +300,50 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
             return builder.endObject();
         }))));
         assertWrongDataType(
-                client.patch(
-                        apiPath(),
-                        patch(
-                                addOp(
-                                        randomAsciiAlphanumOfLength(10),
-                                        (ToXContentObject) (builder, params) -> builder.startObject()
-                                                .field("password", configJsonArray("a", "b"))
-                                                .field("hash")
-                                                .nullValue()
-                                                .field("backend_roles", "c")
-                                                .field("attributes", "d")
-                                                .field("opendistro_security_roles", "e")
-                                                .endObject()
-                                )
-                        )
-                ),
-                Map.of(
-                        "password",
-                        "String expected",
-                        "hash",
-                        "String expected",
-                        "backend_roles",
-                        "Array expected",
-                        "attributes",
-                        "Object expected",
-                        "opendistro_security_roles",
-                        "Array expected"
+            client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        randomAsciiAlphanumOfLength(10),
+                        (ToXContentObject) (builder, params) -> builder.startObject()
+                            .field("password", configJsonArray("a", "b"))
+                            .field("hash")
+                            .nullValue()
+                            .field("backend_roles", "c")
+                            .field("attributes", "d")
+                            .field("opendistro_security_roles", "e")
+                            .endObject()
+                    )
                 )
+            ),
+            Map.of(
+                "password",
+                "String expected",
+                "hash",
+                "String expected",
+                "backend_roles",
+                "Array expected",
+                "attributes",
+                "Object expected",
+                "opendistro_security_roles",
+                "Array expected"
+            )
         );
         // TODO related to issue #4426
         assertWrongDataType(
-                client.patch(apiPath(predefinedUserName), patch(replaceOp("backend_roles", "a"))),
-                Map.of("backend_roles", "Array expected")
+            client.patch(apiPath(predefinedUserName), patch(replaceOp("backend_roles", "a"))),
+            Map.of("backend_roles", "Array expected")
         );
         assertNullValuesInArray(
-                client.patch(
-                        apiPath(),
-                        patch(
-                                addOp(
-                                        randomAsciiAlphanumOfLength(5),
-                                        internalUser(randomAsciiAlphanumOfLength(10), randomConfigArray(true), null, randomConfigArray(true))
-                                )
-                        )
+            client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        randomAsciiAlphanumOfLength(5),
+                        internalUser(randomAsciiAlphanumOfLength(10), randomConfigArray(true), null, randomConfigArray(true))
+                    )
                 )
+            )
         );
         // TODO related to issue #4426
         assertNullValuesInArray(client.patch(apiPath(predefinedUserName), patch(replaceOp("backend_roles", randomConfigArray(true)))));
@@ -352,34 +354,34 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         // put
         final var usernamePut = randomAsciiAlphanumOfLength(10);
         final var newUserJsonPut = internalUser(
-                hidden,
-                reserved,
-                randomAsciiAlphanumOfLength(10),
-                randomConfigArray(false),
-                randomAttributes(),
-                randomSecurityRoles()
+            hidden,
+            reserved,
+            randomAsciiAlphanumOfLength(10),
+            randomConfigArray(false),
+            randomAttributes(),
+            randomSecurityRoles()
         );
         created(() -> client.putJson(apiPath(usernamePut), newUserJsonPut));
         assertInternalUser(
-                ok(() -> client.get(apiPath(usernamePut))).bodyAsJsonNode().get(usernamePut),
-                hidden,
-                reserved,
-                Strings.toString(XContentType.JSON, newUserJsonPut)
+            ok(() -> client.get(apiPath(usernamePut))).bodyAsJsonNode().get(usernamePut),
+            hidden,
+            reserved,
+            Strings.toString(XContentType.JSON, newUserJsonPut)
         );
         final var updatedUserJsonPut = internalUser(
-                hidden,
-                reserved,
-                randomAsciiAlphanumOfLength(10),
-                randomConfigArray(false),
-                randomAttributes(),
-                randomSecurityRoles()
+            hidden,
+            reserved,
+            randomAsciiAlphanumOfLength(10),
+            randomConfigArray(false),
+            randomAttributes(),
+            randomSecurityRoles()
         );
         ok(() -> client.putJson(apiPath(usernamePut), updatedUserJsonPut));
         assertInternalUser(
-                ok(() -> client.get(apiPath(usernamePut))).bodyAsJsonNode().get(usernamePut),
-                hidden,
-                reserved,
-                Strings.toString(XContentType.JSON, updatedUserJsonPut)
+            ok(() -> client.get(apiPath(usernamePut))).bodyAsJsonNode().get(usernamePut),
+            hidden,
+            reserved,
+            Strings.toString(XContentType.JSON, updatedUserJsonPut)
         );
         ok(() -> client.delete(apiPath(usernamePut)));
         notFound(() -> client.get(apiPath(usernamePut)));
@@ -387,38 +389,38 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         // TODO related to issue #4426
         final var usernamePatch = randomAsciiAlphanumOfLength(10);
         final var newUserJsonPatch = internalUser(
-                hidden,
-                reserved,
-                randomAsciiAlphanumOfLength(10),
-                configJsonArray("a", "b"),
-                (builder, params) -> builder.startObject().endObject(),
-                configJsonArray()
+            hidden,
+            reserved,
+            randomAsciiAlphanumOfLength(10),
+            configJsonArray("a", "b"),
+            (builder, params) -> builder.startObject().endObject(),
+            configJsonArray()
         );
         ok(() -> client.patch(apiPath(), patch(addOp(usernamePatch, newUserJsonPatch))));
         assertInternalUser(
-                ok(() -> client.get(apiPath(usernamePatch))).bodyAsJsonNode().get(usernamePatch),
-                hidden,
-                reserved,
-                Strings.toString(XContentType.JSON, newUserJsonPatch)
+            ok(() -> client.get(apiPath(usernamePatch))).bodyAsJsonNode().get(usernamePatch),
+            hidden,
+            reserved,
+            Strings.toString(XContentType.JSON, newUserJsonPatch)
         );
         ok(() -> client.patch(apiPath(usernamePatch), patch(replaceOp("backend_roles", configJsonArray("c", "d")))));
         ok(
-                () -> client.patch(
-                        apiPath(usernamePatch),
-                        patch(addOp("attributes", (ToXContentObject) (builder, params) -> builder.startObject().field("a", "b").endObject()))
-                )
+            () -> client.patch(
+                apiPath(usernamePatch),
+                patch(addOp("attributes", (ToXContentObject) (builder, params) -> builder.startObject().field("a", "b").endObject()))
+            )
         );
         ok(
-                () -> client.patch(apiPath(usernamePatch), patch(addOp("opendistro_security_roles", configJsonArray(RESERVED_ROLE, SOME_ROLE))))
+            () -> client.patch(apiPath(usernamePatch), patch(addOp("opendistro_security_roles", configJsonArray(RESERVED_ROLE, SOME_ROLE))))
         );
     }
 
     ToXContentObject randomAttributes() {
         return randomFrom(
-                List.of(
-                        (builder, params) -> builder.startObject().endObject(),
-                        (builder, params) -> builder.startObject().field("a", "b").field("c", "d").endObject()
-                )
+            List.of(
+                (builder, params) -> builder.startObject().endObject(),
+                (builder, params) -> builder.startObject().field("a", "b").field("c", "d").endObject()
+            )
         );
     }
 
@@ -427,10 +429,10 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     }
 
     void assertInternalUser(
-            final JsonNode actualObjectNode,
-            final Boolean hidden,
-            final Boolean reserved,
-            final String expectedInternalUserJson
+        final JsonNode actualObjectNode,
+        final Boolean hidden,
+        final Boolean reserved,
+        final String expectedInternalUserJson
     ) throws IOException {
         final var expectedObjectNode = DefaultObjectMapper.readTree(expectedInternalUserJson);
         final var expectedHidden = hidden != null && hidden;
@@ -442,8 +444,8 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("attributes"), is(expectedObjectNode.get("attributes")));
         // can be either of OPENSEARCH_SECURITY_ROLES or OPENDISTRO_SECURITY_ROLES
         JsonNode expectedRoles = expectedObjectNode.get(DIRECT_SECURITY_ROLES) != null
-                ? expectedObjectNode.get(DIRECT_SECURITY_ROLES)
-                : expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
+            ? expectedObjectNode.get(DIRECT_SECURITY_ROLES)
+            : expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("opendistro_security_roles"), is(expectedRoles));
     }
 
@@ -484,50 +486,50 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         withUser(ADMIN_USER_NAME, client -> {
             for (final var dottedUserName : List.of(".my.dotuser0", ".my.dot.user0")) {
                 created(
-                        () -> client.putJson(
-                                apiPath(dottedUserName),
-                                (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
-                        )
+                    () -> client.putJson(
+                        apiPath(dottedUserName),
+                        (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
+                    )
                 );
             }
             for (final var dottedUserName : List.of(".my.dotuser1", ".my.dot.user1")) {
                 created(
-                        () -> client.putJson(
-                                apiPath(dottedUserName),
-                                (builder, params) -> builder.startObject()
-                                        .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
-                                        .endObject()
-                        )
+                    () -> client.putJson(
+                        apiPath(dottedUserName),
+                        (builder, params) -> builder.startObject()
+                            .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                            .endObject()
+                    )
                 );
             }
             for (final var dottedUserName : List.of(".my.dotuser2", ".my.dot.user2")) {
                 ok(
-                        () -> client.patch(
-                                apiPath(),
-                                patch(
-                                        addOp(
-                                                dottedUserName,
-                                                (ToXContentObject) (builder, params) -> builder.startObject()
-                                                        .field("password", randomAsciiAlphanumOfLength(10))
-                                                        .endObject()
-                                        )
-                                )
+                    () -> client.patch(
+                        apiPath(),
+                        patch(
+                            addOp(
+                                dottedUserName,
+                                (ToXContentObject) (builder, params) -> builder.startObject()
+                                    .field("password", randomAsciiAlphanumOfLength(10))
+                                    .endObject()
+                            )
                         )
+                    )
                 );
             }
             for (final var dottedUserName : List.of(".my.dotuser3", ".my.dot.user3")) {
                 ok(
-                        () -> client.patch(
-                                apiPath(),
-                                patch(
-                                        addOp(
-                                                dottedUserName,
-                                                (ToXContentObject) (builder, params) -> builder.startObject()
-                                                        .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
-                                                        .endObject()
-                                        )
-                                )
+                    () -> client.patch(
+                        apiPath(),
+                        patch(
+                            addOp(
+                                dottedUserName,
+                                (ToXContentObject) (builder, params) -> builder.startObject()
+                                    .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                                    .endObject()
+                            )
                         )
+                    )
                 );
             }
         });
@@ -537,59 +539,59 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     public void noPasswordChange() throws Exception {
         withUser(ADMIN_USER_NAME, client -> {
             created(
-                    () -> client.putJson(
-                            apiPath("user1"),
-                            (builder, params) -> builder.startObject()
-                                    .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user1"),
+                    (builder, params) -> builder.startObject()
+                        .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
+                        .endObject()
+                )
             );
             badRequest(
-                    () -> client.putJson(
-                            apiPath("user1"),
-                            (builder, params) -> builder.startObject()
-                                    .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                                    .field("password", "")
-                                    .field("backend_roles", configJsonArray("admin", "role_a"))
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user1"),
+                    (builder, params) -> builder.startObject()
+                        .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
+                        .field("password", "")
+                        .field("backend_roles", configJsonArray("admin", "role_a"))
+                        .endObject()
+                )
             );
             ok(
-                    () -> client.putJson(
-                            apiPath("user1"),
-                            (builder, params) -> builder.startObject()
-                                    .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                                    .field("password", randomAsciiAlphanumOfLength(10))
-                                    .field("backend_roles", configJsonArray("admin", "role_a"))
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user1"),
+                    (builder, params) -> builder.startObject()
+                        .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
+                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .field("backend_roles", configJsonArray("admin", "role_a"))
+                        .endObject()
+                )
             );
             created(
-                    () -> client.putJson(
-                            apiPath("user2"),
-                            (builder, params) -> builder.startObject()
-                                    .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                                    .field("password", randomAsciiAlphanumOfLength(10))
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user2"),
+                    (builder, params) -> builder.startObject()
+                        .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
+                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .endObject()
+                )
             );
             badRequest(
-                    () -> client.putJson(
-                            apiPath("user2"),
-                            (builder, params) -> builder.startObject()
-                                    .field("password", "")
-                                    .field("backend_roles", configJsonArray("admin", "role_b"))
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user2"),
+                    (builder, params) -> builder.startObject()
+                        .field("password", "")
+                        .field("backend_roles", configJsonArray("admin", "role_b"))
+                        .endObject()
+                )
             );
             ok(
-                    () -> client.putJson(
-                            apiPath("user2"),
-                            (builder, params) -> builder.startObject()
-                                    .field("password", randomAsciiAlphanumOfLength(10))
-                                    .field("backend_roles", configJsonArray("admin", "role_b"))
-                                    .endObject()
-                    )
+                () -> client.putJson(
+                    apiPath("user2"),
+                    (builder, params) -> builder.startObject()
+                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .field("backend_roles", configJsonArray("admin", "role_b"))
+                        .endObject()
+                )
             );
         });
     }
@@ -599,42 +601,42 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
         final var userWithSecurityRoles = randomAsciiAlphanumOfLength(15);
         final var userWithSecurityRolesPassword = randomAsciiAlphanumOfLength(10);
         withUser(
-                ADMIN_USER_NAME,
-                client -> ok(
-                        () -> client.patch(
-                                apiPath(),
-                                patch(addOp(userWithSecurityRoles, internalUser(userWithSecurityRolesPassword, null, null, null)))
-                        )
+            ADMIN_USER_NAME,
+            client -> ok(
+                () -> client.patch(
+                    apiPath(),
+                    patch(addOp(userWithSecurityRoles, internalUser(userWithSecurityRolesPassword, null, null, null)))
                 )
+            )
         );
         withUser(userWithSecurityRoles, userWithSecurityRolesPassword, client -> forbidden(() -> client.get(apiPath())));
         withUser(
-                ADMIN_USER_NAME,
-                client -> ok(
-                        () -> client.patch(
-                                apiPath(),
-                                patch(
-                                        replaceOp(
-                                                userWithSecurityRoles,
-                                                internalUser(
-                                                        userWithSecurityRolesPassword,
-                                                        null,
-                                                        null,
-                                                        (builder, params) -> builder.startArray().value("user_admin__all_access").endArray()
-                                                )
-                                        )
-                                )
+            ADMIN_USER_NAME,
+            client -> ok(
+                () -> client.patch(
+                    apiPath(),
+                    patch(
+                        replaceOp(
+                            userWithSecurityRoles,
+                            internalUser(
+                                userWithSecurityRolesPassword,
+                                null,
+                                null,
+                                (builder, params) -> builder.startArray().value("user_admin__all_access").endArray()
+                            )
                         )
+                    )
                 )
+            )
         );
         withUser(userWithSecurityRoles, userWithSecurityRolesPassword, client -> ok(() -> client.get(apiPath())));
         withUser(ADMIN_USER_NAME, client -> impossibleToSetHiddenRoleIsNotAllowed(userWithSecurityRoles, client));
         withUser(ADMIN_USER_NAME, client -> settingOfUnknownRoleIsNotAllowed(userWithSecurityRoles, client));
 
         withUser(
-                ADMIN_USER_NAME,
-                localCluster.getAdminCertificate(),
-                client -> settingOfUnknownRoleIsNotAllowed(userWithSecurityRoles, client)
+            ADMIN_USER_NAME,
+            localCluster.getAdminCertificate(),
+            client -> settingOfUnknownRoleIsNotAllowed(userWithSecurityRoles, client)
         );
         withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), this::canAssignedHiddenRole);
 
@@ -647,27 +649,27 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     void impossibleToSetHiddenRoleIsNotAllowed(final String predefinedUserName, final TestRestClient client) throws Exception {
         // put
         notFound(
-                () -> client.putJson(
-                        apiPath(randomAsciiAlphanumOfLength(10)),
-                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
-                ),
-                "Resource 'hidden-role' is not available."
+            () -> client.putJson(
+                apiPath(randomAsciiAlphanumOfLength(10)),
+                internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
+            ),
+            "Resource 'hidden-role' is not available."
         );
         // patch
         notFound(
-                () -> client.patch(
-                        apiPath(),
-                        patch(
-                                addOp(
-                                        randomAsciiAlphanumOfLength(10),
-                                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
-                                )
-                        )
+            () -> client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        randomAsciiAlphanumOfLength(10),
+                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
+                    )
                 )
+            )
         );
         // TODO related to issue #4426
         notFound(
-                () -> client.patch(apiPath(predefinedUserName), patch(addOp("opendistro_security_roles", configJsonArray(HIDDEN_ROLE))))
+            () -> client.patch(apiPath(predefinedUserName), patch(addOp("opendistro_security_roles", configJsonArray(HIDDEN_ROLE))))
 
         );
     }
@@ -675,34 +677,34 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
     void canAssignedHiddenRole(final TestRestClient client) throws Exception {
         final var userNamePut = randomAsciiAlphanumOfLength(4);
         created(
-                () -> client.putJson(
-                        apiPath(userNamePut),
-                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
-                )
+            () -> client.putJson(
+                apiPath(userNamePut),
+                internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
+            )
         );
     }
 
     void settingOfUnknownRoleIsNotAllowed(final String predefinedUserName, final TestRestClient client) throws Exception {
         notFound(
-                () -> client.putJson(
-                        apiPath(randomAsciiAlphanumOfLength(10)),
+            () -> client.putJson(
+                apiPath(randomAsciiAlphanumOfLength(10)),
+                internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray("unknown-role"))
+            ),
+            "role 'unknown-role' not found."
+        );
+        notFound(
+            () -> client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        randomAsciiAlphanumOfLength(4),
                         internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray("unknown-role"))
-                ),
-                "role 'unknown-role' not found."
-        );
-        notFound(
-                () -> client.patch(
-                        apiPath(),
-                        patch(
-                                addOp(
-                                        randomAsciiAlphanumOfLength(4),
-                                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray("unknown-role"))
-                                )
-                        )
+                    )
                 )
+            )
         );
         notFound(
-                () -> client.patch(apiPath(predefinedUserName), patch(addOp("opendistro_security_roles", configJsonArray("unknown-role"))))
+            () -> client.patch(apiPath(predefinedUserName), patch(addOp("opendistro_security_roles", configJsonArray("unknown-role"))))
         );
     }
 
@@ -716,12 +718,12 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
                 final var futures = new ArrayList<Future<TestRestClient.HttpResponse>>(httpResponses.length);
                 for (int i = 0; i < httpResponses.length; i++) {
                     futures.add(
-                            executorService.submit(
-                                    () -> client.putJson(
-                                            apiPath(userName),
-                                            (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
-                                    )
+                        executorService.submit(
+                            () -> client.putJson(
+                                apiPath(userName),
+                                (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
                             )
+                        )
                     );
                 }
                 for (int i = 0; i < httpResponses.length; i++) {
@@ -752,15 +754,15 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
             {
                 for (final var restrictedTerm : RESTRICTED_FROM_USERNAME) {
                     for (final var username : List.of(
-                            randomAsciiAlphanumOfLength(2) + restrictedTerm + randomAsciiAlphanumOfLength(3),
-                            URLEncoder.encode(randomAsciiAlphanumOfLength(4) + ":" + randomAsciiAlphanumOfLength(3), StandardCharsets.UTF_8)
+                        randomAsciiAlphanumOfLength(2) + restrictedTerm + randomAsciiAlphanumOfLength(3),
+                        URLEncoder.encode(randomAsciiAlphanumOfLength(4) + ":" + randomAsciiAlphanumOfLength(3), StandardCharsets.UTF_8)
                     )) {
                         final var putResponse = badRequest(
-                                () -> client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(10)))
+                            () -> client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(10)))
                         );
                         assertThat(putResponse.getBody(), containsString(restrictedTerm));
                         final var patchResponse = badRequest(
-                                () -> client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10)))))
+                            () -> client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10)))))
                         );
                         assertThat(patchResponse.getBody(), containsString(restrictedTerm));
                     }
@@ -778,12 +780,12 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
             created(() -> client.putJson(apiPath(happyServiceLiveUserName), serviceUser(true)));
             final var serviceLiveResponse = ok(() -> client.get(apiPath(happyServiceLiveUserName)));
             assertThat(
-                    serviceLiveResponse.getBody(),
-                    serviceLiveResponse.getBooleanFromJsonBody("/" + happyServiceLiveUserName + "/attributes/service")
+                serviceLiveResponse.getBody(),
+                serviceLiveResponse.getBooleanFromJsonBody("/" + happyServiceLiveUserName + "/attributes/service")
             );
             assertThat(
-                    serviceLiveResponse.getBody(),
-                    serviceLiveResponse.getBooleanFromJsonBody("/" + happyServiceLiveUserName + "/attributes/enabled")
+                serviceLiveResponse.getBody(),
+                serviceLiveResponse.getBooleanFromJsonBody("/" + happyServiceLiveUserName + "/attributes/enabled")
             );
 
             // Add disabled service account
@@ -791,34 +793,34 @@ public abstract class AbstractInternalUsersRestApiIntegrationTest extends Abstra
             created(() -> client.putJson(apiPath(happyServiceDeadUserName), serviceUser(false)));
             final var serviceDeadResponse = ok(() -> client.get(apiPath(happyServiceDeadUserName)));
             assertThat(
-                    serviceDeadResponse.getBody(),
-                    serviceDeadResponse.getBooleanFromJsonBody("/" + happyServiceDeadUserName + "/attributes/service")
+                serviceDeadResponse.getBody(),
+                serviceDeadResponse.getBooleanFromJsonBody("/" + happyServiceDeadUserName + "/attributes/service")
             );
             assertThat(
-                    serviceDeadResponse.getBody(),
-                    not(serviceDeadResponse.getBooleanFromJsonBody("/" + happyServiceDeadUserName + "/attributes/enabled"))
+                serviceDeadResponse.getBody(),
+                not(serviceDeadResponse.getBooleanFromJsonBody("/" + happyServiceDeadUserName + "/attributes/enabled"))
             );
             // Add service account with password -- Should Fail
             badRequest(
-                    () -> client.putJson(
-                            apiPath(randomAsciiAlphanumOfLength(10)),
-                            serviceUserWithPassword(true, randomAsciiAlphanumOfLength(10))
-                    )
+                () -> client.putJson(
+                    apiPath(randomAsciiAlphanumOfLength(10)),
+                    serviceUserWithPassword(true, randomAsciiAlphanumOfLength(10))
+                )
             );
             // Add service with hash -- should fail
             badRequest(
-                    () -> client.putJson(
-                            apiPath(randomAsciiAlphanumOfLength(10)),
-                            serviceUserWithHash(true, passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
-                    )
+                () -> client.putJson(
+                    apiPath(randomAsciiAlphanumOfLength(10)),
+                    serviceUserWithHash(true, passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                )
             );
             // Add Service account with password & Hash -- should fail
             final var password = randomAsciiAlphanumOfLength(10);
             badRequest(
-                    () -> client.putJson(
-                            apiPath(randomAsciiAlphanumOfLength(10)),
-                            serviceUser(true, password, passwordHasher.hash(password.toCharArray()))
-                    )
+                () -> client.putJson(
+                    apiPath(randomAsciiAlphanumOfLength(10)),
+                    serviceUser(true, password, passwordHasher.hash(password.toCharArray()))
+                )
             );
         });
     }
