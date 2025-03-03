@@ -16,6 +16,8 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.spi.resources.sharing.CreatedBy;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
@@ -33,8 +35,8 @@ import org.opensearch.core.xcontent.XContentParser;
  * </ul>
  *
  * @opensearch.experimental
- * @see org.opensearch.security.common.resources.CreatedBy
- * @see org.opensearch.security.common.resources.ShareWith
+ * @see org.opensearch.security.spi.resources.sharing.CreatedBy
+ * @see org.opensearch.security.spi.resources.sharing.ShareWith
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 

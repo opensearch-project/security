@@ -12,11 +12,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.common.resources.ResourceSharing;
 import org.opensearch.security.common.resources.rest.ResourceAccessAction;
 import org.opensearch.security.common.resources.rest.ResourceAccessRequest;
 import org.opensearch.security.common.resources.rest.ResourceAccessResponse;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.transport.client.Client;
 
 public final class ResourceSharingNodeClient implements ResourceSharingClient {

@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.common.resources.ResourceSharing;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
 public interface ResourceSharingClient {
 

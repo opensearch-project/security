@@ -8,6 +8,8 @@
 
 package org.opensearch.security.common.resources;
 
+import org.opensearch.security.spi.resources.sharing.RecipientType;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +18,7 @@ import java.util.Map;
  *
  * @opensearch.experimental
  */
-public class RecipientTypeRegistry {
+public final class RecipientTypeRegistry {
     private static final Map<String, RecipientType> REGISTRY = new HashMap<>();
 
     public static void registerRecipientType(String key, RecipientType recipientType) {

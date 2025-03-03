@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.spi.resources;
 
 /**
  * This class determines a type of recipient a resource can be shared with.
