@@ -65,7 +65,7 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.support.HostAndCidrMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -75,8 +75,6 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.opensearch.security.support.SecurityUtils.matchesHostNamePatterns;
-import static org.opensearch.security.support.SecurityUtils.matchesIpAndCidrPatterns;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
@@ -713,12 +711,12 @@ public class BackendRegistry {
         InetAddress address,
         String hostResolverMode
     ) {
-        WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
+        HostAndCidrMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
         if (ignoreHostsMatcher == null || address == null) {
             return false;
         }
-        return matchesHostNamePatterns(ignoreHostsMatcher, address, hostResolverMode)
-            || matchesIpAndCidrPatterns(clientBlockRegistry, address);
+        return ignoreHostsMatcher.matches(address, hostResolverMode);
+
     }
 
     private boolean isBlocked(String authBackend, String userName) {

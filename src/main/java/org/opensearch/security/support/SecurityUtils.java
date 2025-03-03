@@ -26,25 +26,16 @@
 
 package org.opensearch.security.support;
 
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.net.util.SubnetUtils;
-import org.apache.commons.net.util.SubnetUtils.SubnetInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auth.AuthFailureListener;
-import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.tools.Hasher;
 
 public final class SecurityUtils {
@@ -55,7 +46,6 @@ public final class SecurityUtils {
     static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc" + ENV_PATTERN_SUFFIX);
     static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64" + ENV_PATTERN_SUFFIX);
     public static Locale EN_Locale = forEN();
-    private static final Map<String, SubnetInfo> cidrCache = new ConcurrentHashMap<>();
 
     private SecurityUtils() {}
 
@@ -149,54 +139,5 @@ public final class SecurityUtils {
         } else {
             return bc ? Hasher.hash(envVarValue.toCharArray(), settings) : envVarValue;
         }
-    }
-
-    // This is used to match host names - for e.g. *.example.local to dev.example.local
-    public static boolean matchesHostNamePatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
-        if (address == null || hostMatcher == null) {
-            return false;
-        }
-
-        // Only proceed with hostname checks if hostResolverMode is configured
-        if (hostResolverMode != null
-            && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
-            try {
-                List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
-                final String hostName = address.getHostName();
-                valuesToCheck.add(hostName);
-                return valuesToCheck.stream().anyMatch(hostMatcher);
-            } catch (Exception e) {
-                log.warn("Failed to resolve hostname for {}: {}", address.getHostAddress(), e.getMessage());
-                return false;
-            }
-        }
-        return false;
-    }
-
-    // This is used to match IP addresses - for e.g. 192.168.0.1 to 192.168.0.0/16
-    public static boolean matchesIpAndCidrPatterns(ClientBlockRegistry<InetAddress> clientBlockRegistry, InetAddress address) {
-        if (address == null || clientBlockRegistry == null) {
-            return false;
-        }
-
-        AuthFailureListener authFailureListener = (AuthFailureListener) clientBlockRegistry;
-        final String hostAddress = address.getHostAddress();
-
-        for (String pattern : authFailureListener.getIgnoreHosts()) {
-            // Handle CIDR patterns - SubnetUtilsMatcherMap holds a SubnetInfo object for valid IPv4 patterns
-            if (authFailureListener.getSubnetUtilsMatcherMap().containsKey(pattern)) {
-                SubnetUtils.SubnetInfo subnetInfo = authFailureListener.getSubnetUtilsMatcherMap().get(pattern);
-                if (subnetInfo != null && subnetInfo.isInRange(hostAddress)) {
-                    return true;
-                }
-            } else {
-                // Handle both direct IPs and wildcard IP patterns
-                if (authFailureListener.getIgnoreHostsMatcher().test(hostAddress)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-
     }
 }
