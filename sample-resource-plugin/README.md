@@ -40,7 +40,7 @@ The plugin exposes the following six API endpoints:
 
 ### 2. Update Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/update/{resourceId}`
-- **Description:** Updates a resource.
+- **Description:** Updates a resource if current user has access to it.
 - **Request Body:**
   ```json
   {

@@ -37,7 +37,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginSecurityDisabledTests extends AbstractSampleResourcePluginTests {
+public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -45,7 +45,7 @@ public class SampleResourcePluginSecurityDisabledTests extends AbstractSampleRes
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
-        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, "plugins.security.disabled", true))
+        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false))
         .build();
 
     @After
@@ -129,13 +129,13 @@ public class SampleResourcePluginSecurityDisabledTests extends AbstractSampleRes
         // shared_with_user is able to call sample share api
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
-            updateResponse.assertStatusCode(HttpStatus.SC_OK);
+            updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
         // shared_with_user is able to call sample revoke api
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
-            updateResponse.assertStatusCode(HttpStatus.SC_OK);
+            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, revokeAccessPayload());
+            updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
         // delete sample resource - share_with user delete admin user's resource

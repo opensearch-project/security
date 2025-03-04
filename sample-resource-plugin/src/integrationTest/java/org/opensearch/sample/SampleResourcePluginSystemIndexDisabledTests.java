@@ -8,8 +8,6 @@
 
 package org.opensearch.sample;
 
-import java.util.Map;
-
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
@@ -32,7 +30,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -41,7 +38,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests {
+public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -49,7 +46,6 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
-        .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
         .build();
 
     @After
@@ -493,10 +489,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             assertThat(response.getBody(), containsString("sample"));
         }
 
-        // admin should not be able to access resource directly since system index protection is enabled, but can access via sample plugin
+        // admin will be able to access resource directly since system index protection is disabled, and also via sample plugin
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            response.assertStatusCode(HttpStatus.SC_OK);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -532,17 +528,11 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             assertThat(response.getBody(), containsString("sample"));
         }
 
-        // shared_with_user should not be able to delete the resource since system index protection is enabled
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-        }
-
-        // shared_with_user should not be able to access resource directly since system index protection is enabled, and resource is not
-        // shared with user
+        // shared_with_user will be able to access resource directly since system index protection is disabled even-though resource is not
+        // shared with this user, but cannot access via sample plugin APIs
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            response.assertStatusCode(HttpStatus.SC_OK);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -560,11 +550,11 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             );
         }
 
-        // shared_with_user should not be able to access resource directly since system index protection is enabled, but can access via
+        // shared_with_user will still be able to access resource directly since system index protection is enabled, but can also access via
         // sample plugin
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            response.assertStatusCode(HttpStatus.SC_OK);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -578,14 +568,19 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginTests
             assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
         }
 
-        // shared_with_user should not be able to access the resource directly nor via sample plugin since access is revoked
+        // shared_with_user will still be able to access the resource directly but not via sample plugin since access is revoked
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
-
-            response = client.postJson(RESOURCE_INDEX_NAME + "/_search", "{\"query\" :  {\"match_all\" : {}}}");
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
+
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+        }
+
+        // shared_with_user should be able to delete the resource since system index protection is disabled
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_OK);
         }
 
     }
