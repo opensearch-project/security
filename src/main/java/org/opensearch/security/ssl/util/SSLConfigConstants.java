@@ -93,10 +93,14 @@ public final class SSLConfigConstants {
 
     // http truststore settings
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a6db9df2 (Fill in additional post-fix literals with constants.)
     public static final String SECURITY_SSL_HTTP_CLIENTAUTH_MODE = SSL_HTTP_PREFIX + CLIENT_AUTH_MODE;
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = SSL_HTTP_PREFIX + TRUSTSTORE_TYPE;
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = SSL_HTTP_PREFIX + TRUSTSTORE_ALIAS;
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = SSL_HTTP_PREFIX + TRUSTSTORE_FILEPATH;
+<<<<<<< HEAD
     public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_HTTP_PREFIX
         + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
@@ -109,6 +113,11 @@ public final class SSLConfigConstants {
         + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + "pemtrustedcas_filepath";
 >>>>>>> 21e4080b (Spotless apply)
+=======
+    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_HTTP_PREFIX
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
+>>>>>>> a6db9df2 (Fill in additional post-fix literals with constants.)
 
     // http cert revocation list settings
     public static final String SECURITY_SSL_HTTP_CRL_FILE = SSL_HTTP_CRL_PREFIX + "file_path";
