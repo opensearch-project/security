@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
+import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -30,7 +31,6 @@ import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithScope;
-import org.opensearch.security.test.SingleClusterTest;
 
 import org.mockito.Mockito;
 
@@ -47,13 +47,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ShareWithTests extends SingleClusterTest {
+public class ShareWithTests {
 
     @Before
     public void setupResourceRecipientTypes() {
         initializeRecipientTypes();
     }
 
+    @Test
     public void testFromXContentWhenCurrentTokenIsNotStartObject() throws IOException {
         String json = "{\"read_only\": {\"users\": [\"user1\"], \"roles\": [], \"backend_roles\": []}}";
         XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json);
@@ -82,6 +83,7 @@ public class ShareWithTests extends SingleClusterTest {
         );
     }
 
+    @Test
     public void testFromXContentWithEmptyInput() throws IOException {
         String emptyJson = "{}";
         XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, null, emptyJson);
@@ -92,6 +94,7 @@ public class ShareWithTests extends SingleClusterTest {
         MatcherAssert.assertThat(result.getSharedWithScopes(), is(empty()));
     }
 
+    @Test
     public void testFromXContentWithStartObject() throws IOException {
         XContentParser parser;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
@@ -152,6 +155,7 @@ public class ShareWithTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testFromXContentWithUnexpectedEndOfInput() throws IOException {
         XContentParser mockParser = mock(XContentParser.class);
         when(mockParser.currentToken()).thenReturn(XContentParser.Token.START_OBJECT);
@@ -163,6 +167,7 @@ public class ShareWithTests extends SingleClusterTest {
         MatcherAssert.assertThat(result.getSharedWithScopes(), is(empty()));
     }
 
+    @Test
     public void testToXContentBuildsCorrectly() throws IOException {
         SharedWithScope scope = new SharedWithScope(
             "scope1",
@@ -186,6 +191,7 @@ public class ShareWithTests extends SingleClusterTest {
         MatcherAssert.assertThat(expected, equalTo(result));
     }
 
+    @Test
     public void testWriteToWithEmptySet() throws IOException {
         Set<SharedWithScope> emptySet = Collections.emptySet();
         ShareWith shareWith = new ShareWith(emptySet);
@@ -196,6 +202,7 @@ public class ShareWithTests extends SingleClusterTest {
         verify(mockOutput).writeCollection(emptySet);
     }
 
+    @Test
     public void testWriteToWithIOException() throws IOException {
         Set<SharedWithScope> set = new HashSet<>();
         set.add(new SharedWithScope("test", new SharedWithScope.ScopeRecipients(Map.of())));
@@ -207,6 +214,7 @@ public class ShareWithTests extends SingleClusterTest {
         assertThrows(IOException.class, () -> shareWith.writeTo(mockOutput));
     }
 
+    @Test
     public void testWriteToWithLargeSet() throws IOException {
         Set<SharedWithScope> largeSet = new HashSet<>();
         for (int i = 0; i < 10000; i++) {
@@ -220,6 +228,7 @@ public class ShareWithTests extends SingleClusterTest {
         verify(mockOutput).writeCollection(largeSet);
     }
 
+    @Test
     public void test_fromXContent_emptyObject() throws IOException {
         XContentParser parser;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
@@ -232,6 +241,7 @@ public class ShareWithTests extends SingleClusterTest {
         MatcherAssert.assertThat(shareWith.getSharedWithScopes(), is(empty()));
     }
 
+    @Test
     public void test_writeSharedWithScopesToStream() throws IOException {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 

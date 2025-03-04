@@ -11,6 +11,7 @@ package org.opensearch.security.resources;
 import java.io.IOException;
 
 import org.hamcrest.MatcherAssert;
+import org.junit.Test;
 
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -21,7 +22,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Creator;
-import org.opensearch.security.test.SingleClusterTest;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -32,10 +32,11 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CreatedByTests extends SingleClusterTest {
+public class CreatedByTests {
 
     private static final Creator CREATOR_TYPE = Creator.USER;
 
+    @Test
     public void testCreatedByConstructorWithValidUser() {
         String expectedUser = "testUser";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
@@ -43,6 +44,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getCreator())));
     }
 
+    @Test
     public void testCreatedByFromStreamInput() throws IOException {
         String expectedUser = "testUser";
 
@@ -58,6 +60,7 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testCreatedByWithEmptyStreamInput() throws IOException {
 
         try (StreamInput mockStreamInput = mock(StreamInput.class)) {
@@ -67,12 +70,14 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testCreatedByWithEmptyUser() {
 
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
         MatcherAssert.assertThat("", equalTo(createdBy.getCreator()));
     }
 
+    @Test
     public void testCreatedByWithIOException() throws IOException {
 
         try (StreamInput mockStreamInput = mock(StreamInput.class)) {
@@ -82,18 +87,21 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testCreatedByWithLongUsername() {
         String longUsername = "a".repeat(10000);
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, longUsername);
         MatcherAssert.assertThat(longUsername, equalTo(createdBy.getCreator()));
     }
 
+    @Test
     public void testCreatedByWithUnicodeCharacters() {
         String unicodeUsername = "用户こんにちは";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, unicodeUsername);
         MatcherAssert.assertThat(unicodeUsername, equalTo(createdBy.getCreator()));
     }
 
+    @Test
     public void testFromXContentThrowsExceptionWhenUserFieldIsMissing() throws IOException {
         String emptyJson = "{}";
         IllegalArgumentException exception;
@@ -105,6 +113,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat("null is required", equalTo(exception.getMessage()));
     }
 
+    @Test
     public void testFromXContentWithEmptyInput() throws IOException {
         String emptyJson = "{}";
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, emptyJson)) {
@@ -113,13 +122,15 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testFromXContentWithExtraFields() throws IOException {
         String jsonWithExtraFields = "{\"user\": \"testUser\", \"extraField\": \"value\"}";
         XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, jsonWithExtraFields);
 
-        CreatedBy.fromXContent(parser);
+        assertThrows(IllegalArgumentException.class, () -> CreatedBy.fromXContent(parser));
     }
 
+    @Test
     public void testFromXContentWithIncorrectFieldType() throws IOException {
         String jsonWithIncorrectType = "{\"user\": 12345}";
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, jsonWithIncorrectType)) {
@@ -128,6 +139,7 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testFromXContentWithEmptyUser() throws IOException {
         String emptyJson = "{\"" + CREATOR_TYPE + "\": \"\" }";
         CreatedBy createdBy;
@@ -141,6 +153,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat("", equalTo(createdBy.getCreator()));
     }
 
+    @Test
     public void testFromXContentWithNullUserValue() throws IOException {
         String jsonWithNullUser = "{\"user\": null}";
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, jsonWithNullUser)) {
@@ -149,6 +162,7 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testFromXContentWithValidUser() throws IOException {
         String json = "{\"user\":\"testUser\"}";
         XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json);
@@ -159,6 +173,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat("testUser", equalTo(createdBy.getCreator()));
     }
 
+    @Test
     public void testGetCreatorReturnsCorrectValue() {
         String expectedUser = "testUser";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
@@ -168,29 +183,34 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(expectedUser, equalTo(actualUser));
     }
 
+    @Test
     public void testGetCreatorWithNullString() {
 
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, null);
         MatcherAssert.assertThat(createdBy.getCreator(), nullValue());
     }
 
+    @Test
     public void testGetWriteableNameReturnsCorrectString() {
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "testUser");
         MatcherAssert.assertThat("created_by", equalTo(createdBy.getWriteableName()));
     }
 
+    @Test
     public void testToStringWithEmptyUser() {
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
         String result = createdBy.toString();
         MatcherAssert.assertThat("CreatedBy {user=''}", equalTo(result));
     }
 
+    @Test
     public void testToStringWithNullUser() {
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, (String) null);
         String result = createdBy.toString();
         MatcherAssert.assertThat("CreatedBy {user='null'}", equalTo(result));
     }
 
+    @Test
     public void testToStringWithLongUserName() {
 
         String longUserName = "a".repeat(1000);
@@ -201,6 +221,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(1019, equalTo(result.length()));
     }
 
+    @Test
     public void testToXContentWithEmptyUser() throws IOException {
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
         XContentBuilder builder = JsonXContent.contentBuilder();
@@ -210,6 +231,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat("{\"user\":\"\"}", equalTo(result));
     }
 
+    @Test
     public void testWriteToWithExceptionInStreamOutput() throws IOException {
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "user1");
         try (StreamOutput failingOutput = new StreamOutput() {
@@ -243,6 +265,7 @@ public class CreatedByTests extends SingleClusterTest {
         }
     }
 
+    @Test
     public void testWriteToWithLongUserName() throws IOException {
         String longUserName = "a".repeat(65536);
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, longUserName);
@@ -251,6 +274,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(out.size(), greaterThan(65536));
     }
 
+    @Test
     public void test_createdByToStringReturnsCorrectFormat() {
         String testUser = "testUser";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, testUser);
@@ -261,6 +285,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(expected, equalTo(actual));
     }
 
+    @Test
     public void test_toXContent_serializesCorrectly() throws IOException {
         String expectedUser = "testUser";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
@@ -272,6 +297,7 @@ public class CreatedByTests extends SingleClusterTest {
         MatcherAssert.assertThat(expectedJson, equalTo(builder.toString()));
     }
 
+    @Test
     public void test_writeTo_writesUserCorrectly() throws IOException {
         String expectedUser = "testUser";
         CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);

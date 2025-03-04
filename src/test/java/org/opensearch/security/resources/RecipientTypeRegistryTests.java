@@ -9,18 +9,19 @@
 package org.opensearch.security.resources;
 
 import org.hamcrest.MatcherAssert;
+import org.junit.Test;
 
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
-import org.opensearch.security.test.SingleClusterTest;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
 
-public class RecipientTypeRegistryTests extends SingleClusterTest {
+public class RecipientTypeRegistryTests {
 
+    @Test
     public void testFromValue() {
         RecipientTypeRegistry.registerRecipientType("ble1", new RecipientType("ble1"));
         RecipientTypeRegistry.registerRecipientType("ble2", new RecipientType("ble2"));
