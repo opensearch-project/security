@@ -303,4 +303,4 @@ jobs:
 
     - name: List files in build directory on failure
       if: failure()
-      run: ls -al ./build/distributions/
+      run: ls -al ./build/distributions/ ./*/build/libs
