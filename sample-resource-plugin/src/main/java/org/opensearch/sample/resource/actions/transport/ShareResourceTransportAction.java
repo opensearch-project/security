@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
@@ -30,11 +31,18 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
 
     private final NodeClient nodeClient;
+    private final Settings settings;
 
     @Inject
-    public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public ShareResourceTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+    ) {
         super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
         this.nodeClient = nodeClient;
+        this.settings = settings;
     }
 
     @Override
@@ -44,7 +52,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         resourceSharingClient.shareResource(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,

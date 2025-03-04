@@ -8,8 +8,6 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,13 +17,12 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.SampleResourceScope;
@@ -46,12 +43,19 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
+    private final Settings settings;
 
     @Inject
-    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public GetResourceTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+    ) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
+        this.settings = settings;
     }
 
     @Override
@@ -62,7 +66,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         }
 
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         resourceSharingClient.verifyResourceAccess(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
@@ -75,42 +79,30 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                     return;
                 }
 
-                ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-                try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-                    getResource(request, ActionListener.wrap(getResponse -> {
-                        if (getResponse.isSourceEmpty()) {
-                            listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
-                        } else {
-                            try (
-                                XContentParser parser = XContentType.JSON.xContent()
-                                    .createParser(
-                                        NamedXContentRegistry.EMPTY,
-                                        LoggingDeprecationHandler.INSTANCE,
-                                        getResponse.getSourceAsString()
-                                    )
-                            ) {
-                                listener.onResponse(new GetResourceResponse(SampleResource.fromXContent(parser)));
-                            }
-                        }
-                    }, listener::onFailure));
-                }
+                getResourceAction(request, listener);
             }, listener::onFailure)
         );
     }
 
-    private void getResource(GetResourceRequest request, ActionListener<GetResponse> listener) {
-        XContentBuilder builder;
-        try {
-            builder = JsonXContent.contentBuilder()
-                .startObject()
-                .field("resource_id", request.getResourceId())
-                .field("resource_index", RESOURCE_INDEX_NAME)
-                .field("scope", "string_value") // Modify as needed
-                .endObject();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private void getResourceAction(GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
+        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+            getResource(request, ActionListener.wrap(getResponse -> {
+                if (getResponse.isSourceEmpty()) {
+                    listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
+                } else {
+                    try (
+                        XContentParser parser = XContentType.JSON.xContent()
+                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
+                    ) {
+                        listener.onResponse(new GetResourceResponse(SampleResource.fromXContent(parser)));
+                    }
+                }
+            }, listener::onFailure));
         }
+    }
 
+    private void getResource(GetResourceRequest request, ActionListener<GetResponse> listener) {
         GetRequest getRequest = new GetRequest(RESOURCE_INDEX_NAME, request.getResourceId());
 
         nodeClient.get(getRequest, listener);

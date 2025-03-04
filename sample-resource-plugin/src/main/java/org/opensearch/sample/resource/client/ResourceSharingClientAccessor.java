@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource.client;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.client.resources.ResourceSharingNodeClient;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -22,9 +23,9 @@ public class ResourceSharingClientAccessor {
      * @param nodeClient node client
      * @return machine learning client
      */
-    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient) {
+    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
         if (INSTANCE == null) {
-            INSTANCE = new ResourceSharingNodeClient(nodeClient);
+            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings);
         }
         return INSTANCE;
     }

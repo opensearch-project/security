@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRequest;
@@ -30,16 +31,23 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     private static final Logger log = LogManager.getLogger(RevokeResourceAccessTransportAction.class);
 
     private final NodeClient nodeClient;
+    private final Settings settings;
 
     @Inject
-    public RevokeResourceAccessTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public RevokeResourceAccessTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+    ) {
         super(RevokeResourceAccessAction.NAME, transportService, actionFilters, RevokeResourceAccessRequest::new);
         this.nodeClient = nodeClient;
+        this.settings = settings;
     }
 
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         resourceSharingClient.revokeResourceAccess(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,

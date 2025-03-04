@@ -18,17 +18,22 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
+import org.opensearch.security.client.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -37,44 +42,74 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
     private static final Logger log = LogManager.getLogger(UpdateResourceTransportAction.class);
 
     private final TransportService transportService;
-    private final Client nodeClient;
+    private final NodeClient nodeClient;
+    private final Settings settings;
 
     @Inject
-    public UpdateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, Client nodeClient) {
+    public UpdateResourceTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+    ) {
         super(UpdateResourceAction.NAME, transportService, actionFilters, UpdateResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
+        this.settings = settings;
     }
 
     @Override
     protected void doExecute(Task task, UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+        if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
+            listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
+            return;
+        }
+        // Check permission to resource
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+        resourceSharingClient.verifyResourceAccess(
+            request.getResourceId(),
+            RESOURCE_INDEX_NAME,
+            SampleResourceScope.PUBLIC.value(),
+            ActionListener.wrap(isAuthorized -> {
+                if (!isAuthorized) {
+                    listener.onFailure(
+                        new ResourceSharingException("Current user is not authorized to access resource: " + request.getResourceId())
+                    );
+                    return;
+                }
+
+                updateResource(request, listener);
+            }, listener::onFailure)
+        );
+    }
+
+    private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
+        ThreadContext threadContext = this.transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            updateResource(request, listener);
+            String resourceId = request.getResourceId();
+            Resource sample = request.getResource();
+            try (XContentBuilder builder = jsonBuilder()) {
+                UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
+
+                log.info("Update Request: {}", ur.toString());
+
+                nodeClient.update(
+                    ur,
+                    ActionListener.wrap(
+                        updateResponse -> { log.info("Updated resource: {}", updateResponse.toString()); },
+                        listener::onFailure
+                    )
+                );
+            } catch (IOException e) {
+                listener.onFailure(new RuntimeException(e));
+            }
             listener.onResponse(
                 new CreateResourceResponse("Resource " + request.getResource().getResourceName() + " updated successfully.")
             );
         } catch (Exception e) {
             log.info("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);
-        }
-    }
-
-    private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        String resourceId = request.getResourceId();
-        Resource sample = request.getResource();
-        try (XContentBuilder builder = jsonBuilder()) {
-            UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
-
-            log.info("Update Request: {}", ur.toString());
-
-            nodeClient.update(
-                ur,
-                ActionListener.wrap(updateResponse -> { log.info("Updated resource: {}", updateResponse.toString()); }, listener::onFailure)
-            );
-        } catch (IOException e) {
-            listener.onFailure(new RuntimeException(e));
         }
 
     }

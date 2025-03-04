@@ -19,6 +19,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.SampleResourceScope;
@@ -39,12 +40,19 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
+    private final Settings settings;
 
     @Inject
-    public DeleteResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public DeleteResourceTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+    ) {
         super(DeleteResourceAction.NAME, transportService, actionFilters, DeleteResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
+        this.settings = settings;
     }
 
     @Override
@@ -57,7 +65,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         }
 
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         resourceSharingClient.verifyResourceAccess(
             resourceId,
             RESOURCE_INDEX_NAME,
