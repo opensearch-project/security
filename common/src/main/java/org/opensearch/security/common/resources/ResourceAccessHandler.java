@@ -366,7 +366,7 @@ public class ResourceAccessHandler {
         );
     }
 
-    public void checkDeletePermission(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
+    public void checkRawAccessPermission(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
         try {
             validateArguments(resourceId, resourceIndex);
 

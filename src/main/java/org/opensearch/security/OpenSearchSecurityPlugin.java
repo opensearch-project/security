@@ -145,10 +145,10 @@ import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.common.resources.ResourceAccessHandler;
+import org.opensearch.security.common.resources.ResourceIndexListener;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.common.resources.ResourceSharingConstants;
 import org.opensearch.security.common.resources.ResourceSharingIndexHandler;
-import org.opensearch.security.common.resources.ResourceSharingIndexListener;
 import org.opensearch.security.common.resources.ResourceSharingIndexManagementRepository;
 import org.opensearch.security.common.resources.rest.ResourceAccessAction;
 import org.opensearch.security.common.resources.rest.ResourceAccessRestAction;
@@ -752,13 +752,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             // Listening on POST and DELETE operations in resource indices
-            ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
-            resourceSharingIndexListener.initialize(threadPool, localClient, adminDNsCommon);
+            ResourceIndexListener resourceIndexListener = ResourceIndexListener.getInstance();
+            resourceIndexListener.initialize(threadPool, localClient, adminDNsCommon);
             if (settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
             ) && ResourcePluginInfo.getInstance().getResourceIndices().contains(indexModule.getIndex().getName())) {
-                indexModule.addIndexOperationListener(resourceSharingIndexListener);
+                indexModule.addIndexOperationListener(resourceIndexListener);
                 log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
 
