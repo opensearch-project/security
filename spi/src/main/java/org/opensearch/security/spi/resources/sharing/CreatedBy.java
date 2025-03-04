@@ -48,7 +48,7 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String toString() {
-        return "CreatedBy {" + this.creatorType + "='" + this.creator + '\'' + '}';
+        return "CreatedBy {" + this.creatorType.getName() + "='" + this.creator + '\'' + '}';
     }
 
     @Override
