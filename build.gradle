@@ -234,7 +234,18 @@ def splitTestConfig = [
                 "org.opensearch.security.ssl.OpenSSL*"
             ]
         ]
-    ]
+    ],
+    resourceSharingTests: [
+        description: "Runs most of the SSL tests.",
+        filters: [
+            includeTestsMatching: [
+                    "org.opensearch.security.resources.*"
+            ],
+            excludeTestsMatching: [
+                    "org.opensearch.security.ssl.OpenSSL*"
+            ]
+        ]
+    ],
 ] as ConfigObject
 
 List<String> taskNames = splitTestConfig.keySet() as List
