@@ -18,6 +18,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -40,24 +41,15 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_TYPE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYPE;
 
 public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
 
@@ -101,135 +93,140 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
     }
 
     @Test
-    public void reloadsSslContextOnPemFilesChanged() throws Exception {
-        final var securitySettings = new MockSecureSettings();
-        securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
-        securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
-        reloadSslContextOnFilesChanged(
-            defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-                .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, path("http_ca_certificate.pem"))
-                .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path("http_access_certificate.pem"))
-                .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path("http_access_certificate_pk.pem"))
-                .put(SECURITY_SSL_TRANSPORT_ENABLED, true)
-                .put(SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, path("transport_ca_certificate.pem"))
-                .put(SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, path("transport_access_certificate.pem"))
-                .put(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, path("transport_access_certificate_pk.pem"))
-                .setSecureSettings(securitySettings)
-                .build(),
-            (filePrefix, caCertificate, accessKeyAndCertificate) -> {
-                writePemContent(path(String.format("%s_ca_certificate.pem", filePrefix)), caCertificate);
-                writePemContent(path(String.format("%s_access_certificate.pem", filePrefix)), accessKeyAndCertificate.v2());
-                writePemContent(
-                    path(String.format("%s_access_certificate_pk.pem", filePrefix)),
-                    privateKeyToPemObject(accessKeyAndCertificate.v1(), certificatesRule.privateKeyPassword())
-                );
-            }
-        );
+    public void testReloadsSslContextOnPemStoreFilesChangedForHttp() throws Exception {
+        reloadSslContextOnPemFilesChangedForTransportType(CertType.HTTP);
     }
 
     @Test
-    public void reloadsSslContextOnJdkStoreFilesChanged() throws Exception {
+    public void testReloadsSslContextOnPemStoreFilesChangedForAux() throws Exception {
+        reloadSslContextOnPemFilesChangedForTransportType(CertType.AUX);
+    }
+
+    @Test
+    public void testReloadsSslContextOnPemStoreFilesChangedForTransport() throws Exception {
+        reloadSslContextOnPemFilesChangedForTransportType(CertType.TRANSPORT);
+    }
+
+    @Test
+    public void testReloadsSslContextOnJdkStoreFilesChangedForHttp() throws Exception {
+        reloadSslContextOnJdkStoreFilesChangedForTransportType(CertType.HTTP);
+    }
+
+    @Test
+    public void testReloadsSslContextOnJdkStoreFilesChangedForAux() throws Exception {
+        reloadSslContextOnJdkStoreFilesChangedForTransportType(CertType.AUX);
+    }
+
+    @Test
+    public void testReloadsSslContextOnJdkStoreFilesChangedForTransport() throws Exception {
+        reloadSslContextOnJdkStoreFilesChangedForTransportType(CertType.TRANSPORT);
+    }
+
+    private void reloadSslContextOnJdkStoreFilesChangedForTransportType(CertType certType) throws Exception {
+        final String settingPrefix = certType.sslConfigPrefix();
+        final String enabledSetting = settingPrefix + ENABLED;
+        final String trustStorePathSetting = settingPrefix + TRUSTSTORE_FILEPATH;
+        final String trustStoreTypeSetting = settingPrefix + TRUSTSTORE_TYPE;
+        final String keyStorePathSetting = settingPrefix + KEYSTORE_FILEPATH;
+        final String keyStoreTypeSetting = settingPrefix + KEYSTORE_TYPE;
+        final String certTypeFilePrefix = certType.name().toLowerCase(Locale.ROOT);
         final var keyStorePassword = randomAsciiAlphanumOfLength(10);
         final var secureSettings = new MockSecureSettings();
-        secureSettings.setString(SSL_HTTP_PREFIX + "truststore_password_secure", keyStorePassword);
-        secureSettings.setString(SSL_HTTP_PREFIX + "keystore_password_secure", keyStorePassword);
-        secureSettings.setString(SSL_HTTP_PREFIX + "keystore_keypassword_secure", certificatesRule.privateKeyPassword());
-
-        secureSettings.setString(SSL_TRANSPORT_PREFIX + "truststore_password_secure", keyStorePassword);
-        secureSettings.setString(SSL_TRANSPORT_PREFIX + "keystore_password_secure", keyStorePassword);
-        secureSettings.setString(SSL_TRANSPORT_PREFIX + "keystore_keypassword_secure", certificatesRule.privateKeyPassword());
+        secureSettings.setString(settingPrefix + "truststore_password_secure", keyStorePassword);
+        secureSettings.setString(settingPrefix + "keystore_password_secure", keyStorePassword);
+        secureSettings.setString(settingPrefix + "keystore_keypassword_secure", certificatesRule.privateKeyPassword());
         reloadSslContextOnFilesChanged(
-            defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-                .put(SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, path("http_truststore.jks"))
-                .put(SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "jks")
-                .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, path("http_keystore.p12"))
-                .put(SECURITY_SSL_HTTP_KEYSTORE_TYPE, "pkcs12")
-                .put(SECURITY_SSL_TRANSPORT_ENABLED, true)
-                .put(SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, path("transport_truststore.jks"))
-                .put(SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, "jks")
-                .put(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, path("transport_keystore.p12"))
-                .put(SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "pkcs12")
-                .setSecureSettings(secureSettings)
-                .build(),
+            certType,
+            defaultSettingsBuilder()
+                    // Disable transport layer to test server transports independently.
+                    // If certType is TRANSPORT the following line will re-enable it.
+                    .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
+                    .put(enabledSetting, true)
+                    .put(trustStorePathSetting, path(certTypeFilePrefix + "_truststore.jks"))
+                    .put(trustStoreTypeSetting, "jks")
+                    .put(keyStorePathSetting, path(certTypeFilePrefix + "_keystore.p12"))
+                    .put(keyStoreTypeSetting, "pkcs12")
+                    .setSecureSettings(secureSettings)
+                    .build(),
             (filePrefix, caCertificate, accessKeyAndCertificate) -> {
                 final var trustStore = KeyStore.getInstance("jks");
                 trustStore.load(null, null);
                 trustStore.setCertificateEntry("ca", certificatesRule.toX509Certificate(caCertificate));
                 writeStore(trustStore, path(String.format("%s_truststore.jks", filePrefix)), keyStorePassword);
-
                 final var keyStore = KeyStore.getInstance("pkcs12");
                 keyStore.load(null, null);
                 keyStore.setKeyEntry(
-                    "pk",
-                    accessKeyAndCertificate.v1(),
-                    certificatesRule.privateKeyPassword().toCharArray(),
-                    new X509Certificate[] { certificatesRule.toX509Certificate(accessKeyAndCertificate.v2()) }
+                        "pk",
+                        accessKeyAndCertificate.v1(),
+                        certificatesRule.privateKeyPassword().toCharArray(),
+                        new X509Certificate[] { certificatesRule.toX509Certificate(accessKeyAndCertificate.v2()) }
                 );
                 writeStore(keyStore, path(String.format("%s_keystore.p12", filePrefix)), keyStorePassword);
             }
         );
     }
 
-    void reloadSslContextOnFilesChanged(final Settings settings, final CertificatesWriter certificatesWriter) throws Exception {
-        final var defaultHttpCertificates = generateCertificates();
-        final var defaultHttpKeyPair = defaultHttpCertificates.v1();
-        final var httpCaCertificate = defaultHttpCertificates.v2().v1();
-        final var httpAccessKeyAndCertificate = defaultHttpCertificates.v2().v2();
+    private void reloadSslContextOnPemFilesChangedForTransportType(CertType certType) throws Exception {
+        final String settingPrefix = certType.sslConfigPrefix();
+        final String enabledSetting = settingPrefix + ENABLED;
+        final String pemTrustCasPathSetting = settingPrefix + PEM_TRUSTED_CAS_FILEPATH;
+        final String pemCertPathSetting = settingPrefix + PEM_CERT_FILEPATH;
+        final String pemKeyPathSetting = settingPrefix + PEM_KEY_FILEPATH;
+        final String certTypeFilePrefix = certType.name().toLowerCase(Locale.ROOT);
+        final var secureSettings = new MockSecureSettings();
+        secureSettings.setString(settingPrefix + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        reloadSslContextOnFilesChanged(
+            certType,
+            defaultSettingsBuilder()
+                    // Disable transport layer to test server transports independently.
+                    // If certType is TRANSPORT the following line will re-enable it.
+                    .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
+                    .put(enabledSetting, true)
+                    .put(pemTrustCasPathSetting, path(certTypeFilePrefix + "_ca_certificate.pem"))
+                    .put(pemCertPathSetting, path(certTypeFilePrefix + "_access_certificate.pem"))
+                    .put(pemKeyPathSetting, path(certTypeFilePrefix + "_access_certificate_pk.pem"))
+                    .setSecureSettings(secureSettings)
+                    .build(),
+            (filePrefix, caCertificate, accessKeyAndCertificate) -> {
+                writePemContent(path(String.format("%s_ca_certificate.pem", filePrefix)), caCertificate);
+                writePemContent(path(String.format("%s_access_certificate.pem", filePrefix)), accessKeyAndCertificate.v2());
+                writePemContent(
+                        path(String.format("%s_access_certificate_pk.pem", filePrefix)),
+                        privateKeyToPemObject(accessKeyAndCertificate.v1(), certificatesRule.privateKeyPassword())
+                );
+            }
+        );
+    }
 
-        final var defaultTransportCertificates = generateCertificates();
-        final var defaultTransportKeyPair = defaultTransportCertificates.v1();
-        final var transportCaCertificate = defaultTransportCertificates.v2().v1();
-        final var transportAccessKeyAndCertificate = defaultTransportCertificates.v2().v2();
+    private void reloadSslContextOnFilesChanged(CertType certType, final Settings settings, final CertificatesWriter certificatesWriter) throws Exception {
+        final String certNamePrefix = certType.name().toLowerCase(Locale.ROOT);
+        final var defaultCertificates = generateCertificates();
+        var defaultKeyPair = defaultCertificates.v1();
+        var caCertificate = defaultCertificates.v2().v1();
+        var accessKeyAndCertificate = defaultCertificates.v2().v2();
 
-        final var reloadHttpCertificates = randomBoolean();
-
-        certificatesWriter.write("http", httpCaCertificate, httpAccessKeyAndCertificate);
-        certificatesWriter.write("transport", transportCaCertificate, transportAccessKeyAndCertificate);
-
+        certificatesWriter.write(certNamePrefix, caCertificate, accessKeyAndCertificate);
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settings));
         sslSettingsManager.addSslConfigurationsChangeListener(resourceWatcherService);
-
-        final var httpSslContextBefore = sslSettingsManager.sslContextHandler(CertType.HTTP).orElseThrow().sslContext();
-        final var transportSslContextBefore = sslSettingsManager.sslContextHandler(CertType.TRANSPORT).orElseThrow().sslContext();
-        final var transportClientSslContextBefore = sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-            .orElseThrow()
-            .sslContext();
-
-        final var filePrefix = reloadHttpCertificates ? "http" : "transport";
-        final var keyPair = reloadHttpCertificates ? defaultHttpKeyPair : defaultTransportKeyPair;
-        var caCertificate = reloadHttpCertificates ? httpCaCertificate : transportCaCertificate;
-        var keyAndCertificate = reloadHttpCertificates ? httpAccessKeyAndCertificate : transportAccessKeyAndCertificate;
+        final var sslContextBefore = sslSettingsManager.sslContextHandler(certType).orElseThrow().sslContext();
 
         if (randomBoolean()) {
             caCertificate = certificatesRule.generateCaCertificate(
-                keyPair,
-                caCertificate.getNotBefore().toInstant(),
-                caCertificate.getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
+                    defaultKeyPair,
+                    caCertificate.getNotBefore().toInstant(),
+                    caCertificate.getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
             );
         } else {
-            keyAndCertificate = certificatesRule.generateAccessCertificate(
-                keyPair,
-                keyAndCertificate.v2().getNotBefore().toInstant(),
-                keyAndCertificate.v2().getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
+            accessKeyAndCertificate = certificatesRule.generateAccessCertificate(
+                    defaultKeyPair,
+                    accessKeyAndCertificate.v2().getNotBefore().toInstant(),
+                    accessKeyAndCertificate.v2().getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
             );
         }
-        certificatesWriter.write(filePrefix, caCertificate, keyAndCertificate);
+        certificatesWriter.write(certNamePrefix, caCertificate, accessKeyAndCertificate);
         Awaitility.await("Wait for reloading SSL context").until(() -> {
-            final var httpSslContextAfter = sslSettingsManager.sslContextHandler(CertType.HTTP).orElseThrow().sslContext();
-            final var transportSslContextAfter = sslSettingsManager.sslContextHandler(CertType.TRANSPORT).orElseThrow().sslContext();
-            final var transportClientSslContextAfter = sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .orElseThrow()
-                .sslContext();
-
-            if (reloadHttpCertificates) {
-                return !httpSslContextAfter.equals(httpSslContextBefore)
-                    && transportSslContextBefore.equals(transportSslContextAfter)
-                    && transportClientSslContextBefore.equals(transportClientSslContextAfter);
-            } else {
-                return httpSslContextAfter.equals(httpSslContextBefore)
-                    && !transportSslContextBefore.equals(transportSslContextAfter)
-                    && !transportClientSslContextBefore.equals(transportClientSslContextAfter);
-            }
+            final var sslContextAfter = sslSettingsManager.sslContextHandler(certType).orElseThrow().sslContext();
+            return !sslContextAfter.equals(sslContextBefore);
         });
     }
 
