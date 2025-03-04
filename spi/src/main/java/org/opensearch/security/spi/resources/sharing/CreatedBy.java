@@ -25,10 +25,10 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
-    private final Enum<Creator> creatorType;
+    private final Creator creatorType;
     private final String creator;
 
-    public CreatedBy(Enum<Creator> creatorType, String creator) {
+    public CreatedBy(Creator creatorType, String creator) {
         this.creatorType = creatorType;
         this.creator = creator;
     }
@@ -42,7 +42,7 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
         return creator;
     }
 
-    public Enum<Creator> getCreatorType() {
+    public Creator getCreatorType() {
         return creatorType;
     }
 
@@ -64,12 +64,12 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject().field(String.valueOf(creatorType), creator).endObject();
+        return builder.startObject().field(creatorType.getName(), creator).endObject();
     }
 
     public static CreatedBy fromXContent(XContentParser parser) throws IOException {
         String creator = null;
-        Enum<Creator> creatorType = null;
+        Creator creatorType = null;
         XContentParser.Token token;
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
