@@ -36,8 +36,8 @@ repositories {
 dependencies {
     // Main implementation dependencies
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    compileOnly "org.opensearch:opensearch-security-common:${opensearch_build}"
-    compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    implementation "org.opensearch:opensearch-security-common:${opensearch_build}"
+    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
 }
 
 java {
