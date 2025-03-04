@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 public class CreatedByTests extends SingleClusterTest {
 
-    private static final Enum<Creator> CREATOR_TYPE = Creator.USER;
+    private static final Creator CREATOR_TYPE = Creator.USER;
 
     public void testCreatedByConstructorWithValidUser() {
         String expectedUser = "testUser";
