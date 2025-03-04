@@ -12,9 +12,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
+/**
+ * Interface for resource sharing client operations.
+ */
 public interface ResourceSharingClient {
 
     void verifyResourceAccess(String resourceId, String resourceIndex, String scope, ActionListener<Boolean> listener);
@@ -28,6 +30,4 @@ public interface ResourceSharingClient {
         Set<String> scopes,
         ActionListener<ResourceSharing> listener
     );
-
-    void listAccessibleResourcesForCurrentUser(String resourceIndex, ActionListener<Set<? extends Resource>> listener);
 }

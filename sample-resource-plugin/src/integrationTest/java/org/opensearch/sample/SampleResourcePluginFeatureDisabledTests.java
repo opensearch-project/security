@@ -25,7 +25,6 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
@@ -34,10 +33,11 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
  * These tests run with security disabled
+ *
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginResourceSharingDisabledTests extends AbstractSampleResourcePluginTests {
+public class SampleResourcePluginSecurityDisabledTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -45,7 +45,7 @@ public class SampleResourcePluginResourceSharingDisabledTests extends AbstractSa
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
-        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false))
+        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, "plugins.security.disabled", true))
         .build();
 
     @After
@@ -100,18 +100,16 @@ public class SampleResourcePluginResourceSharingDisabledTests extends AbstractSa
 
         // resource should be visible to super-admin
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-
-            HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_search", "{\"query\" :  {\"match_all\" : {}}}");
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
             assertThat(response.getBody(), containsString("sample"));
         }
 
         // resource should be visible to shared_with_user since there is no restriction and this user has * permission
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_search", "{\"query\" :  {\"match_all\" : {}}}");
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
+            assertThat(response.getBody(), containsString("sample"));
         }
 
         // shared_with_user is able to update admin's resource
@@ -123,9 +121,21 @@ public class SampleResourcePluginResourceSharingDisabledTests extends AbstractSa
 
         // admin can see updated value
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse getResponse = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            getResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(getResponse.getBody(), containsString("sampleUpdated"));
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.getBody(), containsString("sampleUpdated"));
+        }
+
+        // shared_with_user is able to call sample share api
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+            updateResponse.assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // shared_with_user is able to call sample revoke api
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+            updateResponse.assertStatusCode(HttpStatus.SC_OK);
         }
 
         // delete sample resource - share_with user delete admin user's resource
@@ -136,8 +146,8 @@ public class SampleResourcePluginResourceSharingDisabledTests extends AbstractSa
 
         // admin can no longer see the resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse getResponse = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            getResponse.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
 
     }
