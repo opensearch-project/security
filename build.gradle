@@ -414,7 +414,6 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
-    extendedPlugins = ['lang-painless']
 }
 
 // This requires an additional Jar not published as part of build-tools
