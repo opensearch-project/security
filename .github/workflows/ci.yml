@@ -32,9 +32,27 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
+  publish-components-to-maven-local:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 21
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Publish components to Maven Local
+      run: |
+        ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
+        ./gradlew :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false
+        ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false
+
   test:
     name: test
-    needs: generate-test-list
+    needs: [generate-test-list, publish-components-to-maven-local]
     strategy:
       fail-fast: false
       matrix:
@@ -91,9 +109,9 @@ jobs:
             fail_ci_if_error: true
             verbose: true
 
-
   integration-tests:
     name: integration-tests
+    needs: publish-components-to-maven-local
     strategy:
       fail-fast: false
       matrix:
@@ -110,24 +128,6 @@ jobs:
 
     - name: Checkout security
       uses: actions/checkout@v4
-
-    - name: Publish SPI to Local Maven
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
-
-    - name: Publish Common to Local Maven
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false
-
-    - name: Publish Client to Local Maven
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Run Integration Tests
       uses: gradle/gradle-build-action@v3
@@ -153,6 +153,7 @@ jobs:
   resource-tests:
     env:
       CI_ENVIRONMENT: resource-test
+    needs: publish-components-to-maven-local
     strategy:
       fail-fast: false
       matrix:
