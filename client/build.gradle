@@ -6,6 +6,7 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'io.github.goooler.shadow' version "8.1.7"
 }
 
 ext {
@@ -16,8 +17,6 @@ ext {
     // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
-
-    common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-alpha1-SNAPSHOT')
 
     if (buildVersionQualifier) {
         opensearch_build += "-${buildVersionQualifier}"
@@ -34,10 +33,9 @@ repositories {
 }
 
 dependencies {
-    // Main implementation dependencies
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    implementation "org.opensearch:opensearch-security-common:${opensearch_build}"
-    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    // spi dependency comes through common
+    implementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
 }
 
 java {
@@ -57,12 +55,13 @@ task javadocJar(type: Jar) {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
             artifact sourcesJar
             artifact javadocJar
             pom {
                 name.set("OpenSearch Security Client")
+                packaging = "jar"
                 description.set("OpenSearch Security Client")
                 url.set("https://github.com/opensearch-project/security")
                 licenses {

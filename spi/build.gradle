@@ -6,6 +6,7 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'io.github.goooler.shadow' version "8.1.7"
 }
 
 ext {
@@ -39,12 +40,13 @@ task javadocJar(type: Jar) {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
             artifact sourcesJar
             artifact javadocJar
             pom {
                 name.set("OpenSearch Resource Sharing SPI")
+                packaging = "jar"
                 description.set("OpenSearch Security Resource Sharing")
                 url.set("https://github.com/opensearch-project/security")
                 licenses {

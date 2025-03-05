@@ -6,34 +6,11 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'io.github.goooler.shadow' version "8.1.7"
 }
 
 ext {
     opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
-
-    // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
-    version_tokens = opensearch_version.tokenize('-')
-    opensearch_build = version_tokens[0] + '.0'
-
-    common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-alpha1-SNAPSHOT')
-
-    kafka_version  = '3.7.1'
-    open_saml_version = '5.1.3'
-    open_saml_shib_version = "9.1.3"
-    one_login_java_saml = '2.9.0'
-    jjwt_version = '0.12.6'
-    guava_version = '33.4.0-jre'
-    jaxb_version = '2.3.9'
-    spring_version = '5.3.39'
-
-    if (buildVersionQualifier) {
-        opensearch_build += "-${buildVersionQualifier}"
-    }
-    if (isSnapshot) {
-        opensearch_build += "-SNAPSHOT"
-    }
 }
 
 repositories {
@@ -45,8 +22,7 @@ repositories {
 dependencies {
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     compileOnly "org.opensearch.plugin:lang-painless:${opensearch_version}"
-    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
-    compileOnly "com.google.guava:guava:${guava_version}"
+    implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
     compileOnly "org.apache.commons:commons-lang3:${versions.commonslang}"
     compileOnly 'com.password4j:password4j:1.8.2'
 }
@@ -68,12 +44,13 @@ task javadocJar(type: Jar) {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
             artifact sourcesJar
             artifact javadocJar
             pom {
                 name.set("OpenSearch Security Common")
+                packaging = "jar"
                 description.set("OpenSearch Security Common")
                 url.set("https://github.com/opensearch-project/security")
                 licenses {
