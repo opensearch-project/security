@@ -102,7 +102,7 @@ jobs:
           ./build/reports/
 
   report-coverage:
-    needs: ["test", "integration-tests"]
+    needs: ["test", "integration-tests", "spi-tests", "sample-plugin-integration-tests"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,7 +127,6 @@ jobs:
 
   integration-tests:
     name: integration-tests
-    needs: publish-components-to-maven-local
     strategy:
       fail-fast: false
       matrix:
@@ -160,19 +159,54 @@ jobs:
         arguments: |
           :integrationTest -Dbuild.snapshot=false
 
-    - name: Run SampleResourcePlugin Integration Tests
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: |
-          :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
-
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
         path: |
           ./build/reports/
+
+  sample-plugin-integration-tests:
+    name: sample-plugin-integration-tests
+    needs: publish-components-to-maven-local
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [21]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Restore Maven Local Cache
+        uses: actions/cache@v4.2.2
+        with:
+          path: ~/.m2/repository
+          key: maven-local-${{ github.run_id }}
+          restore-keys: |
+            maven-local-
+
+      - name: Run SampleResourcePlugin Integration Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./build/reports/
 
   spi-tests:
     name: spi-tests
