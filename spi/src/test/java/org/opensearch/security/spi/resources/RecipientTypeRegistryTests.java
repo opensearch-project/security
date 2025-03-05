@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources;
+package org.opensearch.security.spi.resources;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
