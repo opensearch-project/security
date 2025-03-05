@@ -50,6 +50,14 @@ jobs:
         ./gradlew :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false
         ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false
 
+    - name: Cache artifacts for dependent jobs
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
+
   test:
     name: test
     needs: [generate-test-list, publish-components-to-maven-local]
@@ -70,6 +78,14 @@ jobs:
 
     - name: Checkout security
       uses: actions/checkout@v4
+
+    - name: Restore Maven Local Cache
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v3
@@ -129,6 +145,14 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v4
 
+    - name: Restore Maven Local Cache
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
+
     - name: Run Integration Tests
       uses: gradle/gradle-build-action@v3
       with:
@@ -150,6 +174,48 @@ jobs:
         path: |
           ./build/reports/
 
+  spi-tests:
+    name: spi-tests
+    needs: publish-components-to-maven-local
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [21]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Restore Maven Local Cache
+        uses: actions/cache@v4.2.2
+        with:
+          path: ~/.m2/repository
+          key: maven-local-${{ github.run_id }}
+          restore-keys: |
+            maven-local-
+
+      - name: Run SPI Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :opensearch-resource-sharing-spi:test -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spi-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./build/reports/
+
   resource-tests:
     env:
       CI_ENVIRONMENT: resource-test
@@ -170,6 +236,14 @@ jobs:
 
     - name: Checkout security
       uses: actions/checkout@v4
+
+    - name: Restore Maven Local Cache
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
 
     - name: Run Resource Tests
       uses: gradle/gradle-build-action@v3
@@ -277,31 +351,31 @@ jobs:
 
           # Publish Client
           ./gradlew :opensearch-security-client:publishToMavenLocal && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version.jar
-          ./gradlew :opensearch-security-client-spi:publishToMavenLocal -Dbuild.snapshot=false && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_no_snapshot.jar
+          ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_no_snapshot.jar
           ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier.jar
           ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
 
           # Build artifacts
-          ./gradlew clean assemble && \
+          ./gradlew assemble && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
           test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version.zip
 
-          ./gradlew clean assemble -Dbuild.snapshot=false && \
+          ./gradlew assemble -Dbuild.snapshot=false && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_no_snapshot.zip && \
           test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version_no_snapshot.zip
 
-          ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && \
+          ./gradlew assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier.zip && \
           test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version_only_number-$test_qualifier.zip
 
-          ./gradlew clean assemble -Dbuild.version_qualifier=$test_qualifier && \
+          ./gradlew assemble -Dbuild.version_qualifier=$test_qualifier && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.zip && \
           test -s ./sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.zip
 
-          ./gradlew clean publishPluginZipPublicationToZipStagingRepository && \
+          ./gradlew publishPluginZipPublicationToZipStagingRepository && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.pom
 
     - name: List files in build directory on failure
       if: failure()
-      run: ls -al ./build/distributions/ ./*/build/libs
+      run: ls -al ./*/build/libs/ ./build/distributions/
