@@ -27,7 +27,5 @@ public interface ResourceSharingExtension {
      */
     String getResourceIndex();
 
-    default ResourceParser<? extends Resource> getResourceParser() {
-        return null;
-    };
+    ResourceParser<? extends Resource> getResourceParser();
 }

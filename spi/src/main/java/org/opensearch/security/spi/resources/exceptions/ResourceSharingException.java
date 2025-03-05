@@ -47,6 +47,8 @@ public class ResourceSharingException extends OpenSearchException {
             return RestStatus.UNAUTHORIZED;
         } else if (message.contains("not found")) {
             return RestStatus.NOT_FOUND;
+        } else if (message.contains("not a system index")) {
+            return RestStatus.BAD_REQUEST;
         }
 
         return RestStatus.INTERNAL_SERVER_ERROR;
