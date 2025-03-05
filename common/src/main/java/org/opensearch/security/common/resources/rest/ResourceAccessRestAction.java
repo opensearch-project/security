@@ -140,6 +140,8 @@ public class ResourceAccessRestAction extends BaseRestHandler {
             forbidden(channel, message);
         } else if (message.contains("no authenticated")) {
             unauthorized(channel);
+        } else if (message.contains("not a system index")) {
+            badRequest(channel, message);
         }
         channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
     }

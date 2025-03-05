@@ -16,7 +16,9 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.indices.SystemIndices;
 import org.opensearch.security.common.resources.ResourceAccessHandler;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.tasks.Task;
@@ -25,18 +27,30 @@ import org.opensearch.transport.TransportService;
 public class ResourceAccessTransportAction extends HandledTransportAction<ResourceAccessRequest, ResourceAccessResponse> {
     private final ResourceAccessHandler resourceAccessHandler;
 
+    private final SystemIndices systemIndices;
+
     @Inject
     public ResourceAccessTransportAction(
         TransportService transportService,
         ActionFilters actionFilters,
+        SystemIndices systemIndices,
         ResourceAccessHandler resourceAccessHandler
     ) {
         super(ResourceAccessAction.NAME, transportService, actionFilters, ResourceAccessRequest::new);
+        this.systemIndices = systemIndices;
         this.resourceAccessHandler = resourceAccessHandler;
     }
 
     @Override
     protected void doExecute(Task task, ResourceAccessRequest request, ActionListener<ResourceAccessResponse> actionListener) {
+        // verify that the request if for a system index
+        if (!this.systemIndices.isSystemIndex(request.getResourceIndex())) {
+            actionListener.onFailure(
+                new ResourceSharingException("Resource index '" + request.getResourceIndex() + "' is not a system index.")
+            );
+            return;
+        }
+
         switch (request.getOperation()) {
             case LIST:
                 handleListResources(request, actionListener);

@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -70,7 +72,12 @@ public class ResourceAccessRequest extends ActionRequest {
         }
 
         builder.resourceId((String) source.get("resource_id"));
-        builder.resourceIndex(params.getOrDefault("resource_index", (String) source.get("resource_index")));
+        String resourceIndex = params.getOrDefault("resource_index", (String) source.get("resource_index"));
+        if (StringUtils.isEmpty(resourceIndex)) {
+            throw new IllegalArgumentException("Missing required field: resource_index");
+        }
+        builder.resourceIndex(resourceIndex);
+
         builder.scope((String) source.get("scope"));
 
         if (source.containsKey("share_with")) {
