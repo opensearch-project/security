@@ -24,7 +24,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-alpha1-SNAPSHOT')
 
         kafka_version  = '3.7.1'
         open_saml_version = '5.1.3'
@@ -498,7 +498,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
             force "org.checkerframework:checker-qual:3.49.0"
-            force "ch.qos.logback:logback-classic:1.5.16"
+            force "ch.qos.logback:logback-classic:1.5.17"
             force "commons-io:commons-io:2.18.0"
         }
     }
@@ -696,7 +696,7 @@ dependencies {
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
-    testImplementation('org.awaitility:awaitility:4.2.2') {
+    testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
@@ -742,7 +742,7 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
+    integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
