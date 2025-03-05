@@ -10,12 +10,10 @@ package org.opensearch.sample;
 
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -32,11 +30,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
- * These tests run with security disabled
- *
+ * These tests run with resource sharing feature disabled.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule

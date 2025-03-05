@@ -19,29 +19,34 @@ import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFI
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
 
 /**
- * These tests run with security enabled
+ * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
+ * instantiated directly. It is extended by {@link AbstractSampleResourcePluginFeatureEnabledTests}, {@link SampleResourcePluginFeatureDisabledTests}, {@link org.opensearch.sample.nonsystemindex.AbstractResourcePluginNonSystemIndexTests}
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class AbstractSampleResourcePluginTests {
+public abstract class AbstractSampleResourcePluginTests {
 
-    final static TestSecurityConfig.User SHARED_WITH_USER = new TestSecurityConfig.User("resource_sharing_test_user").roles(
+    protected final static TestSecurityConfig.User SHARED_WITH_USER = new TestSecurityConfig.User("resource_sharing_test_user").roles(
         new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*")
     );
 
-    static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
-    static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
-    static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
-    static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
-    static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
-    static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
-    private static final String PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH = PLUGIN_RESOURCE_ROUTE_PREFIX.replaceFirst("/", "");
-    static final String SECURITY_RESOURCE_LIST_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/list";
-    static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/share";
-    static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
-    static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
+    protected final static TestSecurityConfig.User SHARED_WITH_USER_LIMITED_PERMISSIONS = new TestSecurityConfig.User(
+        "resource_sharing_test_user"
+    ).roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on(RESOURCE_INDEX_NAME));
 
-    static String shareWithPayloadSecurityApi(String resourceId) {
+    protected static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
+    protected static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
+    protected static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
+    protected static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
+    protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
+    protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
+    private static final String PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH = PLUGIN_RESOURCE_ROUTE_PREFIX.replaceFirst("/", "");
+    protected static final String SECURITY_RESOURCE_LIST_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/list";
+    protected static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/share";
+    protected static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
+    protected static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
+
+    protected static String shareWithPayloadSecurityApi(String resourceId) {
         return "{"
             + "\"resource_id\":\""
             + resourceId
@@ -61,7 +66,7 @@ public class AbstractSampleResourcePluginTests {
             + "}";
     }
 
-    static String shareWithPayload() {
+    protected static String shareWithPayload() {
         return "{"
             + "\"share_with\":{"
             + "\""
@@ -75,7 +80,7 @@ public class AbstractSampleResourcePluginTests {
             + "}";
     }
 
-    static String revokeAccessPayloadSecurityApi(String resourceId) {
+    protected static String revokeAccessPayloadSecurityApi(String resourceId) {
         return "{"
             + "\"resource_id\": \""
             + resourceId
@@ -94,7 +99,7 @@ public class AbstractSampleResourcePluginTests {
             + "}";
     }
 
-    static String revokeAccessPayload() {
+    protected static String revokeAccessPayload() {
         return "{"
             + "\"entities_to_revoke\": {"
             + "\"users\": [\""
