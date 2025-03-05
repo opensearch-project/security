@@ -147,7 +147,7 @@ public class SslSettingsManager {
 
         if (httpEnabled && !clientNode(settings)) {
             validateHttpSettings(settings);
-            final var httpSslParameters = SslParameters.loader(httpSettings).load(true);
+            final var httpSslParameters = SslParameters.loader(httpSettings).load(CertType.HTTP);
             final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
                 CertType.HTTP,
@@ -159,7 +159,7 @@ public class SslSettingsManager {
 
         if (auxEnabled && !clientNode(settings)) {
             validateAuxSettings(settings);
-            final var auxSslParameters = SslParameters.loader(httpSettings).load(true);
+            final var auxSslParameters = SslParameters.loader(auxTransportSettings).load(CertType.AUX);
             final var auxTrustAndKeyStore = new SslCertificatesLoader(CertType.AUX.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
                     CertType.AUX,
@@ -169,7 +169,7 @@ public class SslSettingsManager {
             LOGGER.info("Enabled TLS protocols for auxiliary transport layer : {}", auxSslParameters.allowedProtocols());
         }
 
-        final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
+        final var transportSslParameters = SslParameters.loader(transportSettings).load(CertType.TRANSPORT);
         if (transportEnabled) {
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
                 validateTransportSettings(transportSettings);

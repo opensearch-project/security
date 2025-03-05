@@ -30,6 +30,8 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslProvider;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_AUX_PROTOCOLS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_AUX_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_HTTP_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS;
@@ -130,16 +132,24 @@ public class SslParameters {
             return settings.getAsBoolean(ENFORCE_CERT_RELOAD_DN_VERIFICATION, true);
         }
 
-        private List<String> protocols(final SslProvider provider, final Settings settings, boolean http) {
+        private List<String> protocols(final SslProvider provider, final Settings settings, CertType certType) {
             final var allowedProtocols = settings.getAsList(ENABLED_PROTOCOLS, List.of(ALLOWED_SSL_PROTOCOLS));
             if (provider == SslProvider.OPENSSL) {
                 final String[] supportedProtocols;
                 if (OpenSsl.version() > OPENSSL_1_1_1_BETA_9) {
-                    supportedProtocols = http ? ALLOWED_OPENSSL_HTTP_PROTOCOLS : ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS;
+                    switch (certType) {
+                        case HTTP -> supportedProtocols = ALLOWED_OPENSSL_HTTP_PROTOCOLS;
+                        case AUX -> supportedProtocols = ALLOWED_OPENSSL_AUX_PROTOCOLS;
+                        case TRANSPORT -> supportedProtocols = ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS;
+                        default -> throw new OpenSearchSecurityException("Unsupported certificate type: " + certType);
+                    }
                 } else {
-                    supportedProtocols = http
-                        ? ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9
-                        : ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
+                    switch (certType) {
+                        case HTTP -> supportedProtocols = ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
+                        case AUX -> supportedProtocols = ALLOWED_OPENSSL_AUX_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
+                        case TRANSPORT -> supportedProtocols = ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
+                        default -> throw new OpenSearchSecurityException("Unsupported certificate type: " + certType);
+                    }
                 }
                 return openSslProtocols(allowedProtocols, supportedProtocols);
             } else {
@@ -189,8 +199,8 @@ public class SslParameters {
             return allowedCiphers.sorted(String::compareTo).collect(Collectors.toList());
         }
 
-        public SslParameters load(final boolean http) {
-            final var clientAuth = http
+        public SslParameters load(final CertType certType) {
+            final var clientAuth = certType == CertType.HTTP || certType == CertType.AUX
                 ? ClientAuth.valueOf(sslConfigSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT))
                 : ClientAuth.REQUIRE;
 
@@ -198,15 +208,15 @@ public class SslParameters {
             final var sslParameters = new SslParameters(
                 provider,
                 clientAuth,
-                protocols(provider, sslConfigSettings, http),
+                protocols(provider, sslConfigSettings, certType),
                 ciphers(provider, sslConfigSettings),
                 validateCertDNsOnReload(sslConfigSettings)
             );
             if (sslParameters.allowedProtocols().isEmpty()) {
-                throw new OpenSearchSecurityException("No ssl protocols for " + (http ? "HTTP" : "Transport") + " layer");
+                throw new OpenSearchSecurityException("No ssl protocols for " + certType.name().toLowerCase(Locale.ROOT) + " layer");
             }
             if (sslParameters.allowedCiphers().isEmpty()) {
-                throw new OpenSearchSecurityException("No valid cipher suites for " + (http ? "HTTP" : "Transport") + " layer");
+                throw new OpenSearchSecurityException("No valid cipher suites for " + certType.name().toLowerCase(Locale.ROOT) + " layer");
             }
             return sslParameters;
         }
