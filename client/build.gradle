@@ -34,7 +34,8 @@ repositories {
 
 dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    // spi dependency comes through common
+    compileOnly project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
+    // spi runtime dependency comes through opensearch-security-common
     implementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
 }
 

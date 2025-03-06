@@ -7,7 +7,7 @@
  */
 
 /**
- * This package defines a resource sharing client that will be utilized by resource plugins to call security plugin's APIs
+ * This package defines a resource sharing client that will be utilized by resource plugins to call security plugin's transport actions, which handle resource access
  *
  * @opensearch.experimental
  */

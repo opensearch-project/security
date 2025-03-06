@@ -19,10 +19,32 @@ import org.opensearch.security.spi.resources.sharing.ResourceSharing;
  */
 public interface ResourceSharingClient {
 
+    /**
+     * Verifies if the current user has access to the specified resource.
+     * @param resourceId     The ID of the resource to verify access for.
+     * @param resourceIndex  The index containing the resource.
+     * @param scope          The scope of the resource.
+     * @param listener       The listener to be notified with the access verification result.
+     */
     void verifyResourceAccess(String resourceId, String resourceIndex, String scope, ActionListener<Boolean> listener);
 
+    /**
+     * Shares a resource with the specified users, roles, and backend roles.
+     * @param resourceId     The ID of the resource to share.
+     * @param resourceIndex  The index containing the resource.
+     * @param shareWith      The users, roles, and backend roles to share the resource with.
+     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     */
     void shareResource(String resourceId, String resourceIndex, Map<String, Object> shareWith, ActionListener<ResourceSharing> listener);
 
+    /**
+     * Revokes access to a resource for the specified entities and scopes.
+     * @param resourceId     The ID of the resource to revoke access for.
+     * @param resourceIndex  The index containing the resource.
+     * @param entitiesToRevoke The entities to revoke access for.
+     * @param scopes         The scopes to revoke access for.
+     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     */
     void revokeResourceAccess(
         String resourceId,
         String resourceIndex,

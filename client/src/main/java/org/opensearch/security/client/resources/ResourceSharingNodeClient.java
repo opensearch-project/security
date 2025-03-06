@@ -43,6 +43,14 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         );
     }
 
+    /**
+     * Verifies if the current user has access to the specified resource.
+     * @param resourceId     The ID of the resource to verify access for.
+     * @param resourceIndex  The index containing the resource.
+     * @param scope          The scope of the resource.
+     * @param listener       The listener to be notified with the access verification result.
+     */
+    @Override
     public void verifyResourceAccess(String resourceId, String resourceIndex, String scope, ActionListener<Boolean> listener) {
         if (!resourceSharingEnabled) {
             log.warn("Resource Access Control feature is disabled. Access to resource is automatically granted.");
@@ -57,6 +65,14 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         client.execute(ResourceAccessAction.INSTANCE, request, verifyAccessResponseListener(listener));
     }
 
+    /**
+     * Shares the specified resource with the given users, roles, and backend roles.
+     * @param resourceId     The ID of the resource to share.
+     * @param resourceIndex  The index containing the resource.
+     * @param shareWith      The users, roles, and backend roles to share the resource with.
+     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     */
+    @Override
     public void shareResource(
         String resourceId,
         String resourceIndex,
@@ -81,6 +97,15 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
     }
 
+    /**
+     * Revokes access to the specified resource for the given entities and scopes.
+     * @param resourceId     The ID of the resource to revoke access for.
+     * @param resourceIndex  The index containing the resource.
+     * @param entitiesToRevoke The entities to revoke access for.
+     * @param scopes         The scopes to revoke access for.
+     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     */
+    @Override
     public void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
@@ -107,10 +132,20 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
     }
 
+    /**
+     * Notifies the listener with the access request result.
+     * @param listener The listener to be notified with the access request result.
+     * @return An ActionListener that handles the ResourceAccessResponse and notifies the listener.
+     */
     private ActionListener<ResourceAccessResponse> verifyAccessResponseListener(ActionListener<Boolean> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getHasPermission()), listener::onFailure);
     }
 
+    /**
+     * Notifies the listener with the updated ResourceSharing document.
+     * @param listener The listener to be notified with the updated ResourceSharing document.
+     * @return An ActionListener that handles the ResourceAccessResponse and notifies the listener.
+     */
     private ActionListener<ResourceAccessResponse> sharingInfoResponseListener(ActionListener<ResourceSharing> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
     }
