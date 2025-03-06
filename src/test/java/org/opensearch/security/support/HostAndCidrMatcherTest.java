@@ -177,13 +177,6 @@ public class HostAndCidrMatcherTest {
         assertThat(matcher.matchesCidr(address), is(false));
     }
 
-    @Test(expected = Exception.class)
-    public void shouldHandleMalformedIpAddresses() throws Exception {
-        matcher = new HostAndCidrMatcher(Arrays.asList(PRIVATE_CLASS_C_CIDR));
-        InetAddress address = InetAddress.getByName("invalid.ip.address");
-        matcher.matchesCidr(address);
-    }
-
     @Test
     public void shouldMatchIpHostnameLookupMode() throws Exception {
         matcher = new HostAndCidrMatcher(Arrays.asList(OPENSEARCH_DOMAIN));

@@ -25,9 +25,6 @@ import inet.ipaddr.IPAddressString;
  * This matcher supports both wildcard hostname patterns (e.g., *.example.com) and CIDR notation (e.g., 192.168.1.0/24).
  */
 public class HostAndCidrMatcher {
-    private static final String IP_HOSTNAME = "ip-hostname";
-    private static final String IP_HOSTNAME_LOOKUP = "ip-hostname-lookup";
-
     protected final Logger log = LogManager.getLogger(HostAndCidrMatcher.class);
     private final WildcardMatcher hostMatcher;
     private final List<IPAddressString> cidrMatchers;
@@ -66,7 +63,7 @@ public class HostAndCidrMatcher {
             return cidrMatchers.stream().anyMatch(cidrAddress -> cidrAddress.contains(addressString));
         } catch (Exception e) {
             log.warn("Failed to process IP address {}: {}", address, e.getMessage());
-            return false;
+            throw new RuntimeException("Invalid Address format used");
         }
     }
 
@@ -75,8 +72,7 @@ public class HostAndCidrMatcher {
      * This method can perform DNS lookups depending on the hostResolverMode.
      *
      * @param address The IP address to check
-     * @param hostResolverMode The resolution mode. Must be either "ip-hostname" or
-     *                         "ip-hostname-lookup" to enable hostname matching
+     * @param hostResolverMode The resolution mode. Must be one of {@link HostResolverMode} to enable hostname matching
      * @return true if the address matches any configured hostname pattern, false otherwise,
      *         if the address is null, or if the resolver mode is invalid
      * @implNote This method may perform DNS lookups which could impact performance
@@ -88,7 +84,8 @@ public class HostAndCidrMatcher {
 
         List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
         if (hostResolverMode != null
-            && (hostResolverMode.equalsIgnoreCase(IP_HOSTNAME) || hostResolverMode.equalsIgnoreCase(IP_HOSTNAME_LOOKUP))) {
+            && (hostResolverMode.equalsIgnoreCase(HostResolverMode.IP_HOSTNAME.getValue())
+                || hostResolverMode.equalsIgnoreCase(HostResolverMode.IP_HOSTNAME_LOOKUP.getValue()))) {
             try {
                 final String hostName = address.getHostName();  // potential blocking call
                 valuesToCheck.add(hostName);
