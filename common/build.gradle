@@ -25,6 +25,7 @@ dependencies {
     implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
     compileOnly "org.apache.commons:commons-lang3:${versions.commonslang}"
     compileOnly 'com.password4j:password4j:1.8.2'
+    compileOnly "com.google.guava:guava:${guava_version}"
 }
 
 java {

@@ -234,7 +234,7 @@ def splitTestConfig = [
                 "org.opensearch.security.ssl.OpenSSL*"
             ]
         ]
-    ],
+    ]
 ] as ConfigObject
 
 List<String> taskNames = splitTestConfig.keySet() as List
@@ -520,7 +520,6 @@ allprojects {
         compile.extendsFrom testImplementation
     }
     dependencies {
-        compileOnly "com.google.guava:guava:${guava_version}"
         // unit test framework
         testImplementation 'org.hamcrest:hamcrest:2.2'
         testImplementation 'junit:junit:4.13.2'
