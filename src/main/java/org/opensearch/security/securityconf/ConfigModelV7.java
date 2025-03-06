@@ -52,6 +52,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HostResolverMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
@@ -330,7 +331,8 @@ public class ConfigModelV7 extends ConfigModel {
                     }
 
                     if (caller.address() != null
-                        && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
+                        && (hostResolverMode.equalsIgnoreCase(HostResolverMode.IP_HOSTNAME.getValue())
+                            || hostResolverMode.equalsIgnoreCase(HostResolverMode.IP_HOSTNAME_LOOKUP.getValue()))) {
                         final String hostName = caller.address().getHostString();
 
                         for (String p : WildcardMatcher.getAllMatchingPatterns(hostMatchers, hostName)) {
@@ -338,7 +340,7 @@ public class ConfigModelV7 extends ConfigModel {
                         }
                     }
 
-                    if (caller.address() != null && hostResolverMode.equalsIgnoreCase("ip-hostname-lookup")) {
+                    if (caller.address() != null && hostResolverMode.equalsIgnoreCase(HostResolverMode.IP_HOSTNAME_LOOKUP.getValue())) {
 
                         final String resolvedHostName = caller.address().getHostName();
 
