@@ -20,6 +20,9 @@ import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
+/**
+ * Rest action to get a sample resource
+ */
 public class GetResourceRestAction extends BaseRestHandler {
 
     public GetResourceRestAction() {}

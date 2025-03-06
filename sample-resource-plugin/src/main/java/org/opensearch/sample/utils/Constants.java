@@ -8,6 +8,9 @@
 
 package org.opensearch.sample.utils;
 
+/**
+ * Constants for Sample Resource Sharing Plugin
+ */
 public class Constants {
     public static final String RESOURCE_INDEX_NAME = ".sample_resource_sharing_plugin";
 

@@ -38,6 +38,9 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action for getting a resource
+ */
 public class GetResourceTransportAction extends HandledTransportAction<GetResourceRequest, GetResourceResponse> {
     private static final Logger log = LogManager.getLogger(GetResourceTransportAction.class);
 

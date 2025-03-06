@@ -17,6 +17,9 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
+/**
+ * Response for the RevokeResourceAccessAction
+ */
 public class RevokeResourceAccessResponse extends ActionResponse implements ToXContentObject {
     private final ShareWith shareWith;
 

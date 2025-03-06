@@ -27,6 +27,9 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action implementation for sharing a resource.
+ */
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
 

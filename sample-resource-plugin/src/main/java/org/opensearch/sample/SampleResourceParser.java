@@ -16,6 +16,9 @@ import java.io.IOException;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.ResourceParser;
 
+/**
+ * Responsible for parsing the XContent into a SampleResource object.
+ */
 public class SampleResourceParser implements ResourceParser<SampleResource> {
     @Override
     public SampleResource parseXContent(XContentParser parser) throws IOException {

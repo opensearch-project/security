@@ -23,6 +23,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
+/**
+ * Rest Action to create a Sample Resource. Registers Create and Update REST APIs.
+ */
 public class CreateResourceRestAction extends BaseRestHandler {
 
     public CreateResourceRestAction() {}
@@ -31,13 +34,13 @@ public class CreateResourceRestAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
             new Route(PUT, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/create"),
-            new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/update/{resourceId}")
+            new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/update/{resource_id}")
         );
     }
 
     @Override
     public String getName() {
-        return "create_sample_resource";
+        return "create_update_sample_resource";
     }
 
     @Override
@@ -51,7 +54,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
             case PUT:
                 return createResource(source, client);
             case POST:
-                return updateResource(source, request.param("resourceId"), client);
+                return updateResource(source, request.param("resource_id"), client);
             default:
                 throw new IllegalArgumentException("Illegal method: " + request.method());
         }

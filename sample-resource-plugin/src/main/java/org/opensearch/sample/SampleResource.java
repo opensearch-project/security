@@ -24,6 +24,9 @@ import org.opensearch.security.spi.resources.Resource;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
+/**
+ * Sample resource declared by this plugin.
+ */
 public class SampleResource implements Resource {
 
     private String name;

@@ -14,8 +14,9 @@ package org.opensearch.sample;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
 
 /**
- * This class demonstrates a sample implementation of Basic Access Scopes to fit each plugin's use-case.
- * The plugin then uses this scope when seeking access evaluation for a user on a particular resource.
+ * This class implements two scopes  for the sample plugin.
+ * The first scope is SAMPLE_FULL_ACCESS, which allows full access to the sample plugin.
+ * The second scope is PUBLIC, which allows public access to the sample plugin.
  */
 public enum SampleResourceScope implements ResourceAccessScope<SampleResourceScope> {
 

@@ -15,11 +15,11 @@ import org.opensearch.action.ActionType;
  */
 public class RevokeResourceAccessAction extends ActionType<RevokeResourceAccessResponse> {
     /**
-     * Share sample resource action instance
+     * Revoke sample resource action instance
      */
     public static final RevokeResourceAccessAction INSTANCE = new RevokeResourceAccessAction();
     /**
-     * Share sample resource action name
+     * Revoke sample resource action name
      */
     public static final String NAME = "cluster:admin/sample-resource-plugin/revoke";
 

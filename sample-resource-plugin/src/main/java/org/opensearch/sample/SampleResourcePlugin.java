@@ -64,7 +64,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
  * Sample Resource plugin.
- * It uses ".sample_resources" index to manage its resources, and exposes a REST API
+ * It uses ".sample_resource_sharing_plugin" index to manage its resources, and exposes few REST APIs that manage CRUD operations on sample resources.
  *
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourceSharingExtension {

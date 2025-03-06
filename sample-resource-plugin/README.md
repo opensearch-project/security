@@ -1,12 +1,17 @@
 # Resource Sharing and Access Control Plugin
 
 This plugin demonstrates resource sharing and access control functionality, providing sample resource APIs and marking it as a resource sharing plugin via resource-sharing-spi. The access control is implemented on Security plugin and will be performed under the hood.
+At present only admin and resource owners can modify/delete the resource
 
 ## PreRequisites
 
-Publish SPI to local maven before proceeding:
+Publish SPI, Common and Client to local maven before proceeding:
 ```shell
 ./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal
+
+./gradlew clean :opensearch-security-common:publishToMavenLocal
+
+./gradlew clean :opensearch-security-client:publishToMavenLocal
 ```
 
 System index feature must be enabled to prevent direct access to resource. Add the following setting in case it has not already been enabled.
@@ -16,7 +21,7 @@ plugins.security.system_indices.enabled: true
 
 ## Features
 
-- Create, update and delete resources.
+- Create, update, get, delete resources, as well as share and revoke access to a resource.
 
 ## API Endpoints
 
@@ -63,7 +68,6 @@ The plugin exposes the following six API endpoints:
     "message": "Resource <resource_id> deleted successfully."
   }
   ```
-
 
 ### 4. Get Resource
 - **Endpoint:** `GET /_plugins/sample_resource_sharing/get/{resource_id}`

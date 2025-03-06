@@ -16,7 +16,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
 /**
- * Request object for CreateSampleResource transport action
+ * Request object for DeleteSampleResource transport action
  */
 public class DeleteResourceRequest extends ActionRequest {
 

@@ -27,6 +27,9 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action for revoking resource access.
+ */
 public class RevokeResourceAccessTransportAction extends HandledTransportAction<RevokeResourceAccessRequest, RevokeResourceAccessResponse> {
     private static final Logger log = LogManager.getLogger(RevokeResourceAccessTransportAction.class);
 

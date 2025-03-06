@@ -15,11 +15,11 @@ import org.opensearch.action.ActionType;
  */
 public class UpdateResourceAction extends ActionType<CreateResourceResponse> {
     /**
-     * Create sample resource action instance
+     * Update sample resource action instance
      */
     public static final UpdateResourceAction INSTANCE = new UpdateResourceAction();
     /**
-     * Create sample resource action name
+     * Update sample resource action name
      */
     public static final String NAME = "cluster:admin/sample-resource-plugin/update";
 

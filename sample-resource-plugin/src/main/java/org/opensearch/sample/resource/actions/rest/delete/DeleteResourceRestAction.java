@@ -20,6 +20,9 @@ import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
+/**
+ * Rest Action to delete a Sample Resource.
+ */
 public class DeleteResourceRestAction extends BaseRestHandler {
 
     public DeleteResourceRestAction() {}

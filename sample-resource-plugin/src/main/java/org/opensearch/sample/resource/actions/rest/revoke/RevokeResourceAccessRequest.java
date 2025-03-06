@@ -20,7 +20,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
 /**
- * Request object for revoking access to a sample resource transport action
+ * Request object for revoking access to a sample resource
  */
 public class RevokeResourceAccessRequest extends ActionRequest {
 

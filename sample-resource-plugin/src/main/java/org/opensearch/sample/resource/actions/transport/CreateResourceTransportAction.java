@@ -33,6 +33,9 @@ import org.opensearch.transport.client.Client;
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action for creating a new resource.
+ */
 public class CreateResourceTransportAction extends HandledTransportAction<CreateResourceRequest, CreateResourceResponse> {
     private static final Logger log = LogManager.getLogger(CreateResourceTransportAction.class);
 

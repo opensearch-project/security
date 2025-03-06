@@ -35,6 +35,9 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action for deleting a resource
+ */
 public class DeleteResourceTransportAction extends HandledTransportAction<DeleteResourceRequest, DeleteResourceResponse> {
     private static final Logger log = LogManager.getLogger(DeleteResourceTransportAction.class);
 

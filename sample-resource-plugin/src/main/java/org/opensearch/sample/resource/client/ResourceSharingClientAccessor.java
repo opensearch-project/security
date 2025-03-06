@@ -12,16 +12,19 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.client.resources.ResourceSharingNodeClient;
 import org.opensearch.transport.client.node.NodeClient;
 
+/**
+ * Accessor for resource sharing node client.
+ */
 public class ResourceSharingClientAccessor {
     private static ResourceSharingNodeClient INSTANCE;
 
     private ResourceSharingClientAccessor() {}
 
     /**
-     * get machine learning client.
+     * Get resource sharing client
      *
      * @param nodeClient node client
-     * @return machine learning client
+     * @return resource sharing client
      */
     public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
         if (INSTANCE == null) {

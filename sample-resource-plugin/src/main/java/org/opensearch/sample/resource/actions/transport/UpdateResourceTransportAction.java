@@ -38,6 +38,9 @@ import org.opensearch.transport.client.node.NodeClient;
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
+/**
+ * Transport action for updating a resource.
+ */
 public class UpdateResourceTransportAction extends HandledTransportAction<UpdateResourceRequest, CreateResourceResponse> {
     private static final Logger log = LogManager.getLogger(UpdateResourceTransportAction.class);
 
