@@ -14,6 +14,10 @@ package org.opensearch.security.common.resources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * This class is responsible for managing the resource sharing index.
+ * It provides methods to create the index if it doesn't exist.
+ */
 public class ResourceSharingIndexManagementRepository {
 
     private static final Logger log = LogManager.getLogger(ResourceSharingIndexManagementRepository.class);

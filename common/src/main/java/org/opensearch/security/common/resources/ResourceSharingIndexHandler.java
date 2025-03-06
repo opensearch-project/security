@@ -115,7 +115,7 @@ public class ResourceSharingIndexHandler {
      * - created_by (object): Information about the user who created the sharing
      * - user (keyword): Username of the creator
      * - share_with (object): Access control configuration for shared resources
-     * - [group_name] (object): Name of the access group
+     * - [scope] (object): Name of the scope
      * - users (array): List of users with access
      * - roles (array): List of roles with access
      * - backend_roles (array): List of backend roles with access
@@ -160,7 +160,7 @@ public class ResourceSharingIndexHandler {
      * @param shareWith     Object containing the sharing permissions' configuration. Can be null for initial creation.
      *                      When provided, it should contain the access control settings for different groups:
      *                      {
-     *                      "group_name": {
+     *                      "scope": {
      *                      "users": ["user1", "user2"],
      *                      "roles": ["role1", "role2"],
      *                      "backend_roles": ["backend_role1"]

@@ -10,6 +10,10 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.security.spi.resources.ResourceProvider;
 
+/**
+ * This class provides information about resource plugins and their associated resource providers and indices.
+ * It follows the Singleton pattern to ensure that only one instance of the class exists.
+ */
 public class ResourcePluginInfo {
     private static ResourcePluginInfo INSTANCE;
 

@@ -366,7 +366,15 @@ public class ResourceAccessHandler {
         );
     }
 
-    public void checkRawAccessPermission(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
+    /**
+     * Checks if the current user has permission to modify a resource.
+     * NOTE: Only admins and owners of the resource can modify the resource.
+     * TODO: update this method to allow for other users to modify the resource.
+     * @param resourceId    The resource ID to check.
+     * @param resourceIndex The resource index containing the resource.
+     * @param listener      The listener to be notified with the permission check result.
+     */
+    public void canModifyResource(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
         try {
             validateArguments(resourceId, resourceIndex);
 
@@ -386,7 +394,8 @@ public class ResourceAccessHandler {
             fetchDocListener.whenComplete(document -> {
                 if (document == null) {
                     LOGGER.info("Document {} does not exist in index {}", resourceId, resourceIndex);
-                    listener.onResponse(false);
+                    // Either the document was deleted or has not been created yet. No permission check is needed for this.
+                    listener.onResponse(true);
                     return;
                 }
 

@@ -8,6 +8,7 @@
 
 /**
  * This package defines common classes required to implement resource access control in OpenSearch.
+ * TODO: At present it contains multiple duplicates, which will be address in a fast follow PR.
  *
  * @opensearch.experimental
  */
