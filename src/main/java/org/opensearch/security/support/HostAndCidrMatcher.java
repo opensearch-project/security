@@ -58,13 +58,8 @@ public class HostAndCidrMatcher {
             return false;
         }
 
-        try {
-            IPAddressString addressString = new IPAddressString(address.getHostAddress());
-            return cidrMatchers.stream().anyMatch(cidrAddress -> cidrAddress.contains(addressString));
-        } catch (Exception e) {
-            log.warn("Failed to process IP address {}: {}", address, e.getMessage());
-            throw new RuntimeException("Invalid Address format used");
-        }
+        IPAddressString addressString = new IPAddressString(address.getHostAddress());
+        return cidrMatchers.stream().anyMatch(cidrAddress -> cidrAddress.contains(addressString));
     }
 
     /**
