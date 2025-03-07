@@ -173,7 +173,7 @@ public class ResourceAccessHandler {
         try {
             validateArguments(resourceIndex);
 
-            ResourceParser<T> parser = ResourcePluginInfo.getInstance().getResourceProviders().get(resourceIndex).getResourceParser();
+            ResourceParser<T> parser = ResourcePluginInfo.getInstance().getResourceProviders().get(resourceIndex).resourceParser();
 
             StepListener<Set<String>> resourceIdsListener = new StepListener<>();
             StepListener<Set<T>> resourcesListener = new StepListener<>();
@@ -364,55 +364,6 @@ public class ResourceAccessHandler {
                 listener.onFailure(exception);
             })
         );
-    }
-
-    /**
-     * Checks if the current user has permission to modify a resource.
-     * NOTE: Only admins and owners of the resource can modify the resource.
-     * TODO: update this method to allow for other users to modify the resource.
-     * @param resourceId    The resource ID to check.
-     * @param resourceIndex The resource index containing the resource.
-     * @param listener      The listener to be notified with the permission check result.
-     */
-    public void canModifyResource(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        try {
-            validateArguments(resourceId, resourceIndex);
-
-            final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-            );
-            final User user = (userSubject == null) ? null : userSubject.getUser();
-
-            if (user == null) {
-                listener.onFailure(new ResourceSharingException("No authenticated user available."));
-                return;
-            }
-
-            StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
-            resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId, fetchDocListener);
-
-            fetchDocListener.whenComplete(document -> {
-                if (document == null) {
-                    LOGGER.info("Document {} does not exist in index {}", resourceId, resourceIndex);
-                    // Either the document was deleted or has not been created yet. No permission check is needed for this.
-                    listener.onResponse(true);
-                    return;
-                }
-
-                boolean isAdmin = adminDNs.isAdmin(user);
-                boolean isOwner = isOwnerOfResource(document, user.getName());
-
-                if (!isAdmin && !isOwner) {
-                    LOGGER.info("User {} does not have access to delete the record {}", user.getName(), resourceId);
-                    listener.onResponse(false);
-                } else {
-                    listener.onResponse(true);
-                }
-            }, listener::onFailure);
-        } catch (Exception e) {
-            LOGGER.error("Failed to check delete permission for resource {}", resourceId, e);
-            listener.onFailure(e);
-        }
     }
 
     /**

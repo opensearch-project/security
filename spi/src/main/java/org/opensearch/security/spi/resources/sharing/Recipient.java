@@ -8,6 +8,10 @@
 
 package org.opensearch.security.spi.resources.sharing;
 
+/**
+ * Enum representing the recipients of a shared resource.
+ * It includes USERS, ROLES, and BACKEND_ROLES.
+ */
 public enum Recipient {
     USERS("users"),
     ROLES("roles"),

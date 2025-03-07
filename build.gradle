@@ -645,6 +645,7 @@ tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generate
 check.dependsOn integrationTest
 
 dependencies {
+    compileOnly project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
     implementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"

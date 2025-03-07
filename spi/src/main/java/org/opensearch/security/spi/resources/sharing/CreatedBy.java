@@ -19,7 +19,6 @@ import org.opensearch.core.xcontent.XContentParser;
 
 /**
  * This class is used to store information about the creator of a resource.
- * Concrete implementation will be provided by security plugin
  *
  * @opensearch.experimental
  */

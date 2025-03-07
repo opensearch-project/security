@@ -22,7 +22,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 /**
- * This class represents the scope at which a resource is shared with.
+ * This class represents the scope at which a resource is shared with for a particular scope.
  * Example:
  * "read_only": {
  * "users": [],

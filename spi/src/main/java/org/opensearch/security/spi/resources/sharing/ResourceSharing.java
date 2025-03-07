@@ -20,10 +20,6 @@ import org.opensearch.core.xcontent.XContentParser;
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
  * This class holds information about shared resources including their source, creator, and sharing permissions.
- *
- * <p>This class implements {@link ToXContentFragment} for JSON serialization and {@link NamedWriteable}
- * for stream-based serialization.</p>
- * <p>
  * The class maintains information about:
  * <ul>
  *   <li>The source index where the resource is defined</li>

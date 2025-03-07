@@ -17,7 +17,7 @@ import org.opensearch.core.xcontent.ToXContentFragment;
 public interface Resource extends NamedWriteable, ToXContentFragment {
     /**
      * Abstract method to get the resource name.
-     * Must be implemented by subclasses.
+     * Must be implemented by plugins defining resources.
      *
      * @return resource name
      */

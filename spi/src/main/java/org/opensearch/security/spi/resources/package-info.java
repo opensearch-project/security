@@ -7,8 +7,9 @@
  */
 
 /**
- * This package defines class required to implement resource access control in OpenSearch.
+ * This package defines classes required to implement resource access control in OpenSearch.
+ * This package will be added as a dependency by all OpenSearch plugins that require resource access control.
  *
  * @opensearch.experimental
  */
-package main.java.org.opensearch.security.spi.resources;
+package org.opensearch.security.spi.resources;

@@ -11,7 +11,7 @@ package org.opensearch.security.spi.resources;
 import java.util.Arrays;
 
 /**
- * This interface defines the two basic access scopes for resource-access.
+ * This interface defines the two basic access scopes for resource-access. Plugins can decide whether to use these.
  * Each plugin must implement their own scopes and manage them.
  * These access scopes will then be used to verify the type of access being requested.
  *

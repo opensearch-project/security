@@ -8,6 +8,11 @@
 
 package org.opensearch.security.spi.resources.sharing;
 
+/**
+ * This enum is used to store information about the creator of a resource.
+ *
+ * @opensearch.experimental
+ */
 public enum Creator {
     USER("user");
 

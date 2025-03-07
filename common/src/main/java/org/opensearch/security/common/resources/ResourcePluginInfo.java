@@ -8,8 +8,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.security.spi.resources.ResourceProvider;
-
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
  * It follows the Singleton pattern to ensure that only one instance of the class exists.

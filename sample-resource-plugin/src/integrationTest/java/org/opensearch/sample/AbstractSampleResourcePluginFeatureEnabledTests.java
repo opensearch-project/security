@@ -14,8 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.security.common.resources.ResourcePluginInfo;
+import org.opensearch.security.common.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
-import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 

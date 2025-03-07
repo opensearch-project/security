@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
-import org.opensearch.security.spi.resources.ResourceProvider;
+import org.opensearch.security.common.resources.ResourceProvider;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
