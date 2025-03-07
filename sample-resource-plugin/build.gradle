@@ -72,8 +72,7 @@ configurations.all {
 
 dependencies {
     // Main implementation dependencies
-    compileOnly project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
-    compileOnly project(path: ":${rootProject.name}-client", configuration: 'shadow')
+    implementation project(path: ":${rootProject.name}-client", configuration: 'shadow')
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies

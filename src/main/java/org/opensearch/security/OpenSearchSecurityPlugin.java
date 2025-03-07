@@ -292,7 +292,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexManagementRepository rmr;
-    private ResourceAccessHandler resourceAccessHandler;
 
     public static boolean isActionTraceEnabled() {
 
@@ -754,7 +753,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Listening on POST and DELETE operations in resource indices
             ResourceIndexListener resourceIndexListener = ResourceIndexListener.getInstance();
-            resourceIndexListener.initialize(threadPool, localClient, adminDNsCommon);
+            resourceIndexListener.initialize(threadPool, localClient);
             if (settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
@@ -1170,7 +1169,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
-        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDNsCommon);
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDNsCommon);
         resourceAccessHandler.initializeRecipientTypes();
         // Resource Sharing index is enabled by default
         boolean isResourceSharingEnabled = settings.getAsBoolean(

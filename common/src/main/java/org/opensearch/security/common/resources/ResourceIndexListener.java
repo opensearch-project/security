@@ -19,7 +19,6 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.common.auth.UserSubjectImpl;
-import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.common.user.User;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
@@ -36,7 +35,6 @@ public class ResourceIndexListener implements IndexingOperationListener {
     private static final Logger log = LogManager.getLogger(ResourceIndexListener.class);
     private static final ResourceIndexListener INSTANCE = new ResourceIndexListener();
     private ResourceSharingIndexHandler resourceSharingIndexHandler;
-    private ResourceAccessHandler resourceAccessHandler;
 
     private boolean initialized;
     private ThreadPool threadPool;
@@ -47,7 +45,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         return ResourceIndexListener.INSTANCE;
     }
 
-    public void initialize(ThreadPool threadPool, Client client, AdminDNs adminDns) {
+    public void initialize(ThreadPool threadPool, Client client) {
         if (initialized) {
             return;
         }
@@ -58,7 +56,6 @@ public class ResourceIndexListener implements IndexingOperationListener {
             client,
             threadPool
         );
-        this.resourceAccessHandler = new ResourceAccessHandler(threadPool, this.resourceSharingIndexHandler, adminDns);
     }
 
     public boolean isInitialized() {

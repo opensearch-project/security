@@ -79,14 +79,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         Map<String, Object> shareWith,
         ActionListener<ResourceSharing> listener
     ) {
-        if (!resourceSharingEnabled) {
-            log.warn("Resource Access Control feature is disabled. Resource is not shareable.");
-            listener.onFailure(
-                new OpenSearchException(
-                    "Resource Access Control feature is disabled. Resource is not shareable.",
-                    RestStatus.NOT_IMPLEMENTED
-                )
-            );
+        if (isResourceAccessControlDisabled("Resource is not shareable.", listener)) {
             return;
         }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.SHARE)
@@ -113,14 +106,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         Set<String> scopes,
         ActionListener<ResourceSharing> listener
     ) {
-        if (!resourceSharingEnabled) {
-            log.warn("Resource Access Control feature is disabled. Resource access is not revoked.");
-            listener.onFailure(
-                new OpenSearchException(
-                    "Resource Access Control feature is disabled. Resource access is not revoked.",
-                    RestStatus.NOT_IMPLEMENTED
-                )
-            );
+        if (isResourceAccessControlDisabled("Resource access is not revoked.", listener)) {
             return;
         }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.REVOKE)
@@ -130,6 +116,24 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
             .scopes(scopes)
             .build();
         client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
+    }
+
+    /**
+     * Helper method for share/revoke to check and return early is resource sharing is disabled
+     * @param disabledMessage The message to be logged if resource sharing is disabled.
+     * @param listener        The listener to be notified with the error.
+     * @return true if resource sharing is enabled, false otherwise.
+     */
+    private boolean isResourceAccessControlDisabled(String disabledMessage, ActionListener<?> listener) {
+        if (!resourceSharingEnabled) {
+            log.warn("Resource Access Control feature is disabled. {}", disabledMessage);
+
+            listener.onFailure(
+                new OpenSearchException("Resource Access Control feature is disabled. " + disabledMessage, RestStatus.NOT_IMPLEMENTED)
+            );
+            return true;
+        }
+        return false;
     }
 
     /**

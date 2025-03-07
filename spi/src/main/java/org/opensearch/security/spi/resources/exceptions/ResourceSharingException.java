@@ -43,7 +43,7 @@ public class ResourceSharingException extends OpenSearchException {
         String message = getMessage();
         if (message.contains("not authorized")) {
             return RestStatus.FORBIDDEN;
-        } else if (message.contains("no authenticated")) {
+        } else if (message.startsWith("No authenticated")) {
             return RestStatus.UNAUTHORIZED;
         } else if (message.contains("not found")) {
             return RestStatus.NOT_FOUND;

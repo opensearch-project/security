@@ -38,7 +38,7 @@ import org.opensearch.security.spi.resources.sharing.SharedWithScope;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
- * This class handles resource access permissions for users and roles.
+ * This class handles resource access permissions for users, roles and backend-roles.
  * It provides methods to check if a user has permission to access a resource
  * based on the resource sharing configuration.
  */
@@ -219,7 +219,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user found in ThreadContext");
+            LOGGER.warn("No authenticated user found. Access to resource {} is not authorized", resourceId);
             listener.onResponse(false);
             return;
         }
@@ -282,8 +282,8 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user found in the ThreadContext.");
-            listener.onFailure(new ResourceSharingException("No authenticated user found."));
+            LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);
+            listener.onFailure(new ResourceSharingException("No authenticated user found. Failed to share resource " + resourceId));
             return;
         }
 
@@ -338,16 +338,9 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user != null) {
-            LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
+            LOGGER.info("User {} revoking access to resource {} for {} for scopes {}.", user.getName(), resourceId, revokeAccess, scopes);
         } else {
-            listener.onFailure(
-                new ResourceSharingException(
-                    "Failed to revoke access to resource {} for {} for scopes {} with no authenticated user",
-                    resourceId,
-                    revokeAccess,
-                    scopes
-                )
-            );
+            listener.onFailure(new ResourceSharingException("No authenticated user found. Failed to share resource " + resourceId));
         }
 
         boolean isAdmin = (user != null) && adminDNs.isAdmin(user);
