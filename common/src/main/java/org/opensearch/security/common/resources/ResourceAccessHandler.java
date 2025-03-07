@@ -86,12 +86,12 @@ public class ResourceAccessHandler {
 
         // If no user is authenticated, return an empty set
         if (user == null) {
-            LOGGER.info("Unable to fetch user details.");
+            LOGGER.warn("Unable to fetch user details. User is null.");
             listener.onResponse(Collections.emptySet());
             return;
         }
 
-        LOGGER.info("Listing accessible resources within the resource index {} for user: {}", resourceIndex, user.getName());
+        LOGGER.debug("Listing accessible resources within the resource index {} for user: {}", resourceIndex, user.getName());
 
         // 2. If the user is admin, simply fetch all resources
         if (adminDNs.isAdmin(user)) {
@@ -198,6 +198,7 @@ public class ResourceAccessHandler {
                 ex -> listener.onFailure(new ResourceSharingException("Failed to get accessible resources: " + ex.getMessage(), ex))
             );
         } catch (Exception e) {
+            LOGGER.warn("Failed to process accessible resources request: {}", e.getMessage());
             listener.onFailure(new ResourceSharingException("Failed to process accessible resources request: " + e.getMessage(), e));
         }
     }
@@ -224,10 +225,10 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.info("Checking if user '{}' has '{}' permission to resource '{}'", user.getName(), scope, resourceId);
+        LOGGER.debug("Checking if user '{}' has '{}' permission to resource '{}'", user.getName(), scope, resourceId);
 
         if (adminDNs.isAdmin(user)) {
-            LOGGER.info("User '{}' is admin, automatically granted '{}' permission on '{}'", user.getName(), scope, resourceId);
+            LOGGER.debug("User '{}' is admin, automatically granted '{}' permission on '{}'", user.getName(), scope, resourceId);
             listener.onResponse(true);
             return;
         }
@@ -248,10 +249,10 @@ public class ResourceAccessHandler {
                 || isSharedWithEntity(document, Recipient.ROLES, userRoles, scope)
                 || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, scope)) {
 
-                LOGGER.info("User '{}' has '{}' permission to resource '{}'", user.getName(), scope, resourceId);
+                LOGGER.debug("User '{}' has '{}' permission to resource '{}'", user.getName(), scope, resourceId);
                 listener.onResponse(true);
             } else {
-                LOGGER.info("User '{}' does not have '{}' permission to resource '{}'", user.getName(), scope, resourceId);
+                LOGGER.debug("User '{}' does not have '{}' permission to resource '{}'", user.getName(), scope, resourceId);
                 listener.onResponse(false);
             }
         }, exception -> {
@@ -287,7 +288,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
+        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
@@ -297,18 +298,13 @@ public class ResourceAccessHandler {
             user.getName(),
             shareWith,
             isAdmin,
-            ActionListener.wrap(
-                // On success, return the updated ResourceSharing
-                updatedResourceSharing -> {
-                    LOGGER.info("Successfully shared resource {} with {}", resourceId, shareWith.toString());
-                    listener.onResponse(updatedResourceSharing);
-                },
-                // On failure, log and pass the exception along
-                e -> {
-                    LOGGER.error("Failed to share resource {} with {}: {}", resourceId, shareWith.toString(), e.getMessage());
-                    listener.onFailure(e);
-                }
-            )
+            ActionListener.wrap(updatedResourceSharing -> {
+                LOGGER.debug("Successfully shared resource {} with {}", resourceId, shareWith.toString());
+                listener.onResponse(updatedResourceSharing);
+            }, e -> {
+                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, shareWith.toString(), e.getMessage());
+                listener.onFailure(e);
+            })
         );
     }
 
@@ -328,29 +324,31 @@ public class ResourceAccessHandler {
         Set<String> scopes,
         ActionListener<ResourceSharing> listener
     ) {
-        // Validate input
         validateArguments(resourceId, resourceIndex, revokeAccess, scopes);
 
-        // Retrieve user
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
-        if (user != null) {
-            LOGGER.info("User {} revoking access to resource {} for {} for scopes {}.", user.getName(), resourceId, revokeAccess, scopes);
-        } else {
-            listener.onFailure(new ResourceSharingException("No authenticated user found. Failed to share resource " + resourceId));
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Failed to revoker access to resource {}", resourceId);
+            listener.onFailure(
+                new ResourceSharingException("No authenticated user found. Failed to revoke access to resource {}" + resourceId)
+            );
+            return;
         }
 
-        boolean isAdmin = (user != null) && adminDNs.isAdmin(user);
+        LOGGER.debug("User {} revoking access to resource {} for {} for scopes {}.", user.getName(), resourceId, revokeAccess, scopes);
+
+        boolean isAdmin = adminDNs.isAdmin(user);
 
         this.resourceSharingIndexHandler.revokeAccess(
             resourceId,
             resourceIndex,
             revokeAccess,
             scopes,
-            (user != null ? user.getName() : null),
+            user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {
                 LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
@@ -370,7 +368,7 @@ public class ResourceAccessHandler {
         try {
             validateArguments(resourceId, resourceIndex);
 
-            LOGGER.info("Deleting resource sharing record for resource {} in {}", resourceId, resourceIndex);
+            LOGGER.debug("Deleting resource sharing record for resource {} in {}", resourceId, resourceIndex);
 
             StepListener<Boolean> deleteDocListener = new StepListener<>();
             resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex, deleteDocListener);
@@ -398,7 +396,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.info("Deleting all resource sharing records for user {}", user.getName());
+        LOGGER.debug("Deleting all resource sharing records for user {}", user.getName());
 
         resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName(), ActionListener.wrap(listener::onResponse, exception -> {
             LOGGER.error(

@@ -90,7 +90,12 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 new CreatedBy(Creator.USER, user.getName()),
                 null
             );
-            log.debug("Successfully created a resource sharing entry {}", sharing);
+            log.debug(
+                "Successfully created a resource sharing entry {} for resource {} within index {}",
+                sharing,
+                resourceId,
+                resourceIndex
+            );
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);
         }

@@ -182,16 +182,20 @@ public class ResourceSharingIndexHandler {
                 .request();
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(
-                idxResponse -> LOGGER.info("Successfully created {} entry.", resourceSharingIndex),
+                idxResponse -> LOGGER.info(
+                    "Successfully created {} entry for resource {} in index {}.",
+                    resourceSharingIndex,
+                    resourceId,
+                    resourceIndex
+                ),
                 (failResponse) -> {
                     LOGGER.error(failResponse.getMessage());
-                    LOGGER.info("Failed to create {} entry.", resourceSharingIndex);
                 }
             );
             client.index(ir, irListener);
             return entry;
         } catch (Exception e) {
-            LOGGER.info("Failed to create {} entry.", resourceSharingIndex, e);
+            LOGGER.error("Failed to create {} entry.", resourceSharingIndex, e);
             throw new ResourceSharingException("Failed to create " + resourceSharingIndex + " entry.", e);
         }
     }
@@ -563,7 +567,7 @@ public class ResourceSharingIndexHandler {
                 .must(QueryBuilders.termQuery(field + ".keyword", value));
 
             executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
-                LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
+                LOGGER.debug("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
                 listener.onResponse(resourceIds);
             }, exception -> {
                 LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, exception);
@@ -985,10 +989,10 @@ public class ResourceSharingIndexHandler {
                 public void onResponse(BulkByScrollResponse response) {
                     long updated = response.getUpdated();
                     if (updated > 0) {
-                        LOGGER.info("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
+                        LOGGER.debug("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
                         listener.onResponse(true);
                     } else {
-                        LOGGER.info(
+                        LOGGER.debug(
                             "No documents found to update in {} for source_idx: {} and resource_id: {}",
                             resourceSharingIndex,
                             sourceIdx,
@@ -996,12 +1000,10 @@ public class ResourceSharingIndexHandler {
                         );
                         listener.onResponse(false);
                     }
-
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-
                     LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
                     listener.onFailure(e);
 
@@ -1226,10 +1228,10 @@ public class ResourceSharingIndexHandler {
 
                     long deleted = response.getDeleted();
                     if (deleted > 0) {
-                        LOGGER.info("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
+                        LOGGER.debug("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
                         listener.onResponse(true);
                     } else {
-                        LOGGER.info(
+                        LOGGER.debug(
                             "No documents found to delete in {} for source_idx: {} and resource_id: {}",
                             resourceSharingIndex,
                             sourceIdx,
@@ -1316,10 +1318,10 @@ public class ResourceSharingIndexHandler {
                 public void onResponse(BulkByScrollResponse response) {
                     long deletedDocs = response.getDeleted();
                     if (deletedDocs > 0) {
-                        LOGGER.info("Successfully deleted {} documents created by user {}", deletedDocs, name);
+                        LOGGER.debug("Successfully deleted {} documents created by user {}", deletedDocs, name);
                         listener.onResponse(true);
                     } else {
-                        LOGGER.info("No documents found for user {}", name);
+                        LOGGER.warn("No documents found for user {}", name);
                         // No documents matched => success = false
                         listener.onResponse(false);
                     }

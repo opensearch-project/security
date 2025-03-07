@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class ResourceSharingIndexManagementRepository {
 
-    private static final Logger log = LogManager.getLogger(ResourceSharingIndexManagementRepository.class);
+    private static final Logger LOGGER = LogManager.getLogger(ResourceSharingIndexManagementRepository.class);
 
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final boolean resourceSharingEnabled;
@@ -49,7 +49,7 @@ public class ResourceSharingIndexManagementRepository {
     public void createResourceSharingIndexIfAbsent() {
         // TODO check if this should be wrapped in an atomic completable future
         if (resourceSharingEnabled) {
-            log.info("Attempting to create Resource Sharing index");
+            LOGGER.debug("Attempting to create Resource Sharing index");
             this.resourceSharingIndexHandler.createResourceSharingIndexIfAbsent(() -> null);
         }
 
