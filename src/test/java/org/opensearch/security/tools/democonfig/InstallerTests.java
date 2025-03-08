@@ -118,7 +118,7 @@ public class InstallerTests {
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -134,7 +134,7 @@ public class InstallerTests {
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -175,7 +175,7 @@ public class InstallerTests {
         assertThat(installer.cluster_mode, is(true));
 
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
