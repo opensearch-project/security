@@ -118,7 +118,7 @@ public class InstallerTests {
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -134,7 +134,7 @@ public class InstallerTests {
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -175,7 +175,7 @@ public class InstallerTests {
         assertThat(installer.cluster_mode, is(true));
 
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-                                                                                                                     // y
+        // y
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -307,8 +307,8 @@ public class InstallerTests {
         setUpSecurityDirectories();
         installer.setSecurityVariables();
 
-        assertThat(installer.OPENSEARCH_VERSION, is(equalTo("osVersion")));
-        assertThat(installer.SECURITY_VERSION, is(equalTo("version")));
+        assertThat(installer.OPENSEARCH_VERSION, is(equalTo("3.0.0-Version")));
+        assertThat(installer.SECURITY_VERSION, is(equalTo("3.0.0.0-version")));
         tearDownSecurityDirectories();
     }
 
@@ -481,8 +481,11 @@ public class InstallerTests {
         createDirectory(installer.OPENSEARCH_LIB_PATH);
         createDirectory(installer.OPENSEARCH_CONF_DIR);
         createDirectory(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security");
-        createFile(installer.OPENSEARCH_LIB_PATH + "opensearch-core-osVersion.jar");
-        createFile(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-version.jar");
+        createFile(installer.OPENSEARCH_LIB_PATH + "opensearch-core-3.0.0-Version.jar");
+        createFile(
+            installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-common-3.0.0.0-version.jar"
+        );
+        createFile(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-3.0.0.0-version.jar");
         createFile(installer.OPENSEARCH_CONF_DIR + File.separator + "securityadmin_demo.sh");
     }
 

@@ -51,12 +51,14 @@ import org.opensearch.transport.client.node.NodeClient;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class DashboardsInfoAction extends BaseRestHandler {
+
+    private static final String KIBANAINFO_ROUTE_DEPRECATION_MESSAGE =
+        "[_opendistro/_security/kibanainfo] is a deprecated endpoint path. Please use _plugins/_security/dashboardsinfo instead.";;
 
     private static final List<Route> routes = ImmutableList.<Route>builder()
         .addAll(
@@ -68,8 +70,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
         .addAll(
             addDeprecatedRoutesPrefix(
                 ImmutableList.of(
-                    new DeprecatedRoute(GET, "/kibanainfo", OPENDISTRO_API_DEPRECATION_MESSAGE),
-                    new DeprecatedRoute(POST, "/kibanainfo", OPENDISTRO_API_DEPRECATION_MESSAGE)
+                    new DeprecatedRoute(GET, "/kibanainfo", KIBANAINFO_ROUTE_DEPRECATION_MESSAGE),
+                    new DeprecatedRoute(POST, "/kibanainfo", KIBANAINFO_ROUTE_DEPRECATION_MESSAGE)
                 ),
                 LEGACY_PLUGIN_ROUTE_PREFIX
             )
