@@ -211,7 +211,7 @@ public class SSLRequestHelper {
         try {
 
             Collection<? extends CRL> crls = null;
-            final String crlFile = settings.get(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE);
+            final String crlFile = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE);
 
             if (crlFile != null) {
                 final File crl = env.configDir().resolve(crlFile).toAbsolutePath().toFile();
