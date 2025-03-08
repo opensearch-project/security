@@ -606,7 +606,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered)
         );
 
-        settings.add(Setting.simpleString(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false, Property.NodeScope, Property.Filtered));
         settings.add(
             Setting.boolSetting(
