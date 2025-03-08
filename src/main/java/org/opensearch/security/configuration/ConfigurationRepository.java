@@ -307,7 +307,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
         if (!deprecatedAuditKeysInSettings.isEmpty()) {
             LOGGER.warn(
-                "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
+                "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v4.0.0.0",
                 deprecatedAuditKeysInSettings
             );
         }
