@@ -849,9 +849,6 @@ public class IndexIntegrationTests extends SingleClusterTest {
         resc = rh.executeGetRequest("/*,-*security,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("/*,-*security,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
-        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-
         resc = rh.executeGetRequest("/*,-*security,-foo*,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
