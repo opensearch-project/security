@@ -95,12 +95,12 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
                 UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
 
-                log.info("Update Request: {}", ur.toString());
+                log.debug("Update Request: {}", ur.toString());
 
                 nodeClient.update(
                     ur,
                     ActionListener.wrap(
-                        updateResponse -> { log.info("Updated resource: {}", updateResponse.toString()); },
+                        updateResponse -> { log.debug("Updated resource: {}", updateResponse.toString()); },
                         listener::onFailure
                     )
                 );
@@ -111,7 +111,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
                 new CreateResourceResponse("Resource " + request.getResource().getResourceName() + " updated successfully.")
             );
         } catch (Exception e) {
-            log.info("Failed to update resource: {}", request.getResourceId(), e);
+            log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);
         }
 

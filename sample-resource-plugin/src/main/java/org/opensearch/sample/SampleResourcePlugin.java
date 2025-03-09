@@ -84,7 +84,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        log.info("Loaded SampleResourcePlugin components.");
         return Collections.emptyList();
     }
 
