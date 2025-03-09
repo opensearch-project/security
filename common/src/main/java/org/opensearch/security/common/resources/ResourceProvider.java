@@ -13,6 +13,8 @@ import org.opensearch.security.spi.resources.ResourceParser;
 /**
  * This record class represents a resource provider.
  * It holds information about the resource type, resource index name, and a resource parser.
+ *
+ * @opensearch.experimental
  */
 public record ResourceProvider(String resourceType, String resourceIndexName, ResourceParser resourceParser) {
 

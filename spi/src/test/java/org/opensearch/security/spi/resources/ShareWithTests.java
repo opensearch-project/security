@@ -46,6 +46,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Test class for ShareWith class
+ *
+ * @opensearch.experimental
+ */
 public class ShareWithTests {
 
     @Before

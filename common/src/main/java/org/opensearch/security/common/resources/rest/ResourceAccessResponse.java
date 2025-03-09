@@ -20,6 +20,12 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
+/**
+ * This class is used to represent the response of a resource access request.
+ * It contains the response type and the response data.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessResponse extends ActionResponse implements ToXContentObject {
     public enum ResponseType {
         RESOURCES,

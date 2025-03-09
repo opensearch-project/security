@@ -12,6 +12,8 @@ package org.opensearch.security.common.resources;
 
 /**
  * This class contains constants related to resource sharing in OpenSearch.
+ *
+ * @opensearch.experimental
  */
 public class ResourceSharingConstants {
     // Resource sharing index

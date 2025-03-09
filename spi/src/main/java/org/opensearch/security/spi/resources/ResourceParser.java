@@ -12,6 +12,12 @@ import java.io.IOException;
 
 import org.opensearch.core.xcontent.XContentParser;
 
+/**
+ * Interface for parsing resources from XContentParser
+ * @param <T> the type of resource to be parsed
+ *
+ * @opensearch.experimental
+ */
 public interface ResourceParser<T extends Resource> {
     /**
      * Parse source bytes supplied by the parser to a desired Resource type

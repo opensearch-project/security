@@ -19,6 +19,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
 
+/**
+ * Tests for {@link RecipientTypeRegistry}.
+ *
+ * @opensearch.experimental
+ */
 public class RecipientTypeRegistryTests {
 
     @Test

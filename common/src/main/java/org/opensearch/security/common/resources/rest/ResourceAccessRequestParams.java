@@ -13,6 +13,12 @@ import java.io.IOException;
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
+/**
+ * This class is used to represent the request parameters for resource access.
+ * It implements the NamedWriteable interface to allow serialization and deserialization of the request parameters.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessRequestParams implements NamedWriteable {
     @Override
     public String getWriteableName() {

@@ -27,6 +27,8 @@ import org.opensearch.transport.client.Client;
 
 /**
  * Client for resource sharing operations.
+ *
+ * @opensearch.experimental
  */
 public final class ResourceSharingNodeClient implements ResourceSharingClient {
 

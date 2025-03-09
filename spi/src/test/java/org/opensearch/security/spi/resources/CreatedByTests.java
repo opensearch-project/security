@@ -32,6 +32,11 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Test class for CreatedBy class
+ *
+ * @opensearch.experimental
+ */
 public class CreatedByTests {
 
     private static final Creator CREATOR_TYPE = Creator.USER;

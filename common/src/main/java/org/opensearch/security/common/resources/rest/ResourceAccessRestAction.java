@@ -41,6 +41,9 @@ import static org.opensearch.security.common.support.Utils.addRoutesPrefix;
 
 /**
  * This class handles the REST API for resource access management.
+ * It provides endpoints for listing, revoking, sharing, and verifying resource access.
+ *
+ * @opensearch.experimental
  */
 public class ResourceAccessRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessRestAction.class);

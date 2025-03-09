@@ -20,6 +20,8 @@ import org.opensearch.core.rest.RestStatus;
 /**
  * This class represents an exception that occurs during resource sharing operations.
  * It extends the OpenSearchException class.
+ *
+ * @opensearch.experimental
  */
 public class ResourceSharingException extends OpenSearchException {
     public ResourceSharingException(Throwable cause) {

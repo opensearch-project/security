@@ -16,6 +16,8 @@ import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
 /**
  * Interface for resource sharing client operations.
+ *
+ * @opensearch.experimental
  */
 public interface ResourceSharingClient {
 

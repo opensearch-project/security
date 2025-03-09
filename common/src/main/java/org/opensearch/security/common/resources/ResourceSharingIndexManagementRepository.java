@@ -17,6 +17,8 @@ import org.apache.logging.log4j.Logger;
 /**
  * This class is responsible for managing the resource sharing index.
  * It provides methods to create the index if it doesn't exist.
+ *
+ * @opensearch.experimental
  */
 public class ResourceSharingIndexManagementRepository {
 

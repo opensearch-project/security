@@ -24,6 +24,11 @@ import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+/**
+ * Transport action for handling resource access requests.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessTransportAction extends HandledTransportAction<ResourceAccessRequest, ResourceAccessResponse> {
     private final ResourceAccessHandler resourceAccessHandler;
 

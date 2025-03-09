@@ -15,7 +15,7 @@ import java.util.Map;
  * This class determines a collection of recipient types a resource can be shared with.
  * Allows addition of other recipient types in the future.
  *
- *  @opensearch.experimental
+ * @opensearch.experimental
  */
 public final class RecipientTypeRegistry {
     // TODO: Check what size should this be. A cap should be added to avoid infinite addition of objects

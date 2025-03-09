@@ -29,6 +29,8 @@ import org.opensearch.transport.client.Client;
 
 /**
  * This class implements an index operation listener for operations performed on resources stored in plugin's indices.
+ *
+ * @opensearch.experimental
  */
 public class ResourceIndexListener implements IndexingOperationListener {
 

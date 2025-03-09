@@ -13,6 +13,8 @@ import org.opensearch.core.xcontent.ToXContentFragment;
 
 /**
  * Marker interface for all resources
+ *
+ * @opensearch.experimental
  */
 public interface Resource extends NamedWriteable, ToXContentFragment {
     /**

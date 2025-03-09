@@ -11,6 +11,8 @@ import com.google.common.collect.ImmutableSet;
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
  * It follows the Singleton pattern to ensure that only one instance of the class exists.
+ *
+ * @opensearch.experimental
  */
 public class ResourcePluginInfo {
     private static ResourcePluginInfo INSTANCE;

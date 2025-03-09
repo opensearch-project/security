@@ -10,6 +10,12 @@ package org.opensearch.security.common.resources.rest;
 
 import org.opensearch.action.ActionType;
 
+/**
+ * This class represents the action type for resource access.
+ * It is used to execute the resource access request and retrieve the response.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessAction extends ActionType<ResourceAccessResponse> {
 
     public static final ResourceAccessAction INSTANCE = new ResourceAccessAction();

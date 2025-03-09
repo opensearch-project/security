@@ -28,6 +28,12 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
+/**
+ * This class represents a request to access a resource.
+ * It encapsulates the operation, resource ID, resource index, scope, share with information, revoked entities, and scopes.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessRequest extends ActionRequest {
 
     public enum Operation {
