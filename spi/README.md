@@ -38,7 +38,7 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
 
 Checklist for resource plugin:
 1. Add a dependency on `opensearch-security-client` and `opensearch-resource-sharing-spi` in build.gradle.
-2. Under `src/main/resources` folder of the plugin, and declare a file named `org.opensearch.security.spi.resources.ResourceSharingExtension`. Edit that file to add single line containing classpath of your plugin, e.g `org.opensearch.sample.SampleResourcePlugin`. This is required to utilize Java's Service Provider Interface mechanism.
+2. Under `src/main/resources` folder of the plugin, locate or create a folder `META-INF/services`and in the services folder, declare a file named `org.opensearch.security.spi.resources.ResourceSharingExtension`. Edit that file to add single line containing classpath of your plugin, e.g `org.opensearch.sample.SampleResourcePlugin`. This is required to utilize Java's Service Provider Interface mechanism.
 3. Declare a resource class and implement `Resource` class from SPI.
 4. Implement a `ResourceParser`.
 5. Implement `ResourceSharingExtension` interface in the plugin declaration class, and implement required methods (as shown above). Ensure that resource index is marked as a system index.
