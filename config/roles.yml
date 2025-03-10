@@ -241,6 +241,7 @@ index_management_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/opensearch/ism/*'
+        - 'indices:internal/plugins/replication/index/stop'
 
 # Allows users to use all cross cluster replication functionality at leader cluster
 cross_cluster_replication_leader_full_access:
