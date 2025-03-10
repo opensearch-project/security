@@ -944,7 +944,7 @@ public class SSLTest extends SingleClusterTest {
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
-            .put(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, CertificateValidatorTest.CRL_DATE.getTime())
             .build();
 
