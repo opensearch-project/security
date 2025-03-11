@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -86,21 +87,26 @@ public class ApiTokenRepository {
         String name,
         List<String> clusterPermissions,
         List<ApiToken.IndexPermission> indexPermissions,
-        Long expiration
+        Long expiration,
+        ActionListener<Void> listener
     ) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
         ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
-        apiTokenIndexHandler.indexTokenMetadata(apiToken);
+        apiTokenIndexHandler.indexTokenMetadata(apiToken, listener);
         return token.getCompleteToken();
     }
 
-    public void deleteApiToken(String name) throws ApiTokenException, IndexNotFoundException {
-        apiTokenIndexHandler.deleteToken(name);
+    public void deleteApiToken(String name, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
+        apiTokenIndexHandler.deleteToken(name, listener);
     }
 
-    public Map<String, ApiToken> getApiTokens() throws IndexNotFoundException {
-        return apiTokenIndexHandler.getTokenMetadatas();
+    public void getApiTokens(ActionListener<Map<String, ApiToken>> listener) {
+        apiTokenIndexHandler.getTokenMetadatas(listener);
+    }
+
+    public void getTokenCount(ActionListener<Long> listener) {
+        getApiTokens(ActionListener.wrap(tokens -> listener.onResponse((long) tokens.size()), listener::onFailure));
     }
 
 }
