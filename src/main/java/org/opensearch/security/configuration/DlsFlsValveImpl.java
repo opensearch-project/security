@@ -39,7 +39,6 @@ import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -81,7 +80,9 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -135,6 +136,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            return true;
+        }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();

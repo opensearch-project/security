@@ -41,7 +41,6 @@ import org.opensearch.action.support.single.shard.SingleShardRequest;
 import org.opensearch.action.termvectors.MultiTermVectorsRequest;
 import org.opensearch.action.termvectors.TermVectorsRequest;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -52,6 +51,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 

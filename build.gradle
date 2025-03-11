@@ -16,23 +16,24 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-        buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+        buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
 
         // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-alpha1-SNAPSHOT')
 
         kafka_version  = '3.7.1'
-        open_saml_version = '4.3.2'
+        open_saml_version = '5.1.3'
+        open_saml_shib_version = "9.1.3"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
-        guava_version = '32.1.3-jre'
+        guava_version = '33.4.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '5.3.39'
+        spring_version = '6.2.3'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -64,8 +65,8 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.10.1"
-    id "org.gradle.test-retry" version "1.6.0"
+    id 'com.netflix.nebula.ospackage' version "11.11.1"
+    id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -469,7 +470,7 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.17.2'
+            force 'commons-codec:commons-codec:1.18.0'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.16'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -496,8 +497,8 @@ configurations {
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
-            force "org.checkerframework:checker-qual:3.48.4"
-            force "ch.qos.logback:logback-classic:1.5.16"
+            force "org.checkerframework:checker-qual:3.49.1"
+            force "ch.qos.logback:logback-classic:1.5.17"
             force "commons-io:commons-io:2.18.0"
         }
     }
@@ -588,6 +589,7 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
+    implementation "com.github.seancfoley:ipaddress:5.5.1"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -605,29 +607,34 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.1'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.2'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.17.2'
+    runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.36.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.3'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
-    //OpenSAML
-    implementation 'net.shibboleth.utilities:java-support:8.4.2'
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.29"
+    //Onelogin OpenSaml
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
-    implementation "org.opensaml:opensaml-core:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+    //OpenSAML
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.30"
+    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
+    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
     implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+
     implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
     implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
         exclude(group: 'org.apache.velocity', module: 'velocity')
@@ -637,6 +644,7 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
@@ -655,12 +663,13 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.48.4'
+    runtimeOnly 'org.checkerframework:checker-qual:3.49.1'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
@@ -671,11 +680,9 @@ dependencies {
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-    testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
@@ -686,11 +693,11 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.1'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.3'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'
-    testImplementation('org.awaitility:awaitility:4.2.2') {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
+    testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
@@ -736,7 +743,7 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
+    integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
@@ -746,7 +753,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-    integrationTestImplementation "org.mockito:mockito-core:5.15.2"
+    integrationTestImplementation "org.mockito:mockito-core:5.16.0"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.25.2') {
@@ -841,6 +848,9 @@ task integTestRemote(type: RestIntegTestTask) {
 }
 
 integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
+
+tasks.integTestRemote.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
+
 // should be updated appropriately, when we add integTests in future
 integTest.enabled = false
 

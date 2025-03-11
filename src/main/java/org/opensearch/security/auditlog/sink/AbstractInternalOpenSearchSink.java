@@ -12,11 +12,14 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
@@ -24,12 +27,15 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     protected final Client clientProvider;
     private final ThreadPool threadPool;
+    protected final ClusterService clusterService;
     private final DocWriteRequest.OpType storeOpType;
+    final static Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-1");
 
     public AbstractInternalOpenSearchSink(
         final String name,
@@ -38,18 +44,22 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
         final Client clientProvider,
         ThreadPool threadPool,
         AuditLogSink fallbackSink,
-        DocWriteRequest.OpType storeOpType
+        DocWriteRequest.OpType storeOpType,
+        ClusterService clusterService
     ) {
         super(name, settings, settingsPrefix, fallbackSink);
         this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.storeOpType = storeOpType;
+        this.clusterService = clusterService;
     }
 
     @Override
     public void close() throws IOException {
 
     }
+
+    protected abstract boolean createIndexIfAbsent(String indexName);
 
     public boolean doStore(final AuditMessage msg, String indexName) {
 
@@ -64,6 +74,12 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
         try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             try {
+                boolean ok = createIndexIfAbsent(indexName);
+                if (!ok) {
+                    log.error("Failed to create index {}", indexName);
+                    return false;
+                }
+
                 final IndexRequestBuilder irb = clientProvider.prepareIndex(indexName)
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setSource(msg.getAsMap());

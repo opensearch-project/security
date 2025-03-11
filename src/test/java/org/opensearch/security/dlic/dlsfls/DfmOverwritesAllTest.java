@@ -16,12 +16,12 @@ import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -161,8 +161,8 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertFalse(response.getBody().contains("value-2-4"));
 
         // field2 - check also some masked values
-        Assert.assertTrue(response.getBody().contains("514b27191e2322b0f7cd6afc3a5d657ff438fd0cc8dc229bd1a589804fdffd99"));
-        Assert.assertTrue(response.getBody().contains("3090f7e867f390fb96b20ba30ee518b09a927b857393ebd1262f31191a385efa"));
+        Assert.assertTrue(response.getBody().contains("b83363be1efc9a30269963686915db175630744f7b9b53eaf012275c10028ed8"));
+        Assert.assertTrue(response.getBody().contains("1036e0c7154ead29670a4d0a609727aeec7e6f39a97b72053d49255b5865e341"));
     }
 
     /**
@@ -271,7 +271,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response.getBody().contains("value-2-4"));
 
         // but we still have masked values for index1-2 and index1-3
-        Assert.assertTrue(response.getBody().contains("514b27191e2322b0f7cd6afc3a5d657ff438fd0cc8dc229bd1a589804fdffd99"));
-        Assert.assertTrue(response.getBody().contains("3090f7e867f390fb96b20ba30ee518b09a927b857393ebd1262f31191a385efa"));
+        Assert.assertTrue(response.getBody().contains("b83363be1efc9a30269963686915db175630744f7b9b53eaf012275c10028ed8"));
+        Assert.assertTrue(response.getBody().contains("1036e0c7154ead29670a4d0a609727aeec7e6f39a97b72053d49255b5865e341"));
     }
 }

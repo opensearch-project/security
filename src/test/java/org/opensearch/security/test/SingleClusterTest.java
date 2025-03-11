@@ -32,12 +32,12 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assert;
 
-import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.transport.client.Client;
 
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 

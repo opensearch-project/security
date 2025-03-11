@@ -18,9 +18,9 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -32,6 +32,8 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
         tc.admin()
             .indices()
             .create(
+                // FieldExistsQuery matches documents that contain a field that indexes
+                // norms or doc values.
                 new CreateIndexRequest("data").simpleMapping(
                     "@timestamp",
                     "type=date",

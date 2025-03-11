@@ -111,6 +111,15 @@ public class AuthZinRestLayerTests {
         }
     }
 
+    @Test
+    public void testShouldFailWithoutPermForPathWithoutLeadingSlashes() {
+        try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
+
+            // Protected Routes plugin
+            assertThat(client.getWithoutLeadingSlash(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        }
+    }
+
     /** AuthZ in REST Layer check */
 
     @Test

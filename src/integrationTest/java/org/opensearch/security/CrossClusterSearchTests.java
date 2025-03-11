@@ -23,7 +23,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -32,6 +31,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.SearchRequestFactory;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;

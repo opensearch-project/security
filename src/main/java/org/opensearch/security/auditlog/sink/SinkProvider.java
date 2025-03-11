@@ -19,11 +19,12 @@ import java.util.Map.Entry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 public class SinkProvider {
 
@@ -34,21 +35,35 @@ public class SinkProvider {
     private final ThreadPool threadPool;
     private final Path configPath;
     private final Settings settings;
+    private final ClusterService clusterService;
     final Map<String, AuditLogSink> allSinks = new HashMap<>();
     AuditLogSink defaultSink;
     AuditLogSink fallbackSink;
 
-    public SinkProvider(final Settings settings, final Client clientProvider, ThreadPool threadPool, final Path configPath) {
+    public SinkProvider(
+        final Settings settings,
+        final Client clientProvider,
+        ThreadPool threadPool,
+        final Path configPath,
+        final ClusterService clusterService
+    ) {
         this.settings = settings;
         this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.configPath = configPath;
+        this.clusterService = clusterService;
 
         // fall back sink, make sure we don't lose messages
         String fallbackConfigPrefix = ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + FALLBACKSINK_NAME;
         Settings fallbackSinkSettings = settings.getAsSettings(fallbackConfigPrefix);
         if (!fallbackSinkSettings.isEmpty()) {
-            this.fallbackSink = createSink(FALLBACKSINK_NAME, fallbackSinkSettings.get("type"), settings, fallbackConfigPrefix + ".config");
+            this.fallbackSink = createSink(
+                FALLBACKSINK_NAME,
+                fallbackSinkSettings.get("type"),
+                settings,
+                fallbackConfigPrefix + ".config",
+                clusterService
+            );
         }
 
         // make sure we always have a fallback to write to
@@ -63,7 +78,8 @@ public class SinkProvider {
             DEFAULTSINK_NAME,
             settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT),
             settings,
-            ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT
+            ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT,
+            clusterService
         );
         if (defaultSink == null) {
             log.error("Default endpoint could not be created, auditlog will not work properly.");
@@ -92,7 +108,8 @@ public class SinkProvider {
                 sinkName,
                 type,
                 this.settings,
-                ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName + ".config"
+                ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName + ".config",
+                clusterService
             );
             if (sink == null) {
                 log.error("Endpoint '{}' could not be created, check log file for further information.", sinkName);
@@ -128,12 +145,27 @@ public class SinkProvider {
         }
     }
 
-    private final AuditLogSink createSink(final String name, final String type, final Settings settings, final String settingsPrefix) {
+    private final AuditLogSink createSink(
+        final String name,
+        final String type,
+        final Settings settings,
+        final String settingsPrefix,
+        final ClusterService clusterService
+    ) {
         AuditLogSink sink = null;
         if (type != null) {
             switch (type.toLowerCase()) {
                 case "internal_opensearch":
-                    sink = new InternalOpenSearchSink(name, settings, settingsPrefix, configPath, clientProvider, threadPool, fallbackSink);
+                    sink = new InternalOpenSearchSink(
+                        name,
+                        settings,
+                        settingsPrefix,
+                        configPath,
+                        clientProvider,
+                        threadPool,
+                        fallbackSink,
+                        clusterService
+                    );
                     break;
                 case "internal_opensearch_data_stream":
                     sink = new InternalOpenSearchDataStreamSink(
@@ -143,7 +175,8 @@ public class SinkProvider {
                         configPath,
                         clientProvider,
                         threadPool,
-                        fallbackSink
+                        fallbackSink,
+                        clusterService
                     );
                     break;
                 case "external_opensearch":

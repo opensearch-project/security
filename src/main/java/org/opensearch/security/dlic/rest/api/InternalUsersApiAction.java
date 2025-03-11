@@ -47,6 +47,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplement
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class InternalUsersApiAction extends AbstractApiAction {
@@ -82,6 +84,25 @@ public class InternalUsersApiAction extends AbstractApiAction {
         )
     );
 
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/user", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.POST, "/user/{name}/authtoken", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+
+            // corrected mapping, introduced in OpenSearch Security
+            new DeprecatedRoute(Method.GET, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/internalusers", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.POST, "/internalusers/{name}/authtoken", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/internalusers", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
+    );
+
     UserService userService;
 
     @Inject
@@ -101,6 +122,11 @@ public class InternalUsersApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

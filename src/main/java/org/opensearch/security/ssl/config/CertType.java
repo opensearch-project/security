@@ -11,6 +11,10 @@
 
 package org.opensearch.security.ssl.config;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
@@ -19,6 +23,11 @@ public enum CertType {
     HTTP(SSL_HTTP_PREFIX),
     TRANSPORT(SSL_TRANSPORT_PREFIX),
     TRANSPORT_CLIENT(SSL_TRANSPORT_CLIENT_PREFIX);
+
+    public static Set<String> TYPES = Arrays.stream(CertType.values())
+        .map(CertType::name)
+        .map(String::toLowerCase)
+        .collect(Collectors.toSet());
 
     private final String sslConfigPrefix;
 
