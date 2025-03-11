@@ -15,7 +15,6 @@ import org.junit.Test;
 
 import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.common.resources.ResourceProvider;
-import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -198,14 +197,7 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // verify access
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            String verifyAccessPayload = "{\"resource_id\":\""
-                + resourceId
-                + "\",\"resource_index\":\""
-                + RESOURCE_INDEX_NAME
-                + "\",\"scope\":\""
-                + ResourceAccessScope.PUBLIC
-                + "\"}";
-            TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
+            TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(true));
         }
@@ -249,14 +241,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // verify access - share_with_user should no longer have access to admin's resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            String verifyAccessPayload = "{\"resource_id\":\""
-                + resourceId
-                + "\",\"resource_index\":\""
-                + RESOURCE_INDEX_NAME
-                + "\",\"scope\":\""
-                + ResourceAccessScope.PUBLIC
-                + "\"}";
-            TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload);
+
+            TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(false));
         }

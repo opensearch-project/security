@@ -49,11 +49,11 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      * Verifies if the current user has access to the specified resource.
      * @param resourceId     The ID of the resource to verify access for.
      * @param resourceIndex  The index containing the resource.
-     * @param scope          The scope of the resource.
+     * @param scopes         The scopes to be checked against.
      * @param listener       The listener to be notified with the access verification result.
      */
     @Override
-    public void verifyResourceAccess(String resourceId, String resourceIndex, String scope, ActionListener<Boolean> listener) {
+    public void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener) {
         if (!resourceSharingEnabled) {
             log.warn("Resource Access Control feature is disabled. Access to resource is automatically granted.");
             listener.onResponse(true);
@@ -62,7 +62,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.VERIFY)
             .resourceId(resourceId)
             .resourceIndex(resourceIndex)
-            .scope(scope)
+            .scopes(scopes)
             .build();
         client.execute(ResourceAccessAction.INSTANCE, request, verifyAccessResponseListener(listener));
     }

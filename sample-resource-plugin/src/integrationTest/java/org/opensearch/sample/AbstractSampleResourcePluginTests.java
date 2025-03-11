@@ -111,4 +111,18 @@ public abstract class AbstractSampleResourcePluginTests {
             + "\"]"
             + "}";
     }
+
+    protected static String verifyAccessPayload(String resourceId) {
+        return "{"
+            + "\"resource_id\":\""
+            + resourceId
+            + "\","
+            + "\"resource_index\":\""
+            + RESOURCE_INDEX_NAME
+            + "\","
+            + "\"scopes\":[\""
+            + ResourceAccessScope.PUBLIC
+            + "\"]"
+            + "}";
+    }
 }

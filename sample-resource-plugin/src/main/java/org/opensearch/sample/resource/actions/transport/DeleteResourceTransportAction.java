@@ -8,6 +8,8 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,7 +74,11 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         resourceSharingClient.verifyResourceAccess(
             resourceId,
             RESOURCE_INDEX_NAME,
-            SampleResourceScope.PUBLIC.value(),
+            Set.of(
+                SampleResourceScope.SAMPLE_DELETE_ACCESS.value(),
+                SampleResourceScope.SAMPLE_FULL_ACCESS.value(),
+                SampleResourceScope.PUBLIC.value()
+            ),
             ActionListener.wrap(isAuthorized -> {
                 if (!isAuthorized) {
                     listener.onFailure(new ResourceSharingException("Current user is not authorized to delete resource: " + resourceId));

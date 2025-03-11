@@ -46,7 +46,6 @@ public class ResourceAccessRequest extends ActionRequest {
     private final Operation operation;
     private final String resourceId;
     private final String resourceIndex;
-    private final String scope;
     private final ShareWith shareWith;
     private final Map<String, Set<String>> revokedEntities;
     private final Set<String> scopes;
@@ -58,7 +57,6 @@ public class ResourceAccessRequest extends ActionRequest {
         this.operation = builder.operation;
         this.resourceId = builder.resourceId;
         this.resourceIndex = builder.resourceIndex;
-        this.scope = builder.scope;
         this.shareWith = builder.shareWith;
         this.revokedEntities = builder.revokedEntities;
         this.scopes = builder.scopes;
@@ -84,8 +82,6 @@ public class ResourceAccessRequest extends ActionRequest {
         }
         builder.resourceIndex(resourceIndex);
 
-        builder.scope((String) source.get("scope"));
-
         if (source.containsKey("share_with")) {
             builder.shareWith((Map<String, Object>) source.get("share_with"));
         }
@@ -106,7 +102,6 @@ public class ResourceAccessRequest extends ActionRequest {
         this.operation = in.readEnum(Operation.class);
         this.resourceId = in.readOptionalString();
         this.resourceIndex = in.readOptionalString();
-        this.scope = in.readOptionalString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.revokedEntities = in.readMap(StreamInput::readString, valIn -> valIn.readSet(StreamInput::readString));
         this.scopes = in.readSet(StreamInput::readString);
@@ -117,7 +112,6 @@ public class ResourceAccessRequest extends ActionRequest {
         out.writeEnum(operation);
         out.writeOptionalString(resourceId);
         out.writeOptionalString(resourceIndex);
-        out.writeOptionalString(scope);
         out.writeOptionalWriteable(shareWith);
         out.writeMap(revokedEntities, StreamOutput::writeString, StreamOutput::writeStringCollection);
         out.writeStringCollection(scopes);
@@ -140,10 +134,6 @@ public class ResourceAccessRequest extends ActionRequest {
         return resourceIndex;
     }
 
-    public String getScope() {
-        return scope;
-    }
-
     public ShareWith getShareWith() {
         return shareWith;
     }
@@ -163,7 +153,6 @@ public class ResourceAccessRequest extends ActionRequest {
         private Operation operation;
         private String resourceId;
         private String resourceIndex;
-        private String scope;
         private ShareWith shareWith;
         private Map<String, Set<String>> revokedEntities;
         private Set<String> scopes;
@@ -180,11 +169,6 @@ public class ResourceAccessRequest extends ActionRequest {
 
         public Builder resourceIndex(String resourceIndex) {
             this.resourceIndex = resourceIndex;
-            return this;
-        }
-
-        public Builder scope(String scope) {
-            this.scope = scope;
             return this;
         }
 

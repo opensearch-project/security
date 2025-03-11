@@ -21,6 +21,9 @@ import org.opensearch.security.spi.resources.ResourceAccessScope;
 public enum SampleResourceScope implements ResourceAccessScope<SampleResourceScope> {
 
     SAMPLE_FULL_ACCESS("sample_full_access"),
+    SAMPLE_READ_ACCESS("sample_read_access"),
+    SAMPLE_WRITE_ACCESS("sample_write_access"),
+    SAMPLE_DELETE_ACCESS("sample_delete_access"),
 
     PUBLIC("public");
 

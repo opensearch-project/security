@@ -104,7 +104,7 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         resourceAccessHandler.hasPermission(
             request.getResourceId(),
             request.getResourceIndex(),
-            request.getScope(),
+            request.getScopes(),
             ActionListener.wrap(hasPermission -> listener.onResponse(new ResourceAccessResponse(hasPermission)), listener::onFailure)
         );
     }
