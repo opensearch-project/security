@@ -22,6 +22,7 @@ import org.opensearch.security.common.resources.rest.ResourceAccessAction;
 import org.opensearch.security.common.resources.rest.ResourceAccessRequest;
 import org.opensearch.security.common.resources.rest.ResourceAccessResponse;
 import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.transport.client.Client;
 
@@ -118,6 +119,26 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
             .scopes(scopes)
             .build();
         client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
+    }
+
+    /**
+     * Lists all resources accessible by the current user.
+     *
+     * @param listener The listener to be notified with the set of accessible resources.
+     */
+    @Override
+    public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends Resource>> listener) {
+        if (isResourceAccessControlDisabled("Unable to list all accessible resources.", listener)) {
+            return;
+        }
+        ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.LIST)
+            .resourceIndex(resourceIndex)
+            .build();
+        client.execute(
+            ResourceAccessAction.INSTANCE,
+            request,
+            ActionListener.wrap(response -> { listener.onResponse(response.getResources()); }, listener::onFailure)
+        );
     }
 
     /**

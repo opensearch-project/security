@@ -357,6 +357,10 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
         }
 
         // shared_with_user should not be able to share admin's resource with itself
@@ -387,6 +391,10 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
+
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
         }
 
         // resource is still visible to super-admin
@@ -411,6 +419,10 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
         }
 
         // delete sample resource with shared_with_user

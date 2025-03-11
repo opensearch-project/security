@@ -15,8 +15,10 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.opensearch.core.ParseField;
+import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ConstructingObjectParser;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.Resource;
@@ -35,6 +37,12 @@ public class SampleResource implements Resource {
 
     public SampleResource() throws IOException {
         super();
+    }
+
+    public SampleResource(StreamInput in) throws IOException {
+        this.name = in.readString();
+        this.description = in.readString();
+        this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +74,7 @@ public class SampleResource implements Resource {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
         return builder.startObject().field("name", name).field("description", description).field("attributes", attributes).endObject();
     }
 

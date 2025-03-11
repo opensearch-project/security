@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
 /**
@@ -54,4 +55,11 @@ public interface ResourceSharingClient {
         Set<String> scopes,
         ActionListener<ResourceSharing> listener
     );
+
+    /**
+     * Lists all resources accessible by the current user.
+     * @param resourceIndex The index containing the resources.
+     * @param listener The listener to be notified with the set of accessible resources.
+     */
+    void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends Resource>> listener);
 }

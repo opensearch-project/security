@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +17,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -26,13 +29,17 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.client.resources.ResourceSharingClient;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -63,15 +70,27 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         this.settings = settings;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
-            listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
+            // get all request
+            if (this.settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+                resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
+                    listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
+                }, listener::onFailure));
+            } else {
+                // if feature is disabled, return all resources
+                getAllResourcesAction(listener);
+            }
             return;
         }
 
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         resourceSharingClient.verifyResourceAccess(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
@@ -104,7 +123,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                         XContentParser parser = XContentType.JSON.xContent()
                             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
                     ) {
-                        listener.onResponse(new GetResourceResponse(SampleResource.fromXContent(parser)));
+                        listener.onResponse(new GetResourceResponse(Set.of(SampleResource.fromXContent(parser))));
                     }
                 }
             }, listener::onFailure));
@@ -115,6 +134,44 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         GetRequest getRequest = new GetRequest(RESOURCE_INDEX_NAME, request.getResourceId());
 
         nodeClient.get(getRequest, listener);
+    }
+
+    private void getAllResourcesAction(ActionListener<GetResourceResponse> listener) {
+        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+            getAllResources(ActionListener.wrap(searchResponse -> {
+                SearchHit[] hits = searchResponse.getHits().getHits();
+                if (hits.length == 0) {
+                    listener.onFailure(new ResourceNotFoundException("No resources found in index: " + RESOURCE_INDEX_NAME));
+                    return;
+                }
+
+                Set<SampleResource> resources = new HashSet<>();
+                try {
+                    for (SearchHit hit : hits) {
+                        try (
+                            XContentParser parser = XContentType.JSON.xContent()
+                                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hit.getSourceAsString())
+                        ) {
+                            resources.add(SampleResource.fromXContent(parser));
+                        }
+                    }
+                    listener.onResponse(new GetResourceResponse(resources));
+                } catch (Exception e) {
+                    listener.onFailure(new ResourceSharingException("Failed to parse resources: " + e.getMessage(), e));
+                }
+            }, listener::onFailure));
+        }
+    }
+
+    private void getAllResources(ActionListener<SearchResponse> listener) {
+        SearchRequest searchRequest = new SearchRequest(RESOURCE_INDEX_NAME);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchSourceBuilder.size(1000);
+
+        searchRequest.source(searchSourceBuilder);
+        nodeClient.search(searchRequest, listener);
     }
 
 }

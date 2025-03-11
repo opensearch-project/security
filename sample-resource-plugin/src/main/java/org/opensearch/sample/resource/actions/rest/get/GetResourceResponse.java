@@ -9,6 +9,7 @@
 package org.opensearch.sample.resource.actions.rest.get;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -18,20 +19,20 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.SampleResource;
 
 public class GetResourceResponse extends ActionResponse implements ToXContentObject {
-    private final SampleResource resource;
+    private final Set<SampleResource> resources;
 
     /**
      * Default constructor
      *
-     * @param resource The resource
+     * @param resources The resources
      */
-    public GetResourceResponse(SampleResource resource) {
-        this.resource = resource;
+    public GetResourceResponse(Set<SampleResource> resources) {
+        this.resources = resources;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeNamedWriteable(resource);
+        out.writeCollection(resources, (o, r) -> r.writeTo(o));
     }
 
     /**
@@ -40,13 +41,13 @@ public class GetResourceResponse extends ActionResponse implements ToXContentObj
      * @param in the stream input
      */
     public GetResourceResponse(final StreamInput in) throws IOException {
-        resource = in.readNamedWriteable(SampleResource.class);
+        resources = in.readSet(SampleResource::new);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field("resource", resource);
+        builder.field("resources", resources);
         builder.endObject();
         return builder;
     }

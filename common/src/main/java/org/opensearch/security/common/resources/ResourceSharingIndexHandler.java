@@ -707,106 +707,6 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to execute a search request and collect resource IDs from the results.
-     *
-     * @param resourceIds   List to collect resource IDs
-     * @param scroll        Search Scroll
-     * @param searchRequest Request to execute
-     * @param boolQuery     Query to execute with the request
-     * @param listener      Listener to be notified when the operation completes
-     */
-    private void executeSearchRequest(
-        Set<String> resourceIds,
-        Scroll scroll,
-        SearchRequest searchRequest,
-        BoolQueryBuilder boolQuery,
-        ActionListener<Void> listener
-    ) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
-            .size(1000)
-            .fetchSource(new String[] { "resource_id" }, null);
-
-        searchRequest.source(searchSourceBuilder);
-
-        StepListener<SearchResponse> searchStep = new StepListener<>();
-
-        client.search(searchRequest, searchStep);
-
-        searchStep.whenComplete(initialResponse -> {
-            String scrollId = initialResponse.getScrollId();
-            processScrollResults(resourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
-        }, listener::onFailure);
-    }
-
-    /**
-     * Helper method to process scroll results recursively.
-     *
-     * @param resourceIds List to collect resource IDs
-     * @param scroll      Search Scroll
-     * @param scrollId    Scroll ID
-     * @param hits        Search hits
-     * @param listener    Listener to be notified when the operation completes
-     */
-    private void processScrollResults(
-        Set<String> resourceIds,
-        Scroll scroll,
-        String scrollId,
-        SearchHit[] hits,
-        ActionListener<Void> listener
-    ) {
-        // If no hits, clean up and complete
-        if (hits == null || hits.length == 0) {
-            clearScroll(scrollId, listener);
-            return;
-        }
-
-        // Process current batch of hits
-        for (SearchHit hit : hits) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                resourceIds.add(sourceAsMap.get("resource_id").toString());
-            }
-        }
-
-        // Prepare next scroll request
-        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-        scrollRequest.scroll(scroll);
-
-        // Execute next scroll
-        client.searchScroll(scrollRequest, ActionListener.wrap(scrollResponse -> {
-            // Process next batch recursively
-            processScrollResults(resourceIds, scroll, scrollResponse.getScrollId(), scrollResponse.getHits().getHits(), listener);
-        }, e -> {
-            // Clean up scroll context on failure
-            clearScroll(scrollId, ActionListener.wrap(r -> listener.onFailure(e), ex -> {
-                e.addSuppressed(ex);
-                listener.onFailure(e);
-            }));
-        }));
-    }
-
-    /**
-     * Helper method to clear scroll context.
-     *
-     * @param scrollId Scroll ID
-     * @param listener Listener to be notified when the operation completes
-     */
-    private void clearScroll(String scrollId, ActionListener<Void> listener) {
-        if (scrollId == null) {
-            listener.onResponse(null);
-            return;
-        }
-
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-
-        client.clearScroll(clearScrollRequest, ActionListener.wrap(r -> listener.onResponse(null), e -> {
-            LOGGER.warn("Failed to clear scroll context", e);
-            listener.onResponse(null);
-        }));
-    }
-
-    /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
      * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
@@ -924,97 +824,6 @@ public class ResourceSharingIndexHandler {
         }, listener::onFailure);
 
         updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
-    }
-
-    /**
-     * Updates resource sharing entries that match the specified source index and resource ID
-     * using the provided update script. This method performs an update-by-query operation
-     * in the resource sharing index.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Creates a bool query to match exact source index and resource ID</li>
-     *   <li>Constructs an update-by-query request with the query and update script</li>
-     *   <li>Executes the update operation</li>
-     *   <li>Returns success/failure status based on update results</li>
-     * </ol>
-     *
-     * <p>Example document matching structure:
-     * <pre>
-     * {
-     *   "source_idx": "source_index_name",
-     *   "resource_id": "resource_id_value",
-     *   "share_with": {
-     *     // sharing configuration to be updated
-     *   }
-     * }
-     * </pre>
-     *
-     * @param sourceIdx    The source index to match in the query (exact match)
-     * @param resourceId   The resource ID to match in the query (exact match)
-     * @param updateScript The script containing the update operations to be performed.
-     *                     This script defines how the matching documents should be modified
-     * @param listener     Listener to be notified when the operation completes
-     * @apiNote This method:
-     * <ul>
-     *   <li>Uses term queries for exact matching of source_idx and resource_id</li>
-     *   <li>Returns false for both "no matching documents" and "operation failure" cases</li>
-     *   <li>Logs the complete update request for debugging purposes</li>
-     *   <li>Provides detailed logging for success and failure scenarios</li>
-     * </ul>
-     * @implNote The update operation uses a bool query with two must clauses:
-     * <pre>
-     * {
-     *   "query": {
-     *     "bool": {
-     *       "must": [
-     *         { "term": { "source_idx.keyword": sourceIdx } },
-     *         { "term": { "resource_id.keyword": resourceId } }
-     *       ]
-     *     }
-     *   }
-     * }
-     * </pre>
-     */
-    private void updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript, ActionListener<Boolean> listener) {
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            BoolQueryBuilder query = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
-                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
-
-            UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query)
-                .setScript(updateScript)
-                .setRefresh(true);
-
-            client.execute(UpdateByQueryAction.INSTANCE, ubq, new ActionListener<>() {
-                @Override
-                public void onResponse(BulkByScrollResponse response) {
-                    long updated = response.getUpdated();
-                    if (updated > 0) {
-                        LOGGER.debug("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
-                        listener.onResponse(true);
-                    } else {
-                        LOGGER.debug(
-                            "No documents found to update in {} for source_idx: {} and resource_id: {}",
-                            resourceSharingIndex,
-                            sourceIdx,
-                            resourceId
-                        );
-                        listener.onResponse(false);
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
-                    listener.onFailure(e);
-
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("Failed to update documents in {} before request submission.", resourceSharingIndex, e);
-            listener.onFailure(e);
-        }
     }
 
     /**
@@ -1397,6 +1206,197 @@ public class ResourceSharingIndexHandler {
                 }
             }));
         }
+    }
+
+    /**
+     * Updates resource sharing entries that match the specified source index and resource ID
+     * using the provided update script. This method performs an update-by-query operation
+     * in the resource sharing index.
+     *
+     * <p>The method executes the following steps:
+     * <ol>
+     *   <li>Creates a bool query to match exact source index and resource ID</li>
+     *   <li>Constructs an update-by-query request with the query and update script</li>
+     *   <li>Executes the update operation</li>
+     *   <li>Returns success/failure status based on update results</li>
+     * </ol>
+     *
+     * <p>Example document matching structure:
+     * <pre>
+     * {
+     *   "source_idx": "source_index_name",
+     *   "resource_id": "resource_id_value",
+     *   "share_with": {
+     *     // sharing configuration to be updated
+     *   }
+     * }
+     * </pre>
+     *
+     * @param sourceIdx    The source index to match in the query (exact match)
+     * @param resourceId   The resource ID to match in the query (exact match)
+     * @param updateScript The script containing the update operations to be performed.
+     *                     This script defines how the matching documents should be modified
+     * @param listener     Listener to be notified when the operation completes
+     * @apiNote This method:
+     * <ul>
+     *   <li>Uses term queries for exact matching of source_idx and resource_id</li>
+     *   <li>Returns false for both "no matching documents" and "operation failure" cases</li>
+     *   <li>Logs the complete update request for debugging purposes</li>
+     *   <li>Provides detailed logging for success and failure scenarios</li>
+     * </ul>
+     * @implNote The update operation uses a bool query with two must clauses:
+     * <pre>
+     * {
+     *   "query": {
+     *     "bool": {
+     *       "must": [
+     *         { "term": { "source_idx.keyword": sourceIdx } },
+     *         { "term": { "resource_id.keyword": resourceId } }
+     *       ]
+     *     }
+     *   }
+     * }
+     * </pre>
+     */
+    private void updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript, ActionListener<Boolean> listener) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            BoolQueryBuilder query = QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
+                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
+
+            UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query)
+                .setScript(updateScript)
+                .setRefresh(true);
+
+            client.execute(UpdateByQueryAction.INSTANCE, ubq, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkByScrollResponse response) {
+                    long updated = response.getUpdated();
+                    if (updated > 0) {
+                        LOGGER.debug("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
+                        listener.onResponse(true);
+                    } else {
+                        LOGGER.debug(
+                            "No documents found to update in {} for source_idx: {} and resource_id: {}",
+                            resourceSharingIndex,
+                            sourceIdx,
+                            resourceId
+                        );
+                        listener.onResponse(false);
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
+                    listener.onFailure(e);
+
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.error("Failed to update documents in {} before request submission.", resourceSharingIndex, e);
+            listener.onFailure(e);
+        }
+    }
+
+    /**
+     * Helper method to execute a search request and collect resource IDs from the results.
+     *
+     * @param resourceIds   List to collect resource IDs
+     * @param scroll        Search Scroll
+     * @param searchRequest Request to execute
+     * @param boolQuery     Query to execute with the request
+     * @param listener      Listener to be notified when the operation completes
+     */
+    private void executeSearchRequest(
+        Set<String> resourceIds,
+        Scroll scroll,
+        SearchRequest searchRequest,
+        BoolQueryBuilder boolQuery,
+        ActionListener<Void> listener
+    ) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
+            .size(1000)
+            .fetchSource(new String[] { "resource_id" }, null);
+
+        searchRequest.source(searchSourceBuilder);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            String scrollId = initialResponse.getScrollId();
+            processScrollResults(resourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Helper method to process scroll results recursively.
+     *
+     * @param resourceIds List to collect resource IDs
+     * @param scroll      Search Scroll
+     * @param scrollId    Scroll ID
+     * @param hits        Search hits
+     * @param listener    Listener to be notified when the operation completes
+     */
+    private void processScrollResults(
+        Set<String> resourceIds,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Void> listener
+    ) {
+        // If no hits, clean up and complete
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, listener);
+            return;
+        }
+
+        // Process current batch of hits
+        for (SearchHit hit : hits) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
+                resourceIds.add(sourceAsMap.get("resource_id").toString());
+            }
+        }
+
+        // Prepare next scroll request
+        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+        scrollRequest.scroll(scroll);
+
+        // Execute next scroll
+        client.searchScroll(scrollRequest, ActionListener.wrap(scrollResponse -> {
+            // Process next batch recursively
+            processScrollResults(resourceIds, scroll, scrollResponse.getScrollId(), scrollResponse.getHits().getHits(), listener);
+        }, e -> {
+            // Clean up scroll context on failure
+            clearScroll(scrollId, ActionListener.wrap(r -> listener.onFailure(e), ex -> {
+                e.addSuppressed(ex);
+                listener.onFailure(e);
+            }));
+        }));
+    }
+
+    /**
+     * Helper method to clear scroll context.
+     *
+     * @param scrollId Scroll ID
+     * @param listener Listener to be notified when the operation completes
+     */
+    private void clearScroll(String scrollId, ActionListener<Void> listener) {
+        if (scrollId == null) {
+            listener.onResponse(null);
+            return;
+        }
+
+        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+
+        client.clearScroll(clearScrollRequest, ActionListener.wrap(r -> listener.onResponse(null), e -> {
+            LOGGER.warn("Failed to clear scroll context", e);
+            listener.onResponse(null);
+        }));
     }
 
 }

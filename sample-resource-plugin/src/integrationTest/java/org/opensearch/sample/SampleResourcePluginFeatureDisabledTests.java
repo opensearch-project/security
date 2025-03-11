@@ -23,6 +23,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
@@ -104,6 +105,11 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.getBody(), containsString("sample"));
+
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
             assertThat(response.getBody(), containsString("sample"));
         }
 
