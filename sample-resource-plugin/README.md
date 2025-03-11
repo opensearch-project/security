@@ -71,15 +71,27 @@ The plugin exposes the following six API endpoints:
 
 ### 4. Get Resource
 - **Endpoint:** `GET /_plugins/sample_resource_sharing/get/{resource_id}`
-- **Description:** Get a specified resource owned by the requesting user, if the user has access to the resource, else fails.
+- **Description:** Get a specified resource owned by or shared_with the requesting user, if the user has access to the resource, else fails.
 - **Response:**
   ```json
   {
-    "resource" : {
+    "resources" : [{
       "name" : "<resource_name>",
       "description" : null,
       "attributes" : null
-    }
+    }]
+  }
+  ```
+- **Endpoint:** `GET /_plugins/sample_resource_sharing/get`
+- **Description:** Get all resources owned by or shared with the requesting user.
+- **Response:**
+  ```json
+  {
+    "resources" : [{
+      "name" : "<resource_name>",
+      "description" : null,
+      "attributes" : null
+    }]
   }
   ```
 

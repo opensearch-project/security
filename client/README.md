@@ -1,10 +1,18 @@
-# Resource Sharing Client
+Here's a **refined and corrected** version of your `README.md` file with improved clarity, grammar, and formatting:
 
-This Client package provides a ResourceSharing client to be utilized by resource plugins to implement access control by communicating with security plugin.
+---
 
-## Usage
+# **Resource Sharing Client**
 
-1. Create a client accessor with singleton pattern:
+This package provides a **ResourceSharing client** that resource plugins can use to **implement access control** by communicating with the **OpenSearch Security Plugin**.
+
+---
+
+## **Usage**
+
+### **1. Creating a Client Accessor with Singleton Pattern**
+To ensure a single instance of the `ResourceSharingNodeClient`, use the **Singleton pattern**:
+
 ```java
 public class ResourceSharingClientAccessor {
     private static ResourceSharingNodeClient INSTANCE;
@@ -12,10 +20,11 @@ public class ResourceSharingClientAccessor {
     private ResourceSharingClientAccessor() {}
 
     /**
-     * Get resource sharing client
+     * Get the resource sharing client instance.
      *
-     * @param nodeClient node client
-     * @return resource sharing client
+     * @param nodeClient The OpenSearch NodeClient instance.
+     * @param settings   The OpenSearch settings.
+     * @return A singleton instance of ResourceSharingNodeClient.
      */
     public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
         if (INSTANCE == null) {
@@ -26,14 +35,18 @@ public class ResourceSharingClientAccessor {
 }
 ```
 
-2. In your transport action doExecute function call the client.
-Here is an example implementation of client being utilized to verify delete permissions before deleting a resource.
+---
+
+### **2. Using the Client in a Transport Action**
+The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
+
 ```java
 @Override
 protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
-
     String resourceId = request.getResourceId();
+
     ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+
     resourceSharingClient.verifyResourceAccess(
         resourceId,
         RESOURCE_INDEX_NAME,
@@ -65,12 +78,156 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
     );
 }
 ```
-You can checkout other java APIs offered by the client by visiting ResourceSharingClient.java
 
-## License
+---
 
-This code is licensed under the Apache 2.0 License.
+## **Available Java APIs**
 
-## Copyright
+The **`ResourceSharingClient`** provides **four Java APIs** for **resource access control**, enabling plugins to **verify, share, revoke, and list** resources.
 
-Copyright OpenSearch Contributors.
+📌 **Package Location:**
+🔗 [`org.opensearch.security.client.resources.ResourceSharingClient`](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java)
+
+---
+
+### **API Usage Examples**
+Below are examples demonstrating how to use each API effectively.
+
+---
+
+### **1. `verifyResourceAccess`**
+🔍 **Checks if the current user has access to a resource** based on predefined **scopes**.
+
+#### **Method Signature:**
+```java
+void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener);
+```
+
+#### **Example Usage:**
+```java
+Set<String> scopes = Set.of("READ_ONLY");
+resourceSharingClient.verifyResourceAccess(
+    "resource-123",
+    "resource_index",
+    scopes,
+    ActionListener.wrap(isAuthorized -> {
+        if (isAuthorized) {
+            System.out.println("User has access to the resource.");
+        } else {
+            System.out.println("Access denied.");
+        }
+    }, e -> {
+        System.err.println("Failed to verify access: " + e.getMessage());
+    })
+);
+```
+> ✅ **Use Case:** Before performing operations like **deletion or modifications**, ensure the user has the right permissions.
+
+---
+
+### **2. `shareResource`**
+🔄 **Grants access to a resource** for specific users, roles, or backend roles.
+
+#### **Method Signature:**
+```java
+void shareResource(String resourceId, String resourceIndex, Map<String, Object> shareWith, ActionListener<ResourceSharing> listener);
+```
+
+#### **Example Usage:**
+```java
+Map<String, Object> shareWith = Map.of(
+    "users", List.of("user_1", "user_2"),
+    "roles", List.of("admin_role"),
+    "backend_roles", List.of("backend_group")
+);
+
+resourceSharingClient.shareResource(
+    "resource-123",
+    "resource_index",
+    shareWith,
+    ActionListener.wrap(response -> {
+        System.out.println("Resource successfully shared with: " + shareWith);
+    }, e -> {
+        System.err.println("Failed to share resource: " + e.getMessage());
+    })
+);
+```
+> ✅ **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
+
+---
+
+### **3. `revokeResourceAccess`**
+🚫 **Removes access permissions** for specified users, roles, or backend roles.
+
+#### **Method Signature:**
+```java
+void revokeResourceAccess(String resourceId, String resourceIndex, Map<String, Object> entitiesToRevoke, Set<String> scopes, ActionListener<ResourceSharing> listener);
+```
+
+#### **Example Usage:**
+```java
+Map<String, Object> entitiesToRevoke = Map.of(
+    "users", List.of("user_2"),
+    "roles", List.of("viewer_role")
+);
+Set<String> scopesToRevoke = Set.of("READ_ONLY");
+
+resourceSharingClient.revokeResourceAccess(
+    "resource-123",
+    "resource_index",
+    entitiesToRevoke,
+    scopesToRevoke,
+    ActionListener.wrap(response -> {
+        System.out.println("Resource access successfully revoked for: " + entitiesToRevoke);
+    }, e -> {
+        System.err.println("Failed to revoke access: " + e.getMessage());
+    })
+);
+```
+> ✅ **Use Case:** When a user no longer needs access to a **resource**, their permissions can be revoked.
+
+---
+
+### **4. `listAllAccessibleResources`**
+📜 **Retrieves all resources the current user has access to.**
+
+#### **Method Signature:**
+```java
+void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends Resource>> listener);
+```
+
+#### **Example Usage:**
+```java
+resourceSharingClient.listAllAccessibleResources(
+    "resource_index",
+    ActionListener.wrap(resources -> {
+        for (Resource resource : resources) {
+            System.out.println("Accessible Resource: " + resource.getId());
+        }
+    }, e -> {
+        System.err.println("Failed to list accessible resources: " + e.getMessage());
+    })
+);
+```
+> ✅ **Use Case:** Helps a user identify **which resources they can interact with**.
+
+---
+
+## **Conclusion**
+These APIs provide essential methods for **fine-grained resource access control**, enabling:
+
+✔ **Verification** of resource access.
+✔ **Granting and revoking** access dynamically.
+✔ **Retrieval** of all accessible resources.
+
+For further details, refer to the [`ResourceSharingClient` Java class](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java). 🚀
+
+---
+
+## **License**
+This project is licensed under the **Apache 2.0 License**.
+
+---
+
+## **Copyright**
+© OpenSearch Contributors.
