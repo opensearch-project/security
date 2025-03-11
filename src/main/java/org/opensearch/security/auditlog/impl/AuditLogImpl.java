@@ -18,7 +18,6 @@ import java.security.PrivilegedAction;
 import java.util.Map;
 
 import org.opensearch.SpecialPermission;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -35,6 +34,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.client.Client;
 
 import org.greenrobot.eventbus.Subscribe;
 
@@ -69,7 +69,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
     ) {
         super(settings, threadPool, resolver, clusterService, environment);
         this.settings = settings;
-        this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
+        this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath, clusterService);
         this.messageRouterEnabled = this.messageRouter.isEnabled();
 
         log.info("Message routing enabled: {}", this.messageRouterEnabled);

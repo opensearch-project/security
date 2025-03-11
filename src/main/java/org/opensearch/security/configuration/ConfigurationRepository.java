@@ -61,7 +61,6 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
@@ -91,6 +90,7 @@ import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 
@@ -307,7 +307,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
         if (!deprecatedAuditKeysInSettings.isEmpty()) {
             LOGGER.warn(
-                "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
+                "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v4.0.0.0",
                 deprecatedAuditKeysInSettings
             );
         }

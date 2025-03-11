@@ -28,7 +28,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
-public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
+public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
 
     protected RestHelper rh = null;
     protected boolean init = true;
@@ -114,7 +114,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected AuditMessageRouter createMessageRouterComplianceEnabled(Settings settings) {
-        AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
+        AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null, null);
         router.enableRoutes(settings);
         return router;
     }

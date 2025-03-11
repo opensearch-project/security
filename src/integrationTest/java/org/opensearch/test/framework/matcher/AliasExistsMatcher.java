@@ -22,8 +22,8 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Spliterator.IMMUTABLE;

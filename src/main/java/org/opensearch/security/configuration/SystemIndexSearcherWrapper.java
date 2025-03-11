@@ -163,7 +163,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
         if (systemIndexPermissionEnabled) {
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user == null) {
+            if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
                 // allow request without user from plugin.
                 return systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
             }
@@ -180,8 +180,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
     protected final boolean isAdminDnOrPluginRequest() {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null) {
-            // allow request without user from plugin.
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             return true;
         } else if (adminDns.isAdmin(user)) {
             return true;

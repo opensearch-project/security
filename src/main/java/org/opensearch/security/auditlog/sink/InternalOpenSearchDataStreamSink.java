@@ -20,16 +20,17 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.Template;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteTransportException;
+import org.opensearch.transport.client.Client;
 
 public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpenSearchSink {
 
@@ -43,9 +44,10 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
         final Path configPath,
         final Client clientProvider,
         ThreadPool threadPool,
-        AuditLogSink fallbackSink
+        AuditLogSink fallbackSink,
+        ClusterService clusterService
     ) {
-        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, DocWriteRequest.OpType.CREATE);
+        super(name, settings, settingsPrefix, clientProvider, threadPool, fallbackSink, DocWriteRequest.OpType.CREATE, clusterService);
         Settings sinkSettings = getSinkSettings(settingsPrefix);
 
         this.dataStreamName = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME, "opensearch-security-auditlog");
@@ -130,6 +132,12 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
         }
 
         return this.dataStreamInitialized;
+    }
+
+    @Override
+    public boolean createIndexIfAbsent(String indexName) {
+        // datastream is initialized in initDataStream
+        return true;
     }
 
     @Override

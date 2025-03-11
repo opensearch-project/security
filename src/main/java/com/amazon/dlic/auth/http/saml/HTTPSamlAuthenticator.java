@@ -55,12 +55,13 @@ import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
 import com.nimbusds.jose.jwk.JWK;
 import com.onelogin.saml2.authn.AuthnRequest;
 import com.onelogin.saml2.logout.LogoutRequest;
+import com.onelogin.saml2.logout.LogoutRequestParams;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Constants;
 import com.onelogin.saml2.util.Util;
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
-import net.shibboleth.utilities.java.support.component.DestructableComponent;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import net.shibboleth.shared.component.ComponentInitializationException;
+import net.shibboleth.shared.component.DestructableComponent;
+import net.shibboleth.shared.xml.impl.BasicParserPool;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.core.config.Initializer;
@@ -409,7 +410,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             String nameIdFormat = SamlNameIdFormat.getByShortName(authCredentials.getAttributes().get("attr.jwt.saml_nif")).getUri();
             String sessionIndex = authCredentials.getAttributes().get("attr.jwt.saml_si");
 
-            LogoutRequest logoutRequest = new LogoutRequest(saml2Settings, null, nameId, sessionIndex, nameIdFormat);
+            LogoutRequest logoutRequest = new LogoutRequest(saml2Settings, new LogoutRequestParams(sessionIndex, nameId, nameIdFormat));
 
             return getSamlRequestRedirectBindingLocation(IdpEndpointType.SLO, saml2Settings, logoutRequest.getEncodedLogoutRequest(true));
 

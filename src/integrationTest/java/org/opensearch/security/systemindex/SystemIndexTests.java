@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -167,6 +168,107 @@ public class SystemIndexTests {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleSearchOnItsSystemIndex() {
+        JsonNode searchResponse1;
+        JsonNode searchResponse2;
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            searchResponse1 = searchResponse.bodyAsJsonNode();
+        }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse searchResponse = client.get(SYSTEM_INDEX_1 + "/_search");
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            searchResponse2 = searchResponse.bodyAsJsonNode();
+        }
+
+        JsonNode hits1 = searchResponse1.get("hits");
+        JsonNode hits2 = searchResponse2.get("hits");
+        assertThat(hits1.toPrettyString(), equalTo(hits2.toPrettyString()));
+    }
+
+    @Test
+    public void testPluginShouldBeAbleGetOnItsSystemIndex() {
+        JsonNode getResponse1;
+        JsonNode getResponse2;
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse getResponse = client.get("get-on-system-index/" + SYSTEM_INDEX_1 + "/" + docId);
+
+            getResponse1 = getResponse.bodyAsJsonNode();
+        }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse searchResponse = client.get(SYSTEM_INDEX_1 + "/_search");
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse getResponse = client.get(SYSTEM_INDEX_1 + "/_doc/" + docId);
+
+            getResponse2 = getResponse.bodyAsJsonNode();
+        }
+        assertThat(getResponse1.toPrettyString(), equalTo(getResponse2.toPrettyString()));
+    }
+
+    @Test
+    public void testPluginShouldBeAbleUpdateOnItsSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse updateResponse = client.put("update-on-system-index/" + SYSTEM_INDEX_1 + "/" + docId);
+
+            updateResponse.assertStatusCode(RestStatus.OK.getStatus());
+        }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse searchResponse = client.get(SYSTEM_INDEX_1 + "/_search");
+
+            searchResponse.assertStatusCode(RestStatus.OK.getStatus());
+
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse getResponse = client.get(SYSTEM_INDEX_1 + "/_doc/" + docId);
+
+            assertThat("{\"content\":3}", equalTo(getResponse.bodyAsJsonNode().get("_source").toString()));
         }
     }
 
