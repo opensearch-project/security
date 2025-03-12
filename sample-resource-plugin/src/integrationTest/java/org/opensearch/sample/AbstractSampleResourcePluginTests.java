@@ -30,9 +30,18 @@ public abstract class AbstractSampleResourcePluginTests {
         new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*")
     );
 
+    // No update permission
     protected final static TestSecurityConfig.User SHARED_WITH_USER_LIMITED_PERMISSIONS = new TestSecurityConfig.User(
         "resource_sharing_test_user"
-    ).roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on(RESOURCE_INDEX_NAME));
+    ).roles(
+        new TestSecurityConfig.Role("shared_role").clusterPermissions(
+            "cluster:admin/security/resource_access",
+            "cluster:admin/sample-resource-plugin/get",
+            "cluster:admin/sample-resource-plugin/create",
+            "cluster:admin/sample-resource-plugin/share",
+            "cluster:admin/sample-resource-plugin/revoke"
+        )
+    );
 
     protected static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     protected static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
@@ -67,13 +76,17 @@ public abstract class AbstractSampleResourcePluginTests {
     }
 
     protected static String shareWithPayload() {
+        return shareWithPayload(SHARED_WITH_USER.getName());
+    }
+
+    protected static String shareWithPayload(String user) {
         return "{"
             + "\"share_with\":{"
             + "\""
             + SampleResourceScope.PUBLIC.value()
             + "\":{"
             + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
+            + user
             + "\"]"
             + "}"
             + "}"
@@ -100,10 +113,14 @@ public abstract class AbstractSampleResourcePluginTests {
     }
 
     protected static String revokeAccessPayload() {
+        return revokeAccessPayload(SHARED_WITH_USER.getName());
+    }
+
+    protected static String revokeAccessPayload(String user) {
         return "{"
             + "\"entities_to_revoke\": {"
             + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
+            + user
             + "\"]"
             + "},"
             + "\"scopes\": [\""

@@ -253,8 +253,8 @@ public class ResourceAccessHandler {
             // All public entities are designated with "*"
             userRoles.add("*");
             userBackendRoles.add("*");
-            if (isSharedWithEveryone(document)
-                || isOwnerOfResource(document, user.getName())
+            if (isOwnerOfResource(document, user.getName())
+                || isSharedWithEveryone(document)
                 || isSharedWithEntity(document, Recipient.USERS, Set.of(user.getName(), "*"), scopes)
                 || isSharedWithEntity(document, Recipient.ROLES, userRoles, scopes)
                 || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, scopes)) {

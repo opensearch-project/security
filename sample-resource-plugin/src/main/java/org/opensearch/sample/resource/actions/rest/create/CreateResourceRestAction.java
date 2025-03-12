@@ -77,6 +77,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
         );
     }
 
+    @SuppressWarnings("unchecked")
     private RestChannelConsumer createResource(Map<String, Object> source, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
