@@ -25,6 +25,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 
 import io.netty.handler.ssl.OpenSsl;
+import org.opensearch.security.ssl.config.CertType;
 
 public final class SSLConfigConstants {
     /**
@@ -241,15 +242,14 @@ public final class SSLConfigConstants {
         + "resolve_hostname";
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
-    public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
+    public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
         List<String> configuredProtocols = null;
 
-        if (settings != null) {
-            if (http) {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
-            } else {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
-            }
+        switch (certType){
+            case HTTP -> configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
+            case AUX -> configuredProtocols = settings.getAsList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
+            default -> throw new RuntimeException("Unsupported cert type: " + certType);
         }
 
         if (configuredProtocols != null && configuredProtocols.size() > 0) {
@@ -257,6 +257,23 @@ public final class SSLConfigConstants {
         }
 
         return ALLOWED_SSL_PROTOCOLS.clone();
+    }
+
+    public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
+        List<String> configuredCiphers = null;
+
+        switch (certType){
+            case HTTP -> configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
+            case AUX -> configuredCiphers = settings.getAsList(SECURITY_SSL_AUX_ENABLED_CIPHERS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
+            default -> throw new RuntimeException("Unsupported cert type: " + certType);
+        }
+
+        if (configuredCiphers != null && configuredCiphers.size() > 0) {
+            return configuredCiphers;
+        }
+
+        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
     }
 
     // @formatter:off
@@ -373,27 +390,7 @@ public final class SSLConfigConstants {
     };
     // @formatter:on
 
-    public static List<String> getSecureSSLCiphers(Settings settings, boolean http) {
-
-        List<String> configuredCiphers = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
-            } else {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
-            }
-        }
-
-        if (configuredCiphers != null && configuredCiphers.size() > 0) {
-            return configuredCiphers;
-        }
-
-        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
-    }
-
     private SSLConfigConstants() {
 
     }
-
 }
