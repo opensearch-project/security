@@ -23,6 +23,59 @@ plugins.security.system_indices.enabled: true
 
 - Create, update, get, delete resources, as well as share and revoke access to a resource.
 
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone git@github.com:opensearch-project/security.git
+   ```
+
+2. Navigate to the project directory:
+   ```bash
+   cd sample-resource-plugin
+   ```
+
+3. Build and deploy the plugin:
+   ```bash
+   $ ./gradlew clean build -x test -x integrationTest -x spotbugsIntegrationTest
+   $ ./bin/opensearch-plugin install file: <path-to-this-plugin>/sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-<version-qualifier>.zip
+   ```
+
+
+## User setup:
+1. **New Security Permission Requirement**
+    - Users need **`cluster:admin/security/resource_access`** in their role to **interact with shared resources**.
+    - This applies **in addition to** any plugin-specific cluster permissions.
+
+2. **No Index-Level Permissions Required**
+    - **Resource access is controlled at the cluster level**.
+    - Users **do not** need explicit index-level permissions to access shared resources.
+
+3. **Sample Role Configurations**
+    - Below are **two sample roles** demonstrating how to configure permissions in `roles.yml`:
+
+    ```yaml
+    sample_full_access:
+     cluster_permissions:
+       - 'cluster:admin/security/resource_access'
+       - 'cluster:admin/sample-resource-plugin/*'
+
+    sample_read_access:
+     cluster_permissions:
+       - 'cluster:admin/security/resource_access'
+       - 'cluster:admin/sample-resource-plugin/get'
+    ```
+
+4. **Interaction Rules**
+    - If a **user is not the resource owner**, they must:
+        - Be assigned **a role with `sample_read_access`** permissions.
+        - **Have the resource shared with them** via the resource-sharing API.
+    - A user **without** the necessary `sample-resource-plugin` cluster permissions:
+        - **Cannot access the resource**, even if it is shared with them.
+    - A user **with `sample-resource-plugin` permissions** but **without a shared resource**:
+        - **Cannot access the resource**, since resource-level access control applies.
+
+
 ## API Endpoints
 
 The plugin exposes the following six API endpoints:
@@ -137,24 +190,6 @@ The plugin exposes the following six API endpoints:
       "share_with" : { }
     }
   ```
-
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone git@github.com:opensearch-project/security.git
-   ```
-
-2. Navigate to the project directory:
-   ```bash
-   cd sample-resource-plugin
-   ```
-
-3. Build and deploy the plugin:
-   ```bash
-   $ ./gradlew clean build -x test -x integrationTest -x spotbugsIntegrationTest
-   $ ./bin/opensearch-plugin install file: <path-to-this-plugin>/sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-<version-qualifier>.zip
-   ```
 
 ## License
 

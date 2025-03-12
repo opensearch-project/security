@@ -156,17 +156,63 @@ SPI provides you an interface, with two default scopes `PUBLIC` and `RESTRICTED`
 
 ---
 
-## **6. Restrictions**
-1. At present, **only resource owners can share/revoke access** to their own resources.
-    - **Admins** can manage access for any resource.
-2. **Resources must be stored in a system index**, and system index protection **must be enabled**.
-    - **Disabling system index protection** allows users to access resources **directly** if they have relevant index permissions.
-3. **This feature works on top of existing index-level authorization** and does not replace it.
-4. **A user must already have index access** in order to access the resource.
+## **6. User Setup**
+
+To enable users to interact with the **Resource Sharing and Access Control** feature, they must be assigned the appropriate cluster permissions along with resource-specific access.
+
+### **Required Cluster Permissions**
+Users must be assigned the following **cluster permissions** in `roles.yml`:
+
+- **`cluster:admin/security/resource_access`** → Required to evaluate resource permissions.
+- **Plugin-specific cluster permissions** → Required to interact with the plugin’s APIs.
+
+#### **Example Role Configurations**
+```yaml
+sample_full_access:
+  cluster_permissions:
+    - 'cluster:admin/security/resource_access'
+    - 'cluster:admin/sample-resource-plugin/*'
+
+sample_read_access:
+  cluster_permissions:
+    - 'cluster:admin/security/resource_access'
+    - 'cluster:admin/sample-resource-plugin/get'
+```
+
+
+### **User Access Rules**
+1. **Users must have the required cluster permissions**
+    - Even if a resource is shared with a user, they **cannot access it** unless they have the **plugin’s cluster permissions**.
+
+2. **Granting plugin API permissions does not automatically grant resource access**
+    - A resource must be **explicitly shared** with the user.
+    - **Or, the user must be the resource owner.**
+
+3. **No index permissions are required**
+    - Access control is **handled at the cluster level**.
+    - The `.opensearch_resource_sharing` index and the resource indices are protected under system index security.
+
+
+### **Summary**
+| **Requirement** | **Description**                                                                       |
+|---------------|---------------------------------------------------------------------------------------|
+| **Cluster Permission** | `cluster:admin/security/resource_access` required for resource evaluation.            |
+| **Plugin API Permissions** | Users must also have relevant plugin API cluster permissions.                         |
+| **Resource Sharing** | Access is granted only if the resource is shared with the user or they are the owner. |
+| **No Index Permissions Needed** | The `.opensearch_resource_sharing` index and resource indices are system-protected.   |
+
 
 ---
 
-## **7. REST APIs Introduced by the Security Plugin**
+## **7. Restrictions**
+1. At present, **only resource owners can share/revoke access** to their own resources.
+    - **Super admins** can manage access for any resource.
+2. **Resources must be stored in a system index**, and system index protection **must be enabled**.
+    - **Disabling system index protection** allows users to access resources **directly** if they have relevant index permissions.
+
+---
+
+## **8. REST APIs Introduced by the Security Plugin**
 
 In addition to client methods, the **Security Plugin** introduces new **REST APIs** for managing resource access when the feature is enabled. These APIs allow users to **verify, grant, revoke, and list access** to resources.
 
@@ -375,7 +421,7 @@ Returns an array of accessible resources.
 
 ---
 
-## **8. Best Practices**
+## **9. Best Practices**
 ### **For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
 - **Use the security client** instead of direct index queries to check access.
@@ -384,7 +430,6 @@ Returns an array of accessible resources.
 ### **For Users & Admins**
 - **Keep system index protection enabled** for better security.
 - **Grant access only when necessary** to limit exposure.
-- **Regularly audit resource access**.
 
 ---
 
@@ -393,7 +438,7 @@ The **Resource Sharing and Access Control** feature enhances OpenSearch security
 
 By implementing the **Service Provider Interface (SPI)**, utilizing the **security client**, and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
 
-For detailed implementation and examples, refer to the **[sample plugin](./sample-resource-plugin)** included in the security plugin repository.
+For detailed implementation and examples, refer to the **[sample plugin](./sample-resource-plugin/README.md)** included in the security plugin repository.
 
 ---
 
