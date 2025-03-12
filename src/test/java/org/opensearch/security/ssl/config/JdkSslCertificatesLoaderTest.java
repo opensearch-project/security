@@ -45,6 +45,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
@@ -68,6 +69,11 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     @Test
     public void loadHttpSslConfigurationFromKeyAndTrustStoreFiles() throws Exception {
         testJdkBasedSslConfiguration(SSL_HTTP_PREFIX, randomBoolean());
+    }
+
+    @Test
+    public void loadAuxSslConfigurationFromKeyAndTrustStoreFiles() throws Exception {
+        testJdkBasedSslConfiguration(SSL_AUX_PREFIX, randomBoolean());
     }
 
     @Test

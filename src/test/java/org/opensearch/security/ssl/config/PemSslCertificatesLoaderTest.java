@@ -40,6 +40,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
@@ -74,6 +75,11 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     @Test
+    public void loadAuxSslConfigurationFromPemFiles() throws Exception {
+        testLoadPemBasedConfiguration(SSL_AUX_PREFIX, randomBoolean());
+    }
+
+    @Test
     public void loadTransportSslConfigurationFromPemFiles() throws Exception {
         testLoadPemBasedConfiguration(SSL_HTTP_PREFIX, false);
     }
@@ -94,7 +100,7 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
         }
 
         final var settings = settingsBuilder.build();
-        final var configuration = new SslCertificatesLoader(SSL_HTTP_PREFIX).loadConfiguration(TestEnvironment.newEnvironment(settings));
+        final var configuration = new SslCertificatesLoader(sslConfigPrefix).loadConfiguration(TestEnvironment.newEnvironment(settings));
         if (useAuthorityCertificate) {
             assertTrustStoreConfiguration(
                 configuration.v1(),
