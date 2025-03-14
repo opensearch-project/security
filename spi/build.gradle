@@ -78,5 +78,9 @@ publishing {
                 password "$System.env.SONATYPE_PASSWORD"
             }
         }
+        maven {
+            name = 'staging'
+            url = "${rootProject.buildDir}/local-staging-repo"
+        }
     }
 }
