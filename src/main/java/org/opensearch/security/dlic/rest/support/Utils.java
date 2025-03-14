@@ -69,6 +69,8 @@ public class Utils {
     public final static String OPENDISTRO_API_DEPRECATION_MESSAGE =
         "[_opendistro/_security] is a deprecated endpoint path. Please use _plugins/_security instead.";
 
+    public final static String PLUGIN_RESOURCE_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/resources";
+
     private static final ObjectMapper internalMapper = new ObjectMapper();
 
     public static Map<String, Object> convertJsonToxToStructuredMap(ToXContent jsonContent) {
