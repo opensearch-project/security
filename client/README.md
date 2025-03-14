@@ -85,8 +85,8 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
 
 The **`ResourceSharingClient`** provides **four Java APIs** for **resource access control**, enabling plugins to **verify, share, revoke, and list** resources.
 
-📌 **Package Location:**
-🔗 [`org.opensearch.security.client.resources.ResourceSharingClient`](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java)
+**Package Location:**
+[`org.opensearch.security.client.resources.ResourceSharingClient`](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java)
 
 ---
 
@@ -96,7 +96,7 @@ Below are examples demonstrating how to use each API effectively.
 ---
 
 ### **1. `verifyResourceAccess`**
-🔍 **Checks if the current user has access to a resource** based on predefined **scopes**.
+**Checks if the current user has access to a resource** based on predefined **scopes**.
 
 #### **Method Signature:**
 ```java
@@ -121,12 +121,12 @@ resourceSharingClient.verifyResourceAccess(
     })
 );
 ```
-> ✅ **Use Case:** Before performing operations like **deletion or modifications**, ensure the user has the right permissions.
+> **Use Case:** Before performing operations like **deletion or modifications**, ensure the user has the right permissions.
 
 ---
 
 ### **2. `shareResource`**
-🔄 **Grants access to a resource** for specific users, roles, or backend roles.
+**Grants access to a resource** for specific users, roles, or backend roles.
 
 #### **Method Signature:**
 ```java
@@ -152,12 +152,12 @@ resourceSharingClient.shareResource(
     })
 );
 ```
-> ✅ **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
+> **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
 
 ---
 
 ### **3. `revokeResourceAccess`**
-🚫 **Removes access permissions** for specified users, roles, or backend roles.
+**Removes access permissions** for specified users, roles, or backend roles.
 
 #### **Method Signature:**
 ```java
@@ -184,12 +184,12 @@ resourceSharingClient.revokeResourceAccess(
     })
 );
 ```
-> ✅ **Use Case:** When a user no longer needs access to a **resource**, their permissions can be revoked.
+> **Use Case:** When a user no longer needs access to a **resource**, their permissions can be revoked.
 
 ---
 
 ### **4. `listAllAccessibleResources`**
-📜 **Retrieves all resources the current user has access to.**
+**Retrieves all resources the current user has access to.**
 
 #### **Method Signature:**
 ```java
@@ -209,7 +209,7 @@ resourceSharingClient.listAllAccessibleResources(
     })
 );
 ```
-> ✅ **Use Case:** Helps a user identify **which resources they can interact with**.
+> **Use Case:** Helps a user identify **which resources they can interact with**.
 
 ---
 
@@ -220,7 +220,7 @@ These APIs provide essential methods for **fine-grained resource access control*
 ✔ **Granting and revoking** access dynamically.
 ✔ **Retrieval** of all accessible resources.
 
-For further details, refer to the [`ResourceSharingClient` Java class](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java). 🚀
+For further details, refer to the [`ResourceSharingClient` Java class](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java).
 
 ---
 

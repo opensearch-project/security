@@ -68,7 +68,7 @@ dependencies {
   ```
   org.opensearch.sample.SampleResourcePlugin
   ```
-  > ✅ This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
+  > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
 
@@ -108,7 +108,7 @@ public class SampleResourceParser implements ResourceParser<SampleResource> {
 ### **5. Implement the `ResourceSharingExtension` Interface**
 Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
 
-✅ **Important:** Mark the resource **index as a system index** to enforce security protections.
+**Important:** Mark the resource **index as a system index** to enforce security protections.
 
 ---
 

@@ -129,13 +129,19 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
 
         // shared_with_user is able to call sample share api
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+            HttpResponse updateResponse = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(SHARED_WITH_USER.getName())
+            );
             updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
         // shared_with_user is able to call sample revoke api
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, revokeAccessPayload());
+            HttpResponse updateResponse = client.postJson(
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
+                revokeAccessPayload(SHARED_WITH_USER.getName())
+            );
             updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 

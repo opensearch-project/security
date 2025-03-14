@@ -32,9 +32,9 @@ public abstract class AbstractSampleResourcePluginTests {
 
     // No update permission
     protected final static TestSecurityConfig.User SHARED_WITH_USER_LIMITED_PERMISSIONS = new TestSecurityConfig.User(
-        "resource_sharing_test_user"
+        "resource_sharing_test_user_limited_perms"
     ).roles(
-        new TestSecurityConfig.Role("shared_role").clusterPermissions(
+        new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
             "cluster:admin/security/resource_access",
             "cluster:admin/sample-resource-plugin/get",
             "cluster:admin/sample-resource-plugin/create",
@@ -55,7 +55,7 @@ public abstract class AbstractSampleResourcePluginTests {
     protected static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
     protected static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
 
-    protected static String shareWithPayloadSecurityApi(String resourceId) {
+    protected static String shareWithPayloadSecurityApi(String resourceId, String user) {
         return "{"
             + "\"resource_id\":\""
             + resourceId
@@ -68,15 +68,11 @@ public abstract class AbstractSampleResourcePluginTests {
             + SampleResourceScope.PUBLIC.value()
             + "\":{"
             + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
+            + user
             + "\"]"
             + "}"
             + "}"
             + "}";
-    }
-
-    protected static String shareWithPayload() {
-        return shareWithPayload(SHARED_WITH_USER.getName());
     }
 
     protected static String shareWithPayload(String user) {
@@ -93,7 +89,7 @@ public abstract class AbstractSampleResourcePluginTests {
             + "}";
     }
 
-    protected static String revokeAccessPayloadSecurityApi(String resourceId) {
+    protected static String revokeAccessPayloadSecurityApi(String resourceId, String user) {
         return "{"
             + "\"resource_id\": \""
             + resourceId
@@ -103,17 +99,13 @@ public abstract class AbstractSampleResourcePluginTests {
             + "\","
             + "\"entities_to_revoke\": {"
             + "\"users\": [\""
-            + SHARED_WITH_USER.getName()
+            + user
             + "\"]"
             + "},"
             + "\"scopes\": [\""
             + ResourceAccessScope.PUBLIC
             + "\"]"
             + "}";
-    }
-
-    protected static String revokeAccessPayload() {
-        return revokeAccessPayload(SHARED_WITH_USER.getName());
     }
 
     protected static String revokeAccessPayload(String user) {

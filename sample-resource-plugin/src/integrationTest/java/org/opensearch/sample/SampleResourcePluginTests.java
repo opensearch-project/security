@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.common.resources.ResourceProvider;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -48,6 +49,11 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
     @Override
     protected LocalCluster getLocalCluster() {
         return cluster;
+    }
+
+    @Override
+    protected TestSecurityConfig.User getSharedUser() {
+        return SHARED_WITH_USER;
     }
 
     @Test
@@ -135,7 +141,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             Thread.sleep(1000);
 
-            HttpResponse response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+            HttpResponse response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(SHARED_WITH_USER.getName())
+            );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 response.bodyAsJsonNode().get("share_with").get(SampleResourceScope.PUBLIC.value()).get("users").get(0).asText(),
@@ -156,7 +165,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             Thread.sleep(1000);
-            HttpResponse response = client.postJson(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, revokeAccessPayload());
+            HttpResponse response = client.postJson(
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
+                revokeAccessPayload(SHARED_WITH_USER.getName())
+            );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
         }

@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.common.resources.ResourceProvider;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -48,6 +49,11 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
     @Override
     protected LocalCluster getLocalCluster() {
         return cluster;
+    }
+
+    @Override
+    protected TestSecurityConfig.User getSharedUser() {
+        return SHARED_WITH_USER_LIMITED_PERMISSIONS;
     }
 
     @Test
@@ -114,7 +120,7 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
             assertThat(
                 updateResponse.bodyAsJsonNode().get("error").get("root_cause").get(0).get("reason").asText(),
                 containsString(
-                    "no permissions for [cluster:admin/sample-resource-plugin/update] and User [name=resource_sharing_test_user, backend_roles=[], requestedTenant=null]"
+                    "no permissions for [cluster:admin/sample-resource-plugin/update] and User [name=resource_sharing_test_user_limited_perms, backend_roles=[], requestedTenant=null]"
                 )
             );
         }
@@ -177,7 +183,7 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
             assertThat(
                 response.bodyAsJsonNode().get("error").get("root_cause").get(0).get("reason").asText(),
                 containsString(
-                    "no permissions for [cluster:admin/sample-resource-plugin/delete] and User [name=resource_sharing_test_user, backend_roles=[], requestedTenant=null]"
+                    "no permissions for [cluster:admin/sample-resource-plugin/delete] and User [name=resource_sharing_test_user_limited_perms, backend_roles=[], requestedTenant=null]"
                 )
             );
         }

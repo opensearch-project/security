@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import org.opensearch.security.common.resources.ResourcePluginInfo;
 import org.opensearch.security.common.resources.ResourceProvider;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -33,11 +34,16 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
     protected abstract LocalCluster getLocalCluster();
 
+    protected abstract TestSecurityConfig.User getSharedUser();
+
     private LocalCluster cluster;
+
+    private TestSecurityConfig.User sharedUser;
 
     @Before
     public void setup() {
         cluster = getLocalCluster();
+        sharedUser = getSharedUser();
     }
 
     @After
@@ -106,8 +112,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.getBody(), containsString("sample"));
         }
 
-        // Update sample resource (shared_with_user cannot update admin's resource)
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // Update sample resource (sharedUser cannot update admin's resource)
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
             TestRestClient.HttpResponse updateResponse = client.postJson(
                 SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId,
@@ -135,26 +141,26 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.getBody(), containsString("sampleUpdated"));
         }
 
-        // resource should no longer be visible to shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // resource should no longer be visible to sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
 
             TestRestClient.HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
         }
 
-        // shared_with_user should not be able to share admin's resource with itself
+        // sharedUser should not be able to share admin's resource with itself
         // Only admins and owners can share/revoke access at the moment
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
 
             TestRestClient.HttpResponse response = client.postJson(
                 SECURITY_RESOURCE_SHARE_ENDPOINT,
-                shareWithPayloadSecurityApi(resourceId)
+                shareWithPayloadSecurityApi(resourceId, sharedUser.getName())
             );
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             assertThat(
                 response.bodyAsJsonNode().get("message").asText(),
-                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
+                containsString("User " + sharedUser.getName() + " is not authorized")
             );
         }
 
@@ -164,7 +170,7 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
             TestRestClient.HttpResponse response = client.postJson(
                 SECURITY_RESOURCE_SHARE_ENDPOINT,
-                shareWithPayloadSecurityApi(resourceId)
+                shareWithPayloadSecurityApi(resourceId, sharedUser.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
@@ -175,12 +181,12 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
                     .get("users")
                     .get(0)
                     .asText(),
-                containsString(SHARED_WITH_USER.getName())
+                containsString(sharedUser.getName())
             );
         }
 
-        // resource should now be visible to shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // resource should now be visible to sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
@@ -196,7 +202,7 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         }
 
         // verify access
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(true));
@@ -204,26 +210,26 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // shared_with user should not be able to revoke access to admin's resource
         // Only admins and owners can share/revoke access at the moment
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.postJson(
                 SECURITY_RESOURCE_REVOKE_ENDPOINT,
-                revokeAccessPayloadSecurityApi(resourceId)
+                revokeAccessPayloadSecurityApi(resourceId, sharedUser.getName())
             );
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             assertThat(
                 response.bodyAsJsonNode().get("message").asText(),
-                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
+                containsString("User " + sharedUser.getName() + " is not authorized")
             );
         }
 
-        // get sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // get sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // resource should be visible to shared_with_user since the resource is shared with this user and this user has * permission
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // resource should be visible to sharedUser since the resource is shared with this user and this user has * permission
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
@@ -233,28 +239,28 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             Thread.sleep(1000);
             TestRestClient.HttpResponse response = client.postJson(
                 SECURITY_RESOURCE_REVOKE_ENDPOINT,
-                revokeAccessPayloadSecurityApi(resourceId)
+                revokeAccessPayloadSecurityApi(resourceId, sharedUser.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("share_with"), nullValue());
         }
 
         // verify access - share_with_user should no longer have access to admin's resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
 
             TestRestClient.HttpResponse response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, verifyAccessPayload(resourceId));
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("has_permission").asBoolean(), equalTo(false));
         }
 
-        // get sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // get sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // delete sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // delete sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
@@ -277,8 +283,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
         }
 
-        // get sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // get sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
@@ -352,8 +358,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.getBody(), containsString("sampleUpdated"));
         }
 
-        // resource should not be visible to shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // resource should not be visible to sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
 
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -363,14 +369,17 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
         }
 
-        // shared_with_user should not be able to share admin's resource with itself
+        // sharedUser should not be able to share admin's resource with itself
         // Only admins and owners can share/revoke access at the moment
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            TestRestClient.HttpResponse response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
+            TestRestClient.HttpResponse response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(sharedUser.getName())
+            );
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             assertThat(
                 response.bodyAsJsonNode().get("error").get("root_cause").get(0).get("reason").asText(),
-                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
+                containsString("User " + sharedUser.getName() + " is not authorized")
             );
         }
 
@@ -378,16 +387,19 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             Thread.sleep(1000);
 
-            TestRestClient.HttpResponse response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload());
+            TestRestClient.HttpResponse response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(sharedUser.getName())
+            );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 response.bodyAsJsonNode().get("share_with").get(SampleResourceScope.PUBLIC.value()).get("users").get(0).asText(),
-                containsString(SHARED_WITH_USER.getName())
+                containsString(sharedUser.getName())
             );
         }
 
-        // resource should now be visible to shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // resource should now be visible to sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
@@ -409,14 +421,14 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             Thread.sleep(1000);
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload()
+                revokeAccessPayload(sharedUser.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
         }
 
-        // get sample resource with shared_with_user, user no longer has access to resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // get sample resource with sharedUser, user no longer has access to resource
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
@@ -425,8 +437,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
         }
 
-        // delete sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // delete sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
@@ -443,14 +455,14 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             TestRestClient.HttpResponse response = client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc/" + resourceSharingDocId);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            Thread.sleep(1000);
+            Thread.sleep(2000);
             response = client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search");
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
         }
 
-        // get sample resource with shared_with_user
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+        // get sample resource with sharedUser
+        try (TestRestClient client = cluster.getRestClient(sharedUser)) {
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
