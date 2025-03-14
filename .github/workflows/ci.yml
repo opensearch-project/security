@@ -53,7 +53,7 @@ jobs:
     - name: Cache artifacts for dependent jobs
       uses: actions/cache@v4.2.2
       with:
-        path: ~/.m2/repository
+        path: ~/.m2/repository/org/opensearch/
         key: maven-local-${{ github.run_id }}
         restore-keys: |
           maven-local-
@@ -82,7 +82,7 @@ jobs:
     - name: Restore Maven Local Cache
       uses: actions/cache@v4.2.2
       with:
-        path: ~/.m2/repository
+        path: ~/.m2/repository/org/opensearch/
         key: maven-local-${{ github.run_id }}
         restore-keys: |
           maven-local-
@@ -147,7 +147,7 @@ jobs:
     - name: Restore Maven Local Cache
       uses: actions/cache@v4.2.2
       with:
-        path: ~/.m2/repository
+        path: ~/.m2/repository/org/opensearch/
         key: maven-local-${{ github.run_id }}
         restore-keys: |
           maven-local-
@@ -189,7 +189,7 @@ jobs:
       - name: Restore Maven Local Cache
         uses: actions/cache@v4.2.2
         with:
-          path: ~/.m2/repository
+          path: ~/.m2/repository/org/opensearch/
           key: maven-local-${{ github.run_id }}
           restore-keys: |
             maven-local-
@@ -231,7 +231,7 @@ jobs:
       - name: Restore Maven Local Cache
         uses: actions/cache@v4.2.2
         with:
-          path: ~/.m2/repository
+          path: ~/.m2/repository/org/opensearch/
           key: maven-local-${{ github.run_id }}
           restore-keys: |
             maven-local-
@@ -274,7 +274,7 @@ jobs:
     - name: Restore Maven Local Cache
       uses: actions/cache@v4.2.2
       with:
-        path: ~/.m2/repository
+        path: ~/.m2/repository/org/opensearch/
         key: maven-local-${{ github.run_id }}
         restore-keys: |
           maven-local-
