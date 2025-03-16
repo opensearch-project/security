@@ -46,9 +46,11 @@ jobs:
 
     - name: Publish components to Maven Local
       run: |
-        ./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false
-        ./gradlew :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false
-        ./gradlew :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false
+        ./gradlew clean \
+          :opensearch-resource-sharing-spi:publishToMavenLocal \
+          :opensearch-security-common:publishToMavenLocal \
+          :opensearch-security-client:publishToMavenLocal \
+          -Dbuild.snapshot=false
 
     - name: Cache artifacts for dependent jobs
       uses: actions/cache@v4.2.2
