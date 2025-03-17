@@ -51,6 +51,8 @@ public class ResourceSharingException extends OpenSearchException {
             return RestStatus.NOT_FOUND;
         } else if (message.contains("not a system index")) {
             return RestStatus.BAD_REQUEST;
+        } else if (message.contains("is disabled")) {
+            return RestStatus.NOT_IMPLEMENTED;
         }
 
         return RestStatus.INTERNAL_SERVER_ERROR;
