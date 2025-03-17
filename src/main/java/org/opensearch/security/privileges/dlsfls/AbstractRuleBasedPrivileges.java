@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -149,7 +150,15 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         // If we found an unrestricted role, we continue with the next index/alias/data stream. If we found a restricted role, we abort
         // early and return true.
 
-        for (String index : resolved.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver())) {
+        Set<String> resolvedIndices = resolved.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver());
+        Set<String> matchedSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(resolvedIndices);
+
+        Set<String> regularIndices = new HashSet<>(resolvedIndices);
+        if (matchedSystemIndices != null) {
+            regularIndices.removeAll(matchedSystemIndices);
+        }
+
+        for (String index : regularIndices) {
             if (this.dfmEmptyOverridesAll) {
                 // We assume that we have a restriction unless there are roles without restriction.
                 // Thus, we only have to check the roles without restriction.
