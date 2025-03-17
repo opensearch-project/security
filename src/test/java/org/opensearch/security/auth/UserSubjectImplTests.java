@@ -15,7 +15,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.auth.UserSubjectImpl;
+import org.opensearch.security.common.user.User;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 
