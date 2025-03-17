@@ -319,7 +319,7 @@ public class FlsDocumentFilterTest {
         String expectedDocument = """
             {
                 "a": "x",
-                "b": "1147ddc9246d856b1ce322f1dc9eeda895b56d545c324510c2eca47a9dcc5d3f",
+                "b": "4b694e9cb9ce9e0983fbe4c5df2d464949610f074460adc76bda5a9d0bcc38a5",
                 "c": "z"
             }
             """;
@@ -351,7 +351,7 @@ public class FlsDocumentFilterTest {
             {
                 "a": "x",
                 "b": {
-                   "b1": "19937da9d0b0fb38c3ce369bed130b647fa547914d675e09a62ba260a6d7811b",
+                   "b1": "f16d01664d4270a4f39cdba8c89ac024380b5f249f0fbec1049497bc745cf30f",
                    "b2": "y2"
                 },
                 "c": "z"

@@ -542,6 +542,7 @@ public class AuditConfig {
     /**
      * List of keys that are deprecated
      */
+    @Deprecated
     public static final List<String> DEPRECATED_KEYS = ImmutableList.of(
         ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
         ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,

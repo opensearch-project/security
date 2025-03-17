@@ -330,19 +330,21 @@ public class Installer {
 
         // Extract OpenSearch version and Security version
         File[] opensearchLibFiles = new File(OPENSEARCH_LIB_PATH).listFiles(
-            pathname -> pathname.getName().matches("opensearch-core-(.*).jar")
+            pathname -> pathname.getName().matches("opensearch-core-(\\d+(\\.\\d+)*(-[a-zA-Z0-9]+)?(-SNAPSHOT)?).jar")
         );
 
         if (opensearchLibFiles != null && opensearchLibFiles.length > 0) {
-            OPENSEARCH_VERSION = opensearchLibFiles[0].getName().replaceAll("opensearch-core-(.*).jar", "$1");
+            OPENSEARCH_VERSION = opensearchLibFiles[0].getName()
+                .replaceAll("opensearch-core-(\\d+(\\.\\d+)*(-[a-zA-Z0-9]+)?(-SNAPSHOT)?).jar", "$1");
         }
 
         File[] securityFiles = new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").listFiles(
-            pathname -> pathname.getName().startsWith("opensearch-security-") && pathname.getName().endsWith(".jar")
+            pathname -> pathname.getName().matches("opensearch-security-\\d+(\\.\\d+)*(-[a-zA-Z0-9]+)?(-SNAPSHOT)?.jar")
         );
 
         if (securityFiles != null && securityFiles.length > 0) {
-            SECURITY_VERSION = securityFiles[0].getName().replaceAll("opensearch-security-(.*).jar", "$1");
+            SECURITY_VERSION = securityFiles[0].getName()
+                .replaceAll("opensearch-security-(\\d+(\\.\\d+)*(-[a-zA-Z0-9]+)?(-SNAPSHOT)?).jar", "$1");
         }
     }
 
