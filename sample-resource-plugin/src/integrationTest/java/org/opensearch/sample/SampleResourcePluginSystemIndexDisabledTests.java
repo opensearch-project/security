@@ -8,6 +8,8 @@
 
 package org.opensearch.sample;
 
+import java.util.Map;
+
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -26,6 +28,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -40,6 +43,7 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
+        .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
     @Override
