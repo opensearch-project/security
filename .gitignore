@@ -43,7 +43,3 @@ out/
 build/
 gradle-build/
 .gradle/
-
-# nodejs
-node_modules/
-package-lock.json
