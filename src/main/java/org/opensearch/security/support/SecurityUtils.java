@@ -140,4 +140,12 @@ public final class SecurityUtils {
             return bc ? Hasher.hash(envVarValue.toCharArray(), settings) : envVarValue;
         }
     }
+
+    // Helper method to escape pipe characters
+    public static String escapePipe(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("|", "\\|");
+    }
 }

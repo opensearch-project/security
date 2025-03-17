@@ -111,6 +111,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
+import static org.opensearch.security.support.SecurityUtils.escapePipe;
 
 public class PrivilegesEvaluator {
 
@@ -275,12 +276,14 @@ public class PrivilegesEvaluator {
     private void setUserInfoInThreadContext(User user) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
-            joiner.add(user.getName());
-            joiner.add(String.join(",", user.getRoles()));
-            joiner.add(String.join(",", user.getSecurityRoles()));
+            // Escape any pipe characters in the values before joining
+            joiner.add(escapePipe(user.getName()));
+            joiner.add(escapePipe(String.join(",", user.getRoles())));
+            joiner.add(escapePipe(String.join(",", user.getSecurityRoles())));
+
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(requestedTenant);
+                joiner.add(escapePipe(requestedTenant));
             }
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
