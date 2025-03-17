@@ -27,6 +27,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
@@ -82,7 +83,15 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             )) {
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
                     listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
-                }, listener::onFailure));
+                }, failure -> {
+                    if (failure instanceof ResourceSharingException) {
+                        if (((ResourceSharingException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
+                            getAllResourcesAction(listener);
+                            return;
+                        }
+                    }
+                    listener.onFailure(failure);
+                }));
             } else {
                 // if feature is disabled, return all resources
                 getAllResourcesAction(listener);

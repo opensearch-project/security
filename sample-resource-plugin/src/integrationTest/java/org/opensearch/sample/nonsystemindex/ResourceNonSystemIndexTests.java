@@ -13,6 +13,7 @@ import java.util.Map;
 import org.junit.ClassRule;
 
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.sample.nonsystemindex.plugin.ResourceNonSystemIndexPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 

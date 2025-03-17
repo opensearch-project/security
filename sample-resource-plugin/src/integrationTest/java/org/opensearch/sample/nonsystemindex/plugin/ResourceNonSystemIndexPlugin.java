@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.nonsystemindex;
+package org.opensearch.sample.nonsystemindex.plugin;
 
 import java.nio.file.Path;
 

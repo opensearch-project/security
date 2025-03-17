@@ -10,9 +10,11 @@ package org.opensearch.sample;
 
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
@@ -35,6 +37,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 /**
  * These tests run with resource sharing enabled but system index protection disabled
  */
+@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSampleResourcePluginFeatureEnabledTests {
 
     @ClassRule

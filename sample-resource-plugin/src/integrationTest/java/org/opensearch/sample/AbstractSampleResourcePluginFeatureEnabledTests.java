@@ -36,9 +36,9 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
     protected abstract TestSecurityConfig.User getSharedUser();
 
-    private LocalCluster cluster;
+    private static LocalCluster cluster;
 
-    private TestSecurityConfig.User sharedUser;
+    private static TestSecurityConfig.User sharedUser;
 
     @Before
     public void setup() {

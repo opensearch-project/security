@@ -10,10 +10,12 @@ package org.opensearch.sample;
 
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -33,6 +35,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 /**
  * These tests run with resource sharing feature disabled.
  */
+@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleResourcePluginTests {
 
     @ClassRule
@@ -133,7 +137,7 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
                 shareWithPayload(SHARED_WITH_USER.getName())
             );
-            updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            updateResponse.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
         }
 
         // shared_with_user is able to call sample revoke api
@@ -142,7 +146,7 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
                 revokeAccessPayload(SHARED_WITH_USER.getName())
             );
-            updateResponse.assertStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            updateResponse.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
         }
 
         // delete sample resource - share_with user delete admin user's resource

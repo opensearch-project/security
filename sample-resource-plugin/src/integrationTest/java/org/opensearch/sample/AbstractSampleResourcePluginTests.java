@@ -8,9 +8,6 @@
 
 package org.opensearch.sample;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.runner.RunWith;
-
 import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.test.framework.TestSecurityConfig;
 
@@ -22,8 +19,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_RO
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
  * instantiated directly. It is extended by {@link AbstractSampleResourcePluginFeatureEnabledTests}, {@link SampleResourcePluginFeatureDisabledTests}, {@link org.opensearch.sample.nonsystemindex.AbstractResourcePluginNonSystemIndexTests}
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class AbstractSampleResourcePluginTests {
 
     protected final static TestSecurityConfig.User SHARED_WITH_USER = new TestSecurityConfig.User("resource_sharing_test_user").roles(
