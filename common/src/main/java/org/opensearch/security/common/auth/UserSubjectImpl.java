@@ -7,7 +7,7 @@
  * compatible open source license.
  *
  */
-package org.opensearch.security.auth;
+package org.opensearch.security.common.auth;
 
 import java.security.Principal;
 import java.util.concurrent.Callable;
@@ -16,8 +16,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.UserSubject;
 import org.opensearch.identity.tokens.AuthToken;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class UserSubjectImpl implements UserSubject {
@@ -25,7 +25,7 @@ public class UserSubjectImpl implements UserSubject {
     private final ThreadPool threadPool;
     private final User user;
 
-    UserSubjectImpl(ThreadPool threadPool, User user) {
+    public UserSubjectImpl(ThreadPool threadPool, User user) {
         this.threadPool = threadPool;
         this.user = user;
         this.userPrincipal = new NamedPrincipal(user.getName());
@@ -47,5 +47,9 @@ public class UserSubjectImpl implements UserSubject {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
             return callable.call();
         }
+    }
+
+    public User getUser() {
+        return user;
     }
 }

@@ -48,6 +48,8 @@ jobs:
       run: |
         ./gradlew clean \
           :opensearch-resource-sharing-spi:publishToMavenLocal \
+          :opensearch-security-common:publishToMavenLocal \
+          :opensearch-security-client:publishToMavenLocal \
           -Dbuild.snapshot=false
 
     - name: Cache artifacts for dependent jobs
@@ -335,31 +337,54 @@ jobs:
           ./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier-all.jar
           ./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT-all.jar
 
+          # Publish Common
+          ./gradlew clean :opensearch-security-common:publishToMavenLocal && test -s ./common/build/libs/opensearch-security-common-$security_plugin_version-all.jar
+          ./gradlew clean :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false && test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_no_snapshot-all.jar
+          ./gradlew clean :opensearch-security-common:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_only_number-$test_qualifier-all.jar
+          ./gradlew clean :opensearch-security-common:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT-all.jar
+
+          # Publish Client
+          ./gradlew clean :opensearch-security-client:publishToMavenLocal && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version-all.jar
+          ./gradlew clean :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_no_snapshot-all.jar
+          ./gradlew clean :opensearch-security-client:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier-all.jar
+          ./gradlew clean :opensearch-security-client:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT-all.jar
 
           # Build artifacts
           ./gradlew clean assemble && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version.jar && \
+          test -s ./client/build/libs/opensearch-security-client-$security_plugin_version.jar
+
 
           ./gradlew clean assemble -Dbuild.snapshot=false && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_no_snapshot.zip && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_no_snapshot.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_no_snapshot.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_no_snapshot.jar && \
+          test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_no_snapshot.jar
 
           ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier.zip && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_only_number-$test_qualifier.jar && \
+          test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier.jar
 
           ./gradlew clean assemble -Dbuild.version_qualifier=$test_qualifier && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.zip && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar && \
+          test -s ./client/build/libs/opensearch-security-client-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
 
           ./gradlew clean publishPluginZipPublicationToZipStagingRepository && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
           test -s ./build/distributions/opensearch-security-$security_plugin_version.pom && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version-all.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version-all.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version-all.jar
 
           ./gradlew clean publishShadowPublicationToMavenLocal && \
-          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version-all.jar
+          test -s ./spi/build/libs/opensearch-resource-sharing-spi-$security_plugin_version-all.jar && \
+          test -s ./common/build/libs/opensearch-security-common-$security_plugin_version-all.jar && \
+          test -s ./client/build/libs/opensearch-security-client-$security_plugin_version-all.jar
 
     - name: List files in build directory on failure
       if: failure()

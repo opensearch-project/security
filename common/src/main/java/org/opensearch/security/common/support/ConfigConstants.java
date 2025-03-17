@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.support;
+package org.opensearch.security.common.support;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 
 import com.password4j.types.Hmac;
 
@@ -44,6 +44,9 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
     public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
+
+    public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
+    public static final boolean OPENSEARCH_SECURITY_DISABLED_DEFAULT = false;
 
     public static final String OPENDISTRO_SECURITY_CHANNEL_TYPE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "channel_type";
 
@@ -119,9 +122,9 @@ public class ConfigConstants {
     // persistent header. This header is set once and cannot be stashed
     public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "authenticated_user";
 
-    public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
-
     public static final String OPENDISTRO_SECURITY_INITIATING_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "_initiating_user";
+
+    public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
     public static final String OPENDISTRO_SECURITY_INJECTED_USER_HEADER = "injected_user_header";
