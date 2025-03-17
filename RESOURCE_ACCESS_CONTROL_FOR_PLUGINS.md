@@ -31,6 +31,19 @@ This feature introduces **two primary components** for plugin developers:
 
 ### **Plugin Implementation Requirements**
 Each plugin must:
+- **Declare a dependency** on `opensearch-security-client` package:
+```build.gradle
+implementation group: 'org.opensearch', name:'opensearch-security-client', version: "${opensearch_build}"
+```
+- **Extend** `opensearch-security` plugin with optional flag:
+```build.gradle
+opensearchplugin {
+    name '<your-plugin>'
+    description '<description>'
+    classname '<your-classpath>'
+    extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
+}
+```
 - **Implement** the `ResourceSharingExtension` class.
 - **Ensure** that its declared resources implement the `Resource` interface.
 - **Provide a resource parser**, which the security plugin uses to extract resource details from the resource index.
