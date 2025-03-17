@@ -228,7 +228,6 @@ public class BackendRegistry {
             UserSubject subject = new UserSubjectImpl(threadPool, new org.opensearch.security.common.user.User(sslPrincipal));
             threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
-            auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
 
@@ -393,6 +392,7 @@ public class BackendRegistry {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
 
             // TODO: The following artistry must be reverted when User class is completely moved to :opensearch-security-common
             org.opensearch.security.common.user.User effUser = new org.opensearch.security.common.user.User(
@@ -403,7 +403,6 @@ public class BackendRegistry {
             effUser.setAttributes(effectiveUser.getCustomAttributesMap());
             UserSubject subject = new UserSubjectImpl(threadPool, effUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-            auditLog.logSucceededLogin(effectiveUser.getName(), false, authenticatedUser.getName(), request);
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -441,7 +440,6 @@ public class BackendRegistry {
 
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-                auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }
