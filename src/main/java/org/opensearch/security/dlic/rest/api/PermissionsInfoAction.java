@@ -33,19 +33,19 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * Provides the evaluated REST API permissions for the currently logged in user

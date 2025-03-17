@@ -24,8 +24,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -37,12 +37,12 @@ import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS;
 import static org.opensearch.security.configuration.ConfigurationRepository.DEFAULT_CONFIG_VERSION;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)

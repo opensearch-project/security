@@ -19,7 +19,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;

@@ -33,7 +33,7 @@ import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonArray;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;

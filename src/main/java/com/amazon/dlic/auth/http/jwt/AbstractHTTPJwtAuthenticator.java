@@ -35,9 +35,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;

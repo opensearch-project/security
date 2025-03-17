@@ -37,10 +37,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.HTTPHelper;
-import org.opensearch.security.user.AuthCredentials;
 
 //TODO FUTURE allow only if protocol==https
 public class HTTPBasicAuthenticator implements HTTPAuthenticator {

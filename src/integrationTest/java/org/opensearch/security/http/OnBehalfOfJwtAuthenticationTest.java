@@ -47,9 +47,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 

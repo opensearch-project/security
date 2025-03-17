@@ -19,7 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;

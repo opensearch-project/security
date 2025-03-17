@@ -27,6 +27,8 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
@@ -35,17 +37,15 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * Rest API action to fetch or update account details of the signed-in user.

@@ -19,7 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;

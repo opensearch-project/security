@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.security.IndexOperationsHelper;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;

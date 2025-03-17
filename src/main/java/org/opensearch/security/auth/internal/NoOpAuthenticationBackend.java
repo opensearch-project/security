@@ -30,8 +30,8 @@ import java.nio.file.Path;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 
 public class NoOpAuthenticationBackend implements AuthenticationBackend {
 

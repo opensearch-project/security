@@ -26,11 +26,11 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.configuration.StaticResourceException;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
@@ -38,12 +38,12 @@ import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.common.dlic.rest.api.Responses.conflictMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.methodNotImplementedMessage;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * Rest handler for fetching and updating audit configuration.

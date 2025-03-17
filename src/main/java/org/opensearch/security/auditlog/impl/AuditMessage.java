@@ -45,11 +45,12 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.filter.OpenSearchRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.WildcardMatcher;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;

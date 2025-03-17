@@ -28,24 +28,25 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.dlic.rest.api.Responses;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.SslContextHandler;
 import org.opensearch.security.ssl.SslSettingsManager;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.Certificate;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * Rest API action to get SSL certificate information related to http and transport encryption.

@@ -30,7 +30,7 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;

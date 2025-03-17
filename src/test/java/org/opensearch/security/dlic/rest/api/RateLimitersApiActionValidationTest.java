@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.util.FakeRestRequest;
 

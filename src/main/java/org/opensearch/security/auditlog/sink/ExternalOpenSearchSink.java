@@ -22,10 +22,10 @@ import java.util.List;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.httpclient.HttpClient;
 import org.opensearch.security.httpclient.HttpClient.HttpClientBuilder;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
 import org.joda.time.format.DateTimeFormat;

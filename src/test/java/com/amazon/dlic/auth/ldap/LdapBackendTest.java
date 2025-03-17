@@ -24,10 +24,10 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;

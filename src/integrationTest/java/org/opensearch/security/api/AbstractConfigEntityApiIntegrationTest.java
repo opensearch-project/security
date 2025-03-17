@@ -34,7 +34,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApiIntegrationTest {
 

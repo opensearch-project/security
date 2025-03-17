@@ -38,12 +38,12 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;

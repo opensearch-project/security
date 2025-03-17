@@ -45,16 +45,16 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HostResolverMode;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 
 public class ConfigModelV7 extends ConfigModel {
 

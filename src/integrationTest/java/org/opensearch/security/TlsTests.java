@@ -25,7 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuditFilters;

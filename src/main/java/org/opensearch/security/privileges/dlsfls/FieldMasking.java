@@ -29,14 +29,14 @@ import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 
 import com.rfksystems.blake2b.Blake2b;
 

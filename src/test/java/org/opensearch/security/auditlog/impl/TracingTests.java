@@ -23,7 +23,7 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auditlog.AuditTestUtils;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;

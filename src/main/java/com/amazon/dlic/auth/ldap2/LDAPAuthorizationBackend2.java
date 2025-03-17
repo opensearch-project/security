@@ -37,9 +37,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.Destroyable;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;

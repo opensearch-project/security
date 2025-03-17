@@ -27,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
@@ -34,14 +35,13 @@ import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * This class implements CRUD operations to manage dynamic NodesDn. The primary usecase is targeted at cross-cluster where

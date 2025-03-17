@@ -42,7 +42,9 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.DefaultObjectMapper;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -50,7 +52,6 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.Client;
 

@@ -19,9 +19,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 public class PerfTest extends AbstractAuditlogUnitTest {

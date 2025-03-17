@@ -15,7 +15,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;

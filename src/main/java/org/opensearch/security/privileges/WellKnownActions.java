@@ -39,7 +39,7 @@ import org.opensearch.action.termvectors.TermVectorsAction;
 import org.opensearch.action.update.UpdateAction;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.UpdateByQueryAction;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 
 /**
  * This class lists so-called "well-known actions". These are taken into account when creating the pre-computed

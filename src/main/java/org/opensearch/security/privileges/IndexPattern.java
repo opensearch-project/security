@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.common.support.WildcardMatcher;
 
 /**
  * Aggregates index patterns defined in roles and segments them into patterns using template expressions ("index_${user.name}"),

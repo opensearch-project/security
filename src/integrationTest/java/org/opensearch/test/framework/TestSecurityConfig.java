@@ -61,6 +61,7 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -70,7 +71,6 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.transport.client.Client;
 

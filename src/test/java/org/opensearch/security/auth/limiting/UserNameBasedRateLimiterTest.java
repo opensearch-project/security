@@ -20,7 +20,7 @@ package org.opensearch.security.auth.limiting;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.common.user.AuthCredentials;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

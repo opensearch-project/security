@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.User;
 
 public abstract class ConfigModel {
 

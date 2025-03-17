@@ -22,19 +22,19 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SecurityConfigApiAction extends AbstractApiAction {
 

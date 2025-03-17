@@ -40,15 +40,16 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
 import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 
 import org.greenrobot.eventbus.Subscribe;
 

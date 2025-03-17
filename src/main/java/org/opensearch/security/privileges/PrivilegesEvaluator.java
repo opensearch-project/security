@@ -88,6 +88,9 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -101,16 +104,13 @@ import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
 

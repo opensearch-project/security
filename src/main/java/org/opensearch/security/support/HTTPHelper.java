@@ -33,8 +33,9 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPHelper {
 

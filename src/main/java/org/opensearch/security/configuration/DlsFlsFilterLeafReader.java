@@ -65,12 +65,12 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.compliance.FieldReadCallback;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.privileges.dlsfls.FlsStoredFieldVisitor;
-import org.opensearch.security.support.ConfigConstants;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 

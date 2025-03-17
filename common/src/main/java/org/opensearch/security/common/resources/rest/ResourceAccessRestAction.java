@@ -32,12 +32,12 @@ import static org.opensearch.security.common.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.common.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.common.dlic.rest.api.Responses.unauthorized;
+import static org.opensearch.security.common.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.LIST;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.REVOKE;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.SHARE;
 import static org.opensearch.security.common.resources.rest.ResourceAccessRequest.Operation.VERIFY;
-import static org.opensearch.security.common.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
-import static org.opensearch.security.common.support.Utils.addRoutesPrefix;
 
 /**
  * This class handles the REST API for resource access management.

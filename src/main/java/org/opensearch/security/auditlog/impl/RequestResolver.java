@@ -54,8 +54,9 @@ import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 

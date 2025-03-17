@@ -48,8 +48,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -59,7 +59,7 @@ import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.DefaultObjectMapper.readTree;
+import static org.opensearch.security.common.support.DefaultObjectMapper.readTree;
 
 public class HttpIntegrationTests extends SingleClusterTest {
 

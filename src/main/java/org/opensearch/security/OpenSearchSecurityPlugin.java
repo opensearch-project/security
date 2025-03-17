@@ -144,6 +144,7 @@ import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.common.resources.ResourceAccessHandler;
 import org.opensearch.security.common.resources.ResourceIndexListener;
 import org.opensearch.security.common.resources.ResourcePluginInfo;
@@ -154,9 +155,10 @@ import org.opensearch.security.common.resources.ResourceSharingIndexManagementRe
 import org.opensearch.security.common.resources.rest.ResourceAccessAction;
 import org.opensearch.security.common.resources.rest.ResourceAccessRestAction;
 import org.opensearch.security.common.resources.rest.ResourceAccessTransportAction;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -205,7 +207,6 @@ import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.state.SecurityMetadata;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.ModuleInfo;
@@ -214,7 +215,6 @@ import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
-import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -233,16 +233,16 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 // CS-ENFORCE-SINGLE
 

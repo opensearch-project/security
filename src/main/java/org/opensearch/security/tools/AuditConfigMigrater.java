@@ -29,8 +29,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 
 public class AuditConfigMigrater {
 

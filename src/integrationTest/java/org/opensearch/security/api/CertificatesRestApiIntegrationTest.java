@@ -35,8 +35,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTest {
 

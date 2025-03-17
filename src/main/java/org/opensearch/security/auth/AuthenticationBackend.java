@@ -27,8 +27,8 @@
 package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 
 /**
  * OpenSearch Security custom authentication backends need to implement this interface.

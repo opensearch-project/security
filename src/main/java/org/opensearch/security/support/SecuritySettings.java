@@ -12,6 +12,7 @@
 package org.opensearch.security.support;
 
 import org.opensearch.common.settings.Setting;
+import org.opensearch.security.common.support.ConfigConstants;
 
 public class SecuritySettings {
     public static final Setting<Boolean> LEGACY_OPENDISTRO_SSL_DUAL_MODE_SETTING = Setting.boolSetting(

@@ -16,7 +16,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 

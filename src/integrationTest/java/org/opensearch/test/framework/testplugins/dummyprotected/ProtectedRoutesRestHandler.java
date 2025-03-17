@@ -27,7 +27,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ProtectedRoutesRestHandler extends AbstractRestHandler {
 

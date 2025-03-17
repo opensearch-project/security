@@ -47,10 +47,10 @@ import org.opensearch.http.HttpRequest;
 import org.opensearch.http.HttpResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.AuthCredentials;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

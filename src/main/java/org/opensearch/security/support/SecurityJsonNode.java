@@ -25,7 +25,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 
 public final class SecurityJsonNode {
 

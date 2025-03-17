@@ -29,10 +29,10 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 

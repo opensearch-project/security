@@ -36,11 +36,11 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.ConfigurationFiles;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -57,12 +57,12 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.test.framework.TestSecurityConfig.REST_ADMIN_REST_API_ACCESS;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)

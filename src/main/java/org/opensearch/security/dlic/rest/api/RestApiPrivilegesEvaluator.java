@@ -33,15 +33,15 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 // TODO: Make Singleton?

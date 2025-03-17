@@ -22,7 +22,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
@@ -41,6 +41,8 @@ import org.opensearch.test.framework.log.LogsRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.http.CertificateAuthenticationTest.POINTER_BACKEND_ROLES;
 import static org.opensearch.security.http.DirectoryInformationTrees.CN_GROUP_ADMIN;
 import static org.opensearch.security.http.DirectoryInformationTrees.DN_CAPTAIN_SPOCK_PEOPLE_TEST_ORG;
@@ -55,8 +57,6 @@ import static org.opensearch.security.http.DirectoryInformationTrees.USERNAME_AT
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_KIRK;
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_SEARCH;
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_SPOCK;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;

@@ -17,8 +17,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -31,8 +31,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.SecurityConfigurationTests.ADDITIONAL_USER_1;
 import static org.opensearch.security.SecurityConfigurationTests.CREATE_USER_BODY;
 import static org.opensearch.security.SecurityConfigurationTests.INTERNAL_USERS_RESOURCE;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 

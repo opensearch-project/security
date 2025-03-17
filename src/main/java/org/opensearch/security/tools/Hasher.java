@@ -31,9 +31,9 @@ import java.io.Console;
 import org.apache.commons.cli.*;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 
 public class Hasher {
 

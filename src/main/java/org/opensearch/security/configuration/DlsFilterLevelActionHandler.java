@@ -57,6 +57,7 @@ import org.opensearch.script.mustache.MultiSearchTemplateAction;
 import org.opensearch.script.mustache.SearchTemplateAction;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
@@ -64,7 +65,6 @@ import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.queries.QueryBuilderTraverser;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ReflectiveAttributeAccessors;
 import org.opensearch.transport.client.Client;
 

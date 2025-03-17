@@ -30,19 +30,19 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityWhoAmIAction extends BaseRestHandler {
 

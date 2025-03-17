@@ -22,10 +22,10 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
 

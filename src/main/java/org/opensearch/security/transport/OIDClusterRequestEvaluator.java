@@ -30,7 +30,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.transport.TransportRequest;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions

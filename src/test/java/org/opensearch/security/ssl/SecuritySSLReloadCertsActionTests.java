@@ -23,9 +23,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;

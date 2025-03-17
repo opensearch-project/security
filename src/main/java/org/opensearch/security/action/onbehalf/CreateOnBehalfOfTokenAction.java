@@ -32,8 +32,8 @@ import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 

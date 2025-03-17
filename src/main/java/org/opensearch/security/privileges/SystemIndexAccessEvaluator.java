@@ -42,11 +42,11 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
 /**

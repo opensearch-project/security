@@ -24,8 +24,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 

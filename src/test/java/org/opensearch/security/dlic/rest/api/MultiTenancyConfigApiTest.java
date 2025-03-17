@@ -15,8 +15,8 @@ import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;

@@ -23,8 +23,8 @@ import org.apache.http.HttpStatus;
 import org.junit.Assert;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditTestUtils;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -34,7 +34,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 

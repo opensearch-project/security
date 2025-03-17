@@ -31,7 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 

@@ -28,11 +28,11 @@ import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.dlic.rest.api.Responses.created;
-import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplemented;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.api.Responses.created;
+import static org.opensearch.security.common.dlic.rest.api.Responses.forbidden;
+import static org.opensearch.security.common.dlic.rest.api.Responses.methodNotImplemented;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.api.Responses.response;
 
 @FunctionalInterface
 public interface RequestHandler {

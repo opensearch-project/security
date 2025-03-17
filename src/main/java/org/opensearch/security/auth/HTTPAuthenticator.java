@@ -33,9 +33,9 @@ import java.util.Set;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.user.AuthCredentials;
 
 /**
  * OpenSearch Security custom HTTP authenticators need to implement this interface.

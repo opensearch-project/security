@@ -32,12 +32,12 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;

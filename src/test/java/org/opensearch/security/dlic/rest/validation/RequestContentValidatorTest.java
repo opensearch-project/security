@@ -33,7 +33,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpRequest;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;

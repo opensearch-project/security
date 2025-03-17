@@ -17,8 +17,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class ContextProvidingPluginSubject implements PluginSubject {

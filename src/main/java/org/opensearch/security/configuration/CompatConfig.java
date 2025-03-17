@@ -31,13 +31,13 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
-import org.opensearch.security.support.ConfigConstants;
 
 import org.greenrobot.eventbus.Subscribe;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY;
 
 public class CompatConfig {
 

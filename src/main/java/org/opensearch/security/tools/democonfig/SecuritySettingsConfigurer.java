@@ -27,16 +27,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
+import static org.opensearch.security.common.support.DefaultObjectMapper.YAML_MAPPER;
 
 /**
  * This class updates the security related configuration, as needed.

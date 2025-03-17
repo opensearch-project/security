@@ -43,9 +43,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.kerberos.util.JaasKrbUtil;
 import com.amazon.dlic.auth.http.kerberos.util.KrbConstants;

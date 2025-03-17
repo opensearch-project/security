@@ -21,7 +21,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.AbstractLdapBean;

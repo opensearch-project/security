@@ -45,7 +45,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;

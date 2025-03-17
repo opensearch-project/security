@@ -22,9 +22,9 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;

@@ -19,8 +19,8 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 @Deprecated
 public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {

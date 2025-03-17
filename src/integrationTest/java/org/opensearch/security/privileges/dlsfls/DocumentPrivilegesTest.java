@@ -51,13 +51,13 @@ import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;

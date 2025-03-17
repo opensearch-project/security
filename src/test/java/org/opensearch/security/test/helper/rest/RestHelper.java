@@ -83,7 +83,7 @@ import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 

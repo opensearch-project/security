@@ -39,14 +39,14 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.OpenSearchRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.opensaml.integration.SecurityXMLObjectProviderInitializer;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
-import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;

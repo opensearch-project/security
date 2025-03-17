@@ -31,12 +31,12 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 
 import com.flipkart.zjsonpatch.JsonDiff;
 
-import static org.opensearch.security.dlic.rest.api.Responses.payload;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
 
 public class RequestContentValidator implements ToXContent {
 

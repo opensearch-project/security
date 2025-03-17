@@ -18,8 +18,8 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

@@ -20,9 +20,9 @@ import org.opensearch.common.settings.Settings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 
 public class PasswordValidatorTest {
 

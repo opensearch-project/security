@@ -22,20 +22,20 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.junit.Assert.assertTrue;
 
 /**

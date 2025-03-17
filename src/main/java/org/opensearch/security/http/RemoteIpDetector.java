@@ -53,8 +53,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.support.ConfigConstants;
 
 final class RemoteIpDetector {
 

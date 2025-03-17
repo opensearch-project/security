@@ -31,7 +31,7 @@ package org.opensearch.test.framework.cluster;
 import java.util.Map;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 public class MinimumSecuritySettingsSupplierFactory {

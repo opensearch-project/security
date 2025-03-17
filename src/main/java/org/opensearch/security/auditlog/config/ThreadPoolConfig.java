@@ -12,7 +12,7 @@
 package org.opensearch.security.auditlog.config;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 
 public class ThreadPoolConfig {
     private static final int DEFAULT_THREAD_POOL_SIZE = 10;

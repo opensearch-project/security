@@ -28,11 +28,11 @@ import org.opensearch.security.dlic.rest.api.ssl.CertificatesNodesResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.api.Responses.internalServerError;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class CertificatesApiAction extends AbstractApiAction {
 

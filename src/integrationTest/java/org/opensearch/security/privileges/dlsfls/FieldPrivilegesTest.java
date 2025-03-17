@@ -21,12 +21,12 @@ import org.junit.runners.Suite;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;

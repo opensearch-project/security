@@ -38,10 +38,10 @@ import java.util.Map.Entry;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthorizationBackend;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.InternalUsersModel;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
 
 import org.greenrobot.eventbus.Subscribe;
 

@@ -18,7 +18,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;

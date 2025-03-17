@@ -23,9 +23,9 @@ import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
 
 public class ProtectedIndexAccessEvaluator {

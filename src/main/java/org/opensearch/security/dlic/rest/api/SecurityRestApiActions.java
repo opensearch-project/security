@@ -20,7 +20,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -30,7 +30,7 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SecurityRestApiActions {
 

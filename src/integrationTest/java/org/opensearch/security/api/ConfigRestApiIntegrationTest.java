@@ -16,15 +16,15 @@ import java.util.StringJoiner;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
 

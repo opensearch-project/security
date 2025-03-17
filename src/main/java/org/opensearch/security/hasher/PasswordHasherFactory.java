@@ -14,10 +14,10 @@ package org.opensearch.security.hasher;
 import java.util.Set;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 
-import static org.opensearch.security.support.ConfigConstants.BCRYPT;
-import static org.opensearch.security.support.ConfigConstants.PBKDF2;
+import static org.opensearch.security.common.support.ConfigConstants.BCRYPT;
+import static org.opensearch.security.common.support.ConfigConstants.PBKDF2;
 
 public class PasswordHasherFactory {
 

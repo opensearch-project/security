@@ -17,13 +17,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.security.auth.UserSubjectImplTests;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.User;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
 
 public class ContextProvidingPluginSubjectTests {

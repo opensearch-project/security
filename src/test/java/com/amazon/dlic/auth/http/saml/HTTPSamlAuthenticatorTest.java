@@ -50,12 +50,12 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import com.nimbusds.jwt.SignedJWT;

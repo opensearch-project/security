@@ -16,7 +16,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.User;
 
 public class RestLayerPrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());

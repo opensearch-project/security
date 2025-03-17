@@ -17,8 +17,8 @@ import java.util.StringJoiner;
 import org.junit.Test;
 
 import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.support.ConfigConstants;
 
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;

@@ -24,7 +24,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;

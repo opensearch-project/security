@@ -11,12 +11,12 @@
 package org.opensearch.security.privileges.dlsfls;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
 
 /**
  * Node global context data for DLS/FLS. The lifecycle of an instance of this class is equal to the lifecycle of a running node.

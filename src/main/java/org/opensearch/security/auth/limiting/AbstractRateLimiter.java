@@ -26,8 +26,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.blocking.HeapBasedClientBlockRegistry;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.support.HostAndCidrMatcher;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.ratetracking.RateTracker;
 
 public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureListener, ClientBlockRegistry<ClientIdType> {

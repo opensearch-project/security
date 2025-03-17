@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.compliance.ComplianceConfig;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;

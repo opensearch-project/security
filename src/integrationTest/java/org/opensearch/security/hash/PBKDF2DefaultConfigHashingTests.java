@@ -18,7 +18,7 @@ import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;

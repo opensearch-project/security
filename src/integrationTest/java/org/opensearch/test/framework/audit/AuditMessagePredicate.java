@@ -20,17 +20,17 @@ import java.util.stream.Collectors;
 
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 
-import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
-import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
-import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditMessage.REQUEST_LAYER;
 import static org.opensearch.security.auditlog.impl.AuditMessage.RESOLVED_INDICES;
 import static org.opensearch.security.auditlog.impl.AuditMessage.REST_REQUEST_PARAMS;
 import static org.opensearch.security.auditlog.impl.AuditMessage.REST_REQUEST_PATH;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 
 public class AuditMessagePredicate implements Predicate<AuditMessage> {
 

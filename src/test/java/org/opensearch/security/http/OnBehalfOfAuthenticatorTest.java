@@ -38,9 +38,9 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import io.jsonwebtoken.JwtBuilder;

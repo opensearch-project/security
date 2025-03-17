@@ -35,8 +35,8 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.tasks.Task;
 

@@ -32,7 +32,8 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.helper.MockRestRequest;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.transport.TransportRequest;
 

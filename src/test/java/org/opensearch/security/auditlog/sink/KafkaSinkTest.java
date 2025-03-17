@@ -27,7 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.yaml.YamlXContent;
 import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
-import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;

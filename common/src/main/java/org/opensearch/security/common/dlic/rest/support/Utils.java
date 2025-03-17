@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.dlic.rest.support;
+package org.opensearch.security.common.dlic.rest.support;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,15 +46,17 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestHandler.Route;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.DefaultObjectMapper;
+import org.opensearch.security.common.user.User;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class Utils {
+
+    @Deprecated
+    public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
+    public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     public final static String PLUGIN_ROUTE_PREFIX = "/" + PLUGINS_PREFIX;
 

@@ -25,14 +25,14 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.ArgumentCaptor;

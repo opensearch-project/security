@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.support.ConfigConstants;
 
 /**
  * Configuration class to store salt used for FLS anonymization

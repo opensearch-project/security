@@ -22,9 +22,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.user.AuthCredentials;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;

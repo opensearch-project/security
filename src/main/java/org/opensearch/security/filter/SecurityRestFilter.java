@@ -49,7 +49,9 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
@@ -61,9 +63,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
@@ -72,7 +72,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
 
 public class SecurityRestFilter {
 

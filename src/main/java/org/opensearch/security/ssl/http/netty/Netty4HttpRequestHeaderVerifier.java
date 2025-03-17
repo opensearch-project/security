@@ -16,6 +16,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequestFactory;
@@ -24,7 +25,6 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.filter.SecurityRestUtils;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import io.netty.channel.ChannelHandler.Sharable;

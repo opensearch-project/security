@@ -40,10 +40,10 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.NodesDnModel;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.transport.TransportRequest;
 
 import org.greenrobot.eventbus.Subscribe;

@@ -25,15 +25,15 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
+import static org.opensearch.security.common.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 import static org.mockito.Mockito.mock;
 
 public class RolesInjectorTest {

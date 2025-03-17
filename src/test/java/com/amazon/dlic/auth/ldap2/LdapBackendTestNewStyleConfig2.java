@@ -31,11 +31,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.AuthCredentials;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;

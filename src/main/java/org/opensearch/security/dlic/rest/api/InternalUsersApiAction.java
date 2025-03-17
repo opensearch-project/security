@@ -41,15 +41,15 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.payload;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.methodNotImplementedMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.common.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.common.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class InternalUsersApiAction extends AbstractApiAction {
 

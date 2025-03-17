@@ -22,19 +22,19 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
-import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
-import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
-import static org.opensearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
-import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
-import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
-import static org.opensearch.security.auditlog.impl.AuditCategory.SSL_EXCEPTION;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.BAD_HEADERS;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.FAILED_LOGIN;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.SSL_EXCEPTION;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;

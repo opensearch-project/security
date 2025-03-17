@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.TestRestClient;

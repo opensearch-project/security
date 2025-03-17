@@ -43,10 +43,10 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class UserInjector {

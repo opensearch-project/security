@@ -34,6 +34,7 @@ import org.opensearch.http.HttpRequest;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;

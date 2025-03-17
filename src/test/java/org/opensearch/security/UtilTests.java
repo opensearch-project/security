@@ -31,11 +31,11 @@ import java.util.Map;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.support.WildcardMatcher;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
-import org.opensearch.security.support.WildcardMatcher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

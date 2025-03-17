@@ -22,7 +22,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 
 /**
  * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.

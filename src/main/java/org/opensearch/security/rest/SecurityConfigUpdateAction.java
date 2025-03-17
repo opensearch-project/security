@@ -27,20 +27,20 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigUpdateAction extends BaseRestHandler {
 

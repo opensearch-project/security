@@ -52,7 +52,9 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -60,8 +62,6 @@ import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
@@ -70,14 +70,14 @@ import com.flipkart.zjsonpatch.JsonDiff;
 import com.flipkart.zjsonpatch.JsonPatch;
 import com.flipkart.zjsonpatch.JsonPatchApplicationException;
 
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.conflict;
+import static org.opensearch.security.common.dlic.rest.api.Responses.forbidden;
+import static org.opensearch.security.common.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.internalServerError;
+import static org.opensearch.security.common.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.common.dlic.rest.support.Utils.withIOException;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.conflict;
-import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
-import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
-import static org.opensearch.security.dlic.rest.api.Responses.payload;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 

@@ -22,13 +22,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.auditlog.sink.DebugSink;
 import org.opensearch.security.auditlog.sink.ExternalOpenSearchSink;
 import org.opensearch.security.auditlog.sink.InternalOpenSearchSink;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;

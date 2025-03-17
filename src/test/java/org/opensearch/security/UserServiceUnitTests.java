@@ -26,12 +26,12 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.transport.client.Client;

@@ -42,18 +42,18 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class DashboardsInfoAction extends BaseRestHandler {
 

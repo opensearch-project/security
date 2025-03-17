@@ -31,7 +31,7 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.Uid;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.common.dlic.rest.support.Utils;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.JsonFlattener;

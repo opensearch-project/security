@@ -21,15 +21,15 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class RestApiAdminPrivilegesEvaluator {
 

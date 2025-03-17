@@ -33,14 +33,14 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 import org.opensearch.tasks.Task;
 
@@ -49,7 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
+import static org.opensearch.security.common.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;

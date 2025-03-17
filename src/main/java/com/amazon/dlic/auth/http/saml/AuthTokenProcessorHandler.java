@@ -45,7 +45,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.filter.SecurityResponse;
 

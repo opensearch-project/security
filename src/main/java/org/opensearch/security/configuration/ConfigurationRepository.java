@@ -80,19 +80,19 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.state.SecurityMetadata;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 
 public class ConfigurationRepository implements ClusterStateListener {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);

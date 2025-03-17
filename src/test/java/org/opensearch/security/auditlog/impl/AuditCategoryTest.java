@@ -22,10 +22,12 @@ import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
-import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.common.auditlog.impl.AuditCategory.BAD_HEADERS;
 
 @RunWith(Enclosed.class)
 public class AuditCategoryTest {

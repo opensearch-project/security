@@ -13,10 +13,10 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.support.ConfigConstants;
 
 public class SecurityApiDependencies {
     private AdminDNs adminDNs;

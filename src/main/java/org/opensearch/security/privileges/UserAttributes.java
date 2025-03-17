@@ -17,7 +17,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.user.User;
 
 /**
  * Support for interpolating user attributes used in index patterns and DLS queries.

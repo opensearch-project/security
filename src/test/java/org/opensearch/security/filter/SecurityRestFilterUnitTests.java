@@ -26,7 +26,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.common.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;

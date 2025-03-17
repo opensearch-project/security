@@ -20,7 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityConfiguration;

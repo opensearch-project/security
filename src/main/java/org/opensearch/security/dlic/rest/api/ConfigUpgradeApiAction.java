@@ -45,8 +45,8 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.common.dlic.rest.support.Utils;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
@@ -60,12 +60,12 @@ import org.opensearch.transport.client.Client;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
-import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
+import static org.opensearch.security.common.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.common.dlic.rest.api.Responses.response;
+import static org.opensearch.security.common.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addLegacyRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.common.dlic.rest.support.Utils.withIOException;
 
 public class ConfigUpgradeApiAction extends AbstractApiAction {
 

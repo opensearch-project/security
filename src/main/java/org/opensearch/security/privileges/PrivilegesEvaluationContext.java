@@ -20,9 +20,9 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.security.common.support.WildcardMatcher;
+import org.opensearch.security.common.user.User;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
 /**

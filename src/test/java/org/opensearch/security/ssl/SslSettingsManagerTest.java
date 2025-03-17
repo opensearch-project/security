@@ -31,6 +31,7 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE;
@@ -56,7 +57,6 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFI
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.junit.Assert.assertThrows;
 
 public class SslSettingsManagerTest extends RandomizedTest {

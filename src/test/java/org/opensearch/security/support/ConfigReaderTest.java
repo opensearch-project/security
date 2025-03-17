@@ -18,7 +18,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.common.support.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;

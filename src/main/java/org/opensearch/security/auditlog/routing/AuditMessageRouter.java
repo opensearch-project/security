@@ -25,12 +25,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.config.ThreadPoolConfig;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.auditlog.sink.SinkProvider;
-import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.common.auditlog.impl.AuditCategory;
+import org.opensearch.security.common.dlic.rest.support.Utils;
+import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 

@@ -25,8 +25,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.common.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.hamcrest.MatcherAssert.assertThat;
