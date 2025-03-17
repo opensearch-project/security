@@ -220,16 +220,27 @@ public interface OpenSearchClientProvider {
         return createGenericClientRestClient(headers, useCertificateData, null);
     }
 
+    default TestRestClient getSecurityDisabledRestClient() {
+        return new TestRestClient(getHttpAddress(), List.of(), getSSLContext(null), null, false, false);
+    }
+
     default TestRestClient createGenericClientRestClient(
         List<Header> headers,
         CertificateData useCertificateData,
         InetAddress sourceInetAddress
     ) {
-        return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress);
+        return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress, true, false);
     }
 
     default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
-        return new TestRestClient(getHttpAddress(), configuration.getHeaders(), getSSLContext(), configuration.getSourceInetAddress());
+        return new TestRestClient(
+            getHttpAddress(),
+            configuration.getHeaders(),
+            getSSLContext(),
+            configuration.getSourceInetAddress(),
+            true,
+            false
+        );
     }
 
     private SSLContext getSSLContext() {
