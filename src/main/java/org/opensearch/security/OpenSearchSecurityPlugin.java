@@ -273,7 +273,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
-    private volatile org.opensearch.security.common.configuration.AdminDNs adminDNsCommon;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
@@ -1138,7 +1137,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
-        adminDNsCommon = new org.opensearch.security.common.configuration.AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
@@ -1169,7 +1167,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDNsCommon);
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
         resourceAccessHandler.initializeRecipientTypes();
         // Resource Sharing index is enabled by default
         boolean isResourceSharingEnabled = settings.getAsBoolean(
@@ -1258,7 +1256,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         components.add(adminDns);
-        components.add(adminDNsCommon);
         components.add(cr);
         components.add(xffResolver);
         components.add(backendRegistry);
