@@ -150,7 +150,10 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         // If we found an unrestricted role, we continue with the next index/alias/data stream. If we found a restricted role, we abort
         // early and return true.
 
-        Set<String> resolvedIndices = resolved.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver());
+        Set<String> resolvedIndices = resolved.getAllIndicesResolved(
+            context.getClusterStateSupplier(),
+            context.getIndexNameExpressionResolver()
+        );
         Set<String> matchedSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(resolvedIndices);
 
         Set<String> regularIndices = new HashSet<>(resolvedIndices);
