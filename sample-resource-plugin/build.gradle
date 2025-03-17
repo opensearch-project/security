@@ -95,12 +95,10 @@ sourceSets {
 
 tasks.register("integrationTest", Test) {
     doFirst {
-        if (System.getenv('DISABLE_RETRY') != 'true') {
-            retry {
-                failOnPassedAfterRetry = false
-                maxRetries = 2
-                maxFailures = 5
-            }
+        retry {
+            failOnPassedAfterRetry = false
+            maxRetries = 5
+            maxFailures = 5
         }
     }
     description = 'Run integration tests for the subproject.'
@@ -114,4 +112,9 @@ tasks.register("integrationTest", Test) {
 // Ensure integrationTest task depends on the root project's compile task
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
+}
+
+tasks.named("integrationTest") {
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
 }

@@ -199,7 +199,6 @@ jobs:
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
         with:
-          cache-disabled: true
           arguments: |
             :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
