@@ -84,6 +84,8 @@ import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static final String MAP_EXECUTION_HINT = "map";
@@ -136,7 +138,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext) || isClusterPerm(context.getAction())) {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
