@@ -14,7 +14,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -23,6 +22,7 @@ import org.opensearch.security.common.resources.rest.ResourceAccessRequest;
 import org.opensearch.security.common.resources.rest.ResourceAccessResponse;
 import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.transport.client.Client;
 
@@ -37,12 +37,17 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
 
     private final Client client;
     private final boolean resourceSharingEnabled;
+    private final boolean isSecurityDisabled;
 
     public ResourceSharingNodeClient(Client client, Settings settings) {
         this.client = client;
         this.resourceSharingEnabled = settings.getAsBoolean(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        this.isSecurityDisabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_SECURITY_DISABLED,
+            ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT
         );
     }
 
@@ -55,8 +60,10 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      */
     @Override
     public void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener) {
-        if (!resourceSharingEnabled) {
-            log.warn("Resource Access Control feature is disabled. Access to resource is automatically granted.");
+        if (isSecurityDisabled || !resourceSharingEnabled) {
+            String message = isSecurityDisabled ? "Security Plugin is disabled." : "Resource Access Control feature is disabled.";
+
+            log.warn("{} {}", message, "Access to resource is automatically granted");
             listener.onResponse(true);
             return;
         }
@@ -82,7 +89,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         Map<String, Object> shareWith,
         ActionListener<ResourceSharing> listener
     ) {
-        if (isResourceAccessControlDisabled("Resource is not shareable.", listener)) {
+        if (isResourceAccessControlOrSecurityPluginDisabled("Resource is not shareable.", listener)) {
             return;
         }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.SHARE)
@@ -109,7 +116,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         Set<String> scopes,
         ActionListener<ResourceSharing> listener
     ) {
-        if (isResourceAccessControlDisabled("Resource access is not revoked.", listener)) {
+        if (isResourceAccessControlOrSecurityPluginDisabled("Resource access is not revoked.", listener)) {
             return;
         }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.REVOKE)
@@ -128,7 +135,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      */
     @Override
     public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends Resource>> listener) {
-        if (isResourceAccessControlDisabled("Unable to list all accessible resources.", listener)) {
+        if (isResourceAccessControlOrSecurityPluginDisabled("Unable to list all accessible resources.", listener)) {
             return;
         }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.LIST)
@@ -142,18 +149,18 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     }
 
     /**
-     * Helper method for share/revoke to check and return early is resource sharing is disabled
-     * @param disabledMessage The message to be logged if resource sharing is disabled.
+     * Checks if resource sharing or the security plugin is disabled and handles the error accordingly.
+     *
+     * @param disabledMessage The message to be logged if the feature is disabled.
      * @param listener        The listener to be notified with the error.
-     * @return true if resource sharing is enabled, false otherwise.
+     * @return {@code true} if either resource sharing or the security plugin is disabled, otherwise {@code false}.
      */
-    private boolean isResourceAccessControlDisabled(String disabledMessage, ActionListener<?> listener) {
-        if (!resourceSharingEnabled) {
-            log.warn("Resource Access Control feature is disabled. {}", disabledMessage);
+    private boolean isResourceAccessControlOrSecurityPluginDisabled(String disabledMessage, ActionListener<?> listener) {
+        if (isSecurityDisabled || !resourceSharingEnabled) {
+            String message = (isSecurityDisabled ? "Security Plugin" : "Resource Access Control feature") + " is disabled.";
 
-            listener.onFailure(
-                new OpenSearchException("Resource Access Control feature is disabled. " + disabledMessage, RestStatus.NOT_IMPLEMENTED)
-            );
+            log.warn("{} {}", message, disabledMessage);
+            listener.onFailure(new ResourceSharingException(message + " " + disabledMessage, RestStatus.NOT_IMPLEMENTED));
             return true;
         }
         return false;
