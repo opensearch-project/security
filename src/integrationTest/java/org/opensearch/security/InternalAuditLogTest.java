@@ -9,7 +9,7 @@
 */
 package org.opensearch.security;
 
-import java.io.IOException;
+import java.time.Duration;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.logging.log4j.LogManager;
@@ -48,13 +48,24 @@ public class InternalAuditLogTest {
         .build();
 
     @Test
-    public void testAuditLogShouldBeGreenInSingleNodeCluster() throws IOException {
+    public void testAuditLogShouldBeGreenInSingleNodeCluster() throws InterruptedException {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             client.get(""); // demo request for insuring audit-log index is created beforehand
-            TestRestClient.HttpResponse indicesResponse = client.get("_cat/indices");
-
-            assertThat(indicesResponse.getBody(), containsString("security-auditlog"));
-            assertThat(indicesResponse.getBody(), containsString("green"));
+            int retriesLeft = 5;
+            while (retriesLeft > 0) {
+                retriesLeft = retriesLeft - 1;
+                try {
+                    TestRestClient.HttpResponse indicesResponse = client.get("_cat/indices");
+                    assertThat(indicesResponse.getBody(), containsString("security-auditlog"));
+                    assertThat(indicesResponse.getBody(), containsString("green"));
+                    break;
+                } catch (AssertionError e) {
+                    if (retriesLeft == 0) {
+                        throw e;
+                    }
+                    Thread.sleep(Duration.ofSeconds(1).toMillis());
+                }
+            }
         }
     }
 }
