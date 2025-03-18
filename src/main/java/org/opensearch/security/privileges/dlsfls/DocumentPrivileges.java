@@ -185,10 +185,10 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
 
     /**
      * This is a DLS query where any templates (like ${user.name}) have been interpolated and which has been
-     * succesfully parsed to a QueryBuilder instance.
+     * successfully parsed to a QueryBuilder instance.
      */
     public static class RenderedDlsQuery {
-        public static RenderedDlsQuery MATCH_NONE = new RenderedDlsQuery(new MatchNoneQueryBuilder(), "{\"match_none:\" {}}");
+        public static RenderedDlsQuery MATCH_NONE = new RenderedDlsQuery(new MatchNoneQueryBuilder(), "{\"match_none\": {}}");
 
         private final QueryBuilder queryBuilder;
         private final String renderedSource;
