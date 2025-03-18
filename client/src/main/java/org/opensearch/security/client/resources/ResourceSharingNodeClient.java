@@ -45,10 +45,9 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
-        this.isSecurityDisabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_SECURITY_DISABLED,
-            ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT
-        );
+        Settings securitySettings = settings.getAsSettings(ConfigConstants.SECURITY_SETTINGS_PREFIX);
+        this.isSecurityDisabled = securitySettings.isEmpty()
+            || settings.getAsBoolean(ConfigConstants.OPENSEARCH_SECURITY_DISABLED, ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT);
     }
 
     /**
