@@ -17,7 +17,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
@@ -35,13 +34,21 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigUpdateAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(PUT, "/configupdate")), "/_plugins/_security");
+    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
+        ImmutableList.of(new DeprecatedRoute(PUT, "/configupdate", OPENDISTRO_API_DEPRECATION_MESSAGE)),
+        LEGACY_PLUGIN_ROUTE_PREFIX
+    );
 
     private final ThreadContext threadContext;
     private final AdminDNs adminDns;
@@ -68,6 +75,11 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

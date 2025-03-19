@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.NamedRoute;
@@ -67,11 +66,13 @@ import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
 
 public class SecurityRestFilter {
 
@@ -168,12 +169,16 @@ public class SecurityRestFilter {
 
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
                 delegate.handleRequest(request, channel, client);
                 return;
             }
-
+            if (user != null) {
+                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
+            }
             final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
@@ -333,6 +338,9 @@ public class SecurityRestFilter {
      * @return true if the request path matches the route
      */
     private boolean restPathMatches(String requestPath, String handlerPath) {
+        // Trim leading and trailing slashes
+        requestPath = requestPath.replaceAll("^/+", "").replaceAll("/+$", "");
+        handlerPath = handlerPath.replaceAll("^/+", "").replaceAll("/+$", "");
         // Check exact match
         if (handlerPath.equals(requestPath)) {
             return true;

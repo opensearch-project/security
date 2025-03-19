@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.yaml.YamlXContent;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -35,7 +35,7 @@ import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
+public class KafkaSinkTest extends AbstractAuditlogUnitTest {
 
     @ClassRule
     public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, true, 1, "compliance") {
@@ -64,7 +64,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
             consumer.subscribe(Arrays.asList("compliance"));
 
             Settings settings = settingsBuilder.put("path.home", ".").build();
-            SinkProvider provider = new SinkProvider(settings, null, null, null);
+            SinkProvider provider = new SinkProvider(settings, null, null, null, null);
             AuditLogSink sink = provider.getDefaultSink();
             try {
                 assertThat(sink.getClass(), is(KafkaSink.class));

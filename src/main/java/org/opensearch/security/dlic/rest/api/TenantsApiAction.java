@@ -43,6 +43,8 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantsApiAction extends AbstractApiAction {
@@ -55,6 +57,17 @@ public class TenantsApiAction extends AbstractApiAction {
             new Route(Method.PUT, "/tenants/{name}"),
             new Route(Method.PATCH, "/tenants"),
             new Route(Method.PATCH, "/tenants/{name}")
+        )
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/tenants/", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.GET, "/tenants/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/tenants/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/tenants/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/tenants", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PATCH, "/tenants/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
         )
     );
 
@@ -71,6 +84,11 @@ public class TenantsApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

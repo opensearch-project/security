@@ -32,14 +32,15 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
-import org.apache.hc.core5.ssl.TrustStrategy;
 import org.apache.http.HttpStatus;
 
 import org.opensearch.common.settings.Settings;
@@ -368,27 +369,20 @@ public class WebhookSink extends AuditLogSink {
             .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS)
             .build();
 
-        final TrustStrategy trustAllStrategy = new TrustStrategy() {
-            @Override
-            public boolean isTrusted(X509Certificate[] chain, String authType) {
-                return true;
-            }
-        };
-
         try {
-
             HttpClientBuilder hcb = HttpClients.custom().setDefaultRequestConfig(config);
             if (!verifySSL) {
-                SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(trustAllStrategy).build();
-                final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+                SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build();
+                final DefaultClientTlsStrategy sslsf = new DefaultClientTlsStrategy(
                     sslContext,
                     null,
                     null,
+                    SSLBufferMode.STATIC,
                     NoopHostnameVerifier.INSTANCE
                 );
 
                 final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                    .setSSLSocketFactory(sslsf)
+                    .setTlsSocketStrategy(sslsf)
                     .setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
                     .build();
                 hcb.setConnectionManager(cm);
@@ -399,10 +393,16 @@ public class WebhookSink extends AuditLogSink {
                 return HttpClients.custom().setDefaultRequestConfig(config).build();
             }
             SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(effectiveTruststore, null).build();
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, null, null, new DefaultHostnameVerifier());
+            final DefaultClientTlsStrategy sslsf = new DefaultClientTlsStrategy(
+                sslContext,
+                null,
+                null,
+                SSLBufferMode.STATIC,
+                new DefaultHostnameVerifier()
+            );
 
             final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(sslsf)
+                .setTlsSocketStrategy(sslsf)
                 .setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
                 .build();
             hcb.setConnectionManager(cm);

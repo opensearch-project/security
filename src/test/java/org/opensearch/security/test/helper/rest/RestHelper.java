@@ -39,7 +39,6 @@ import java.util.concurrent.CompletionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,10 +63,9 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
-import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.concurrent.FutureCallback;
-import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
@@ -78,8 +76,7 @@ import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.ProtocolVersion;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
+import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
@@ -363,18 +360,13 @@ public class RestHelper {
                 protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
             }
 
-            final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                .setSslContext(sslContext)
-                .setTlsVersions(protocols)
-                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                    @Override
-                    public TlsDetails create(final SSLEngine sslEngine) {
-                        return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                    }
-                })
-                .build();
+            final DefaultClientTlsStrategy tlsStrategy = new DefaultClientTlsStrategy(
+                sslContext,
+                protocols,
+                null,
+                SSLBufferMode.STATIC,
+                NoopHostnameVerifier.INSTANCE
+            );
 
             final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 

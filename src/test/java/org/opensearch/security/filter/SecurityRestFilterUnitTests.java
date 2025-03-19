@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.bytes.BytesArray;
@@ -32,6 +31,7 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -100,4 +100,7 @@ public class SecurityRestFilterUnitTests {
 
         verify(testRestHandlerSpy).handleRequest(any(), any(), any());
     }
+
+    // unit tests for restPathMatches are in RestPathMatchesTests.java
+
 }

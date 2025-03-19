@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,10 +70,10 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.NamedDiff;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -110,7 +111,6 @@ import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.Subject;
-import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
@@ -164,7 +164,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.NoopPluginSubject;
+import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -215,12 +215,15 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
@@ -244,6 +247,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
 
+    @Deprecated
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
@@ -445,7 +449,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         try {
             String maskingAlgorithmDefault = settings.get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
-            if (StringUtils.isNotEmpty(maskingAlgorithmDefault)) {
+            if (StringUtils.isNotEmpty(maskingAlgorithmDefault) && !BLAKE2B_LEGACY_DEFAULT.equalsIgnoreCase(maskingAlgorithmDefault)) {
                 MessageDigest.getInstance(maskingAlgorithmDefault);
             }
         } catch (Exception ex) {
@@ -2045,6 +2049,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
             settings.add(
                 Setting.boolSetting(
+                    ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED,
+                    false,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.boolSetting(
                     ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG,
                     false,
                     Property.NodeScope,
@@ -2135,8 +2147,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Subject getCurrentSubject() {
-        // Not supported
-        return new NoopSubject();
+        return (Subject) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_AUTHENTICATED_USER);
     }
 
     @Override
@@ -2146,7 +2157,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        return new NoopPluginSubject(threadPool);
+        Set<String> clusterActions = new HashSet<>();
+        clusterActions.add(BulkAction.NAME);
+        PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        return subject;
     }
 
     @Override

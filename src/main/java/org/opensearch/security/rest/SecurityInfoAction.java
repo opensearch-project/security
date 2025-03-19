@@ -38,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.RamUsageEstimator;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
@@ -54,18 +53,28 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/authinfo"), new Route(POST, "/authinfo")),
-        LEGACY_PLUGIN_ROUTE_PREFIX,
         PLUGIN_ROUTE_PREFIX
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(GET, "/authinfo", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(POST, "/authinfo", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        ),
+        LEGACY_PLUGIN_ROUTE_PREFIX
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -86,6 +95,11 @@ public class SecurityInfoAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

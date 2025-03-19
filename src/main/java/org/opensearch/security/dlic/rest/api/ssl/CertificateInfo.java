@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.Objects;
 
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -33,7 +32,29 @@ public class CertificateInfo implements Writeable, ToXContent {
 
     private final String notBefore;
 
-    public CertificateInfo(String subject, String san, String issuer, String notAfter, String notBefore) {
+    private final String format;
+
+    private final String alias;
+
+    private final boolean hasPrivateKey;
+
+    private final String serialNumber;
+
+    public CertificateInfo(
+        String format,
+        String alias,
+        String serialNumber,
+        boolean hasPrivateKey,
+        String subject,
+        String san,
+        String issuer,
+        String notAfter,
+        String notBefore
+    ) {
+        this.format = format;
+        this.alias = alias;
+        this.serialNumber = serialNumber;
+        this.hasPrivateKey = hasPrivateKey;
         this.subject = subject;
         this.san = san;
         this.issuer = issuer;
@@ -47,6 +68,10 @@ public class CertificateInfo implements Writeable, ToXContent {
         this.issuer = in.readOptionalString();
         this.notAfter = in.readOptionalString();
         this.notBefore = in.readOptionalString();
+        this.format = in.readOptionalString();
+        this.alias = in.readOptionalString();
+        this.serialNumber = in.readOptionalString();
+        this.hasPrivateKey = in.readBoolean();
     }
 
     @Override
@@ -56,39 +81,25 @@ public class CertificateInfo implements Writeable, ToXContent {
         out.writeOptionalString(issuer);
         out.writeOptionalString(notAfter);
         out.writeOptionalString(notBefore);
+        out.writeOptionalString(format);
+        out.writeOptionalString(alias);
+        out.writeOptionalString(serialNumber);
+        out.writeBoolean(hasPrivateKey);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
         return builder.startObject()
+            .field("format", format)
+            .field("alias", alias)
             .field("subject_dn", subject)
             .field("san", san)
+            .field("serial_number", serialNumber)
             .field("issuer_dn", issuer)
+            .field("has_private_key", hasPrivateKey)
             .field("not_after", notAfter)
             .field("not_before", notAfter)
             .endObject();
-    }
-
-    public static CertificateInfo from(final X509Certificate x509Certificate, final String subjectAlternativeNames) {
-        String subject = null;
-        String issuer = null;
-        String notAfter = null;
-        String notBefore = null;
-        if (x509Certificate != null) {
-            if (x509Certificate.getSubjectX500Principal() != null) {
-                subject = x509Certificate.getSubjectX500Principal().getName();
-            }
-            if (x509Certificate.getIssuerX500Principal() != null) {
-                issuer = x509Certificate.getIssuerX500Principal().getName();
-            }
-            if (x509Certificate.getNotAfter() != null) {
-                notAfter = x509Certificate.getNotAfter().toInstant().toString();
-            }
-            if (x509Certificate.getNotBefore() != null) {
-                notBefore = x509Certificate.getNotBefore().toInstant().toString();
-            }
-        }
-        return new CertificateInfo(subject, subjectAlternativeNames, issuer, notAfter, notBefore);
     }
 
     @Override

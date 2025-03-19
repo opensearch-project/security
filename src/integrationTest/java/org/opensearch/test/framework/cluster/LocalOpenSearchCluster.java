@@ -55,8 +55,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.opensearch.client.AdminClient;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -68,6 +66,8 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
 import org.opensearch.transport.BindTransportException;
+import org.opensearch.transport.client.AdminClient;
+import org.opensearch.transport.client.Client;
 
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;

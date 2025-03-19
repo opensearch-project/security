@@ -12,6 +12,7 @@ package org.opensearch.security;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,7 +35,6 @@ import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
-import org.opensearch.client.Client;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestHighLevelClient;
@@ -45,6 +45,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -462,8 +463,9 @@ public class DoNotFailOnForbiddenTests {
             Request getIndicesRequest = new Request("GET", "/_cat/indices");
             // High level client doesn't support _cat/_indices API
             Response getIndicesResponse = restHighLevelClient.getLowLevelClient().performRequest(getIndicesRequest);
-            List<String> indexes = new BufferedReader(new InputStreamReader(getIndicesResponse.getEntity().getContent())).lines()
-                .collect(Collectors.toList());
+            List<String> indexes = new BufferedReader(
+                new InputStreamReader(getIndicesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
+            ).lines().collect(Collectors.toList());
 
             assertThat(indexes.size(), equalTo(1));
             assertThat(indexes.get(0), containsString("marvelous_songs"));
@@ -476,8 +478,9 @@ public class DoNotFailOnForbiddenTests {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
             Request getAliasesRequest = new Request("GET", "/_cat/aliases");
             Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
-            List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
-                .collect(Collectors.toList());
+            List<String> aliases = new BufferedReader(
+                new InputStreamReader(getAliasesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
+            ).lines().collect(Collectors.toList());
 
             // Does not fail on forbidden, but alias response only contains index which user has access to
             assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
@@ -490,8 +493,9 @@ public class DoNotFailOnForbiddenTests {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
             Request getAliasesRequest = new Request("GET", "/_cat/aliases");
             Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
-            List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
-                .collect(Collectors.toList());
+            List<String> aliases = new BufferedReader(
+                new InputStreamReader(getAliasesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
+            ).lines().collect(Collectors.toList());
 
             // Admin has access to all
             assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));

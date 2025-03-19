@@ -39,7 +39,7 @@ public class DlsFlsBaseContext {
     public PrivilegesEvaluationContext getPrivilegesEvaluationContext() {
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-        if (user == null || adminDNs.isAdmin(user)) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext) || adminDNs.isAdmin(user)) {
             return null;
         }
 

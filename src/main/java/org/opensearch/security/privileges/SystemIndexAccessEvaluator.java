@@ -302,6 +302,33 @@ public class SystemIndexAccessEvaluator {
                 }
         }
 
+        // cluster actions will return true for requestedResolved.isLocalAll()
+        // the following section should only be run for index actions
+        if (this.isSystemIndexEnabled && user.isPluginUser() && !requestedResolved.isLocalAll()) {
+            Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                user.getName().replace("plugin:", ""),
+                requestedResolved.getAllIndices()
+            );
+            if (requestedResolved.getAllIndices().equals(matchingSystemIndices)) {
+                // plugin is authorized to perform any actions on its own registered system indices
+                presponse.allowed = true;
+                presponse.markComplete();
+            } else {
+                if (log.isInfoEnabled()) {
+                    log.info(
+                        "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
+                        user.getName(),
+                        action,
+                        matchingSystemIndices
+                    );
+                }
+                presponse.allowed = false;
+                presponse.getMissingPrivileges();
+                presponse.markComplete();
+            }
+            return;
+        }
+
         if (isActionAllowed(action)) {
             if (requestedResolved.isLocalAll()) {
                 if (filterSecurityIndex) {
