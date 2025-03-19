@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import javax.net.ssl.KeyManagerFactory;
+import javax.security.auth.x500.X500Principal;
 
 import com.google.common.collect.ImmutableList;
 
@@ -43,11 +44,11 @@ public interface KeyStoreConfiguration {
         return buildKeyManagerFactory(keyStore.v1(), keyStore.v2());
     }
 
-    default Set<String> getIssuerDns() {
-        Set<String> issuerDns = new HashSet<>();
+    default Set<X500Principal> getIssuerDns() {
+        Set<X500Principal> issuerDns = new HashSet<>();
         final List<Certificate> certificates = loadCertificates();
         for (Certificate certificate : certificates) {
-            issuerDns.add(certificate.x509Certificate().getIssuerX500Principal().getName());
+            issuerDns.add(certificate.x509Certificate().getIssuerX500Principal());
         }
         return issuerDns;
     }

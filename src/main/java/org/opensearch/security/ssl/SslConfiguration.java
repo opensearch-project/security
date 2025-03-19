@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,7 +76,10 @@ public class SslConfiguration {
     }
 
     public TrustManagerFactory trustStoreFactory() {
-        return trustStoreConfiguration.createTrustManagerFactory(sslParameters.shouldValidateNewCertDNs());
+        return trustStoreConfiguration.createTrustManagerFactory(
+            sslParameters.shouldValidateNewCertDNs(),
+            keyStoreConfiguration.getIssuerDns()
+        );
     }
 
     public SslParameters sslParameters() {
@@ -87,7 +91,7 @@ public class SslConfiguration {
         try {
             return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
-                Set<String> issuerDns = keyStoreConfiguration.getIssuerDns();
+                Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
                 return SslContextBuilder.forServer(kmFactory)
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
@@ -126,7 +130,7 @@ public class SslConfiguration {
         try {
             return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
-                Set<String> issuerDns = keyStoreConfiguration.getIssuerDns();
+                Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
                 return SslContextBuilder.forClient()
                     .sslProvider(sslParameters.provider())
                     .protocols(sslParameters.allowedProtocols())

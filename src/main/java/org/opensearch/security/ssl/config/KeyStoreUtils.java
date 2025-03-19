@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSessionContext;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -166,14 +167,14 @@ final class KeyStoreUtils {
 
     // If dnsToCheck is present, this method will only validate the validate for certificates that match the dns in this list or
     // up the chain
-    public static void validateKeyStoreCertificates(final KeyStore keyStore, Set<String> dnsToCheck) {
+    public static void validateKeyStoreCertificates(final KeyStore keyStore, Set<X500Principal> dnsToCheck) {
         try {
             final var aliases = keyStore.aliases();
             while (aliases.hasMoreElements()) {
                 final var a = aliases.nextElement();
                 if (keyStore.isCertificateEntry(a)) {
                     final var c = (X509Certificate) keyStore.getCertificate(a);
-                    if (dnsToCheck.contains(c.getSubjectX500Principal().getName())) {
+                    if (dnsToCheck.contains(c.getSubjectX500Principal())) {
                         c.checkValidity();
                         final var cc = keyStore.getCertificateChain(a);
                         if (cc != null) {
@@ -191,8 +192,7 @@ final class KeyStoreUtils {
                     }
                     final var cc = keyStore.getCertificateChain(a);
                     if (cc != null) {
-                        if (Arrays.stream(cc)
-                            .anyMatch(c -> dnsToCheck.contains(((X509Certificate) c).getSubjectX500Principal().getName()))) {
+                        if (Arrays.stream(cc).anyMatch(c -> dnsToCheck.contains(((X509Certificate) c).getSubjectX500Principal()))) {
                             for (final var c : cc) {
                                 ((X509Certificate) c).checkValidity();
                             }

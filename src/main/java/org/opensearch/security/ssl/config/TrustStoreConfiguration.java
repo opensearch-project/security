@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.TrustManagerFactory;
+import javax.security.auth.x500.X500Principal;
 
 import com.google.common.collect.ImmutableList;
 
@@ -56,7 +57,7 @@ public interface TrustStoreConfiguration {
 
     List<Certificate> loadCertificates();
 
-    default TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<String> issuerDns) {
+    default TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<X500Principal> issuerDns) {
         final var trustStore = createTrustStore();
         if (validateCertificates) {
             KeyStoreUtils.validateKeyStoreCertificates(trustStore, issuerDns);
