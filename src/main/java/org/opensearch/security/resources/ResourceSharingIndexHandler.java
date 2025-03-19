@@ -7,7 +7,7 @@
  * compatible open source license.
  *
  */
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.common.DefaultObjectMapper;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;

@@ -144,16 +144,6 @@ import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.common.resources.ResourceAccessHandler;
-import org.opensearch.security.common.resources.ResourceIndexListener;
-import org.opensearch.security.common.resources.ResourcePluginInfo;
-import org.opensearch.security.common.resources.ResourceProvider;
-import org.opensearch.security.common.resources.ResourceSharingConstants;
-import org.opensearch.security.common.resources.ResourceSharingIndexHandler;
-import org.opensearch.security.common.resources.ResourceSharingIndexManagementRepository;
-import org.opensearch.security.common.resources.rest.ResourceAccessAction;
-import org.opensearch.security.common.resources.rest.ResourceAccessRestAction;
-import org.opensearch.security.common.resources.rest.ResourceAccessTransportAction;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.configuration.AdminDNs;
@@ -184,6 +174,16 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceIndexListener;
+import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.resources.ResourceProvider;
+import org.opensearch.security.resources.ResourceSharingConstants;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
+import org.opensearch.security.resources.rest.ResourceAccessAction;
+import org.opensearch.security.resources.rest.ResourceAccessRestAction;
+import org.opensearch.security.resources.rest.ResourceAccessTransportAction;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -273,7 +273,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
-    private volatile org.opensearch.security.common.configuration.AdminDNs adminDNsCommon;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
@@ -754,6 +753,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Listening on POST and DELETE operations in resource indices
             ResourceIndexListener resourceIndexListener = ResourceIndexListener.getInstance();
             resourceIndexListener.initialize(threadPool, localClient);
+
             if (settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
@@ -1138,7 +1138,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
-        adminDNsCommon = new org.opensearch.security.common.configuration.AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
@@ -1169,7 +1168,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDNsCommon);
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
         resourceAccessHandler.initializeRecipientTypes();
         // Resource Sharing index is enabled by default
         boolean isResourceSharingEnabled = settings.getAsBoolean(
@@ -1258,7 +1257,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         components.add(adminDns);
-        components.add(adminDNsCommon);
         components.add(cr);
         components.add(xffResolver);
         components.add(backendRegistry);

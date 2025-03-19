@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
 /**
  * This class contains constants related to resource sharing in OpenSearch.

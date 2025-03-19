@@ -58,7 +58,6 @@ import org.opensearch.identity.UserSubject;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
-import org.opensearch.security.common.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -225,7 +224,7 @@ public class BackendRegistry {
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
-            UserSubject subject = new UserSubjectImpl(threadPool, new org.opensearch.security.common.user.User(sslPrincipal));
+            UserSubject subject = new UserSubjectImpl(threadPool, superuser);
             threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             return true;
@@ -392,15 +391,9 @@ public class BackendRegistry {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
 
-            // TODO: The following artistry must be reverted when User class is completely moved to :opensearch-security-common
-            org.opensearch.security.common.user.User effUser = new org.opensearch.security.common.user.User(
-                effectiveUser.getName(),
-                effectiveUser.getRoles(),
-                null
-            );
-            effUser.setAttributes(effectiveUser.getCustomAttributesMap());
-            UserSubject subject = new UserSubjectImpl(threadPool, effUser);
+            UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
         } else {
             if (isDebugEnabled) {
@@ -428,14 +421,7 @@ public class BackendRegistry {
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
-                org.opensearch.security.common.user.User anonymousUserCommon = new org.opensearch.security.common.user.User(
-                    User.ANONYMOUS.getName(),
-                    new HashSet<>(User.ANONYMOUS.getRoles()),
-                    null
-                );
-                anonymousUserCommon.setRequestedTenant(tenant);
-
-                UserSubject subject = new UserSubjectImpl(threadPool, anonymousUserCommon);
+                UserSubject subject = new UserSubjectImpl(threadPool, anonymousUser);
 
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);

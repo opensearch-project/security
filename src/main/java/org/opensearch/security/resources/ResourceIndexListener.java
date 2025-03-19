@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -18,12 +18,12 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.security.common.auth.UserSubjectImpl;
-import org.opensearch.security.common.support.ConfigConstants;
-import org.opensearch.security.common.user.User;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Creator;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 

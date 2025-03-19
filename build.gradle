@@ -442,14 +442,6 @@ publishing {
     }
 }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
-    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
-}
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 
@@ -514,6 +506,15 @@ configurations {
 }
 
 allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
+        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
+    }
+
     configurations {
         integrationTestImplementation.extendsFrom implementation
         compile.extendsFrom compileOnly
@@ -569,7 +570,6 @@ allprojects {
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
         integrationTestImplementation project(path:":opensearch-resource-sharing-spi", configuration: 'shadow')
-        integrationTestImplementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
         integrationTestImplementation project(path: ":${rootProject.name}-client", configuration: 'shadow')
     }
 }
@@ -594,6 +594,9 @@ sourceSets {
 
 //add new task that runs integration tests
 task integrationTest(type: Test) {
+    filter {
+        excludeTestsMatching 'org.opensearch.sample.*ResourcePlugin*'
+    }
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
         if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
@@ -642,7 +645,7 @@ tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generate
 check.dependsOn integrationTest
 
 dependencies {
-    implementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
+    implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
@@ -802,8 +805,6 @@ dependencies {
     implementation('com.google.googlejavaformat:google-java-format:1.25.2') {
         exclude group: 'com.google.guava'
     }
-
-    testImplementation project(path: ":${rootProject.name}-common", configuration: 'shadow')
 }
 
 jar {

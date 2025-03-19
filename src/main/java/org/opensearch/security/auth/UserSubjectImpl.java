@@ -7,7 +7,7 @@
  * compatible open source license.
  *
  */
-package org.opensearch.security.common.auth;
+package org.opensearch.security.auth;
 
 import java.security.Principal;
 import java.util.concurrent.Callable;
@@ -16,8 +16,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.UserSubject;
 import org.opensearch.identity.tokens.AuthToken;
-import org.opensearch.security.common.support.ConfigConstants;
-import org.opensearch.security.common.user.User;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class UserSubjectImpl implements UserSubject {

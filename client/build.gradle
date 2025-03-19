@@ -34,9 +34,8 @@ repositories {
 
 dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    // SPI dependency comes through common
-    compileOnly project(path: ":${rootProject.name}-common", configuration: 'shadow')
     compileOnly project(path: ":opensearch-resource-sharing-spi")
+    compileOnly project(":")
 }
 
 shadowJar {
@@ -104,5 +103,3 @@ publishing {
         }
     }
 }
-
-compileJava.dependsOn(':opensearch-security-common:shadowJar')

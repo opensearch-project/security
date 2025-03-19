@@ -226,7 +226,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
     }
 
     public WildcardMatcher concat(Stream<WildcardMatcher> matchers) {
-        return new WildcardMatcher.MatcherCombiner(Stream.concat(matchers, Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
+        return new MatcherCombiner(Stream.concat(matchers, Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
     }
 
     public WildcardMatcher concat(Collection<WildcardMatcher> matchers) {
