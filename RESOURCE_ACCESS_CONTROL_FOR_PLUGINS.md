@@ -31,9 +31,13 @@ This feature introduces **two primary components** for plugin developers:
 
 ### **Plugin Implementation Requirements**
 Each plugin must:
-- **Declare a dependency** on `opensearch-security-client` package:
+- **Declare an `implementation` dependency** on `opensearch-security-client` package:
 ```build.gradle
 implementation group: 'org.opensearch', name:'opensearch-security-client', version: "${opensearch_build}"
+```
+- **Declare a `compileOnly` dependency** on `opensearch-resource-sharing-spi` package:
+```build.gradle
+compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
 ```
 - **Extend** `opensearch-security` plugin with optional flag:
 ```build.gradle

@@ -1,7 +1,3 @@
-Here's a **refined and corrected** version of your `README.md` file with improved clarity, grammar, and formatting:
-
----
-
 # **Resource Sharing Client**
 
 This package provides a **ResourceSharing client** that resource plugins can use to **implement access control** by communicating with the **OpenSearch Security Plugin**.

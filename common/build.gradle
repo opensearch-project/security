@@ -22,10 +22,14 @@ repositories {
 dependencies {
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     compileOnly "org.opensearch.plugin:lang-painless:${opensearch_version}"
-    implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
+    compileOnly project(path: ":opensearch-resource-sharing-spi")
     compileOnly "org.apache.commons:commons-lang3:${versions.commonslang}"
     compileOnly 'com.password4j:password4j:1.8.2'
     compileOnly "com.google.guava:guava:${guava_version}"
+}
+
+shadowJar {
+    archiveClassifier.set(null)
 }
 
 java {
@@ -89,3 +93,5 @@ publishing {
         }
     }
 }
+
+publishShadowPublicationToMavenLocal.mustRunAfter shadowJar
