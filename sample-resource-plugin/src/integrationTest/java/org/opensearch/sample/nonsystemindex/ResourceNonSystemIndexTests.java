@@ -17,7 +17,7 @@ import org.opensearch.sample.nonsystemindex.plugin.ResourceNonSystemIndexPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import static org.opensearch.security.common.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 

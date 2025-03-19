@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.AbstractSampleResourcePluginTests;
-import org.opensearch.security.common.resources.ResourcePluginInfo;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -24,7 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.nonsystemindex.plugin.ResourceNonSystemIndexPlugin.SAMPLE_NON_SYSTEM_INDEX_NAME;
-import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**

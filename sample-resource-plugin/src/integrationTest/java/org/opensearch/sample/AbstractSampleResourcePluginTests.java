@@ -13,7 +13,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
-import static org.opensearch.security.common.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
 
 /**
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be

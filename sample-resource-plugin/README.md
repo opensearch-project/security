@@ -9,8 +9,6 @@ Publish SPI, Common and Client to local maven before proceeding:
 ```shell
 ./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal
 
-./gradlew clean :opensearch-security-common:publishToMavenLocal
-
 ./gradlew clean :opensearch-security-client:publishToMavenLocal
 ```
 
