@@ -34,6 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static org.opensearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
@@ -111,6 +112,15 @@ public class AuthZinRestLayerTests {
         }
     }
 
+    @Test
+    public void testShouldFailWithoutPermForPathWithoutLeadingSlashes() {
+        try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
+
+            // Protected Routes plugin
+            assertThat(client.getWithoutLeadingSlash(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        }
+    }
+
     /** AuthZ in REST Layer check */
 
     @Test
@@ -127,6 +137,17 @@ public class AuthZinRestLayerTests {
                     "DummyRequest",
                     "cluster:admin/dummy_protected_plugin/dummy/get"
                 )
+            );
+        }
+    }
+
+    @Test
+    public void testRequestBodyIsAuditLogged() {
+        try (TestRestClient client = cluster.getRestClient(REST_PLUS_TRANSPORT)) {
+            String dummyBody = "{\"hello\": \"world\"}";
+            client.postJson(PROTECTED_API, dummyBody);
+            auditLogsRule.assertExactlyOne(
+                privilegePredicateRESTLayer(AUTHENTICATED, REST_PLUS_TRANSPORT, POST, "/" + PROTECTED_API).withRequestBody(dummyBody)
             );
         }
     }

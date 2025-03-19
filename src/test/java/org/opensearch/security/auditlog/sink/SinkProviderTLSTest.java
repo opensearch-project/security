@@ -65,7 +65,7 @@ public class SinkProviderTLSTest {
             .setListenerPort(port)
             .setHttpProcessor(HttpProcessors.server("Test/1.1"))
             .setSslContext(createSSLContext())
-            .register("*", handler)
+            .setRequestRouter((request, context) -> handler)
             .create();
 
         server.start();
@@ -92,7 +92,7 @@ public class SinkProviderTLSTest {
         builder.put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", "https://localhost:" + port);
         builder.put("plugins.security.audit.endpoints.endpoint2.config.webhook.url", "https://localhost:" + port);
 
-        SinkProvider provider = new SinkProvider(builder.build(), null, null, null);
+        SinkProvider provider = new SinkProvider(builder.build(), null, null, null, null);
         WebhookSink defaultSink = (WebhookSink) provider.defaultSink;
         assertThat(defaultSink.verifySSL, is(true));
 

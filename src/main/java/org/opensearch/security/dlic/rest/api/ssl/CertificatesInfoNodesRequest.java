@@ -12,18 +12,22 @@
 package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
+import java.util.Optional;
 
+import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.support.nodes.BaseNodesRequest;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.security.ssl.config.CertType;
 
 public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesInfoNodesRequest> {
 
-    private final CertificateType certificateType;
+    private final String certificateType;
 
     private final boolean inMemory;
 
-    public CertificatesInfoNodesRequest(CertificateType certificateType, boolean inMemory, String... nodesIds) {
+    public CertificatesInfoNodesRequest(String certificateType, boolean inMemory, String... nodesIds) {
         super(nodesIds);
         this.certificateType = certificateType;
         this.inMemory = inMemory;
@@ -31,12 +35,12 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
 
     public CertificatesInfoNodesRequest(final StreamInput in) throws IOException {
         super(in);
-        certificateType = in.readEnum(CertificateType.class);
+        certificateType = in.readOptionalString();
         inMemory = in.readBoolean();
     }
 
-    public CertificateType certificateType() {
-        return certificateType;
+    public Optional<String> certificateType() {
+        return Optional.ofNullable(certificateType);
     }
 
     public boolean inMemory() {
@@ -46,7 +50,17 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeEnum(certificateType);
+        out.writeOptionalString(certificateType);
         out.writeBoolean(inMemory);
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        if (!Strings.isEmpty(certificateType) && !CertType.TYPES.contains(certificateType)) {
+            final var errorMessage = new ActionRequestValidationException();
+            errorMessage.addValidationError("wrong certificate type " + certificateType + ". Please use one of " + CertType.TYPES);
+            return errorMessage;
+        }
+        return super.validate();
     }
 }

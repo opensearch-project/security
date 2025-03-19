@@ -28,6 +28,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -223,7 +224,7 @@ public class KeySetRetriever implements KeySetProvider {
 
         if (sslConfig != null) {
             final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
+                .setTlsSocketStrategy(new DefaultClientTlsStrategy(sslConfig.getSslContext()))
                 .build();
 
             builder.setConnectionManager(cm);

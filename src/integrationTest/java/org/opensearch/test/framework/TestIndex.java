@@ -29,8 +29,8 @@
 package org.opensearch.test.framework;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.transport.client.Client;
 
 public class TestIndex {
 

@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -45,6 +44,7 @@ import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
+import org.opensearch.transport.client.node.NodeClient;
 
 import io.netty.handler.ssl.OpenSsl;
 

@@ -41,6 +41,7 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.TermState;
+import org.apache.lucene.index.TermVectors;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -54,6 +55,7 @@ import org.apache.lucene.util.BitSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
+import org.apache.lucene.util.IOBooleanSupplier;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 
 import org.opensearch.ExceptionsHelper;
@@ -72,7 +74,6 @@ import org.opensearch.security.support.ConfigConstants;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
-    private static final String KEYWORD = ".keyword";
     private final FieldInfos flsFieldInfos;
     private final IndexService indexService;
     private final ThreadContext threadContext;
@@ -395,16 +396,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         }
     }
 
-    @Override
-    public void document(final int docID, StoredFieldVisitor visitor) throws IOException {
-        visitor = getDlsFlsVisitor(visitor);
-        try {
-            in.document(docID, visitor);
-        } finally {
-            finishVisitor(visitor);
-        }
-    }
-
     private boolean isAllowed(BytesRef term) {
         return isAllowed(term.utf8ToString());
     }
@@ -498,36 +489,41 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     @Override
-    public Fields getTermVectors(final int docID) throws IOException {
-        final Fields fields = in.getTermVectors(docID);
-
-        if (flsRule.isAllowAll() || fields == null) {
-            return fields;
-        }
-
-        return new Fields() {
-
+    public TermVectors termVectors() throws IOException {
+        return new TermVectors() {
             @Override
-            public Iterator<String> iterator() {
-                return Iterators.<String>filter(fields.iterator(), input -> isAllowed(input));
-            }
+            public Fields get(int docID) throws IOException {
+                final Fields fields = in.termVectors().get(docID);
 
-            @Override
-            public Terms terms(final String field) throws IOException {
-
-                if (!isAllowed(field)) {
-                    return null;
+                if (flsRule.isAllowAll() || fields == null) {
+                    return fields;
                 }
 
-                return wrapTerms(field, in.terms(field));
+                return new Fields() {
 
+                    @Override
+                    public Iterator<String> iterator() {
+                        return Iterators.<String>filter(fields.iterator(), input -> isAllowed(input));
+                    }
+
+                    @Override
+                    public Terms terms(final String field) throws IOException {
+
+                        if (!isAllowed(field)) {
+                            return null;
+                        }
+
+                        return wrapTerms(field, in.terms(field));
+
+                    }
+
+                    @Override
+                    public int size() {
+                        return flsFieldInfos.size();
+                    }
+
+                };
             }
-
-            @Override
-            public int size() {
-                return flsFieldInfos.size();
-            }
-
         };
     }
 
@@ -825,6 +821,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         public long ord() throws IOException {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public IOBooleanSupplier prepareSeekExact(BytesRef text) throws IOException {
+            return isAllowed(text) ? in.prepareSeekExact(text) : () -> false;
+        }
     }
 
     private final class FilteredTerms extends FilterTerms {
@@ -898,6 +899,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         @Override
         public boolean seekExact(BytesRef text) throws IOException {
             return delegate.seekExact(text);
+        }
+
+        @Override
+        public IOBooleanSupplier prepareSeekExact(BytesRef bytesRef) throws IOException {
+            return delegate.prepareSeekExact(bytesRef);
         }
 
         @Override

@@ -79,6 +79,8 @@ anomaly_read_access:
 anomaly_full_access:
   reserved: true
   cluster_permissions:
+    - "cluster:admin/ingest/pipeline/delete"
+    - "cluster:admin/ingest/pipeline/put"
     - 'cluster:admin/opendistro/ad/*'
     - 'cluster_monitor'
   index_permissions:
@@ -90,6 +92,7 @@ anomaly_full_access:
         - 'indices:admin/mappings/fields/get*'
         - 'indices:admin/mappings/get'
         - 'indices:admin/resolve/index'
+        - 'indices:admin/setting/put'
         - 'indices:data/read/field_caps*'
         - 'indices:data/read/search'
         - 'indices_monitor'
@@ -238,6 +241,7 @@ index_management_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/opensearch/ism/*'
+        - 'indices:internal/plugins/replication/index/stop'
 
 # Allows users to use all cross cluster replication functionality at leader cluster
 cross_cluster_replication_leader_full_access:
@@ -453,3 +457,17 @@ query_insights_full_access:
         - 'top_queries_by_*'
       allowed_actions:
         - "indices_all"
+
+# Allow users to execute read only LTR actions
+ltr_read_access:
+    reserved: true
+    cluster_permissions:
+      - cluster:admin/ltr/caches/stats
+      - cluster:admin/ltr/featurestore/list
+      - cluster:admin/ltr/stats
+
+# Allow users to execute all LTR actions
+ltr_full_access:
+    reserved: true
+    cluster_permissions:
+      - cluster:admin/ltr/*

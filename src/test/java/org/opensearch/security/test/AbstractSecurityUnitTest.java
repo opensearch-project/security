@@ -44,8 +44,8 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.hc.client5.http.config.TlsConfig;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.function.Factory;
@@ -72,7 +72,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
@@ -91,6 +90,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import io.netty.handler.ssl.OpenSsl;
 
@@ -197,14 +197,13 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                     })
                     .build();
 
-                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(tlsStrategy)
-                    .build();
-                builder.setConnectionManager(cm);
+                final PoolingAsyncClientConnectionManagerBuilder cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy);
+
                 if (httpVersionPolicy != null) {
-                    builder.setVersionPolicy(httpVersionPolicy);
+                    cm.setDefaultTlsConfig(TlsConfig.custom().setVersionPolicy(httpVersionPolicy).build());
                 }
-                return builder;
+                return builder.setConnectionManager(cm.build());
             });
             return new RestHighLevelClient(restClientBuilder);
         } catch (Exception e) {

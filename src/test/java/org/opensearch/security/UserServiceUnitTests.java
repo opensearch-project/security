@@ -24,7 +24,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -35,6 +34,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
+import org.opensearch.transport.client.Client;
 
 import org.mockito.Mock;
 import org.passay.CharacterCharacteristicsRule;

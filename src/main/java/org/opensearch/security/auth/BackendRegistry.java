@@ -28,7 +28,6 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,6 +54,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.identity.UserSubject;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
@@ -65,7 +65,7 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.support.HostAndCidrMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -79,7 +79,7 @@ import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
 
@@ -223,8 +223,10 @@ public class BackendRegistry {
 
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
-            auditLog.logSucceededLogin(sslPrincipal, true, null, request);
+            User superuser = new User(sslPrincipal);
+            UserSubject subject = new UserSubjectImpl(threadPool, superuser);
+            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             return true;
         }
 
@@ -387,14 +389,11 @@ public class BackendRegistry {
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadPool.getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
-            auditLog.logSucceededLogin(
-                (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
-                false,
-                authenticatedUser.getName(),
-                request
-            );
+            final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
+            UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -421,8 +420,10 @@ public class BackendRegistry {
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
+                UserSubject subject = new UserSubjectImpl(threadPool, anonymousUser);
+
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
-                auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
+                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }
@@ -692,8 +693,7 @@ public class BackendRegistry {
         }
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
-            WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
-            if (matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode)) {
+            if (matchesIgnoreHostPatterns(clientBlockRegistry, address, hostResolverMode)) {
                 return false;
             }
             if (clientBlockRegistry.isBlocked(address)) {
@@ -704,21 +704,17 @@ public class BackendRegistry {
         return false;
     }
 
-    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
-        if (hostMatcher == null) {
+    private static boolean matchesIgnoreHostPatterns(
+        ClientBlockRegistry<InetAddress> clientBlockRegistry,
+        InetAddress address,
+        String hostResolverMode
+    ) {
+        HostAndCidrMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
+        if (ignoreHostsMatcher == null || address == null) {
             return false;
         }
-        if (address != null) {
-            List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
-            if (hostResolverMode != null
-                && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
-                final String hostName = address.getHostName();
-                valuesToCheck.add(hostName);
-            }
+        return ignoreHostsMatcher.matches(address, hostResolverMode);
 
-            return valuesToCheck.stream().anyMatch(hostMatcher);
-        }
-        return false;
     }
 
     private boolean isBlocked(String authBackend, String userName) {

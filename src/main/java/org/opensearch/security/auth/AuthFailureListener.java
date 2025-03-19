@@ -19,11 +19,12 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 
-import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.support.HostAndCidrMatcher;
 import org.opensearch.security.user.AuthCredentials;
 
 public interface AuthFailureListener {
     void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
-    WildcardMatcher getIgnoreHostsMatcher();
+    HostAndCidrMatcher getIgnoreHostsMatcher();
+
 }

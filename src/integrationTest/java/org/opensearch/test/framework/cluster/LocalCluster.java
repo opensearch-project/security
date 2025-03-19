@@ -44,7 +44,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.ExternalResource;
 
-import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
@@ -64,6 +63,7 @@ import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
+import org.opensearch.transport.client.Client;
 
 /**
 * This class allows to you start and manage a local cluster in an integration test. In contrast to the
@@ -414,10 +414,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         /**
-        * Adds additional plugins to the cluster
-        */
-        public Builder plugin(Class<? extends Plugin> plugin) {
-            this.plugins.add(plugin);
+         * Adds additional plugins to the cluster
+         */
+        @SafeVarargs
+        public final Builder plugin(Class<? extends Plugin>... plugins) {
+            this.plugins.addAll(List.of(plugins));
 
             return this;
         }
@@ -468,6 +469,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             }
             if (auditConfiguration.isEnabled()) {
                 nodeOverrideSettingsBuilder.put("plugins.security.audit.type", TestRuleAuditLogSink.class.getName());
+            } else {
+                nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "noop");
+            }
+            return this;
+        }
+
+        public Builder internalAudit(AuditConfiguration auditConfiguration) {
+            if (auditConfiguration != null) {
+                testSecurityConfig.audit(auditConfiguration);
+            }
+            if (auditConfiguration.isEnabled()) {
+                nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "internal_opensearch");
             } else {
                 nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "noop");
             }
