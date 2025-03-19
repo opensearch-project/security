@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
@@ -56,12 +55,15 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
@@ -75,6 +77,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(Method.GET, "/_upgrade_check"), new Route(Method.POST, "/_upgrade_perform"))
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/_upgrade_check", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.POST, "/_upgrade_perform", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
     );
 
     @Inject
@@ -283,6 +292,11 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

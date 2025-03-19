@@ -30,13 +30,12 @@ import org.opensearch.threadpool.ThreadPool;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 
 @Sharable
-public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
+public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<HttpRequest> {
     public static final AttributeKey<Boolean> IS_AUTHENTICATED = AttributeKey.newInstance("opensearch-http-is-authenticated");
     public static final AttributeKey<Boolean> SHOULD_DECOMPRESS = AttributeKey.newInstance("opensearch-http-should-decompress");
     public static final AttributeKey<ThreadContext.StoredContext> CONTEXT_TO_RESTORE = AttributeKey.newInstance(
@@ -67,7 +66,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, DefaultHttpRequest msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, HttpRequest msg) throws Exception {
         // DefaultHttpRequest should always be first and contain headers
         ReferenceCountUtil.retain(msg);
 

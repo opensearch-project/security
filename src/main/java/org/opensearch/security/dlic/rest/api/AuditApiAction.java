@@ -41,6 +41,8 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -126,6 +128,14 @@ public class AuditApiAction extends AbstractApiAction {
             new Route(RestRequest.Method.GET, "/audit"),
             new Route(RestRequest.Method.PUT, "/audit/config"),
             new Route(RestRequest.Method.PATCH, "/audit")
+        )
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(RestRequest.Method.GET, "/audit", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(RestRequest.Method.PUT, "/audit/config", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(RestRequest.Method.PATCH, "/audit", OPENDISTRO_API_DEPRECATION_MESSAGE)
         )
     );
 
@@ -230,6 +240,11 @@ public class AuditApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

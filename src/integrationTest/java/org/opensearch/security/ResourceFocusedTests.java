@@ -33,13 +33,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

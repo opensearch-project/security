@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -58,18 +57,28 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/tenantinfo"), new Route(POST, "/tenantinfo")),
-        LEGACY_PLUGIN_ROUTE_PREFIX,
         PLUGIN_ROUTE_PREFIX
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(GET, "/tenantinfo", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(POST, "/tenantinfo", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        ),
+        LEGACY_PLUGIN_ROUTE_PREFIX
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -99,6 +108,11 @@ public class TenantInfoAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     @Override

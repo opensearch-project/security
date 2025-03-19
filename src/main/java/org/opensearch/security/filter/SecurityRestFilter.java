@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.NamedRoute;
@@ -67,6 +66,7 @@ import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 import org.greenrobot.eventbus.Subscribe;
 
@@ -333,6 +333,9 @@ public class SecurityRestFilter {
      * @return true if the request path matches the route
      */
     private boolean restPathMatches(String requestPath, String handlerPath) {
+        // Trim leading and trailing slashes
+        requestPath = requestPath.replaceAll("^/+", "").replaceAll("/+$", "");
+        handlerPath = handlerPath.replaceAll("^/+", "").replaceAll("/+$", "");
         // Check exact match
         if (handlerPath.equals(requestPath)) {
             return true;

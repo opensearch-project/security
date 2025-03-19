@@ -27,28 +27,23 @@ import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import io.netty.handler.ssl.OpenSsl;
 
 public final class SSLConfigConstants {
+    /**
+     * Global configurations
+     */
+    public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
+    public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
+    public static final String DEFAULT_STORE_PASSWORD = "changeit"; // #16
+    public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
+    public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
-    public static final String SSL_PREFIX = "plugins.security.ssl.";
-
-    public static final String HTTP_SETTINGS = "http";
-
-    public static final String TRANSPORT_SETTINGS = "transport";
-
-    public static final String SSL_HTTP_PREFIX = SSL_PREFIX + HTTP_SETTINGS + ".";
-
-    public static final String SSL_TRANSPORT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + ".";
-
-    public static final String SSL_TRANSPORT_SERVER_EXTENDED_PREFIX = "server.";
-
-    public static final String SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX = "client.";
-
-    public static final String SSL_TRANSPORT_CLIENT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
-
+    /**
+     * Shared settings prefixes/postfixes
+     */
     public static final String ENABLED = "enabled";
-
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
-
     public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
+    public static final String DEFAULT_STORE_TYPE = "JKS";
+    public static final String SSL_PREFIX = "plugins.security.ssl.";
 
     public static final String KEYSTORE_TYPE = "keystore_type";
     public static final String KEYSTORE_ALIAS = "keystore_alias";
@@ -71,97 +66,119 @@ public final class SSLConfigConstants {
     public static final String ENABLED_CIPHERS = "enabled_ciphers";
     public static final String PEM_KEY_PASSWORD = "pemkey_password";
 
-    public static final String SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = "plugins.security.ssl.http.enable_openssl_if_available";
-    public static final String SECURITY_SSL_HTTP_ENABLED = "plugins.security.ssl.http.enabled";
+    /**
+     * HTTP transport security settings
+     */
+    public static final String HTTP_SETTINGS = "http";
+    public static final String SSL_HTTP_PREFIX = SSL_PREFIX + HTTP_SETTINGS + ".";
+    public static final String SSL_HTTP_CRL_PREFIX = SSL_HTTP_PREFIX + "crl.";
+
+    // http enable settings
     public static final boolean SECURITY_SSL_HTTP_ENABLED_DEFAULT = false;
-    public static final String SECURITY_SSL_HTTP_CLIENTAUTH_MODE = "plugins.security.ssl.http.clientauth_mode";
-    public static final String SECURITY_SSL_HTTP_KEYSTORE_ALIAS = "plugins.security.ssl.http.keystore_alias";
-    public static final String SECURITY_SSL_HTTP_KEYSTORE_FILEPATH = "plugins.security.ssl.http.keystore_filepath";
-    public static final String SECURITY_SSL_HTTP_PEMKEY_FILEPATH = "plugins.security.ssl.http.pemkey_filepath";
-    public static final String SECURITY_SSL_HTTP_PEMCERT_FILEPATH = "plugins.security.ssl.http.pemcert_filepath";
-    public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.http.pemtrustedcas_filepath";
-    public static final String SECURITY_SSL_HTTP_KEYSTORE_TYPE = "plugins.security.ssl.http.keystore_type";
-    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = "plugins.security.ssl.http.truststore_alias";
-    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = "plugins.security.ssl.http.truststore_filepath";
-    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
-    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = "plugins.security.ssl.http."
-        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
-    public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE =
-        "plugins.security.ssl.transport.enable_openssl_if_available";
-    public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
-    public static final boolean SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION =
-        "plugins.security.ssl.transport.enforce_hostname_verification";
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME =
-        "plugins.security.ssl.transport.resolve_hostname";
+    public static final String SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = SSL_HTTP_PREFIX + ENABLE_OPENSSL_IF_AVAILABLE;
+    public static final String SECURITY_SSL_HTTP_ENABLED = SSL_HTTP_PREFIX + ENABLED;
+    public static final String SECURITY_SSL_HTTP_ENABLED_CIPHERS = SSL_HTTP_PREFIX + ENABLED_CIPHERS;
+    public static final String SECURITY_SSL_HTTP_ENABLED_PROTOCOLS = SSL_HTTP_PREFIX + ENABLED_PROTOCOLS;
 
-    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = "plugins.security.ssl.transport."
-        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
-    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.keystore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = "plugins.security.ssl.transport.server.keystore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.client.keystore_alias";
-
-    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH = "plugins.security.ssl.transport.keystore_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH = "plugins.security.ssl.transport.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH = "plugins.security.ssl.transport.pemcert_filepath";
-
-    public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.transport.pemtrustedcas_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED =
-        "plugins.security.ssl.transport.extended_key_usage_enabled";
-    public static final boolean SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT = false;
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH = "plugins.security.ssl.transport.server.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH = "plugins.security.ssl.transport.server.pemcert_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH =
-        "plugins.security.ssl.transport.server.pemtrustedcas_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH = "plugins.security.ssl.transport.client.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH = "plugins.security.ssl.transport.client.pemcert_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH =
-        "plugins.security.ssl.transport.client.pemtrustedcas_filepath";
-
-    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE = "plugins.security.ssl.transport.keystore_type";
-
-    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS = "plugins.security.ssl.transport.truststore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS = "plugins.security.ssl.transport.server.truststore_alias";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS = "plugins.security.ssl.transport.client.truststore_alias";
-
-    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = "plugins.security.ssl.transport.truststore_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE = "plugins.security.ssl.transport.truststore_type";
-    public static final String SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS = "plugins.security.ssl.transport.enabled_ciphers";
-    public static final String SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS = "plugins.security.ssl.transport.enabled_protocols";
-    public static final String SECURITY_SSL_HTTP_ENABLED_CIPHERS = "plugins.security.ssl.http.enabled_ciphers";
-    public static final String SECURITY_SSL_HTTP_ENABLED_PROTOCOLS = "plugins.security.ssl.http.enabled_protocols";
-    public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = "plugins.security.ssl.client.external_context_id";
-    public static final String SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS =
-        "plugins.security.ssl.transport.principal_extractor_class";
-
-    public static final String SSECURITY_SSL_HTTP_CRL_FILE = "plugins.security.ssl.http.crl.file_path";
-    public static final String SECURITY_SSL_HTTP_CRL_VALIDATE = "plugins.security.ssl.http.crl.validate";
-    public static final String SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP = "plugins.security.ssl.http.crl.prefer_crlfile_over_ocsp";
-    public static final String SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES = "plugins.security.ssl.http.crl.check_only_end_entities";
-    public static final String SECURITY_SSL_HTTP_CRL_DISABLE_OCSP = "plugins.security.ssl.http.crl.disable_ocsp";
-    public static final String SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP = "plugins.security.ssl.http.crl.disable_crldp";
-    public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = "plugins.security.ssl.http.crl.validation_date";
-
-    public static final String SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION =
-        "plugins.security.ssl.allow_client_initiated_renegotiation";
-
-    public static final String DEFAULT_STORE_PASSWORD = "changeit"; // #16
-
-    public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
-
-    public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
-
-    public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
-
+    // http allowed settings
     public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
-
     public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1", "TLSv1" };
 
-    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
+    // http keystore settings
+    public static final String SECURITY_SSL_HTTP_KEYSTORE_TYPE = SSL_HTTP_PREFIX + KEYSTORE_TYPE;
+    public static final String SECURITY_SSL_HTTP_KEYSTORE_ALIAS = SSL_HTTP_PREFIX + KEYSTORE_ALIAS;
+    public static final String SECURITY_SSL_HTTP_KEYSTORE_FILEPATH = SSL_HTTP_PREFIX + KEYSTORE_FILEPATH;
+    public static final String SECURITY_SSL_HTTP_PEMKEY_FILEPATH = SSL_HTTP_PREFIX + PEM_KEY_FILEPATH;
+    public static final String SECURITY_SSL_HTTP_PEMCERT_FILEPATH = SSL_HTTP_PREFIX + PEM_CERT_FILEPATH;
 
+    // http truststore settings
+    public static final String SECURITY_SSL_HTTP_CLIENTAUTH_MODE = SSL_HTTP_PREFIX + CLIENT_AUTH_MODE;
+    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = SSL_HTTP_PREFIX + TRUSTSTORE_TYPE;
+    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = SSL_HTTP_PREFIX + TRUSTSTORE_ALIAS;
+    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = SSL_HTTP_PREFIX + TRUSTSTORE_FILEPATH;
+    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_HTTP_PREFIX
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = SSL_HTTP_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
+
+    // http cert revocation list settings
+    public static final String SECURITY_SSL_HTTP_CRL_FILE = SSL_HTTP_CRL_PREFIX + "file_path";
+    public static final String SECURITY_SSL_HTTP_CRL_VALIDATE = SSL_HTTP_CRL_PREFIX + "validate";
+    public static final String SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP = SSL_HTTP_CRL_PREFIX + "prefer_crlfile_over_ocsp";
+    public static final String SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES = SSL_HTTP_CRL_PREFIX + "check_only_end_entities";
+    public static final String SECURITY_SSL_HTTP_CRL_DISABLE_OCSP = SSL_HTTP_CRL_PREFIX + "disable_ocsp";
+    public static final String SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP = SSL_HTTP_CRL_PREFIX + "disable_crldp";
+    public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
+
+    /**
+     * Transport layer (node-to-node) settings.
+     * Transport layer acts both as client and server within the cluster.
+     * Security settings for each role may be configured separately.
+     */
+    public static final String TRANSPORT_SETTINGS = "transport.";
+    public static final String SSL_TRANSPORT_SERVER_EXTENDED_PREFIX = "server.";
+    public static final String SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX = "client.";
+    public static final String SSL_TRANSPORT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS;
+    public static final String SSL_TRANSPORT_CLIENT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
+    public static final String SSL_TRANSPORT_SERVER_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
+
+    // transport enable settings
+    public static final boolean SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
+    public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE = SSL_TRANSPORT_PREFIX + ENABLE_OPENSSL_IF_AVAILABLE;
+    public static final String SECURITY_SSL_TRANSPORT_ENABLED = SSL_TRANSPORT_PREFIX + ENABLED;
+    public static final String SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS = SSL_TRANSPORT_PREFIX + ENABLED_CIPHERS;
+    public static final String SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS = SSL_TRANSPORT_PREFIX + ENABLED_PROTOCOLS;
+
+    // transport allowed settings
+    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
     public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1" };
 
-    public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
+    // transport keystore settings
+    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE = SSL_TRANSPORT_PREFIX + KEYSTORE_TYPE;
+    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH = SSL_TRANSPORT_PREFIX + KEYSTORE_FILEPATH;
+    public static final String SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED = SSL_TRANSPORT_PREFIX + EXTENDED_KEY_USAGE_ENABLED;
+    public static final boolean SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT = false;
+
+    // transport shared keystore settings
+    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = SSL_TRANSPORT_PREFIX + KEYSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH = SSL_TRANSPORT_PREFIX + PEM_KEY_FILEPATH;
+    public static final String SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH = SSL_TRANSPORT_PREFIX + PEM_CERT_FILEPATH;
+
+    // transport shared truststore settings
+    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE = SSL_TRANSPORT_PREFIX + TRUSTSTORE_TYPE;
+    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS = SSL_TRANSPORT_PREFIX + TRUSTSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = SSL_TRANSPORT_PREFIX + TRUSTSTORE_FILEPATH;
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_TRANSPORT_PREFIX
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
+
+    // transport server keystore settings
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = SSL_TRANSPORT_SERVER_PREFIX + KEYSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH = SSL_TRANSPORT_SERVER_PREFIX + PEM_KEY_FILEPATH;
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH = SSL_TRANSPORT_SERVER_PREFIX + PEM_CERT_FILEPATH;
+
+    // transport server truststore settings
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS = SSL_TRANSPORT_SERVER_PREFIX + TRUSTSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_SERVER_PREFIX
+        + PEM_TRUSTED_CAS_FILEPATH;
+
+    public static final String SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS = SSL_TRANSPORT_PREFIX + "principal_extractor_class";
+    public static final String SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION = SSL_PREFIX + "allow_client_initiated_renegotiation";
+
+    // transport client keystore settings
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = SSL_TRANSPORT_CLIENT_PREFIX + KEYSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH = SSL_TRANSPORT_CLIENT_PREFIX + PEM_KEY_FILEPATH;
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH = SSL_TRANSPORT_CLIENT_PREFIX + PEM_CERT_FILEPATH;
+
+    // transport client truststore settings
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS = SSL_TRANSPORT_CLIENT_PREFIX + TRUSTSTORE_ALIAS;
+    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_CLIENT_PREFIX
+        + PEM_TRUSTED_CAS_FILEPATH;
+
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = SSL_TRANSPORT_PREFIX
+        + "enforce_hostname_verification";
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = SSL_TRANSPORT_PREFIX
+        + "resolve_hostname";
+    public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
     public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
         List<String> configuredProtocols = null;

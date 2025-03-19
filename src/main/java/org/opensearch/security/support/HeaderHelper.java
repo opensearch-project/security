@@ -33,6 +33,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.user.User;
 
 public class HeaderHelper {
 
@@ -51,6 +52,18 @@ public class HeaderHelper {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST) == Boolean.TRUE;
     }
     // CS-ENFORCE-SINGLE
+
+    public static boolean isInternalOrPluginRequest(final ThreadContext threadContext) {
+        // If user is empty, this indicates a system-level request which should be permitted
+        // If the requests originates from a plugin this will also return true
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
+        if (user == null || user.isPluginUser()) {
+            return true;
+        }
+
+        return false;
+    }
 
     public static String getSafeFromHeader(final ThreadContext context, final String headerName) {
 

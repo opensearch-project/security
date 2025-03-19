@@ -115,6 +115,9 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user";
     public static final String OPENDISTRO_SECURITY_USER_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_header";
 
+    // persistent header. This header is set once and cannot be stashed
+    public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "authenticated_user";
+
     public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
@@ -329,7 +332,6 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = "plugins.security.unsupported.load_static_resources";
     public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = "plugins.security.unsupported.accept_invalid_config";
 
-    // Protected indices settings. Marked for deprecation, after all config indices move to System indices.
     public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = "plugins.security.protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_PROTECTED_INDICES_KEY = "plugins.security.protected_indices.indices";

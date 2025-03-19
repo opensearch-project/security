@@ -43,6 +43,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -60,6 +62,13 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
         ImmutableList.of(
             new DeprecatedRoute(Method.GET, "/ssl/certs", "[/ssl/certs] is a deprecated endpoint. Please use [/certificates] instead."),
             new Route(Method.PUT, "/ssl/{certType}/reloadcerts")
+        )
+    );
+
+    private static final List<DeprecatedRoute> DEPRECATED_ROUTES = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/ssl/certs", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/ssl/{certType}/reloadcerts", OPENDISTRO_API_DEPRECATION_MESSAGE)
         )
     );
 
@@ -83,6 +92,11 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return ROUTES;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return DEPRECATED_ROUTES;
     }
 
     @Override

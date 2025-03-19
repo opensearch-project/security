@@ -20,10 +20,10 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -174,10 +174,10 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
                     "88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"
                 )
         );
-        Assert.assertFalse(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
+        Assert.assertFalse(res.getBody().contains("9fe023e13d5179157b2023c21c60bc98340a12470538affd306281619d2477c3"));
         Assert.assertFalse(res.getBody().contains("*.*.*.*"));
-        Assert.assertFalse(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
-        Assert.assertFalse(res.getBody().contains("7f48bb3636edf546a75968ca7cd0bdfe63e9ce7af04ef7cb642931fa15d2d7a3"));
+        Assert.assertFalse(res.getBody().contains("5115e9707d1a18772af2a1274e2d3450284754a921692d6b1aef922c33cda8fa"));
+        Assert.assertFalse(res.getBody().contains("8915d31ba2e0ac9eea0c8af1beb058dfa3d01147c233ede320d441cc1b65fa33"));
         Assert.assertFalse(res.getBody().contains("https://www.static.co/downloads/beats/metricbeat"));
         Assert.assertFalse(
             res.getBody()
@@ -207,10 +207,10 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
                         "88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"
                     )
             );
-            Assert.assertTrue(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
+            Assert.assertTrue(res.getBody().contains("9fe023e13d5179157b2023c21c60bc98340a12470538affd306281619d2477c3"));
             Assert.assertTrue(res.getBody().contains("*.*.*.*"));
-            Assert.assertTrue(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
-            Assert.assertTrue(res.getBody().contains("7f48bb3636edf546a75968ca7cd0bdfe63e9ce7af04ef7cb642931fa15d2d7a3"));
+            Assert.assertTrue(res.getBody().contains("5115e9707d1a18772af2a1274e2d3450284754a921692d6b1aef922c33cda8fa"));
+            Assert.assertTrue(res.getBody().contains("8915d31ba2e0ac9eea0c8af1beb058dfa3d01147c233ede320d441cc1b65fa33"));
             Assert.assertTrue(res.getBody().contains("https://www.static.co/downloads/beats/metricbeat"));
             Assert.assertTrue(
                 res.getBody()
@@ -236,9 +236,9 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
                     "88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"
                 )
         );
-        Assert.assertFalse(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
+        Assert.assertFalse(res.getBody().contains("9fe023e13d5179157b2023c21c60bc98340a12470538affd306281619d2477c3"));
         Assert.assertFalse(res.getBody().contains("*.*.*.*"));
-        Assert.assertFalse(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
+        Assert.assertFalse(res.getBody().contains("8915d31ba2e0ac9eea0c8af1beb058dfa3d01147c233ede320d441cc1b65fa33"));
         Assert.assertFalse(res.getBody().contains("7f48bb3636edf546a75968ca7cd0bdfe63e9ce7af04ef7cb642931fa15d2d7a3"));
         Assert.assertFalse(res.getBody().contains("https://www.static.co/downloads/beats/metricbeat"));
         Assert.assertFalse(

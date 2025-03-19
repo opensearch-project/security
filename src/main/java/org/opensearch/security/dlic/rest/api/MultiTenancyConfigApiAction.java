@@ -25,11 +25,11 @@ import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
@@ -40,11 +40,14 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
+import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
@@ -56,6 +59,13 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/tenancy/config"), new Route(PUT, "/tenancy/config"))
+    );
+
+    private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
+        ImmutableList.of(
+            new DeprecatedRoute(RestRequest.Method.GET, "/tenancy/config", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(RestRequest.Method.PUT, "/tenancy/config", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
     );
 
     private final static Set<String> ACCEPTABLE_DEFAULT_TENANTS = Set.of(
@@ -72,6 +82,11 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return ROUTES;
+    }
+
+    @Override
+    public List<DeprecatedRoute> deprecatedRoutes() {
+        return deprecatedRoutes;
     }
 
     public MultiTenancyConfigApiAction(

@@ -28,7 +28,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
-import org.opensearch.client.Client;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -38,6 +37,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;

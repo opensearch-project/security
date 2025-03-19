@@ -23,11 +23,11 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.StopWatch;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

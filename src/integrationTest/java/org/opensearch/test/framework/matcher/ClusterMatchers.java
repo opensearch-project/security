@@ -13,10 +13,10 @@ import java.util.Map;
 
 import org.hamcrest.Matcher;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.client.Client;
 
 public class ClusterMatchers {
 

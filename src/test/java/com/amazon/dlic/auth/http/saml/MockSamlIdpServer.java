@@ -36,8 +36,10 @@ import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,11 +48,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -69,7 +66,6 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.config.Http1Config;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
@@ -86,9 +82,25 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import net.shibboleth.utilities.java.support.codec.Base64Support;
-import net.shibboleth.utilities.java.support.codec.EncodingException;
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletConnection;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpUpgradeHandler;
+import jakarta.servlet.http.Part;
+import net.shibboleth.shared.codec.Base64Support;
+import net.shibboleth.shared.codec.EncodingException;
+import net.shibboleth.shared.component.ComponentInitializationException;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -195,34 +207,35 @@ class MockSamlIdpServer implements Closeable {
 
         this.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
 
-        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
-            .setListenerPort(port)
-            .register(CTX_METADATA, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-
-                    handleMetadataRequest(request, response, context);
-
-                }
-            })
-            .register(CTX_SAML_SSO, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleSsoRequest(request, response, context);
-                }
-            })
-            .register(CTX_SAML_SLO, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleSloRequest(request, response, context);
-                }
-            });
+        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port).setRequestRouter((request, context) -> {
+            if (request.getRequestUri().startsWith(CTX_METADATA)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleMetadataRequest(request, response, context);
+                    }
+                };
+            } else if (request.getRequestUri().startsWith(CTX_SAML_SSO)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleSsoRequest(request, response, context);
+                    }
+                };
+            } else if (request.getRequestUri().startsWith(CTX_SAML_SLO)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleSloRequest(request, response, context);
+                    }
+                };
+            } else {
+                return null;
+            }
+        });
 
         if (ssl) {
 
@@ -742,16 +755,25 @@ class MockSamlIdpServer implements Closeable {
 
     static class FakeHttpServletRequest implements HttpServletRequest {
         private final HttpRequest delegate;
-        private final Map<String, String> queryParams;
+        private final Map<String, String[]> queryParams;
         private final URIBuilder uriBuilder;
 
         FakeHttpServletRequest(HttpRequest delegate) throws URISyntaxException {
             this.delegate = delegate;
             String uri = delegate.getRequestUri();
             this.uriBuilder = new URIBuilder(uri);
-            this.queryParams = uriBuilder.getQueryParams()
-                .stream()
-                .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+            this.queryParams = new HashMap<>();
+            uriBuilder.getQueryParams().forEach(nameValuePair -> {
+                final String[] params;
+                if (!queryParams.containsKey(nameValuePair.getName())) {
+                    params = new String[] { nameValuePair.getValue() };
+                } else {
+                    final String[] current = queryParams.get(nameValuePair.getName());
+                    params = Arrays.copyOf(current, current.length + 1);
+                    params[current.length] = nameValuePair.getValue();
+                }
+                queryParams.put(nameValuePair.getName(), params);
+            });
         }
 
         @Override
@@ -759,9 +781,8 @@ class MockSamlIdpServer implements Closeable {
             return null;
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Enumeration getAttributeNames() {
+        public Enumeration<String> getAttributeNames() {
             return Collections.emptyEnumeration();
         }
 
@@ -784,6 +805,11 @@ class MockSamlIdpServer implements Closeable {
         }
 
         @Override
+        public long getContentLengthLong() {
+            return 0;
+        }
+
+        @Override
         public String getContentType() {
             if (delegate instanceof ClassicHttpRequest) {
                 return ((ClassicHttpRequest) delegate).getEntity().getContentType();
@@ -798,6 +824,21 @@ class MockSamlIdpServer implements Closeable {
                 final InputStream in = ((ClassicHttpRequest) delegate).getEntity().getContent();
 
                 return new ServletInputStream() {
+
+                    @Override
+                    public boolean isFinished() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isReady() {
+                        return false;
+                    }
+
+                    @Override
+                    public void setReadListener(ReadListener readListener) {
+
+                    }
 
                     public int read() throws IOException {
                         return in.read();
@@ -832,42 +873,83 @@ class MockSamlIdpServer implements Closeable {
         }
 
         @Override
+        public ServletContext getServletContext() {
+            return null;
+        }
+
+        @Override
+        public AsyncContext startAsync() throws IllegalStateException {
+            return null;
+        }
+
+        @Override
+        public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
+            return null;
+        }
+
+        @Override
+        public boolean isAsyncStarted() {
+            return false;
+        }
+
+        @Override
+        public boolean isAsyncSupported() {
+            return false;
+        }
+
+        @Override
+        public AsyncContext getAsyncContext() {
+            return null;
+        }
+
+        @Override
+        public DispatcherType getDispatcherType() {
+            return null;
+        }
+
+        @Override
+        public String getRequestId() {
+            return "";
+        }
+
+        @Override
+        public String getProtocolRequestId() {
+            return "";
+        }
+
+        @Override
+        public ServletConnection getServletConnection() {
+            return null;
+        }
+
+        @Override
         public Locale getLocale() {
             return null;
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Enumeration getLocales() {
+        public Enumeration<Locale> getLocales() {
             return null;
         }
 
         @Override
         public String getParameter(String name) {
-            return this.queryParams.get(name);
+            return this.queryParams.containsKey(name) ? this.queryParams.get(name)[0] : null;
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Map getParameterMap() {
-            return Collections.unmodifiableMap(this.queryParams);
+        public Map<String, String[]> getParameterMap() {
+            return Map.copyOf(this.queryParams);
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Enumeration getParameterNames() {
+        public Enumeration<String> getParameterNames() {
             return Collections.enumeration(this.queryParams.keySet());
         }
 
         @Override
         public String[] getParameterValues(String name) {
-            String value = this.queryParams.get(name);
-
-            if (value != null) {
-                return new String[] { value };
-            } else {
-                return null;
-            }
+            return this.queryParams.get(name);
         }
 
         @Override
@@ -884,11 +966,6 @@ class MockSamlIdpServer implements Closeable {
             } else {
                 return null;
             }
-        }
-
-        @Override
-        public String getRealPath(String arg0) {
-            return null;
         }
 
         @Override
@@ -977,15 +1054,13 @@ class MockSamlIdpServer implements Closeable {
             }
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Enumeration getHeaderNames() {
+        public Enumeration<String> getHeaderNames() {
             return Collections.enumeration(Arrays.asList(delegate.getHeaders()).stream().map(Header::getName).collect(Collectors.toSet()));
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
-        public Enumeration getHeaders(String name) {
+        public Enumeration<String> getHeaders(String name) {
             Header[] headers = delegate.getHeaders(name);
 
             if (headers != null) {
@@ -1057,6 +1132,11 @@ class MockSamlIdpServer implements Closeable {
         }
 
         @Override
+        public String changeSessionId() {
+            return "";
+        }
+
+        @Override
         public HttpSession getSession(boolean arg0) {
             return null;
         }
@@ -1077,8 +1157,33 @@ class MockSamlIdpServer implements Closeable {
         }
 
         @Override
-        public boolean isRequestedSessionIdFromUrl() {
+        public boolean authenticate(HttpServletResponse httpServletResponse) throws IOException, ServletException {
             return false;
+        }
+
+        @Override
+        public void login(String s, String s1) throws ServletException {
+
+        }
+
+        @Override
+        public void logout() throws ServletException {
+
+        }
+
+        @Override
+        public Collection<Part> getParts() throws IOException, ServletException {
+            return List.of();
+        }
+
+        @Override
+        public Part getPart(String s) throws IOException, ServletException {
+            return null;
+        }
+
+        @Override
+        public <T extends HttpUpgradeHandler> T upgrade(Class<T> aClass) throws IOException, ServletException {
+            return null;
         }
 
         @Override
