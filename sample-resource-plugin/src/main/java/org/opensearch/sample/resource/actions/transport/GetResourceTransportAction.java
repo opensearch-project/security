@@ -40,12 +40,13 @@ import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.client.resources.ResourceSharingClient;
-import org.opensearch.security.common.support.ConfigConstants;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
 
+import static org.opensearch.sample.utils.Constants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.sample.utils.Constants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
@@ -77,10 +78,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
         if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
             // get all request
-            if (this.settings.getAsBoolean(
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            )) {
+            if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
                     listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
                 }, failure -> {

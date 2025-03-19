@@ -72,7 +72,8 @@ configurations.all {
 
 dependencies {
     // Main implementation dependencies
-    implementation project(path: ":${rootProject.name}-client", configuration: 'shadow')
+    implementation group: 'org.opensearch', name:'opensearch-security-client', version: "${opensearch_build}"
+    compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies

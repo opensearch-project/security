@@ -28,10 +28,10 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sample.utils.Constants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.common.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
+import static org.opensearch.security.common.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
