@@ -17,13 +17,13 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.common.resources.rest.ResourceAccessAction;
-import org.opensearch.security.common.resources.rest.ResourceAccessRequest;
-import org.opensearch.security.common.resources.rest.ResourceAccessResponse;
-import org.opensearch.security.common.support.ConfigConstants;
+import org.opensearch.security.resources.rest.ResourceAccessAction;
+import org.opensearch.security.resources.rest.ResourceAccessRequest;
+import org.opensearch.security.resources.rest.ResourceAccessResponse;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
 
 /**

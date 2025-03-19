@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -22,10 +22,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.common.auth.UserSubjectImpl;
-import org.opensearch.security.common.configuration.AdminDNs;
-import org.opensearch.security.common.support.ConfigConstants;
-import org.opensearch.security.common.user.User;
+import org.opensearch.security.auth.UserSubjectImpl;
+import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
@@ -35,6 +33,8 @@ import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithScope;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -175,7 +175,10 @@ public class ResourceAccessHandler {
         try {
             validateArguments(resourceIndex);
 
-            ResourceParser<T> parser = ResourcePluginInfo.getInstance().getResourceProviders().get(resourceIndex).resourceParser();
+            ResourceParser<T> parser = (ResourceParser<T>) ResourcePluginInfo.getInstance()
+                .getResourceProviders()
+                .get(resourceIndex)
+                .resourceParser();
 
             StepListener<Set<String>> resourceIdsListener = new StepListener<>();
             StepListener<Set<T>> resourcesListener = new StepListener<>();
@@ -227,7 +230,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("Checking if user '{}' has '{}' permission to resource '{}'", user.getName(), scopes.toString(), resourceId);
+        LOGGER.info("Checking if user '{}' has '{}' permission to resource '{}'", user.getName(), scopes.toString(), resourceId);
 
         if (adminDNs.isAdmin(user)) {
             LOGGER.debug(

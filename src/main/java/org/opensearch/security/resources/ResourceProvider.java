@@ -6,8 +6,9 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
+import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.security.spi.resources.ResourceParser;
 
 /**
@@ -16,6 +17,6 @@ import org.opensearch.security.spi.resources.ResourceParser;
  *
  * @opensearch.experimental
  */
-public record ResourceProvider(String resourceType, String resourceIndexName, ResourceParser resourceParser) {
+public record ResourceProvider(String resourceType, String resourceIndexName, ResourceParser<? extends Resource> resourceParser) {
 
 }

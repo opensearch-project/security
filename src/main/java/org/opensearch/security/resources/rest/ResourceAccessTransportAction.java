@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources.rest;
+package org.opensearch.security.resources.rest;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +17,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.indices.SystemIndices;
-import org.opensearch.security.common.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;

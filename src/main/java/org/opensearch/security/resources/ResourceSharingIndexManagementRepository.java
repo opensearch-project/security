@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.common.resources;
+package org.opensearch.security.resources;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

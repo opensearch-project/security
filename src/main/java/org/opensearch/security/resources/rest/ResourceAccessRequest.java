@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.common.resources.rest;
+package org.opensearch.security.resources.rest;
 
 import java.io.IOException;
 import java.util.Collection;
