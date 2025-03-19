@@ -48,7 +48,7 @@ public interface TrustStoreConfiguration {
         }
 
         @Override
-        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<String> issuerDns) {
+        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<X500Principal> issuerDns) {
             return null;
         }
     };
