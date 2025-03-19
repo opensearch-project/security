@@ -72,7 +72,7 @@ jobs:
         path: |
           ./build/reports/
 
-  test-linux:
+  test:
     name: Test Linux
     needs: ["generate-test-list", "Get-CI-Image-Tag"]
     strategy:
@@ -115,7 +115,7 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux"]
+    needs: ["test-windows", "test", "integration-tests-windows", "integration-tests"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -172,7 +172,7 @@ jobs:
         path: |
           ./build/reports/
 
-  integration-tests-linux:
+  integration-tests:
     name: Integration Tests Linux
     needs: ["Get-CI-Image-Tag"]
     strategy:
