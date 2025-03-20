@@ -14,12 +14,12 @@ package org.opensearch.sample;
 import java.io.IOException;
 
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ShareableResourceParser;
 
 /**
  * Responsible for parsing the XContent into a SampleResource object.
  */
-public class SampleResourceParser implements ResourceParser<SampleResource> {
+public class SampleResourceParser implements ShareableResourceParser<SampleResource> {
     @Override
     public SampleResource parseXContent(XContentParser parser) throws IOException {
         return SampleResource.fromXContent(parser);

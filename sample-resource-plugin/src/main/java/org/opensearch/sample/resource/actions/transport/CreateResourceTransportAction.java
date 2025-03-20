@@ -25,7 +25,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceRequest;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
-import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -61,7 +61,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     }
 
     private void createResource(CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        Resource sample = request.getResource();
+        ShareableResource sample = request.getResource();
         try (XContentBuilder builder = jsonBuilder()) {
             IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
                 .setWaitForActiveShards(1)

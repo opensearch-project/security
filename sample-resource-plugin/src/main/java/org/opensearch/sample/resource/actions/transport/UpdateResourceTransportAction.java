@@ -30,7 +30,7 @@ import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.client.resources.ResourceSharingClient;
-import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -95,7 +95,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         ThreadContext threadContext = this.transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             String resourceId = request.getResourceId();
-            Resource sample = request.getResource();
+            ShareableResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
                 UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
@@ -112,9 +112,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             } catch (IOException e) {
                 listener.onFailure(new RuntimeException(e));
             }
-            listener.onResponse(
-                new CreateResourceResponse("Resource " + request.getResource().getResourceName() + " updated successfully.")
-            );
+            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully."));
         } catch (Exception e) {
             log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);

@@ -19,7 +19,7 @@ plugins.security.system_indices.enabled: true
 
 ## Features
 
-- Create, update, get, delete resources, as well as share and revoke access to a resource.
+- Create, update, get, delete SampleResource, as well as share and revoke access to a resource.
 
 ## Installation
 

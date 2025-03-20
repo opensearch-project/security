@@ -21,7 +21,7 @@ import org.opensearch.core.xcontent.ConstructingObjectParser;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ShareableResource;
 
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
@@ -29,7 +29,7 @@ import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalCons
 /**
  * Sample resource declared by this plugin.
  */
-public class SampleResource implements Resource {
+public class SampleResource implements ShareableResource {
 
     private String name;
     private String description;
@@ -103,7 +103,7 @@ public class SampleResource implements Resource {
     }
 
     @Override
-    public String getResourceName() {
+    public String getName() {
         return name;
     }
 }
