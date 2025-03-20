@@ -103,15 +103,15 @@ public class ShareWithTests {
         XContentParser parser;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
             builder.startObject()
-                .startObject(ResourceAccessScope.RESTRICTED)
+                .startObject(ResourceAccessScope.READ_ONLY)
                 .array("users", "user1", "user2")
                 .array("roles", "role1")
                 .array("backend_roles", "backend_role1")
                 .endObject()
                 .startObject(ResourceAccessScope.PUBLIC)
-                .array("users", "user3")
-                .array("roles", "role2", "role3")
-                .array("backend_roles")
+                .array("users", "*")
+                .array("roles", "*")
+                .array("backend_roles", "*")
                 .endObject()
                 .endObject();
 
@@ -129,7 +129,7 @@ public class ShareWithTests {
         for (SharedWithScope scope : scopes) {
             SharedWithScope.ScopeRecipients perScope = scope.getSharedWithPerScope();
             Map<RecipientType, Set<String>> recipients = perScope.getRecipients();
-            if (scope.getScope().equals(ResourceAccessScope.RESTRICTED)) {
+            if (scope.getScope().equals(ResourceAccessScope.READ_ONLY)) {
                 MatcherAssert.assertThat(
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(),
                     is(2)
@@ -250,7 +250,7 @@ public class ShareWithTests {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 
         Set<SharedWithScope> sharedWithScopes = new HashSet<>();
-        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.RESTRICTED, new SharedWithScope.ScopeRecipients(Map.of())));
+        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.READ_ONLY, new SharedWithScope.ScopeRecipients(Map.of())));
         sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.PUBLIC, new SharedWithScope.ScopeRecipients(Map.of())));
 
         ShareWith shareWith = new ShareWith(sharedWithScopes);
