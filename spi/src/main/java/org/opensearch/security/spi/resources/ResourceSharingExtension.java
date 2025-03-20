@@ -31,5 +31,5 @@ public interface ResourceSharingExtension {
      * The parser for the resource, which will be used by security plugin to parse the resource
      * @return the parser for the resource
      */
-    ResourceParser<? extends Resource> getResourceParser();
+    ShareableResourceParser<? extends ShareableResource> getShareableResourceParser();
 }

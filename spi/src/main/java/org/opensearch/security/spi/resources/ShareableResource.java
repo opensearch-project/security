@@ -12,16 +12,16 @@ import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.xcontent.ToXContentFragment;
 
 /**
- * Marker interface for all resources
+ * Marker interface for all shareable resources
  *
  * @opensearch.experimental
  */
-public interface Resource extends NamedWriteable, ToXContentFragment {
+public interface ShareableResource extends NamedWriteable, ToXContentFragment {
     /**
      * Abstract method to get the resource name.
      * Must be implemented by plugins defining resources.
      *
-     * @return resource name
+     * @return the resource name
      */
-    String getResourceName();
+    String getName();
 }
