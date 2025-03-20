@@ -13,35 +13,43 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.user.User;
+import org.opensearch.security.util.ActionListenerUtils.TestActionListener;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class ApiTokenRepositoryTest {
     @Mock
@@ -61,9 +69,17 @@ public class ApiTokenRepositoryTest {
     public void testDeleteApiToken() throws ApiTokenException {
         String tokenName = "test-token";
 
-        repository.deleteApiToken(tokenName);
+        doAnswer(invocation -> {
+            ActionListener<Void> listener = invocation.getArgument(1);
+            listener.onResponse(null);
+            return null;
+        }).when(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
 
-        verify(apiTokenIndexHandler).deleteToken(tokenName);
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.deleteApiToken(tokenName, listener);
+
+        listener.assertSuccess();
+        verify(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
     }
 
     @Test
@@ -86,19 +102,25 @@ public class ApiTokenRepositoryTest {
         assertEquals(List.of("cluster_all"), permissionsForApiTokenExists.getClusterPerm());
         assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getAllowedActions());
         assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getIndexPatterns());
-
     }
 
     @Test
     public void testGetApiTokens() throws IndexNotFoundException {
         Map<String, ApiToken> expectedTokens = new HashMap<>();
         expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Long.MAX_VALUE));
-        when(apiTokenIndexHandler.getTokenMetadatas()).thenReturn(expectedTokens);
 
-        Map<String, ApiToken> result = repository.getApiTokens();
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(expectedTokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
 
+        TestActionListener<Map<String, ApiToken>> listener = new TestActionListener<>();
+        repository.getApiTokens(listener);
+
+        Map<String, ApiToken> result = listener.assertSuccess();
         assertThat(result, equalTo(expectedTokens));
-        verify(apiTokenIndexHandler).getTokenMetadatas();
+        verify(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
     }
 
     @Test
@@ -115,35 +137,68 @@ public class ApiTokenRepositoryTest {
         when(bearerToken.getCompleteToken()).thenReturn(completeToken);
         when(securityTokenManager.issueApiToken(any(), any())).thenReturn(bearerToken);
 
-        String result = repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration);
+        doAnswer(invocation -> {
+            ActionListener<Void> listener = invocation.getArgument(1);
+            listener.onResponse(null);
+            return null;
+        }).when(apiTokenIndexHandler).indexTokenMetadata(any(ApiToken.class), any(ActionListener.class));
 
-        verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent();
-        verify(securityTokenManager).issueApiToken(any(), any());
-        verify(apiTokenIndexHandler).indexTokenMetadata(
-            argThat(
-                token -> token.getName().equals(tokenName)
-                    && token.getClusterPermissions().equals(clusterPermissions)
-                    && token.getIndexPermissions().equals(indexPermissions)
-                    && token.getExpiration().equals(expiration)
-            )
-        );
-        assertThat(result, equalTo(completeToken));
+        TestActionListener<String> listener = new TestActionListener<String>() {
+            @Override
+            public void onResponse(String result) {
+                try {
+                    assertThat(result, equalTo(completeToken));
+                    verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent();
+                    verify(securityTokenManager).issueApiToken(any(), any());
+                    verify(apiTokenIndexHandler).indexTokenMetadata(
+                        argThat(
+                            token -> token.getName().equals(tokenName)
+                                && token.getClusterPermissions().equals(clusterPermissions)
+                                && token.getIndexPermissions().equals(indexPermissions)
+                                && token.getExpiration().equals(expiration)
+                        ),
+                        any(ActionListener.class)
+                    );
+                } finally {
+                    super.onResponse(result);
+                }
+            }
+        };
+
+        repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, listener);
+        listener.assertSuccess();
     }
 
-    @Test(expected = IndexNotFoundException.class)
-    public void testGetApiTokensThrowsIndexNotFoundException() throws IndexNotFoundException {
-        when(apiTokenIndexHandler.getTokenMetadatas()).thenThrow(new IndexNotFoundException("test-index"));
+    @Test
+    public void testGetApiTokensThrowsIndexNotFoundException() {
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onFailure(new IndexNotFoundException("test-index"));
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
 
-        repository.getApiTokens();
+        TestActionListener<Map<String, ApiToken>> listener = new TestActionListener<>();
+        repository.getApiTokens(listener);
 
+        Exception e = listener.assertException(IndexNotFoundException.class);
+        assertThat(e.getMessage(), containsString("test-index"));
     }
 
-    @Test(expected = ApiTokenException.class)
-    public void testDeleteApiTokenThrowsApiTokenException() throws ApiTokenException {
+    @Test
+    public void testDeleteApiTokenThrowsApiTokenException() {
         String tokenName = "test-token";
-        doThrow(new ApiTokenException("Token not found")).when(apiTokenIndexHandler).deleteToken(tokenName);
 
-        repository.deleteApiToken(tokenName);
+        doAnswer(invocation -> {
+            ActionListener<Void> listener = invocation.getArgument(1);
+            listener.onFailure(new ApiTokenException("Token not found"));
+            return null;
+        }).when(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.deleteApiToken(tokenName, listener);
+
+        Exception e = listener.assertException(ApiTokenException.class);
+        assertThat(e.getMessage(), containsString("Token not found"));
     }
 
     @Test
@@ -161,24 +216,40 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testClearJtis() {
         repository.getJtis().put("testJti", new Permissions(List.of("read"), List.of(new ApiToken.IndexPermission(List.of(), List.of()))));
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(Collections.emptyMap());
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
         repository.reloadApiTokensFromIndex();
 
-        assertTrue("Jtis should be empty after clear", repository.getJtis().isEmpty());
+        await().atMost(5, TimeUnit.SECONDS)
+            .untilAsserted(() -> assertTrue("Jtis should be empty after clear", repository.getJtis().isEmpty()));
     }
 
     @Test
     public void testReloadApiTokensFromIndexAndParse() throws IOException {
-        when(apiTokenIndexHandler.getTokenMetadatas()).thenReturn(Map.of("test", new ApiToken("test", List.of("cluster:monitor"), List.of(), Long.MAX_VALUE)));
+        // Setup mock response
+        Map<String, ApiToken> expectedTokens = Map.of("test", new ApiToken("test", List.of("cluster:monitor"), List.of(), Long.MAX_VALUE));
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(expectedTokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
 
         // Execute the reload
         repository.reloadApiTokensFromIndex();
 
-        // Verify the cache was updated
-        assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
-        assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
-        assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
-        // Verify extraction works
-        assertEquals("Should have one cluster action", List.of("cluster:monitor"), repository.getJtis().get("test").getClusterPerm());
-        assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndexPermission());
+        // Wait for and verify the async updates
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
+            assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
+            assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
+            assertEquals("Should have one cluster action", List.of("cluster:monitor"), repository.getJtis().get("test").getClusterPerm());
+            assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndexPermission());
+        });
     }
 }

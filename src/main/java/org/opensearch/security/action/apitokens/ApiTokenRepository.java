@@ -13,19 +13,20 @@ package org.opensearch.security.action.apitokens;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.user.User;
+import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
@@ -37,11 +38,26 @@ public class ApiTokenRepository {
     private final Map<String, Permissions> jtis = new ConcurrentHashMap<>();
 
     void reloadApiTokensFromIndex() {
-        Map<String, ApiToken> tokensFromIndex = apiTokenIndexHandler.getTokenMetadatas();
-        jtis.keySet().removeIf(key -> !tokensFromIndex.containsKey(key));
-        tokensFromIndex.forEach(
-            (key, apiToken) -> jtis.put(key, new Permissions(apiToken.getClusterPermissions(), apiToken.getIndexPermissions()))
-        );
+        CompletableFuture<Map<String, ApiToken>> future = new CompletableFuture<>();
+
+        apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
+            @Override
+            public void onResponse(Map<String, ApiToken> tokensFromIndex) {
+                future.complete(tokensFromIndex);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                future.completeExceptionally(e);
+            }
+        });
+
+        future.thenAccept(tokensFromIndex -> {
+            jtis.keySet().removeIf(key -> !tokensFromIndex.containsKey(key));
+            tokensFromIndex.forEach(
+                (key, apiToken) -> jtis.put(key, new Permissions(apiToken.getClusterPermissions(), apiToken.getIndexPermissions()))
+            );
+        });
     }
 
     public Permissions getApiTokenPermissionsForUser(User user) {
@@ -83,18 +99,20 @@ public class ApiTokenRepository {
         return new ApiTokenRepository(apiTokenIndexHandler, securityTokenManager);
     }
 
-    public String createApiToken(
+    public void createApiToken(
         String name,
         List<String> clusterPermissions,
         List<ApiToken.IndexPermission> indexPermissions,
         Long expiration,
-        ActionListener<Void> listener
+        ActionListener<String> listener
     ) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
         ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
-        apiTokenIndexHandler.indexTokenMetadata(apiToken, listener);
-        return token.getCompleteToken();
+        apiTokenIndexHandler.indexTokenMetadata(
+            apiToken,
+            ActionListener.wrap(unused -> listener.onResponse(token.getCompleteToken()), exception -> listener.onFailure(exception))
+        );
     }
 
     public void deleteApiToken(String name, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
