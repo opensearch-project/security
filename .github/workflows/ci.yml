@@ -38,7 +38,7 @@ jobs:
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
   test-windows:
-    name: Test Windows
+    name: test
     needs: generate-test-list
     strategy:
       fail-fast: false
@@ -72,8 +72,8 @@ jobs:
         path: |
           ./build/reports/
 
-  test:
-    name: Test Linux
+  test-linux:
+    name: test
     needs: ["generate-test-list", "Get-CI-Image-Tag"]
     strategy:
       fail-fast: false
@@ -115,7 +115,7 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test-windows", "test", "integration-tests-windows", "integration-tests"]
+    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,7 +140,7 @@ jobs:
 
 
   integration-tests-windows:
-    name: Integration Tests Windows
+    name: integration-tests
     strategy:
       fail-fast: false
       matrix:
@@ -172,8 +172,8 @@ jobs:
         path: |
           ./build/reports/
 
-  integration-tests:
-    name: Integration Tests Linux
+  integration-tests-linux:
+    name: integration-tests
     needs: ["Get-CI-Image-Tag"]
     strategy:
       fail-fast: false
