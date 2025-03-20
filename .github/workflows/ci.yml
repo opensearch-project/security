@@ -79,8 +79,8 @@ jobs:
       fail-fast: false
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
-        jdk: [21]
         platform: [ubuntu-latest]
+        jdk: [21]
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build to build the OpenSearch Distribution
