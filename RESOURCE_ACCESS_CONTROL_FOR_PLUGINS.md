@@ -8,7 +8,7 @@ The **Resource Sharing and Access Control** feature in OpenSearch Security Plugi
 - **Super admins** to access all resources.
 - Plugins to **define and manage resource access** via a standardized interface.
 
-This feature ensures **secure** and **controlled** access to resources while leveraging existing **index-level authorization** in OpenSearch.
+This feature ensures **secure** and **controlled** access to shareableResources while leveraging existing **index-level authorization** in OpenSearch.
 
 ---
 
@@ -37,7 +37,7 @@ implementation group: 'org.opensearch', name:'opensearch-security-client', versi
 ```
 - **Declare a `compileOnly` dependency** on `opensearch-resource-sharing-spi` package:
 ```build.gradle
-compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
 ```
 - **Extend** `opensearch-security` plugin with optional flag:
 ```build.gradle
@@ -77,7 +77,7 @@ This feature is controlled by the following flag:
 ### **Declaring a Plugin as a Resource Plugin**
 To integrate with the security plugin, your plugin must:
 1. Extend `ResourceSharingExtension` and implement required methods.
-2. Implement the `Resource` interface for resource declaration.
+2. Implement the `ShareableResource` interface for resource declaration.
 3. Implement a resource parser to extract resource details.
 
 [`opensearch-resource-sharing-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
@@ -108,7 +108,7 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
     }
 
     @Override
-    public ResourceParser<SampleResource> getResourceParser() {
+    public ShareableResourceParser<SampleResource> getShareableResourceParser() {
         return new SampleResourceParser();
     }
 }
@@ -153,7 +153,7 @@ This feature introduces a new **sharing mechanism** called **scopes**. Scopes de
 
 Each plugin must **document its scope definitions** so that users understand the **sharing semantics** and how different scopes affect access control.
 
-Scopes enable **granular access control**, allowing resources to be shared with **customized permission levels**, making the system more flexible and adaptable to different use cases.
+Scopes enable **granular access control**, allowing shareableResources to be shared with **customized permission levels**, making the system more flexible and adaptable to different use cases.
 
 ### **Common Scopes for Plugins to declare**
 | Scope        | Description                                         |
@@ -162,7 +162,7 @@ Scopes enable **granular access control**, allowing resources to be shared with 
 | `READ_ONLY` | Users can view but not modify the resource.         |
 | `READ_WRITE` | Users can view and modify the resource.             |
 
-By default, all resources are private and only visible to the owner and super-admins. Resources become accessible to others only when explicitly shared.
+By default, all shareableResources are private and only visible to the owner and super-admins. Resources become accessible to others only when explicitly shared.
 
 SPI provides you an interface, with two default scopes `PUBLIC` and `RESTRICTED`, which can be extended to introduce more plugin-specific values.
 
@@ -451,7 +451,7 @@ Returns an array of accessible resources.
 ---
 
 ## **Conclusion**
-The **Resource Sharing and Access Control** feature enhances OpenSearch security by introducing an **additional layer of fine-grained access management** for plugin-defined resources. While **Fine-Grained Access Control (FGAC)** is already enabled, this feature provides **even more granular control** specifically for **resource-level access** within plugins.
+The **Resource Sharing and Access Control** feature enhances OpenSearch security by introducing an **additional layer of fine-grained access management** for plugin-defined shareableResources. While **Fine-Grained Access Control (FGAC)** is already enabled, this feature provides **even more granular control** specifically for **resource-level access** within plugins.
 
 By implementing the **Service Provider Interface (SPI)**, utilizing the **security client**, and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
 

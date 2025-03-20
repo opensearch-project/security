@@ -17,7 +17,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
 /**
@@ -41,9 +41,9 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
         this.responseData = null;
     }
 
-    public ResourceAccessResponse(Set<Resource> resources) {
+    public ResourceAccessResponse(Set<ShareableResource> shareableResources) {
         this.responseType = ResponseType.RESOURCES;
-        this.responseData = resources;
+        this.responseData = shareableResources;
     }
 
     public ResourceAccessResponse(ResourceSharing resourceSharing) {
@@ -61,7 +61,7 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(responseType);
         switch (responseType) {
-            case RESOURCES -> out.writeCollection((Set<Resource>) responseData);
+            case RESOURCES -> out.writeCollection((Set<ShareableResource>) responseData);
             case RESOURCE_SHARING -> ((ResourceSharing) responseData).writeTo(out);
             case BOOLEAN -> out.writeBoolean((Boolean) responseData);
         }
@@ -79,8 +79,8 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
     }
 
     @SuppressWarnings("unchecked")
-    public Set<Resource> getResources() {
-        return responseType == ResponseType.RESOURCES ? (Set<Resource>) responseData : Collections.emptySet();
+    public Set<ShareableResource> getResources() {
+        return responseType == ResponseType.RESOURCES ? (Set<ShareableResource>) responseData : Collections.emptySet();
     }
 
     public ResourceSharing getResourceSharing() {

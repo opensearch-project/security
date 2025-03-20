@@ -8,8 +8,8 @@
 
 package org.opensearch.security.resources;
 
-import org.opensearch.security.spi.resources.Resource;
-import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.security.spi.resources.ShareableResourceParser;
 
 /**
  * This record class represents a resource provider.
@@ -17,6 +17,7 @@ import org.opensearch.security.spi.resources.ResourceParser;
  *
  * @opensearch.experimental
  */
-public record ResourceProvider(String resourceType, String resourceIndexName, ResourceParser<? extends Resource> resourceParser) {
+public record ResourceProvider(String resourceType, String resourceIndexName, ShareableResourceParser<
+    ? extends ShareableResource> shareableResourceParser) {
 
 }
