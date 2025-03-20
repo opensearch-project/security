@@ -164,11 +164,36 @@ Scopes enable **granular access control**, allowing shareableResources to be sha
 
 By default, all shareableResources are private and only visible to the owner and super-admins. Resources become accessible to others only when explicitly shared.
 
-SPI provides you an interface, with two default scopes `PUBLIC` and `RESTRICTED`, which can be extended to introduce more plugin-specific values.
+SPI provides you an interface, with two default scopes `PUBLIC` and `READ_ONLY`, which can be extended to introduce more plugin-specific values.
+
+Here’s a cleaned-up version of your last section for better clarity and structure:
+
+#### **Example: PUBLIC Scoped Document**
+If a resource is intended to be publicly accessible, it must be shared using the following structure:
+
+```json
+{
+    "share_with": {
+        "public": {
+            "backend_roles": ["*"],
+            "roles": ["*"],
+            "users": ["*"]
+        }
+    }
+}
+```
+
+In this structure:
+- `"backend_roles": ["*"]` → Grants access to all backend roles.
+- `"roles": ["*"]` → Grants access to all roles.
+- `"users": ["*"]` → Grants access to all users.
+
+**This ensures that the resource is accessible to everyone.**
+
 
 ### **Using Scopes in API Design**
 - APIs should be logically paired with correct scopes.
-  - Example, **GET APIs** should be logically paired with **`READ_ONLY`**, **`READ_WRITE`**, or **`PUBLIC`** scopes. When verifying access, these scopes must be **passed to the security plugin** via the `ResourceSharingNodeClient` to determine whether a user has the required permissions.
+  - Example, **GET APIs** should be logically paired with **`READ_ONLY`** and **`PUBLIC`** scopes. When verifying access, these scopes must be **passed to the security plugin** via the `ResourceSharingNodeClient` to determine whether a user has the required permissions.
 
 
 ---
