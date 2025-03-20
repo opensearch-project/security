@@ -290,7 +290,7 @@ public class ConfigurationLoaderSecurity7 {
 
             final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue(), StandardCharsets.UTF_8), settings);
             final JsonNode jsonNode = DefaultObjectMapper.readTree(jsonAsString);
-            int configVersion = 1;
+            int configVersion = 2;
 
             if (jsonNode.get("_meta") != null) {
                 assert jsonNode.get("_meta").get("type").asText().equals(id);
