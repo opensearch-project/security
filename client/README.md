@@ -79,7 +79,7 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
 
 ## **Available Java APIs**
 
-The **`ResourceSharingClient`** provides **four Java APIs** for **resource access control**, enabling plugins to **verify, share, revoke, and list** resources.
+The **`ResourceSharingClient`** provides **four Java APIs** for **resource access control**, enabling plugins to **verify, share, revoke, and list** shareableResources.
 
 **Package Location:**
 [`org.opensearch.security.client.resources.ResourceSharingClient`](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java)
@@ -185,7 +185,7 @@ resourceSharingClient.revokeResourceAccess(
 ---
 
 ### **4. `listAllAccessibleResources`**
-**Retrieves all resources the current user has access to.**
+**Retrieves all shareableResources the current user has access to.**
 
 #### **Method Signature:**
 ```java
@@ -196,16 +196,16 @@ void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? exten
 ```java
 resourceSharingClient.listAllAccessibleResources(
     "resource_index",
-    ActionListener.wrap(resources -> {
-        for (Resource resource : resources) {
+    ActionListener.wrap(shareableResources -> {
+        for (Resource resource : shareableResources) {
             System.out.println("Accessible Resource: " + resource.getId());
         }
     }, e -> {
-        System.err.println("Failed to list accessible resources: " + e.getMessage());
+        System.err.println("Failed to list accessible shareableResources: " + e.getMessage());
     })
 );
 ```
-> **Use Case:** Helps a user identify **which resources they can interact with**.
+> **Use Case:** Helps a user identify **which shareableResources they can interact with**.
 
 ---
 
@@ -214,7 +214,7 @@ These APIs provide essential methods for **fine-grained resource access control*
 
 ✔ **Verification** of resource access.
 ✔ **Granting and revoking** access dynamically.
-✔ **Retrieval** of all accessible resources.
+✔ **Retrieval** of all accessible shareableResources.
 
 For further details, refer to the [`ResourceSharingClient` Java class](../client/src/main/java/org/opensearch/security/client/resources/ResourceSharingClient.java).
 

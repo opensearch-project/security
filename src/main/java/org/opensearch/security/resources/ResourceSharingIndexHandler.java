@@ -64,8 +64,8 @@ import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.spi.resources.Resource;
-import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
@@ -413,7 +413,7 @@ public class ResourceSharingIndexHandler {
      *                        <li>"roles" - for role-based access</li>
      *                        <li>"backend_roles" - for backend role-based access</li>
      *                      </ul>
-     * @param scope         The scope of the access. Should be implementation of {@link org.opensearch.security.spi.resources.ResourceAccessScope}
+     * @param scope         The scope of the access. Should be implementation of {@link org.opensearch.security}
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
@@ -1158,10 +1158,10 @@ public class ResourceSharingIndexHandler {
      * @param listener      The listener to be notified with the set of deserialized documents.
      * @param <T>           The type of the deserialized documents.
      */
-    public <T extends Resource> void getResourceDocumentsFromIds(
+    public <T extends ShareableResource> void getResourceDocumentsFromIds(
         Set<String> resourceIds,
         String resourceIndex,
-        ResourceParser<T> parser,
+        ShareableResourceParser<T> parser,
         ActionListener<Set<T>> listener
     ) {
         if (resourceIds.isEmpty()) {

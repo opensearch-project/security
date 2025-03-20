@@ -194,9 +194,9 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
-import org.opensearch.security.spi.resources.Resource;
-import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
@@ -2295,11 +2295,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
                 String resourceType = extension.getResourceType();
                 String resourceIndexName = extension.getResourceIndex();
-                ResourceParser<? extends Resource> resourceParser = extension.getResourceParser();
+                ShareableResourceParser<? extends ShareableResource> shareableResourceParser = extension.getShareableResourceParser();
 
                 resourceIndices.add(resourceIndexName);
 
-                ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
+                ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, shareableResourceParser);
                 resourceProviders.put(resourceIndexName, resourceProvider);
                 log.info("Loaded resource sharing extension: {}, index: {}", resourceType, resourceIndexName);
             }

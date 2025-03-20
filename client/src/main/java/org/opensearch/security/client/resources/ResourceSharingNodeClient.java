@@ -20,7 +20,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.resources.rest.ResourceAccessAction;
 import org.opensearch.security.resources.rest.ResourceAccessRequest;
 import org.opensearch.security.resources.rest.ResourceAccessResponse;
-import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.support.ConfigConstants;
@@ -60,7 +60,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     @Override
     public void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener) {
         if (isSecurityDisabled || !resourceSharingEnabled) {
-            String message = isSecurityDisabled ? "Security Plugin is disabled." : "Resource Access Control feature is disabled.";
+            String message = isSecurityDisabled ? "Security Plugin is disabled." : "ShareableResource Access Control feature is disabled.";
 
             log.warn("{} {}", message, "Access to resource is automatically granted");
             listener.onResponse(true);
@@ -133,7 +133,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      * @param listener The listener to be notified with the set of accessible resources.
      */
     @Override
-    public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends Resource>> listener) {
+    public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener) {
         if (isResourceAccessControlOrSecurityPluginDisabled("Unable to list all accessible resources.", listener)) {
             return;
         }

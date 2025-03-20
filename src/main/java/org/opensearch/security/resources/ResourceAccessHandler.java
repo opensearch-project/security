@@ -24,8 +24,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.spi.resources.Resource;
-import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
@@ -171,14 +171,14 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of accessible resources.
      */
     @SuppressWarnings("unchecked")
-    public <T extends Resource> void getAccessibleResourcesForCurrentUser(String resourceIndex, ActionListener<Set<T>> listener) {
+    public <T extends ShareableResource> void getAccessibleResourcesForCurrentUser(String resourceIndex, ActionListener<Set<T>> listener) {
         try {
             validateArguments(resourceIndex);
 
-            ResourceParser<T> parser = (ResourceParser<T>) ResourcePluginInfo.getInstance()
+            ShareableResourceParser<T> parser = (ShareableResourceParser<T>) ResourcePluginInfo.getInstance()
                 .getResourceProviders()
                 .get(resourceIndex)
-                .resourceParser();
+                .shareableResourceParser();
 
             StepListener<Set<String>> resourceIdsListener = new StepListener<>();
             StepListener<Set<T>> resourcesListener = new StepListener<>();
@@ -248,8 +248,10 @@ public class ResourceAccessHandler {
 
         this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
-                LOGGER.warn("Resource '{}' not found in index '{}'", resourceId, resourceIndex);
-                listener.onFailure(new ResourceSharingException("Resource " + resourceId + " not found in index " + resourceIndex));
+                LOGGER.warn("ShareableResource '{}' not found in index '{}'", resourceId, resourceIndex);
+                listener.onFailure(
+                    new ResourceSharingException("ShareableResource " + resourceId + " not found in index " + resourceIndex)
+                );
                 return;
             }
 
