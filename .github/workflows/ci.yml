@@ -234,6 +234,7 @@ jobs:
     steps:
       - name: Run start commands
         run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
       - name: Set up JDK for build and test
         uses: actions/setup-java@v4
         with:
@@ -259,7 +260,7 @@ jobs:
 
   spi-tests-linux:
     name: spi-tests
-    needs: publish-components-to-maven-local
+    needs: ["Get-CI-Image-Tag", publish-components-to-maven-local]
     strategy:
       fail-fast: false
       matrix:
@@ -274,6 +275,9 @@ jobs:
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
       - name: Set up JDK for build and test
         uses: actions/setup-java@v4
         with:
