@@ -149,11 +149,11 @@ public class ShareWithTests {
                 );
                 MatcherAssert.assertThat(
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.ROLES.getName())).size(),
-                    is(2)
+                    is(1)
                 );
                 MatcherAssert.assertThat(
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.BACKEND_ROLES.getName())).size(),
-                    is(0)
+                    is(1)
                 );
             }
         }
