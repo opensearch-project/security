@@ -82,7 +82,7 @@ jobs:
         jdk: [21]
     runs-on: ubuntu-latest
     container:
-      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
+      # using the same image which is used by opensearch-build to build the OpenSearch Distribution
       # this image tag is subject to change as more dependencies and updates will arrive over time
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       # need to switch to root so that github actions can install runner binary on container without permission issues.
