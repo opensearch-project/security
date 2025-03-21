@@ -384,13 +384,14 @@ public class ResourceSharingIndexHandler {
      *
      * @param pluginIndex   The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified RecipientType field
-     * @param recipientType The type of association with the resource. Must be one of:
+     * @param recipientType The type of association with the resource. It can be one of:
      *                      <ul>
      *                        <li>"users" - for user-based access</li>
      *                        <li>"roles" - for role-based access</li>
      *                        <li>"backend_roles" - for backend role-based access</li>
      *                      </ul>
-     * @param scope         The scope of the access. Should be implementation of {@link org.opensearch.security}
+     *                      or a custom string representing a type that was registered using {@link org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry}
+     * @param scope         The scope of the access. Should be implementation of {@link org.opensearch.security.spi.resources.ResourceAccessScope}
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails

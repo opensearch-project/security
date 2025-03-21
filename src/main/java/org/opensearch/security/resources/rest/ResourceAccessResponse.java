@@ -38,7 +38,7 @@ public class ResourceAccessResponse extends ActionResponse implements ToXContent
 
     public ResourceAccessResponse(final StreamInput in) throws IOException {
         this.responseType = in.readEnum(ResponseType.class);
-        this.responseData = null;
+        this.responseData = in.readGenericValue();
     }
 
     public ResourceAccessResponse(Set<ShareableResource> shareableResources) {

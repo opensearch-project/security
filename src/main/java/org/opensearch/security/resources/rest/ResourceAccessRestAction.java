@@ -32,7 +32,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.unauthorized;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.resources.rest.ResourceAccessRequest.Operation.LIST;
 import static org.opensearch.security.resources.rest.ResourceAccessRequest.Operation.REVOKE;
@@ -47,6 +47,8 @@ import static org.opensearch.security.resources.rest.ResourceAccessRequest.Opera
  */
 public class ResourceAccessRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessRestAction.class);
+
+    public final static String PLUGIN_RESOURCE_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/resources";
 
     public ResourceAccessRestAction() {}
 
@@ -99,7 +101,7 @@ public class ResourceAccessRestAction extends BaseRestHandler {
                     try {
                         sendResponse(channel, response);
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        handleError(channel, e);
                     }
                 }
 
@@ -145,7 +147,8 @@ public class ResourceAccessRestAction extends BaseRestHandler {
             unauthorized(channel);
         } else if (message.contains("not a system index")) {
             badRequest(channel, message);
+        } else {
+            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
         }
-        channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
     }
 }

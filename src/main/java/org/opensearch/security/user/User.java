@@ -46,6 +46,7 @@ import org.opensearch.core.common.io.stream.Writeable;
  * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
  * <p/>
  * <b>Do not subclass from this class!</b>
+ *
  */
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
@@ -92,8 +93,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     /**
      * Create a new authenticated user
      *
-     * @param name             The username (must not be null or empty)
-     * @param roles            Roles of which the user is a member off (maybe null)
+     * @param name The username (must not be null or empty)
+     * @param roles Roles of which the user is a member off (maybe null)
      * @param customAttributes Custom attributes associated with this (maybe null)
      * @throws IllegalArgumentException if name is null or empty
      */
@@ -131,6 +132,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     /**
+     *
      * @return A unmodifiable set of the backend roles this user is a member of
      */
     public final Set<String> getRoles() {
@@ -302,11 +304,5 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      */
     public boolean isPluginUser() {
         return name != null && name.startsWith("plugin:");
-    }
-
-    public void setAttributes(Map<String, String> attributes) {
-        if (attributes == null) {
-            this.attributes = Collections.synchronizedMap(new HashMap<>());
-        }
     }
 }
