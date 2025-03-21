@@ -40,8 +40,6 @@ public class PrivilegesEvaluatorUnitTest {
         "indices:data/read/search",
         "indices:data/read/search/template",
         "indices:data/read/tv",
-        "indices:monitor/settings/get",
-        "indices:monitor/stats",
         "indices:admin/aliases/get"
     );
 
