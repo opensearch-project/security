@@ -38,9 +38,6 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -72,7 +69,6 @@ import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.TITLE_NEXT_SONG;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.getSearchScrollRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
@@ -93,54 +89,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class DoNotFailOnForbiddenTests {
-
-    /**
-    * Songs accessible for {@link #LIMITED_USER}
-    */
-    private static final String MARVELOUS_SONGS = "marvelous_songs";
-
-    /**
-    * Songs inaccessible for {@link #LIMITED_USER}
-    */
-    private static final String HORRIBLE_SONGS = "horrible_songs";
-
-    private static final String BOTH_INDEX_PATTERN = "*songs";
-
-    private static final String ID_1 = "1";
-    private static final String ID_2 = "2";
-    private static final String ID_3 = "3";
-    private static final String ID_4 = "4";
-
-    private static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
-    private static final User LIMITED_USER = new User("limited_user").roles(
-        new TestSecurityConfig.Role("limited-role").clusterPermissions(
-            "indices:data/read/mget",
-            "indices:data/read/msearch",
-            "indices:data/read/scroll",
-            "cluster:monitor/state",
-            "cluster:monitor/health"
-        )
-            .indexPermissions(
-                "indices:data/read/search",
-                "indices:data/read/mget*",
-                "indices:data/read/field_caps",
-                "indices:data/read/field_caps*",
-                "indices:data/read/msearch",
-                "indices:data/read/scroll",
-                "indices:monitor/settings/get",
-                "indices:monitor/stats",
-                "indices:admin/aliases/get"
-            )
-            .on(MARVELOUS_SONGS)
-    );
-
-    private static final User STATS_USER = new User("stats_user").roles(
-        new Role("test_role").clusterPermissions("cluster:monitor/*").indexPermissions("read", "indices:monitor/*").on("hi1")
-    );
-
-    private static final String BOTH_INDEX_ALIAS = "both-indices";
-    private static final String FORBIDDEN_INDEX_ALIAS = "forbidden-index";
+public class DoNotFailOnForbiddenTests extends AbstractDoNotFailOnForbiddenTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -149,6 +98,10 @@ public class DoNotFailOnForbiddenTests {
         .anonymousAuth(false)
         .doNotFailOnForbidden(true)
         .build();
+
+    public DoNotFailOnForbiddenTests() {
+        super(cluster);
+    }
 
     @BeforeClass
     public static void createTestData() {
