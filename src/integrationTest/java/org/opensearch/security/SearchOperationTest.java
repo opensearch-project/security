@@ -127,6 +127,7 @@ import static org.opensearch.core.rest.RestStatus.ACCEPTED;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -2503,7 +2504,7 @@ public class SearchOperationTest {
             assertThatThrownBy(
                 () -> restHighLevelClient.indices()
                     .getSettings(new GetSettingsRequest().indices(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
-                statusException(FORBIDDEN)
+                statusException(NOT_FOUND)
             );
             assertThatThrownBy(
                 () -> restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices("*"), DEFAULT),
