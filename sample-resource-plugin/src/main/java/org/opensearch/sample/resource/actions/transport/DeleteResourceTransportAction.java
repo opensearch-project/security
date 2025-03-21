@@ -30,7 +30,7 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRequest;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.client.resources.ResourceSharingClient;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -81,7 +81,9 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
             ),
             ActionListener.wrap(isAuthorized -> {
                 if (!isAuthorized) {
-                    listener.onFailure(new ResourceSharingException("Current user is not authorized to delete resource: " + resourceId));
+                    listener.onFailure(
+                        new UnauthorizedResourceAccessException("Current user is not authorized to delete resource: " + resourceId)
+                    );
                     return;
                 }
 

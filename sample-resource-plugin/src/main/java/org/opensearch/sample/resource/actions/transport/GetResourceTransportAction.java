@@ -27,7 +27,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
@@ -41,6 +40,8 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.client.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.ResourceSharingFeatureDisabledException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -82,11 +83,9 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
                     listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
                 }, failure -> {
-                    if (failure instanceof ResourceSharingException) {
-                        if (((ResourceSharingException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
-                            getAllResourcesAction(listener);
-                            return;
-                        }
+                    if (failure instanceof ResourceSharingFeatureDisabledException) {
+                        getAllResourcesAction(listener);
+                        return;
                     }
                     listener.onFailure(failure);
                 }));
@@ -109,7 +108,9 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             ActionListener.wrap(isAuthorized -> {
                 if (!isAuthorized) {
                     listener.onFailure(
-                        new ResourceSharingException("Current user is not authorized to access resource: " + request.getResourceId())
+                        new UnauthorizedResourceAccessException(
+                            "Current user is not authorized to access resource: " + request.getResourceId()
+                        )
                     );
                     return;
                 }

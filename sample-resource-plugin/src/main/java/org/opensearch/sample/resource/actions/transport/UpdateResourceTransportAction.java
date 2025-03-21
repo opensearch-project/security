@@ -31,7 +31,7 @@ import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.client.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -81,7 +81,9 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             ActionListener.wrap(isAuthorized -> {
                 if (!isAuthorized) {
                     listener.onFailure(
-                        new ResourceSharingException("Current user is not authorized to access resource: " + request.getResourceId())
+                        new UnauthorizedResourceAccessException(
+                            "Current user is not authorized to access resource: " + request.getResourceId()
+                        )
                     );
                     return;
                 }
