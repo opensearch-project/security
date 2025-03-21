@@ -198,9 +198,44 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
     public Optional<SecureAuxTransportSettingsProvider> getSecureAuxTransportSettingsProvider(Settings settings) {
         return Optional.of(new SecureAuxTransportSettingsProvider() {
             @Override
-            public Optional<SSLEngine> buildSecureAuxServerEngine() {
-                return sslSettingsManager.sslContextHandler(CertType.AUX).map(SslContextHandler::createSSLEngine);
-            };
+            public Optional<SecureAuxTransportSettingsProvider.SecureAuxTransportParameters> parameters() {
+                return Optional.of(new SecureAuxTransportSettingsProvider.SecureAuxTransportParameters() {
+
+                    @Override
+                    public Optional<String> sslProvider() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX).map(config -> config.sslParameters().provider().name());
+                    }
+
+                    @Override
+                    public Optional<String> clientAuth() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX).map(config -> config.sslParameters().clientAuth().name());
+                    }
+
+                    @Override
+                    public Collection<String> protocols() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX)
+                                .map(config -> config.sslParameters().allowedProtocols())
+                                .orElse(Collections.emptyList());
+                    }
+
+                    @Override
+                    public Collection<String> cipherSuites() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX)
+                                .map(config -> config.sslParameters().allowedCiphers())
+                                .orElse(Collections.emptyList());
+                    }
+
+                    @Override
+                    public Optional<KeyManagerFactory> keyManagerFactory() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX).map(SslConfiguration::keyStoreFactory);
+                    }
+
+                    @Override
+                    public Optional<TrustManagerFactory> trustManagerFactory() {
+                        return sslSettingsManager.sslConfiguration(CertType.AUX).map(SslConfiguration::trustStoreFactory);
+                    }
+                });
+            }
         });
     }
 }
