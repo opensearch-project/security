@@ -704,6 +704,7 @@ dependencies {
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
     testImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
+    testImplementation "org.bouncycastle:bcprov-jdk18on:${bouncycastle_version}"
 
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
@@ -745,6 +746,7 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
+    integrationTestImplementation "org.bouncycastle:bcprov-jdk18on:${bouncycastle_version}"
     integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
