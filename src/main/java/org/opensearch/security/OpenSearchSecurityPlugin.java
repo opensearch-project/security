@@ -290,7 +290,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
-    private ResourceSharingIndexManagementRepository rmr;
+    private ResourceSharingIndexManagementRepository resourceSharingIndexManagementRepository;
 
     public static boolean isActionTraceEnabled() {
 
@@ -1175,7 +1175,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
-        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler, isResourceSharingEnabled);
+        resourceSharingIndexManagementRepository = ResourceSharingIndexManagementRepository.create(
+            rsIndexHandler,
+            isResourceSharingEnabled
+        );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
 
@@ -2163,15 +2166,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.initOnNodeStart();
         }
 
-        // rmr will be null when sec plugin is disabled or is in SSLOnly mode, hence rmr will not be instantiated
+        // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be
+        // instantiated
         if (settings != null
             && settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
             )
-            && rmr != null) {
+            && resourceSharingIndexManagementRepository != null) {
             // create resource sharing index if absent
-            rmr.createResourceSharingIndexIfAbsent();
+            resourceSharingIndexManagementRepository.createResourceSharingIndexIfAbsent();
         }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();

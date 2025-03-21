@@ -49,7 +49,7 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
         SampleResourceScope.PUBLIC.value(),
         ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
-                listener.onFailure(new ResourceSharingException("Current user is not authorized to delete resource: " + resourceId));
+                listener.onFailure(new UnauthorizedResourceAccessException("Current user is not authorized to delete resource: " + resourceId));
                 return;
             }
 

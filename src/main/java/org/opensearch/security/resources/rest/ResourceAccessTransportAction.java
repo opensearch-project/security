@@ -18,7 +18,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.indices.SystemIndices;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.ResourceNonSystemIndexException;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.tasks.Task;
@@ -51,7 +51,7 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         // verify that the request if for a system index
         if (!this.systemIndices.isSystemIndex(request.getResourceIndex())) {
             actionListener.onFailure(
-                new ResourceSharingException("Resource index '" + request.getResourceIndex() + "' is not a system index.")
+                new ResourceNonSystemIndexException("Resource index '" + request.getResourceIndex() + "' is not a system index.")
             );
             return;
         }

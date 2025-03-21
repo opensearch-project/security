@@ -26,7 +26,10 @@ import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
+import org.opensearch.security.spi.resources.exceptions.ResourceNotFoundException;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.UnauthenticatedResourceAccessException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
@@ -250,7 +253,7 @@ public class ResourceAccessHandler {
             if (document == null) {
                 LOGGER.warn("ShareableResource '{}' not found in index '{}'", resourceId, resourceIndex);
                 listener.onFailure(
-                    new ResourceSharingException("ShareableResource " + resourceId + " not found in index " + resourceIndex)
+                    new ResourceNotFoundException("ShareableResource " + resourceId + " not found in index " + resourceIndex)
                 );
                 return;
             }
@@ -299,7 +302,9 @@ public class ResourceAccessHandler {
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);
-            listener.onFailure(new ResourceSharingException("No authenticated user found. Failed to share resource " + resourceId));
+            listener.onFailure(
+                new UnauthenticatedResourceAccessException("No authenticated user found. Failed to share resource " + resourceId)
+            );
             return;
         }
 
@@ -349,7 +354,7 @@ public class ResourceAccessHandler {
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to revoker access to resource {}", resourceId);
             listener.onFailure(
-                new ResourceSharingException("No authenticated user found. Failed to revoke access to resource {}" + resourceId)
+                new UnauthorizedResourceAccessException("No authenticated user found. Failed to revoke access to resource {}" + resourceId)
             );
             return;
         }
@@ -407,7 +412,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            listener.onFailure(new ResourceSharingException("No authenticated user available."));
+            listener.onFailure(new UnauthenticatedResourceAccessException("No authenticated user available."));
             return;
         }
 

@@ -50,9 +50,11 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
@@ -67,6 +69,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -239,51 +242,25 @@ public class ResourceSharingIndexHandler {
      */
     public void fetchAllDocuments(String pluginIndex, ActionListener<Set<String>> listener) {
         LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
+        final Set<String> resourceIds = new HashSet<>();
+        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
-        try (final ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(
-                QueryBuilders.termQuery("source_idx.keyword", pluginIndex)
-            ).size(10000).fetchSource(new String[] { "resource_id" }, null);
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
 
-            searchRequest.source(searchSourceBuilder);
+            TermQueryBuilder query = QueryBuilders.termQuery("source_idx.keyword", pluginIndex);
 
-            client.search(searchRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(SearchResponse searchResponse) {
-                    try {
-                        Set<String> resourceIds = new HashSet<>();
+            executeSearchRequest(resourceIds, scroll, searchRequest, query, ActionListener.wrap(success -> {
+                LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
+                listener.onResponse(resourceIds);
 
-                        SearchHit[] hits = searchResponse.getHits().getHits();
-                        for (SearchHit hit : hits) {
-                            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                                resourceIds.add(sourceAsMap.get("resource_id").toString());
-                            }
-                        }
+            }, exception -> {
+                LOGGER.error("Search failed while locating all records inside pluginIndex={} ", pluginIndex, exception);
+                listener.onFailure(exception);
 
-                        LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
-
-                        listener.onResponse(resourceIds);
-                    } catch (Exception e) {
-                        LOGGER.error(
-                            "Error while processing search response from {} for source_idx: {}",
-                            resourceSharingIndex,
-                            pluginIndex,
-                            e
-                        );
-                        listener.onFailure(e);
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
-                    listener.onFailure(e);
-                }
-            });
+            }));
         } catch (Exception e) {
-            LOGGER.error("Failed to initiate fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
             listener.onFailure(e);
         }
     }
@@ -763,7 +740,9 @@ public class ResourceSharingIndexHandler {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
                 listener.onFailure(
-                    new ResourceSharingException("User " + requestUserName + " is not authorized to share resource " + resourceId)
+                    new UnauthorizedResourceAccessException(
+                        "User " + requestUserName + " is not authorized to share resource " + resourceId
+                    )
                 );
             }
 
@@ -912,7 +891,7 @@ public class ResourceSharingIndexHandler {
                 // Only admin or the creator of the resource is currently allowed to revoke access
                 if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
                     listener.onFailure(
-                        new ResourceSharingException(
+                        new UnauthorizedResourceAccessException(
                             "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
                         )
                     );
@@ -1305,17 +1284,17 @@ public class ResourceSharingIndexHandler {
      * @param resourceIds   List to collect resource IDs
      * @param scroll        Search Scroll
      * @param searchRequest Request to execute
-     * @param boolQuery     Query to execute with the request
+     * @param query         Query to execute with the request
      * @param listener      Listener to be notified when the operation completes
      */
     private void executeSearchRequest(
         Set<String> resourceIds,
         Scroll scroll,
         SearchRequest searchRequest,
-        BoolQueryBuilder boolQuery,
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
         ActionListener<Void> listener
     ) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
             .size(1000)
             .fetchSource(new String[] { "resource_id" }, null);
 
