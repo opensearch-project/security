@@ -13,35 +13,34 @@ package org.opensearch.security.spi.resources.exceptions;
 
 import java.io.IOException;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.rest.RestStatus;
 
 /**
- * This class represents a generic exception that occurs during resource sharing operations.
- * It extends the OpenSearchException class.
+ * This class represents an exception that occurs when an unauthenticated user tries to access a resource.
+ * It extends the ResourceSharingException class.
  *
  * @opensearch.experimental
  */
-public class ResourceSharingException extends OpenSearchException {
-    public ResourceSharingException(Throwable cause) {
+public final class UnauthenticatedResourceAccessException extends ResourceSharingException {
+    public UnauthenticatedResourceAccessException(Throwable cause) {
         super(cause);
     }
 
-    public ResourceSharingException(String msg, Object... args) {
+    public UnauthenticatedResourceAccessException(String msg, Object... args) {
         super(msg, args);
     }
 
-    public ResourceSharingException(String msg, Throwable cause, Object... args) {
+    public UnauthenticatedResourceAccessException(String msg, Throwable cause, Object... args) {
         super(msg, cause, args);
     }
 
-    public ResourceSharingException(StreamInput in) throws IOException {
+    public UnauthenticatedResourceAccessException(StreamInput in) throws IOException {
         super(in);
     }
 
     @Override
     public RestStatus status() {
-        return RestStatus.INTERNAL_SERVER_ERROR;
+        return RestStatus.UNAUTHORIZED;
     }
 }
