@@ -22,7 +22,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
-    public static final String CREATION_TIME_FIELD = "creation_time";
+    public static final String ISSUED_AT_FIELD = "iat";
     public static final String CLUSTER_PERMISSIONS_FIELD = "cluster_permissions";
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
@@ -149,7 +149,7 @@ public class ApiToken implements ToXContent {
                     case NAME_FIELD:
                         name = parser.text();
                         break;
-                    case CREATION_TIME_FIELD:
+                    case ISSUED_AT_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
                         break;
                     case EXPIRATION_FIELD:
@@ -227,7 +227,7 @@ public class ApiToken implements ToXContent {
         xContentBuilder.field(NAME_FIELD, name);
         xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
         xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
-        xContentBuilder.field(CREATION_TIME_FIELD, creationTime.toEpochMilli());
+        xContentBuilder.field(ISSUED_AT_FIELD, creationTime.toEpochMilli());
         xContentBuilder.endObject();
         return xContentBuilder;
     }
