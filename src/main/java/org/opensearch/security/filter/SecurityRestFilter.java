@@ -72,6 +72,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
 
 public class SecurityRestFilter {
 
@@ -168,12 +169,16 @@ public class SecurityRestFilter {
 
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
                 delegate.handleRequest(request, channel, client);
                 return;
             }
-
+            if (user != null) {
+                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
+            }
             final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
