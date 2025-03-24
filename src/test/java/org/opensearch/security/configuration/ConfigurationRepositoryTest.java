@@ -443,12 +443,23 @@ public class ConfigurationRepositoryTest {
     @Test
     public void testGetConfigDirectory_WithoutSystemProperty() {
         System.clearProperty("security.default_init.dir");
-        when(path.toAbsolutePath()).thenReturn(Path.of("/config/base/path"));
-        Settings settings = Settings.builder().put("path.home", "/config/base/path").build();
+
+        String basePathString = System.getProperty("os.name").toLowerCase().contains("win")
+            ? "C:\\config\\base\\path"
+            : "/config/base/path";
+
+        Path basePath = Path.of(basePathString);
+        when(path.toAbsolutePath()).thenReturn(basePath);
+
+        Settings settings = Settings.builder().put("path.home", basePathString).build();
         ConfigurationRepository configRepository = createConfigurationRepository(settings);
         String result = configRepository.getConfigDirectory();
 
-        assertThat(result, is("/config/base/path/opensearch-security/"));
+        String expectedPath = System.getProperty("os.name").toLowerCase().contains("win")
+            ? "C:\\config\\base\\path\\opensearch-security\\"
+            : "/config/base/path/opensearch-security/";
+
+        assertThat(result, is(expectedPath));
     }
 
     @Test
