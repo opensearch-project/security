@@ -62,7 +62,6 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.OngoingStubbing;
 
@@ -121,6 +120,8 @@ public class ConfigurationRepositoryTest {
     private IndexMetadata securityIndexMetadata;
     @Mock
     private MappingMetadata securityIndexMappingMetadata;
+    @Mock
+    private ConfigurationLoaderSecurity7 configurationLoaderSecurity7;
 
     private ThreadPool threadPool;
 
@@ -176,7 +177,8 @@ public class ConfigurationRepositoryTest {
             localClient,
             clusterService,
             auditLog,
-            securityIndexHandler
+            securityIndexHandler,
+            configurationLoaderSecurity7
         );
     }
 
@@ -232,8 +234,6 @@ public class ConfigurationRepositoryTest {
             .build();
         System.setProperty("security.default_init.dir", TEST_CONFIG_DIR);
         ConfigurationRepository configRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configRepository.setConfigurationLoader(configurationLoaderSecurity7);
         configRepository.setDynamicConfigFactory(dynamicConfigFactory);
 
         setupConfigurationLoaderMock(configurationLoaderSecurity7, CType.values());
@@ -455,8 +455,6 @@ public class ConfigurationRepositoryTest {
     public void isAuditHotReloadingEnabled_shouldReturnFalseWhenAuditConfigDocNotPresentInIndex() {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         when(configurationLoaderSecurity7.isAuditConfigDocPresentInIndex()).thenReturn(false);
         boolean result = configurationRepository.isAuditHotReloadingEnabled();
 
@@ -467,8 +465,6 @@ public class ConfigurationRepositoryTest {
     public void isAuditHotReloadingEnabled_shouldReturnTrueWhenAuditConfigDocPresentInIndex() {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         when(configurationLoaderSecurity7.isAuditConfigDocPresentInIndex()).thenReturn(true);
         boolean result = configurationRepository.isAuditHotReloadingEnabled();
 
@@ -489,8 +485,6 @@ public class ConfigurationRepositoryTest {
     public void getConfigurationsFromIndex_Success() throws InterruptedException, TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, CType.values());
 
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false);
@@ -502,8 +496,6 @@ public class ConfigurationRepositoryTest {
     public void getConfigurationsFromIndex_Partial() throws InterruptedException, TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, Set.of(CType.CONFIG));
 
         configurationRepository.getConfigurationsFromIndex(CType.values(), false);
@@ -513,8 +505,6 @@ public class ConfigurationRepositoryTest {
     public void getConfigurationsFromIndex_NoResult() throws InterruptedException, TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, Set.of());
 
         configurationRepository.getConfigurationsFromIndex(CType.values(), false, false);
@@ -524,8 +514,6 @@ public class ConfigurationRepositoryTest {
     public void getConfigurationsFromIndex_existingSecurityIndexMetadataNull_NoResult() throws InterruptedException, TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, Set.of());
         when(metadata.index(OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX)).thenReturn(null);
 
@@ -537,8 +525,6 @@ public class ConfigurationRepositoryTest {
         TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, Set.of());
         when(securityIndexMetadata.mapping()).thenReturn(null);
 
@@ -549,8 +535,6 @@ public class ConfigurationRepositoryTest {
     public void getConfigurationsFromIndex_SecurityIndexNotInitiallyReady() throws InterruptedException, TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
-        ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
-        configurationRepository.setConfigurationLoader(configurationLoaderSecurity7);
         setupConfigurationLoaderMock(configurationLoaderSecurity7, CType.values());
 
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false, false);

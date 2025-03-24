@@ -49,7 +49,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -102,7 +101,7 @@ public class ConfigurationRepository implements ClusterStateListener {
     private final Client client;
     private final Cache<CType<?>, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
-    private ConfigurationLoaderSecurity7 cl;
+    private final ConfigurationLoaderSecurity7 cl;
     private final Settings settings;
     private final Path configPath;
     private final ClusterService clusterService;
@@ -129,7 +128,8 @@ public class ConfigurationRepository implements ClusterStateListener {
         final Client client,
         final ClusterService clusterService,
         final AuditLog auditLog,
-        final SecurityIndexHandler securityIndexHandler
+        final SecurityIndexHandler securityIndexHandler,
+        final ConfigurationLoaderSecurity7 configurationLoaderSecurity7
     ) {
         this.securityIndex = securityIndex;
         this.settings = settings;
@@ -140,14 +140,9 @@ public class ConfigurationRepository implements ClusterStateListener {
         this.auditLog = auditLog;
         this.configurationChangedListener = new ArrayList<>();
         this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
-        cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
+        this.cl = configurationLoaderSecurity7;
         configCache = CacheBuilder.newBuilder().build();
         this.securityIndexHandler = securityIndexHandler;
-    }
-
-    @VisibleForTesting
-    void setConfigurationLoader(ConfigurationLoaderSecurity7 configurationLoader) {
-        cl = configurationLoader;
     }
 
     private Path resolveConfigDir() {
@@ -502,7 +497,8 @@ public class ConfigurationRepository implements ClusterStateListener {
             client,
             clusterService,
             auditLog,
-            new SecurityIndexHandler(securityIndex, settings, client)
+            new SecurityIndexHandler(securityIndex, settings, client),
+            new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService)
         );
     }
 
