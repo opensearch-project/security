@@ -167,8 +167,7 @@ forbiddenApisTest.enabled = false
 filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
-// TODO Switch this back to true after replacing BC jars with BCFIPS jars
-jarHell.enabled = false
+jarHell.enabled = true
 tasks.whenTaskAdded {task ->
     if(task.name.contains("forbiddenApisIntegrationTest")) {
         task.enabled = false
@@ -576,13 +575,16 @@ tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generate
 //run the integrationTest task before the check task
 check.dependsOn integrationTest
 
+configurations.all {
+    exclude group:"org.bouncycastle", module: "bc-fips"
+    exclude group:"org.bouncycastle", module:"bctls-fips"
+    exclude group:"org.bouncycastle", module:"bcutil-fips"
+    exclude group:"org.bouncycastle", module:"bcpkix-fips"
+}
+
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-    implementation("org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}") {
-        exclude(group: 'org.bouncycastle', module: 'bc-fips')
-        exclude(group: 'org.bouncycastle', module: 'bctls-fips')
-        exclude(group: 'org.bouncycastle', module: 'bcutil-fips')
-    }
+    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
@@ -678,16 +680,8 @@ dependencies {
     testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
-    testImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}") {
-        exclude(group: 'org.bouncycastle', module: 'bc-fips')
-        exclude(group: 'org.bouncycastle', module: 'bctls-fips')
-        exclude(group: 'org.bouncycastle', module: 'bcutil-fips')
-    }
-    testImplementation("org.opensearch:opensearch-ssl-config:${opensearch_version}") {
-        exclude(group: 'org.bouncycastle', module: 'bc-fips')
-        exclude(group: 'org.bouncycastle', module: 'bctls-fips')
-        exclude(group: 'org.bouncycastle', module: 'bcutil-fips')
-    }
+    testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
+    testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
