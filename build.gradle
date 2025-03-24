@@ -29,7 +29,7 @@ buildscript {
         open_saml_version = '4.3.2'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
-        guava_version = '33.4.0-jre'
+        guava_version = '33.4.5-jre'
         jaxb_version = '2.3.9'
         spring_version = '5.3.39'
 
@@ -492,7 +492,7 @@ configurations {
 
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.33.0"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.19.200"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient-cache:4.5.14"
@@ -501,9 +501,9 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
-            force "com.google.errorprone:error_prone_annotations:2.35.1"
+            force "com.google.errorprone:error_prone_annotations:2.36.0"
             force "org.checkerframework:checker-qual:3.49.1"
-            force "ch.qos.logback:logback-classic:1.5.16"
+            force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.18.0"
         }
     }
@@ -617,7 +617,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.35.1'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.36.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7.1'
@@ -693,9 +693,9 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
-    testImplementation('org.awaitility:awaitility:4.2.2') {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.1'
+    testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
