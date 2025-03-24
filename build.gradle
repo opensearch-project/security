@@ -683,7 +683,11 @@ dependencies {
         exclude(group: 'org.bouncycastle', module: 'bctls-fips')
         exclude(group: 'org.bouncycastle', module: 'bcutil-fips')
     }
-    testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
+    testImplementation("org.opensearch:opensearch-ssl-config:${opensearch_version}") {
+        exclude(group: 'org.bouncycastle', module: 'bc-fips')
+        exclude(group: 'org.bouncycastle', module: 'bctls-fips')
+        exclude(group: 'org.bouncycastle', module: 'bcutil-fips')
+    }
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
