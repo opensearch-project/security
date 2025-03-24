@@ -49,6 +49,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -101,7 +102,7 @@ public class ConfigurationRepository implements ClusterStateListener {
     private final Client client;
     private final Cache<CType<?>, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
-    private final ConfigurationLoaderSecurity7 cl;
+    private ConfigurationLoaderSecurity7 cl;
     private final Settings settings;
     private final Path configPath;
     private final ClusterService clusterService;
@@ -142,6 +143,11 @@ public class ConfigurationRepository implements ClusterStateListener {
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
         configCache = CacheBuilder.newBuilder().build();
         this.securityIndexHandler = securityIndexHandler;
+    }
+
+    @VisibleForTesting
+    void setConfigurationLoader(ConfigurationLoaderSecurity7 configurationLoader) {
+        cl = configurationLoader;
     }
 
     private Path resolveConfigDir() {
