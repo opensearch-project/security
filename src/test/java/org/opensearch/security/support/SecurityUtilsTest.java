@@ -70,4 +70,35 @@ public class SecurityUtilsTest {
             );
         });
     }
+
+    @Test
+    public void testEscapePipe_NullInput() {
+        assertThat("Null input should return empty string", SecurityUtils.escapePipe(null), equalTo(""));
+    }
+
+    @Test
+    public void testEscapePipe_EmptyString() {
+        assertThat("Empty string should return empty string", SecurityUtils.escapePipe(""), equalTo(""));
+    }
+
+    @Test
+    public void testEscapePipe_StringWithoutPipe() {
+        assertThat("String without pipe should remain unchanged", SecurityUtils.escapePipe("normal string"), equalTo("normal string"));
+    }
+
+    @Test
+    public void testEscapePipe_SinglePipe() {
+        assertThat("Single pipe should be escaped", SecurityUtils.escapePipe("before|after"), equalTo("before\\|after"));
+    }
+
+    @Test
+    public void testEscapePipe_MultiplePipes() {
+        assertThat("Multiple pipes should all be escaped", SecurityUtils.escapePipe("a|b|c"), equalTo("a\\|b\\|c"));
+    }
+
+    @Test
+    public void testEscapePipe_MultiplePipesConsecutive() {
+        assertThat("Consecutive pipes should all be escaped", SecurityUtils.escapePipe("|||"), equalTo("\\|\\|\\|"));
+    }
+
 }
