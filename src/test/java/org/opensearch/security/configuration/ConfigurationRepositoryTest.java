@@ -533,7 +533,8 @@ public class ConfigurationRepositoryTest {
     }
 
     @Test(expected = OpenSearchException.class)
-    public void getConfigurationsFromIndex_existingSecurityIndexMappingMetaDataNull_NoResult() throws InterruptedException, TimeoutException {
+    public void getConfigurationsFromIndex_existingSecurityIndexMappingMetaDataNull_NoResult() throws InterruptedException,
+        TimeoutException {
         Settings settings = Settings.builder().build();
         ConfigurationRepository configurationRepository = createConfigurationRepository(settings);
         ConfigurationLoaderSecurity7 configurationLoaderSecurity7 = Mockito.mock(ConfigurationLoaderSecurity7.class);
