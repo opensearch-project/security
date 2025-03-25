@@ -184,7 +184,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
         ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
 
         for (Entry<String, String> attributeEntry : attributeMap.entrySet()) {
-            attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
+            result.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
         }
 
         return result.build();
