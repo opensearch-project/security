@@ -26,7 +26,10 @@ public class UserTest {
             .withSecurityRoles(Arrays.asList("sr1", "sr2"))
             .withAttributes(ImmutableMap.of("a", "v_a", "b", "v_b"));
 
-        System.out.println(Base64JDKHelper.serializeObject(user));
+        String serialized = Base64JDKHelper.serializeObject(user);
+        User user2 = User.fromSerializedBase64(serialized);
+        assertEquals(user, user2);
+
     }
 
     @Test

@@ -29,10 +29,15 @@ package org.opensearch.security.user;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamField;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 
@@ -348,16 +353,36 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return result;
     }
 
-    /**
-     * Creates a backwards compatible object that can be used for serialization
-     */
-    Object writeReplace() {
-        return new org.opensearch.security.user.serialized.User(this);
-    }
 
     void readObject(ObjectInputStream stream) throws InvalidObjectException {
         // This object is not supposed to directly read in order to keep compatibility with older OpenSearch versions
         throw new InvalidObjectException("Use org.opensearch.security.user.serialized.User");
     }
 
+    @Serial
+    private static final ObjectStreamField[] serialPersistentFields = {
+            new ObjectStreamField("name", String.class),
+            new ObjectStreamField("roles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
+            new ObjectStreamField("securityRoles",  Collections.synchronizedSet(Collections.emptySet()).getClass()),
+            new ObjectStreamField("requestedTenant", String.class),
+            new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
+            new ObjectStreamField("isInjected", Boolean.TYPE)
+    };
+
+    /**
+     * Creates a backwards compatible object that can be used for serialization
+     */
+    @Serial
+    private void writeObject(ObjectOutputStream out)
+            throws IOException {
+        ObjectOutputStream.PutField fields = out.putFields();
+        fields.put("name", name);
+        fields.put("roles", Collections.synchronizedSet(new HashSet<>(this.roles)));
+        fields.put("securityRoles", Collections.synchronizedSet(new HashSet<>(this.securityRoles)));
+        fields.put("requestedTenant", requestedTenant);
+        fields.put("attributes", Collections.synchronizedMap(new HashMap<>(this.attributes)));
+        fields.put("isInjected", this.isInjected);
+
+        out.writeFields();
+    }
 }
