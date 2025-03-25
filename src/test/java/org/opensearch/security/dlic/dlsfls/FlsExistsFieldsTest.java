@@ -38,11 +38,11 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
                     "@timestamp",
                     "type=date",
                     "host",
-                    "type=text,doc_values=false,norms=true",
+                    "type=text,norms=false",
                     "response",
-                    "type=text,doc_values=false,norms=true",
+                    "type=text,norms=false",
                     "non-existing",
-                    "type=text,doc_values=false,norms=true"
+                    "type=text,norms=false"
                 )
             )
             .actionGet();

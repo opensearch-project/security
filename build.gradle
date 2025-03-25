@@ -16,24 +16,25 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-        buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
+        buildVersionQualifier = System.getProperty("build.version_qualifier", "beta1")
 
         // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-beta1-SNAPSHOT')
 
         kafka_version  = '3.9.0'
         open_saml_version = '5.1.3'
         open_saml_shib_version = "9.1.3"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
-        guava_version = '33.4.0-jre'
+        guava_version = '33.4.5-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.3'
+        spring_version = '6.2.5'
+        bouncycastle_version = '1.80'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -490,15 +491,15 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.32.0"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.19.200"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.0"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
-            force "org.checkerframework:checker-qual:3.49.0"
-            force "ch.qos.logback:logback-classic:1.5.16"
+            force "org.checkerframework:checker-qual:3.49.1"
+            force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.18.0"
         }
     }
@@ -574,6 +575,13 @@ tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generate
 //run the integrationTest task before the check task
 check.dependsOn integrationTest
 
+configurations.all {
+    exclude group:"org.bouncycastle", module: "bc-fips"
+    exclude group:"org.bouncycastle", module:"bctls-fips"
+    exclude group:"org.bouncycastle", module:"bcutil-fips"
+    exclude group:"org.bouncycastle", module:"bcpkix-fips"
+}
+
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
@@ -584,11 +592,12 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.9.0'
-    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastle_version}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
+    implementation "com.github.seancfoley:ipaddress:5.5.1"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -617,7 +626,7 @@ dependencies {
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.3'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
     //Onelogin OpenSaml
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
@@ -662,8 +671,8 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.49.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+    runtimeOnly 'org.checkerframework:checker-qual:3.49.1'
+    runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -692,15 +701,15 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.3'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.4'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.1'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
-    testImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+    testImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
+    testImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
 
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
@@ -740,8 +749,8 @@ dependencies {
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-    integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
+    integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
     integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -752,7 +761,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-    integrationTestImplementation "org.mockito:mockito-core:5.15.2"
+    integrationTestImplementation "org.mockito:mockito-core:5.16.1"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.25.2') {
