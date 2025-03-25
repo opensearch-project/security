@@ -10,11 +10,12 @@
  */
 package org.opensearch.security.user;
 
+import java.util.Arrays;
+
 import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
-import org.opensearch.security.support.Base64JDKHelper;
 
-import java.util.Arrays;
+import org.opensearch.security.support.Base64JDKHelper;
 
 import static org.junit.Assert.assertEquals;
 

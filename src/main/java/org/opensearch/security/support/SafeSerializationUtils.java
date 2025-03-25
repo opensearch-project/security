@@ -24,8 +24,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.security.user.User;
-
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
@@ -45,7 +43,8 @@ public final class SafeSerializationUtils {
         SocketAddress.class,
         InetSocketAddress.class,
         Pattern.class,
-        User.class,
+        org.opensearch.security.user.User.class,
+        org.opensearch.security.user.serialized.User.class,
         SourceFieldsContext.class,
         LdapUser.class,
         SearchEntry.class,
