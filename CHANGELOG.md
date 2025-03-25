@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Use extendedPlugins in integrationTest framework for sample resource plugin testing ([#5322](https://github.com/opensearch-project/security/pull/5322))
 
+- Performance improvements: Immutable user object ([#5212])
+
 ### Dependencies
 - Bump `guava_version` from 33.4.6-jre to 33.4.8-jre ([#5284](https://github.com/opensearch-project/security/pull/5284))
 - Bump `spring_version` from 6.2.5 to 6.2.6 ([#5283](https://github.com/opensearch-project/security/pull/5283))

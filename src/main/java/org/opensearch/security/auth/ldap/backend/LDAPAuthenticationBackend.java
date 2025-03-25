@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,6 +33,7 @@ import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
+import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -46,7 +48,7 @@ import org.ldaptive.SearchScope;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 
-public class LDAPAuthenticationBackend implements AuthenticationBackend {
+public class LDAPAuthenticationBackend implements AuthenticationBackend, ImpersonationBackend {
 
     static final int ZERO_PLACEHOLDER = 0;
     static final String DEFAULT_USERBASE = "";
@@ -160,7 +162,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public boolean exists(final User user) {
+    public Optional<User> impersonate(User user) {
         Connection ldapConnection = null;
         String userName = user.getName();
 
@@ -178,19 +180,19 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                 this.returnAttributes,
                 this.shouldFollowReferrals
             );
-            boolean exists = userEntry != null;
 
-            if (exists) {
-                user.addAttributes(
-                    LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher)
+            if (userEntry != null) {
+                return Optional.of(
+                    user.withAttributes(
+                        LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher)
+                    )
                 );
+            } else {
+                return Optional.empty();
             }
-
-            return exists;
-
         } catch (final Exception e) {
-            log.warn("User {} does not exist due to ", userName, e);
-            return false;
+            log.warn("User {} does not exist due to exception", userName, e);
+            return Optional.empty();
         } finally {
             Utils.unbindAndCloseSilently(ldapConnection);
         }

@@ -12,14 +12,16 @@
 package org.opensearch.security.cache;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-public class DummyAuthenticationBackend implements AuthenticationBackend {
+public class DummyAuthenticationBackend implements AuthenticationBackend, ImpersonationBackend {
 
     private static volatile long authCount;
     private static volatile long existsCount;
@@ -38,9 +40,9 @@ public class DummyAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public boolean exists(User user) {
+    public Optional<User> impersonate(User user) {
         existsCount++;
-        return true;
+        return Optional.of(user);
     }
 
     public static long getAuthCount() {
@@ -55,4 +57,5 @@ public class DummyAuthenticationBackend implements AuthenticationBackend {
         authCount = 0;
         existsCount = 0;
     }
+
 }

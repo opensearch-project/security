@@ -19,6 +19,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -29,6 +30,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.Destroyable;
+import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
@@ -47,7 +49,7 @@ import org.ldaptive.Response;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.pool.ConnectionPool;
 
-public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
+public class LDAPAuthenticationBackend2 implements AuthenticationBackend, ImpersonationBackend, Destroyable {
 
     protected static final Logger log = LogManager.getLogger(LDAPAuthenticationBackend2.class);
 
@@ -189,50 +191,42 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
     @SuppressWarnings("removal")
     @Override
-    public boolean exists(final User user) {
+    public Optional<User> impersonate(User user) {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
 
-        return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-            @Override
-            public Boolean run() {
-                return exists0(user);
+        return AccessController.doPrivileged((PrivilegedAction<Optional<User>>) () -> {
+            Connection ldapConnection = null;
+            String userName = user.getName();
+
+            if (user instanceof LdapUser) {
+                userName = ((LdapUser) user).getUserEntry().getDn();
+            }
+
+            try {
+                ldapConnection = this.connectionFactory.getConnection();
+                ldapConnection.open();
+                LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes, this.shouldFollowReferrals);
+
+                if (userEntry != null) {
+                    return Optional.of(
+                        user.withAttributes(
+                            LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher)
+                        )
+                    );
+                } else {
+                    return Optional.empty();
+                }
+            } catch (final Exception e) {
+                log.warn("User {} does not exist due to exception", userName, e);
+                return Optional.empty();
+            } finally {
+                Utils.unbindAndCloseSilently(ldapConnection);
             }
         });
-
-    }
-
-    private boolean exists0(final User user) {
-        Connection ldapConnection = null;
-        String userName = user.getName();
-
-        if (user instanceof LdapUser) {
-            userName = ((LdapUser) user).getUserEntry().getDn();
-        }
-
-        try {
-            ldapConnection = this.connectionFactory.getConnection();
-            ldapConnection.open();
-            LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes, this.shouldFollowReferrals);
-
-            boolean exists = userEntry != null;
-
-            if (exists) {
-                user.addAttributes(
-                    LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher)
-                );
-            }
-
-            return exists;
-        } catch (final Exception e) {
-            log.warn("User {} does not exist due to exception", userName, e);
-            return false;
-        } finally {
-            Utils.unbindAndCloseSilently(ldapConnection);
-        }
     }
 
     @SuppressWarnings("removal")

@@ -15,6 +15,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
@@ -48,10 +52,11 @@ public class LdapUser extends User {
         int customAttrMaxValueLen,
         WildcardMatcher allowlistedCustomLdapAttrMatcher
     ) {
-        super(name, null, credentials);
+        super(name, ImmutableSet.of(), credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
         Map<String, String> attributes = getCustomAttributesMap();
+        // TODO
         attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
     }
 

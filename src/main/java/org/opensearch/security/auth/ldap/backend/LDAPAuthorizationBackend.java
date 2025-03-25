@@ -686,10 +686,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
+    public User addRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
 
         if (user == null) {
-            return;
+            return user;
         }
 
         String authenticatedUser;
@@ -738,12 +738,13 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             if (isDebugEnabled) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
-            return;
+            return user;
         }
 
         Connection connection = null;
 
         try {
+            Set<String> additionalRoles = new HashSet<>();
 
             if (entry == null || dn == null) {
 
@@ -969,7 +970,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
                     } else {
-                        user.addRole(role);
+                        additionalRoles.add(role);
                     }
                 }
 
@@ -983,16 +984,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
                     } else {
-                        user.addRole(role);
+                        additionalRoles.add(role);
                     }
                 }
 
             }
 
             // add all non-LDAP roles from user attributes to the final set of backend roles
-            for (String nonLdapRoleName : nonLdapRoles) {
-                user.addRole(nonLdapRoleName);
-            }
+            additionalRoles.addAll(nonLdapRoles);
 
             if (isDebugEnabled) {
                 log.debug("Roles for {} -> {}", user.getName(), user.getRoles());
@@ -1001,6 +1000,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             if (isTraceEnabled) {
                 log.trace("returned user: {}", user);
             }
+
+            return user.withRoles(additionalRoles);
 
         } catch (final Exception e) {
             if (isDebugEnabled) {

@@ -45,8 +45,7 @@ public class NoOpAuthorizationBackend implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(final User user, final AuthCredentials authCreds) {
-        // no-op
+    public User addRoles(User user, AuthCredentials credentials) {
+        return user;
     }
-
 }
