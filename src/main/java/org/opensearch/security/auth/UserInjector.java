@@ -165,7 +165,7 @@ public class UserInjector {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser);
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser.getUser());
         auditLog.logSucceededLogin(injectedUser.getUser().getName(), true, null, request);
 
         return true;
