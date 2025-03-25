@@ -194,11 +194,8 @@ public class SecurityFilter implements ActionFilter {
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            log.info("u1 " + user);
             if (user == null) {
                 UserInjector.Result injectedUser = userInjector.getInjectedUser();
-                log.info("u2 " + injectedUser);
-
                 if (injectedUser != null) {
                     user = injectedUser.getUser();
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
