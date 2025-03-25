@@ -11,6 +11,7 @@
 
 package org.opensearch.security.configuration;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -425,11 +426,15 @@ public class ConfigurationRepositoryTest {
         // Backup original system property if exists
         String originalProperty = System.getProperty("security.default_init.dir");
         try {
-            // Set test system property
-            System.setProperty("security.default_init.dir", "/test/path");
+            // Create platform-independent path
+            Path testPath = Path.of("test", "path");
+            System.setProperty("security.default_init.dir", testPath.toString());
+
             ConfigurationRepository configRepository = createConfigurationRepository(Settings.EMPTY);
             String result = configRepository.getConfigDirectory();
-            assertThat(result, is("/test/path/"));
+
+            String expectedPath = testPath.toString() + File.separator;
+            assertThat(result, is(expectedPath));
         } finally {
             // Cleanup: Reset system property to original state
             if (originalProperty != null) {
