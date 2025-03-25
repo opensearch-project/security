@@ -31,10 +31,9 @@ public class DummyAuthorizer implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User addRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
         count++;
-        user.addRole("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
-
+        return user.withRole("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
     }
 
     public static long getCount() {

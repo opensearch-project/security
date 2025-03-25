@@ -19,12 +19,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.google.common.io.BaseEncoding;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
@@ -130,14 +128,4 @@ public class Base64JDKHelperTest {
         assertThat(ds(ldapUser), is(ldapUser));
     }
 
-    @Test
-    public void testInjectedUser() {
-        UserInjector.InjectedUser injectedUser = new UserInjector.InjectedUser("username");
-
-        // we expect to get User object when deserializing InjectedUser via JDK serialization
-        User user = new User("username");
-        User deserializedUser = (User) ds(injectedUser);
-        assertThat(deserializedUser, is(user));
-        Assert.assertTrue(deserializedUser.isInjected());
-    }
 }

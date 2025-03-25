@@ -124,7 +124,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     @SuppressWarnings("removal")
     @Override
-    public void fillRoles(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
+    public User addRoles(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -133,11 +133,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<User>() {
                 @Override
-                public Void run() throws Exception {
-                    fillRoles0(user, optionalAuthCreds);
-                    return null;
+                public User run() throws Exception {
+                    return addRoles0(user, optionalAuthCreds);
                 }
             });
         } catch (PrivilegedActionException e) {
@@ -151,10 +150,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
     }
 
-    private void fillRoles0(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
+    private User addRoles0(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
 
         if (user == null) {
-            return;
+            return user;
         }
 
         String authenticatedUser;
@@ -192,8 +191,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             if (isDebugEnabled) {
                 log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             }
-            return;
+            return user;
         }
+
+        Set<String> additionalRoles = new HashSet<>();
 
         try (Connection connection = this.connectionFactory.getConnection()) {
 
@@ -385,7 +386,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             log.debug("Role was excluded or empty attribute '{}' for entry {}", roleName, roleLdapName);
                         }
                     } else {
-                        user.addRole(role);
+                        additionalRoles.add(role);
                     }
                 }
 
@@ -399,16 +400,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             log.debug("Role was excluded or empty attribute '{}' for entry {}", roleName, roleLdapName);
                         }
                     } else {
-                        user.addRole(role);
+                        additionalRoles.add(role);
                     }
                 }
 
             }
 
             // add all non-LDAP roles from user attributes to the final set of backend roles
-            for (String nonLdapRoleName : nonLdapRoles) {
-                user.addRole(nonLdapRoleName);
-            }
+            additionalRoles.addAll(nonLdapRoles);
 
             if (isDebugEnabled) {
                 log.debug("Roles for {} -> {}", user.getName(), user.getRoles());
@@ -418,6 +417,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 log.trace("returned user: {}", user);
             }
 
+            return user.withRoles(additionalRoles);
         } catch (final Exception e) {
             if (isDebugEnabled) {
                 log.debug("Unable to fill user roles due to ", e);

@@ -26,21 +26,17 @@
 
 package org.opensearch.security.auth;
 
-import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -66,54 +62,7 @@ public class UserInjector {
 
     }
 
-    public static class InjectedUser extends User {
-        private transient TransportAddress transportAddress;
-
-        public InjectedUser(String name) {
-            super(name);
-        }
-
-        public InjectedUser(StreamInput in) throws IOException {
-            super(in);
-            this.setInjected(true);
-        }
-
-        private Object writeReplace() throws ObjectStreamException {
-            User user = new User(getName());
-            user.addRoles(getRoles());
-            user.addSecurityRoles(getSecurityRoles());
-            user.setRequestedTenant(getRequestedTenant());
-            user.addAttributes(getCustomAttributesMap());
-            user.setInjected(true);
-            return user;
-        }
-
-        public TransportAddress getTransportAddress() {
-            return transportAddress;
-        }
-
-        public void setTransportAddress(String addr) throws UnknownHostException, IllegalArgumentException {
-            int lastColonIndex = addr.lastIndexOf(':');
-            if (lastColonIndex == -1) {
-                throw new IllegalArgumentException("Remote address must have format ip:port");
-            }
-
-            String ip = addr.substring(0, lastColonIndex);
-            String portString = addr.substring(lastColonIndex + 1);
-
-            InetAddress iAdress = InetAddress.getByName(ip);
-            int port = Integer.parseInt(portString);
-
-            this.transportAddress = new TransportAddress(iAdress, port);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
-        }
-    }
-
-    public InjectedUser getInjectedUser() {
+    public Result getInjectedUser() {
         if (!injectUserEnabled) {
             return null;
         }
@@ -136,59 +85,74 @@ public class UserInjector {
         }
 
         // username
-        if (Strings.isNullOrEmpty(parts[0])) {
+        String userName = parts[0];
+        if (Strings.isNullOrEmpty(userName)) {
             log.error("Username must not be null, user string was '{}.' User injection failed.", injectedUserString);
             return null;
         }
 
-        final InjectedUser injectedUser = new InjectedUser(parts[0]);
-
         // backend roles
+        ImmutableSet<String> backendRoles = ImmutableSet.of();
         if (parts.length > 1 && !Strings.isNullOrEmpty(parts[1])) {
             if (parts[1].length() > 0) {
-                injectedUser.addRoles(Arrays.asList(parts[1].split(",")));
+                backendRoles = ImmutableSet.copyOf(Arrays.asList(parts[1].split(",")));
             }
         }
 
         // custom attributes
+        ImmutableMap<String, String> customAttributes = ImmutableMap.of();
         if (parts.length > 3 && !Strings.isNullOrEmpty(parts[3])) {
-            Map<String, String> attributes = mapFromArray((parts[3].split(",")));
-            if (attributes == null) {
+            customAttributes = mapFromArray((parts[3].split(",")));
+            if (customAttributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
                 return null;
-            } else {
-                injectedUser.addAttributes(attributes);
             }
         }
 
         // requested tenant
+        String requestedTenant = null;
         if (parts.length > 4 && !Strings.isNullOrEmpty(parts[4])) {
-            injectedUser.setRequestedTenant(parts[4]);
+            requestedTenant = parts[4];
         }
 
         // remote IP - we can set it only once, so we do it last. If non is given,
         // BackendRegistry/XFFResolver will do the job
+        TransportAddress transportAddress = null;
         if (parts.length > 2 && !Strings.isNullOrEmpty(parts[2])) {
             try {
-                injectedUser.setTransportAddress(parts[2]);
+                transportAddress = parseTransportAddress(parts[2]);
             } catch (UnknownHostException | IllegalArgumentException e) {
                 log.error("Cannot parse remote IP or port: {}, user injection failed.", parts[2], e);
                 return null;
             }
         }
 
-        // mark user injected for proper admin handling
-        injectedUser.setInjected(true);
+        User injectedUser = new User(userName, backendRoles, ImmutableSet.of(), requestedTenant, customAttributes, true);
 
         if (log.isTraceEnabled()) {
             log.trace("Injected user object:{} ", injectedUser.toString());
         }
 
-        return injectedUser;
+        return new Result(injectedUser, transportAddress);
+    }
+
+    public TransportAddress parseTransportAddress(String addr) throws UnknownHostException, IllegalArgumentException {
+        int lastColonIndex = addr.lastIndexOf(':');
+        if (lastColonIndex == -1) {
+            throw new IllegalArgumentException("Remote address must have format ip:port");
+        }
+
+        String ip = addr.substring(0, lastColonIndex);
+        String portString = addr.substring(lastColonIndex + 1);
+
+        InetAddress iAdress = InetAddress.getByName(ip);
+        int port = Integer.parseInt(portString);
+
+        return new TransportAddress(iAdress, port);
     }
 
     boolean injectUser(SecurityRequestChannel request) {
-        InjectedUser injectedUser = getInjectedUser();
+        Result injectedUser = getInjectedUser();
         if (injectedUser == null) {
             return false;
         }
@@ -202,25 +166,43 @@ public class UserInjector {
         }
 
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser);
-        auditLog.logSucceededLogin(injectedUser.getName(), true, null, request);
+        auditLog.logSucceededLogin(injectedUser.getUser().getName(), true, null, request);
 
         return true;
     }
 
-    protected Map<String, String> mapFromArray(String... keyValues) {
+    protected ImmutableMap<String, String> mapFromArray(String... keyValues) {
         if (keyValues == null) {
-            return Map.of();
+            return ImmutableMap.of();
         }
         if (keyValues.length % 2 != 0) {
             log.error("Expected even number of key/value pairs, got {}.", Arrays.toString(keyValues));
             return null;
         }
-        Map<String, String> map = new HashMap<>();
+        ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
 
         for (int i = 0; i < keyValues.length; i += 2) {
             map.put(keyValues[i], keyValues[i + 1]);
         }
-        return map;
+        return map.build();
+    }
+
+    public static class Result {
+        private final User user;
+        private final TransportAddress transportAddress;
+
+        public Result(User user, TransportAddress transportAddress) {
+            this.user = user;
+            this.transportAddress = transportAddress;
+        }
+
+        public User getUser() {
+            return user;
+        }
+
+        public TransportAddress getTransportAddress() {
+            return transportAddress;
+        }
     }
 
 }
