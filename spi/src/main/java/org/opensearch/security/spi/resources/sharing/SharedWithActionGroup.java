@@ -100,9 +100,9 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
      */
     public static class ActionGroupRecipients implements ToXContentFragment, NamedWriteable {
 
-        private final Map<RecipientType, Set<String>> recipients;
+        private final Map<Recipient, Set<String>> recipients;
 
-        public ActionGroupRecipients(Map<RecipientType, Set<String>> recipients) {
+        public ActionGroupRecipients(Map<Recipient, Set<String>> recipients) {
             if (recipients == null) {
                 throw new IllegalArgumentException("Recipients map cannot be null");
             }
@@ -110,13 +110,10 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         }
 
         public ActionGroupRecipients(StreamInput in) throws IOException {
-            this.recipients = in.readMap(
-                key -> RecipientTypeRegistry.fromValue(key.readString()),
-                input -> input.readSet(StreamInput::readString)
-            );
+            this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
         }
 
-        public Map<RecipientType, Set<String>> getRecipients() {
+        public Map<Recipient, Set<String>> getRecipients() {
             return recipients;
         }
 
@@ -126,20 +123,20 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         }
 
         public static ActionGroupRecipients fromXContent(XContentParser parser) throws IOException {
-            Map<RecipientType, Set<String>> recipients = new HashMap<>();
+            Map<Recipient, Set<String>> recipients = new HashMap<>();
 
             XContentParser.Token token;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                 if (token == XContentParser.Token.FIELD_NAME) {
                     String fieldName = parser.currentName();
-                    RecipientType recipientType = RecipientTypeRegistry.fromValue(fieldName);
+                    Recipient recipient = Recipient.fromValue(fieldName);
 
                     parser.nextToken();
                     Set<String> values = new HashSet<>();
                     while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                         values.add(parser.text());
                     }
-                    recipients.put(recipientType, values);
+                    recipients.put(recipient, values);
                 }
             }
 
@@ -150,7 +147,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         public void writeTo(StreamOutput out) throws IOException {
             out.writeMap(
                 recipients,
-                (streamOutput, recipientType) -> streamOutput.writeString(recipientType.type()),
+                StreamOutput::writeEnum,
                 (streamOutput, strings) -> streamOutput.writeCollection(strings, StreamOutput::writeString)
             );
         }
@@ -160,8 +157,8 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
             if (recipients.isEmpty()) {
                 return builder;
             }
-            for (Map.Entry<RecipientType, Set<String>> entry : recipients.entrySet()) {
-                builder.array(entry.getKey().type(), entry.getValue().toArray());
+            for (Map.Entry<Recipient, Set<String>> entry : recipients.entrySet()) {
+                builder.array(entry.getKey().getName(), entry.getValue().toArray());
             }
             return builder;
         }

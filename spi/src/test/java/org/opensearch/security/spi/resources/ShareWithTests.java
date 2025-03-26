@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
-import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
@@ -26,8 +25,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.sharing.RecipientType;
-import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
@@ -53,11 +51,6 @@ import static org.mockito.Mockito.when;
  */
 public class ShareWithTests {
 
-    @Before
-    public void setupResourceRecipientTypes() {
-        initializeRecipientTypes();
-    }
-
     @Test
     public void testFromXContentWhenCurrentTokenIsNotStartObject() throws IOException {
         String json = "{\"read_only\": {\"users\": [\"user1\"], \"roles\": [], \"backend_roles\": []}}";
@@ -77,14 +70,11 @@ public class ShareWithTests {
 
         SharedWithActionGroup.ActionGroupRecipients actionGroupRecipients = actionGroup.getSharedWithPerActionGroup();
         MatcherAssert.assertThat(actionGroupRecipients, notNullValue());
-        Map<RecipientType, Set<String>> recipients = actionGroupRecipients.getRecipients();
-        MatcherAssert.assertThat(recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(), is(1));
-        MatcherAssert.assertThat(recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())), contains("user1"));
-        MatcherAssert.assertThat(recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.ROLES.getName())).size(), is(0));
-        MatcherAssert.assertThat(
-            recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.BACKEND_ROLES.getName())).size(),
-            is(0)
-        );
+        Map<Recipient, Set<String>> recipients = actionGroupRecipients.getRecipients();
+        MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
+        MatcherAssert.assertThat(recipients.get(Recipient.USERS), contains("user1"));
+        MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(0));
+        MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(0));
     }
 
     @Test
@@ -128,33 +118,15 @@ public class ShareWithTests {
 
         for (SharedWithActionGroup actionGroup : actionGroups) {
             SharedWithActionGroup.ActionGroupRecipients perScope = actionGroup.getSharedWithPerActionGroup();
-            Map<RecipientType, Set<String>> recipients = perScope.getRecipients();
+            Map<Recipient, Set<String>> recipients = perScope.getRecipients();
             if (actionGroup.getActionGroup().equals(ResourceAccessActionGroups.PLACE_HOLDER)) {
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(),
-                    is(2)
-                );
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.ROLES.getName())).size(),
-                    is(1)
-                );
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.BACKEND_ROLES.getName())).size(),
-                    is(1)
-                );
+                MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(2));
+                MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(1));
+                MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(1));
             } else if (actionGroup.getActionGroup().equals("random-action-group")) {
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(),
-                    is(1)
-                );
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.ROLES.getName())).size(),
-                    is(1)
-                );
-                MatcherAssert.assertThat(
-                    recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.BACKEND_ROLES.getName())).size(),
-                    is(1)
-                );
+                MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
+                MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(1));
+                MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(1));
             }
         }
     }
@@ -175,7 +147,7 @@ public class ShareWithTests {
     public void testToXContentBuildsCorrectly() throws IOException {
         SharedWithActionGroup actionGroup = new SharedWithActionGroup(
             "actionGroup1",
-            new SharedWithActionGroup.ActionGroupRecipients(Map.of(new RecipientType("users"), Set.of("bleh")))
+            new SharedWithActionGroup.ActionGroupRecipients(Map.of(Recipient.USERS, Set.of("bleh")))
         );
 
         Set<SharedWithActionGroup> actionGroups = new HashSet<>();
@@ -260,22 +232,16 @@ public class ShareWithTests {
 
         verify(mockStreamOutput, times(1)).writeCollection(eq(sharedWithActionGroups));
     }
-
-    private void initializeRecipientTypes() {
-        RecipientTypeRegistry.registerRecipientType("users", new RecipientType("users"));
-        RecipientTypeRegistry.registerRecipientType("roles", new RecipientType("roles"));
-        RecipientTypeRegistry.registerRecipientType("backend_roles", new RecipientType("backend_roles"));
-    }
 }
 
-enum DefaultRecipientType {
+enum DefaultRecipient {
     USERS("users"),
     ROLES("roles"),
     BACKEND_ROLES("backend_roles");
 
     private final String name;
 
-    DefaultRecipientType(String name) {
+    DefaultRecipient(String name) {
         this.name = name;
     }
 
