@@ -128,7 +128,8 @@ public class ConfigurationRepository implements ClusterStateListener {
         final Client client,
         final ClusterService clusterService,
         final AuditLog auditLog,
-        final SecurityIndexHandler securityIndexHandler
+        final SecurityIndexHandler securityIndexHandler,
+        final ConfigurationLoaderSecurity7 configurationLoaderSecurity7
     ) {
         this.securityIndex = securityIndex;
         this.settings = settings;
@@ -139,7 +140,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         this.auditLog = auditLog;
         this.configurationChangedListener = new ArrayList<>();
         this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
-        cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
+        this.cl = configurationLoaderSecurity7;
         configCache = CacheBuilder.newBuilder().build();
         this.securityIndexHandler = securityIndexHandler;
     }
@@ -177,8 +178,8 @@ public class ConfigurationRepository implements ClusterStateListener {
     public String getConfigDirectory() {
         String lookupDir = System.getProperty("security.default_init.dir");
         final String cd = lookupDir != null
-            ? (lookupDir + "/")
-            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+            ? (lookupDir + File.separator)
+            : new Environment(settings, configPath).configDir().toAbsolutePath().resolve("opensearch-security").toString() + File.separator;
         return cd;
     }
 
@@ -496,7 +497,8 @@ public class ConfigurationRepository implements ClusterStateListener {
             client,
             clusterService,
             auditLog,
-            new SecurityIndexHandler(securityIndex, settings, client)
+            new SecurityIndexHandler(securityIndex, settings, client),
+            new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService)
         );
     }
 
