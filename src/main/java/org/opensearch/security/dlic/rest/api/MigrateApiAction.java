@@ -46,6 +46,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.Meta;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
@@ -102,6 +103,56 @@ public class MigrateApiAction extends AbstractApiAction {
         requestHandlersBuilder.allMethodsNotImplemented().override(Method.POST, (channel, request, client) -> migrate(channel, client));
     }
 
+    protected boolean updateSecurityIndex(
+        final RestChannel channel,
+        final Client client,
+        ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder
+    ) {
+        final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
+        if (dynamicConfigurations.isEmpty()) {
+            LOGGER.info("Nothing to migrate");
+            return false;
+        }
+        final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(dynamicConfigurations.size());
+        final BulkRequestBuilder br = client.prepareBulk(securityApiDependencies.securityIndexName());
+        br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+        try {
+            for (SecurityDynamicConfiguration<?> dynamicConfiguration : dynamicConfigurations) {
+                final String id = dynamicConfiguration.getCType().toLCString();
+                LOGGER.info("Updating " + id);
+                final BytesReference xContent = XContentHelper.toXContent(dynamicConfiguration, XContentType.JSON, false);
+                br.add(new IndexRequest().id(id).source(id, xContent));
+                cTypes.add(id);
+            }
+        } catch (final IOException e1) {
+            LOGGER.error("Unable to create bulk request " + e1, e1);
+            internalServerError(channel, "Unable to create bulk request.");
+            return false;
+        }
+
+        br.execute(new ConfigUpdatingActionListener<>(cTypes.build().toArray(new String[0]), client, new ActionListener<BulkResponse>() {
+
+            @Override
+            public void onResponse(BulkResponse response) {
+                if (response.hasFailures()) {
+                    LOGGER.error("Unable to upload migrated configuration because of " + response.buildFailureMessage());
+                    internalServerError(channel, "Unable to upload migrated configuration (bulk index failed).");
+                } else {
+                    LOGGER.debug("Migration completed");
+                    ok(channel, "Migration completed.");
+                }
+
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                LOGGER.error("Unable to upload migrated configuration because of " + e, e);
+                internalServerError(channel, "Unable to upload migrated configuration.");
+            }
+        }));
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     protected void migrate(final RestChannel channel, final Client client) throws IOException {
 
@@ -115,7 +166,20 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true);
 
         if (loadedConfig.getVersion() != 1) {
-            badRequest(channel, "Can not migrate configuration because it was already migrated.");
+            final ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder = ImmutableList.builder();
+            for (CType<?> ctype : CType.values()) {
+                final SecurityDynamicConfiguration<?> c7 = (SecurityDynamicConfiguration<?>) load(ctype, true);
+                if (c7.get_meta() == null) {
+                    c7.set_meta(new Meta());
+                    c7.get_meta().setConfig_version(2);
+                    c7.get_meta().setType(ctype.toLCString());
+                    builder.add(c7);
+                }
+            }
+            boolean updated = updateSecurityIndex(channel, client, builder);
+            if (!updated) {
+                badRequest(channel, "Can not migrate configuration because it was already migrated.");
+            }
             return;
         }
 
@@ -199,62 +263,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
                                 @Override
                                 public void onResponse(CreateIndexResponse response) {
-                                    final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
-                                    final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(
-                                        dynamicConfigurations.size()
-                                    );
-                                    final BulkRequestBuilder br = client.prepareBulk(securityApiDependencies.securityIndexName());
-                                    br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                                    try {
-                                        for (SecurityDynamicConfiguration<?> dynamicConfiguration : dynamicConfigurations) {
-                                            final String id = dynamicConfiguration.getCType().toLCString();
-                                            final BytesReference xContent = XContentHelper.toXContent(
-                                                dynamicConfiguration,
-                                                XContentType.JSON,
-                                                false
-                                            );
-                                            br.add(new IndexRequest().id(id).source(id, xContent));
-                                            cTypes.add(id);
-                                        }
-                                    } catch (final IOException e1) {
-                                        LOGGER.error("Unable to create bulk request " + e1, e1);
-                                        internalServerError(channel, "Unable to create bulk request.");
-                                        return;
-                                    }
-
-                                    br.execute(
-                                        new ConfigUpdatingActionListener<>(
-                                            cTypes.build().toArray(new String[0]),
-                                            client,
-                                            new ActionListener<BulkResponse>() {
-
-                                                @Override
-                                                public void onResponse(BulkResponse response) {
-                                                    if (response.hasFailures()) {
-                                                        LOGGER.error(
-                                                            "Unable to upload migrated configuration because of "
-                                                                + response.buildFailureMessage()
-                                                        );
-                                                        internalServerError(
-                                                            channel,
-                                                            "Unable to upload migrated configuration (bulk index failed)."
-                                                        );
-                                                    } else {
-                                                        LOGGER.debug("Migration completed");
-                                                        ok(channel, "Migration completed.");
-                                                    }
-
-                                                }
-
-                                                @Override
-                                                public void onFailure(Exception e) {
-                                                    LOGGER.error("Unable to upload migrated configuration because of " + e, e);
-                                                    internalServerError(channel, "Unable to upload migrated configuration.");
-                                                }
-                                            }
-                                        )
-                                    );
-
+                                    updateSecurityIndex(channel, client, builder);
                                 }
 
                                 @Override
