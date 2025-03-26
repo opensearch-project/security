@@ -71,7 +71,7 @@ import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
 import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.RecipientType;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
@@ -280,9 +280,9 @@ public class ResourceSharingIndexHandler {
      *             "should": [
      *               {
      *                 "nested": {
-     *                   "path": "share_with.*.RecipientType",
+     *                   "path": "share_with.*.Recipient",
      *                   "query": {
-     *                     "term": { "share_with.*.RecipientType": "entity_value" }
+     *                     "term": { "share_with.*.Recipient": "entity_value" }
      *                   }
      *                 }
      *               }
@@ -299,13 +299,8 @@ public class ResourceSharingIndexHandler {
      * </pre>
      *
      * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified RecipientType field
-     * @param recipientType The type of association with the resource. Must be one of:
-     *                      <ul>
-     *                        <li>"users" - for user-based access</li>
-     *                        <li>"roles" - for role-based access</li>
-     *                        <li>"backend_roles" - for backend role-based access</li>
-     *                      </ul>
+     * @param entities      Set of values to match in the specified Recipient field
+     * @param recipient     The type recipient {@link Recipient}
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
@@ -313,24 +308,24 @@ public class ResourceSharingIndexHandler {
     public void fetchDocumentsForAllActionGroups(
         String pluginIndex,
         Set<String> entities,
-        String recipientType,
+        String recipient,
         ActionListener<Set<String>> listener
     ) {
         LOGGER.debug(
             "Fetching all documents asynchronously from index: {} accessible by entities {} of type {}",
             pluginIndex,
             entities,
-            recipientType
+            recipient
         );
         BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
         for (String entity : entities) {
             shouldQuery.should(
-                QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipientType + ".keyword")
+                QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipient + ".keyword")
                     .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
             );
         }
         shouldQuery.minimumShouldMatch(1);
-        fetchSharedDocuments(pluginIndex, entities, recipientType, shouldQuery, listener);
+        fetchSharedDocuments(pluginIndex, entities, recipient, shouldQuery, listener);
     }
 
     /**
@@ -347,9 +342,9 @@ public class ResourceSharingIndexHandler {
      *             "should": [
      *               {
      *                 "nested": {
-     *                   "path": "share_with.action-group.RecipientType",
+     *                   "path": "share_with.action-group.Recipient",
      *                   "query": {
-     *                     "term": { "share_with.action-group.RecipientType": "entity_value" }
+     *                     "term": { "share_with.action-group.Recipient": "entity_value" }
      *                   }
      *                 }
      *               }
@@ -366,13 +361,8 @@ public class ResourceSharingIndexHandler {
      * </pre>
      *
      * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified RecipientType field
-     * @param recipientType The type of association with the resource. Must be one of:
-     *                      <ul>
-     *                        <li>"users" - for user-based access</li>
-     *                        <li>"roles" - for role-based access</li>
-     *                        <li>"backend_roles" - for backend role-based access</li>
-     *                      </ul>
+     * @param entities      Set of values to match in the specified Recipient field
+     * @param recipient     The type of recipient {@link Recipient}
      * @param actionGroup   The action group to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
@@ -380,7 +370,7 @@ public class ResourceSharingIndexHandler {
     public void fetchDocumentsForAGivenActionGroup(
         String pluginIndex,
         Set<String> entities,
-        String recipientType,
+        String recipient,
         String actionGroup,
         ActionListener<Set<String>> listener
     ) {
@@ -389,15 +379,15 @@ public class ResourceSharingIndexHandler {
             pluginIndex,
             actionGroup,
             entities,
-            recipientType
+            recipient
         );
         BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
         for (String entity : entities) {
-            shouldQuery.should(QueryBuilders.termQuery("share_with." + actionGroup + "." + recipientType + ".keyword", entity));
+            shouldQuery.should(QueryBuilders.termQuery("share_with." + actionGroup + "." + recipient + ".keyword", entity));
         }
         shouldQuery.minimumShouldMatch(1);
 
-        fetchSharedDocuments(pluginIndex, entities, recipientType, shouldQuery, listener);
+        fetchSharedDocuments(pluginIndex, entities, recipient, shouldQuery, listener);
     }
 
     /**
@@ -406,14 +396,8 @@ public class ResourceSharingIndexHandler {
      *
      *
      * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified RecipientType field
-     * @param recipientType The type of association with the resource. It can be one of:
-     *                      <ul>
-     *                        <li>"users" - for user-based access</li>
-     *                        <li>"roles" - for role-based access</li>
-     *                        <li>"backend_roles" - for backend role-based access</li>
-     *                      </ul>
-     *                      or a custom string representing a type that was registered using {@link org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry}
+     * @param entities      Set of values to match in the specified Recipient field
+     * @param recipient     The type of recipient {@link Recipient}
      * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
@@ -430,7 +414,7 @@ public class ResourceSharingIndexHandler {
     public void fetchSharedDocuments(
         String pluginIndex,
         Set<String> entities,
-        String recipientType,
+        String recipient,
         BoolQueryBuilder actionGroupQuery,
         ActionListener<Set<String>> listener
     ) {
@@ -451,22 +435,16 @@ public class ResourceSharingIndexHandler {
                 listener.onResponse(resourceIds);
 
             }, exception -> {
-                LOGGER.error(
-                    "Search failed for pluginIndex={}, recipientType={}, entities={}",
-                    pluginIndex,
-                    recipientType,
-                    entities,
-                    exception
-                );
+                LOGGER.error("Search failed for pluginIndex={}, recipient={}, entities={}", pluginIndex, recipient, entities, exception);
                 listener.onFailure(exception);
 
             }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, RecipientType: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, recipient: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
-                recipientType,
+                recipient,
                 entities,
                 e
             );
@@ -845,20 +823,13 @@ public class ResourceSharingIndexHandler {
      * @throws RuntimeException         if the update operation fails or encounters an error
      * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
      * entities don't exist in the current configuration), the original document is returned unchanged.
-     * &#064;example
-     * <pre>
-     * Map<RecipientType, Set<String>> revokeAccess = new HashMap<>();
-     * revokeAccess.put(RecipientType.USER, Set.of("user1", "user2"));
-     * revokeAccess.put(RecipientType.ROLE, Set.of("role1"));
-     * ResourceSharing updated = revokeAccess("resourceId", "pluginIndex", revokeAccess);
-     * </pre>
-     * @see RecipientType
+     * @see Recipient
      * @see ResourceSharing
      */
     public void revokeAccess(
         String resourceId,
         String sourceIdx,
-        Map<RecipientType, Set<String>> revokeAccess,
+        Map<Recipient, Set<String>> revokeAccess,
         Set<String> actionGroups,
         String requestUserName,
         boolean isAdmin,
@@ -898,8 +869,8 @@ public class ResourceSharingIndexHandler {
                 }
 
                 Map<String, Object> revoke = new HashMap<>();
-                for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
-                    revoke.put(entry.getKey().type().toLowerCase(), new ArrayList<>(entry.getValue()));
+                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.entrySet()) {
+                    revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();
 
@@ -915,18 +886,18 @@ public class ResourceSharingIndexHandler {
                                     def existingActionGroup = ctx._source.share_with.get(actionGroupName);
 
                                     for (def entry : params.revokeAccess.entrySet()) {
-                                        def RecipientType = entry.getKey();
+                                        def recipient = entry.getKey();
                                         def entitiesToRemove = entry.getValue();
 
-                                        if (existingActionGroup.containsKey(RecipientType) && existingActionGroup[RecipientType] != null) {
-                                            if (!(existingActionGroup[RecipientType] instanceof HashSet)) {
-                                                existingActionGroup[RecipientType] = new HashSet(existingActionGroup[RecipientType]);
+                                        if (existingActionGroup.containsKey(recipient) && existingActionGroup[recipient] != null) {
+                                            if (!(existingActionGroup[recipient] instanceof HashSet)) {
+                                                existingActionGroup[recipient] = new HashSet(existingActionGroup[recipient]);
                                             }
 
-                                            existingActionGroup[RecipientType].removeAll(entitiesToRemove);
+                                            existingActionGroup[recipient].removeAll(entitiesToRemove);
 
-                                            if (existingActionGroup[RecipientType].isEmpty()) {
-                                                existingActionGroup.remove(RecipientType);
+                                            if (existingActionGroup[recipient].isEmpty()) {
+                                                existingActionGroup.remove(recipient);
                                             }
                                         }
                                     }

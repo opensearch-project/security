@@ -19,8 +19,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.indices.SystemIndices;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.spi.resources.exceptions.ResourceNonSystemIndexException;
-import org.opensearch.security.spi.resources.sharing.RecipientType;
-import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -109,9 +108,9 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         );
     }
 
-    private Map<RecipientType, Set<String>> parseRevokedEntities(Map<String, Set<String>> revokeSource) {
+    private Map<Recipient, Set<String>> parseRevokedEntities(Map<String, Set<String>> revokeSource) {
         return revokeSource.entrySet()
             .stream()
-            .collect(Collectors.toMap(entry -> RecipientTypeRegistry.fromValue(entry.getKey()), Map.Entry::getValue));
+            .collect(Collectors.toMap(entry -> Recipient.fromValue(entry.getKey()), Map.Entry::getValue));
     }
 }

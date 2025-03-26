@@ -31,8 +31,6 @@ import org.opensearch.security.spi.resources.exceptions.ResourceSharingException
 import org.opensearch.security.spi.resources.exceptions.UnauthenticatedResourceAccessException;
 import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.RecipientType;
-import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
@@ -62,19 +60,6 @@ public class ResourceAccessHandler {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
-    }
-
-    /**
-     * Initializes the recipient types for users, roles, and backend roles.
-     * These recipient types are used to identify the types of recipients for resource sharing.
-     */
-    public void initializeRecipientTypes() {
-        RecipientTypeRegistry.registerRecipientType(Recipient.USERS.getName(), new RecipientType(Recipient.USERS.getName()));
-        RecipientTypeRegistry.registerRecipientType(Recipient.ROLES.getName(), new RecipientType(Recipient.ROLES.getName()));
-        RecipientTypeRegistry.registerRecipientType(
-            Recipient.BACKEND_ROLES.getName(),
-            new RecipientType(Recipient.BACKEND_ROLES.getName())
-        );
     }
 
     /**
@@ -335,7 +320,7 @@ public class ResourceAccessHandler {
     public void revokeAccess(
         String resourceId,
         String resourceIndex,
-        Map<RecipientType, Set<String>> revokeAccess,
+        Map<Recipient, Set<String>> revokeAccess,
         Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {
@@ -450,19 +435,19 @@ public class ResourceAccessHandler {
      *
      * @param resourceIndex The resource index to load resources from.
      * @param entities      The set of entities to check for shared resources.
-     * @param recipientType The type of entity (e.g., users, roles, backend_roles).
+     * @param recipient     The type of entity (e.g., users, roles, backend_roles).
      * @param listener      The listener to be notified with the set of resource IDs.
      */
     private void loadSharedWithResources(
         String resourceIndex,
         Set<String> entities,
-        String recipientType,
+        String recipient,
         ActionListener<Set<String>> listener
     ) {
         Set<String> entitiesCopy = new HashSet<>(entities);
         // To allow "public" resources to be matched for any user, role, backend_role
         entitiesCopy.add("*");
-        this.resourceSharingIndexHandler.fetchDocumentsForAllActionGroups(resourceIndex, entitiesCopy, recipientType, listener);
+        this.resourceSharingIndexHandler.fetchDocumentsForAllActionGroups(resourceIndex, entitiesCopy, recipient, listener);
     }
 
     /**
@@ -530,12 +515,10 @@ public class ResourceAccessHandler {
             .findFirst()
             .map(sharedWithActionGroup -> {
                 SharedWithActionGroup.ActionGroupRecipients aGs = sharedWithActionGroup.getSharedWithPerActionGroup();
-                Map<RecipientType, Set<String>> recipients = aGs.getRecipients();
+                Map<Recipient, Set<String>> recipients = aGs.getRecipients();
 
                 return switch (recipient) {
-                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.get(
-                        RecipientTypeRegistry.fromValue(recipient.getName())
-                    ).contains(entity);
+                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.get(recipient).contains(entity);
                 };
             })
             .orElse(false); // Return false if no matching action-group is found
