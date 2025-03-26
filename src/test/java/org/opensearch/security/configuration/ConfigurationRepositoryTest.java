@@ -266,7 +266,7 @@ public class ConfigurationRepositoryTest {
         configRepository.initOnNodeStart().join();
 
         verify(clusterBlocks, times(1)).hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE);
-        verify(indexResponse, times(10)).getId();
+        verify(indexResponse, times(CType.values().size())).getId();
     }
 
     @Test
