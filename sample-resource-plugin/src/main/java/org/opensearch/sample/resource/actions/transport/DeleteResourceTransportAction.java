@@ -8,8 +8,6 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.util.Set;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,7 +22,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRequest;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceResponse;
@@ -71,41 +68,32 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
 
         // Check permission to resource
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
-        resourceSharingClient.verifyResourceAccess(
-            resourceId,
-            RESOURCE_INDEX_NAME,
-            Set.of(
-                SampleResourceScope.SAMPLE_DELETE_ACCESS.value(),
-                SampleResourceScope.SAMPLE_FULL_ACCESS.value(),
-                SampleResourceScope.PUBLIC.value()
-            ),
-            ActionListener.wrap(isAuthorized -> {
-                if (!isAuthorized) {
-                    listener.onFailure(
-                        new UnauthorizedResourceAccessException("Current user is not authorized to delete resource: " + resourceId)
-                    );
-                    return;
-                }
+        resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
+            if (!isAuthorized) {
+                listener.onFailure(
+                    new UnauthorizedResourceAccessException("Current user is not authorized to delete resource: " + resourceId)
+                );
+                return;
+            }
 
-                // Authorization successful, proceed with deletion
-                ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-                try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-                    deleteResource(resourceId, ActionListener.wrap(deleteResponse -> {
-                        if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-                            listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
-                        } else {
-                            listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
-                        }
-                    }, exception -> {
-                        log.error("Failed to delete resource: " + resourceId, exception);
-                        listener.onFailure(exception);
-                    }));
-                }
-            }, exception -> {
-                log.error("Failed to verify resource access: " + resourceId, exception);
-                listener.onFailure(exception);
-            })
-        );
+            // Authorization successful, proceed with deletion
+            ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+            try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+                deleteResource(resourceId, ActionListener.wrap(deleteResponse -> {
+                    if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
+                        listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
+                    } else {
+                        listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
+                    }
+                }, exception -> {
+                    log.error("Failed to delete resource: " + resourceId, exception);
+                    listener.onFailure(exception);
+                }));
+            }
+        }, exception -> {
+            log.error("Failed to verify resource access: " + resourceId, exception);
+            listener.onFailure(exception);
+        }));
     }
 
     private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {

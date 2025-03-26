@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceProvider;
+import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -145,7 +146,7 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(SampleResourceScope.PUBLIC.value()).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(ResourceAccessActionGroups.PLACE_HOLDER).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }

@@ -56,8 +56,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
         final RevokeResourceAccessRequest getResourceRequest = new RevokeResourceAccessRequest(
             resourceId,
-            (Map<String, Object>) source.get("entities_to_revoke"),
-            (List<String>) source.get("scopes")
+            (Map<String, Object>) source.get("entities_to_revoke")
         );
         return channel -> client.executeLocally(
             RevokeResourceAccessAction.INSTANCE,

@@ -55,7 +55,6 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
             request.getEntitiesToRevoke(),
-            request.getScopes(),
             ActionListener.wrap(success -> {
 
                 RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());

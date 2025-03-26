@@ -9,7 +9,6 @@
 package org.opensearch.sample.resource.actions.transport;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +23,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
@@ -70,27 +68,16 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         }
         // Check permission to resource
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
-        resourceSharingClient.verifyResourceAccess(
-            request.getResourceId(),
-            RESOURCE_INDEX_NAME,
-            Set.of(
-                SampleResourceScope.SAMPLE_WRITE_ACCESS.value(),
-                SampleResourceScope.SAMPLE_FULL_ACCESS.value(),
-                SampleResourceScope.PUBLIC.value()
-            ),
-            ActionListener.wrap(isAuthorized -> {
-                if (!isAuthorized) {
-                    listener.onFailure(
-                        new UnauthorizedResourceAccessException(
-                            "Current user is not authorized to access resource: " + request.getResourceId()
-                        )
-                    );
-                    return;
-                }
+        resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
+            if (!isAuthorized) {
+                listener.onFailure(
+                    new UnauthorizedResourceAccessException("Current user is not authorized to access resource: " + request.getResourceId())
+                );
+                return;
+            }
 
-                updateResource(request, listener);
-            }, listener::onFailure)
-        );
+            updateResource(request, listener);
+        }, listener::onFailure));
     }
 
     private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {

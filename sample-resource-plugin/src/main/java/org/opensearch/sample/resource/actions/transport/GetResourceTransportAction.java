@@ -31,7 +31,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
@@ -97,27 +96,16 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         }
 
         // Check permission to resource
-        resourceSharingClient.verifyResourceAccess(
-            request.getResourceId(),
-            RESOURCE_INDEX_NAME,
-            Set.of(
-                SampleResourceScope.SAMPLE_READ_ACCESS.value(),
-                SampleResourceScope.SAMPLE_FULL_ACCESS.value(),
-                SampleResourceScope.PUBLIC.value()
-            ),
-            ActionListener.wrap(isAuthorized -> {
-                if (!isAuthorized) {
-                    listener.onFailure(
-                        new UnauthorizedResourceAccessException(
-                            "Current user is not authorized to access resource: " + request.getResourceId()
-                        )
-                    );
-                    return;
-                }
+        resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
+            if (!isAuthorized) {
+                listener.onFailure(
+                    new UnauthorizedResourceAccessException("Current user is not authorized to access resource: " + request.getResourceId())
+                );
+                return;
+            }
 
-                getResourceAction(request, listener);
-            }, listener::onFailure)
-        );
+            getResourceAction(request, listener);
+        }, listener::onFailure));
     }
 
     private void getResourceAction(GetResourceRequest request, ActionListener<GetResourceResponse> listener) {

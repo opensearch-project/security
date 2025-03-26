@@ -8,7 +8,6 @@
 
 package org.opensearch.sample;
 
-import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -59,29 +58,15 @@ public abstract class AbstractSampleResourcePluginTests {
             + RESOURCE_INDEX_NAME
             + "\","
             + "\"share_with\":{"
-            + "\""
-            + SampleResourceScope.PUBLIC.value()
-            + "\":{"
             + "\"users\": [\""
             + user
             + "\"]"
-            + "}"
             + "}"
             + "}";
     }
 
     protected static String shareWithPayload(String user) {
-        return "{"
-            + "\"share_with\":{"
-            + "\""
-            + SampleResourceScope.PUBLIC.value()
-            + "\":{"
-            + "\"users\": [\""
-            + user
-            + "\"]"
-            + "}"
-            + "}"
-            + "}";
+        return "{" + "\"share_with\":{" + "\"users\": [\"" + user + "\"]" + "}" + "}";
     }
 
     protected static String revokeAccessPayloadSecurityApi(String resourceId, String user) {
@@ -96,37 +81,15 @@ public abstract class AbstractSampleResourcePluginTests {
             + "\"users\": [\""
             + user
             + "\"]"
-            + "},"
-            + "\"scopes\": [\""
-            + ResourceAccessScope.PUBLIC
-            + "\"]"
+            + "}"
             + "}";
     }
 
     protected static String revokeAccessPayload(String user) {
-        return "{"
-            + "\"entities_to_revoke\": {"
-            + "\"users\": [\""
-            + user
-            + "\"]"
-            + "},"
-            + "\"scopes\": [\""
-            + ResourceAccessScope.PUBLIC
-            + "\"]"
-            + "}";
+        return "{" + "\"entities_to_revoke\": {" + "\"users\": [\"" + user + "\"]" + "}" + "}";
     }
 
     protected static String verifyAccessPayload(String resourceId) {
-        return "{"
-            + "\"resource_id\":\""
-            + resourceId
-            + "\","
-            + "\"resource_index\":\""
-            + RESOURCE_INDEX_NAME
-            + "\","
-            + "\"scopes\":[\""
-            + ResourceAccessScope.PUBLIC
-            + "\"]"
-            + "}";
+        return "{" + "\"resource_id\":\"" + resourceId + "\"," + "\"resource_index\":\"" + RESOURCE_INDEX_NAME + "\"}";
     }
 }

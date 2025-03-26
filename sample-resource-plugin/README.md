@@ -153,9 +153,7 @@ The plugin exposes the following six API endpoints:
   ```json
   {
     "share_with": {
-       "public": {
-         "users": [ "sample_user" ]
-       }
+      "users": [ "sample_user" ]
     }
   }
   ```
@@ -163,7 +161,7 @@ The plugin exposes the following six API endpoints:
   ```json
     {
       "share_with": {
-        "public": {
+        "default": {
           "users": [ "sample_user" ]
         }
       }
@@ -172,14 +170,13 @@ The plugin exposes the following six API endpoints:
 
 ### 6. Revoke Resource Access
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities for given scopes. At present, only admin and resource owners can share the resource.
+- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
 - **Request Body:**
   ```json
     {
       "entities_to_revoke": {
         "users": [ "sample_user" ]
-      },
-      "scopes": [ "public" ]
+      }
     }
   ```
 - **Response:**
