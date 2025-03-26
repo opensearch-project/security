@@ -35,33 +35,17 @@ import org.opensearch.transport.client.Client;
 public class ResourceIndexListener implements IndexingOperationListener {
 
     private static final Logger log = LogManager.getLogger(ResourceIndexListener.class);
-    private static final ResourceIndexListener INSTANCE = new ResourceIndexListener();
-    private ResourceSharingIndexHandler resourceSharingIndexHandler;
+    private final ResourceSharingIndexHandler resourceSharingIndexHandler;
 
-    private boolean initialized;
-    private ThreadPool threadPool;
+    private final ThreadPool threadPool;
 
-    private ResourceIndexListener() {}
-
-    public static ResourceIndexListener getInstance() {
-        return ResourceIndexListener.INSTANCE;
-    }
-
-    public void initialize(ThreadPool threadPool, Client client) {
-        if (initialized) {
-            return;
-        }
-        initialized = true;
+    public ResourceIndexListener(ThreadPool threadPool, Client client) {
         this.threadPool = threadPool;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
             ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
             client,
             threadPool
         );
-    }
-
-    public boolean isInitialized() {
-        return initialized;
     }
 
     /**

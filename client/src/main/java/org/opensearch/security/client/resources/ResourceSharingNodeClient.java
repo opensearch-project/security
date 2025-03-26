@@ -169,7 +169,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     private <T> boolean handleIfDisabled(String message, ActionListener<T> listener, T defaultResponse) {
         String fullMessage = securityOrFeatureDisabledMessage();
         if (!fullMessage.isEmpty()) {
-            log.warn("{} {}", fullMessage, message);
+            log.debug("{} {}", fullMessage, message);
             listener.onResponse(defaultResponse);
             return true;
         }
@@ -206,7 +206,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      * @param listener The listener to notify with the exception.
      */
     private void handleFeatureDisabled(String message, ActionListener<?> listener) {
-        log.warn("{}", message);
+        log.debug("{}", message);
         listener.onFailure(new ResourceSharingFeatureDisabledException(message));
     }
 

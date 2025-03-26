@@ -24,6 +24,9 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.spi.resources.exceptions.ResourceNonSystemIndexException;
+import org.opensearch.security.spi.resources.exceptions.UnauthenticatedResourceAccessException;
+import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -141,14 +144,11 @@ public class ResourceAccessRestAction extends BaseRestHandler {
     private void handleError(RestChannel channel, Exception e) {
         String message = e.getMessage();
         LOGGER.error(message, e);
-        if (message.contains("not authorized")) {
-            forbidden(channel, message);
-        } else if (message.contains("no authenticated")) {
-            unauthorized(channel);
-        } else if (message.contains("not a system index")) {
-            badRequest(channel, message);
-        } else {
-            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
+        switch (e) {
+            case UnauthorizedResourceAccessException ignored -> forbidden(channel, message);
+            case UnauthenticatedResourceAccessException ignored -> unauthorized(channel);
+            case ResourceNonSystemIndexException ignored -> badRequest(channel, message);
+            default -> channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
         }
     }
 }

@@ -751,8 +751,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             // Listening on POST and DELETE operations in resource indices
-            ResourceIndexListener resourceIndexListener = ResourceIndexListener.getInstance();
-            resourceIndexListener.initialize(threadPool, localClient);
+            ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
 
             if (settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,

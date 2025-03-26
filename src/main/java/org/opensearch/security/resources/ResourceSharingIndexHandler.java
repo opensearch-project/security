@@ -242,7 +242,6 @@ public class ResourceSharingIndexHandler {
      */
     public void fetchAllDocuments(String pluginIndex, ActionListener<Set<String>> listener) {
         LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
-        final Set<String> resourceIds = new HashSet<>();
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
@@ -251,7 +250,7 @@ public class ResourceSharingIndexHandler {
 
             TermQueryBuilder query = QueryBuilders.termQuery("source_idx.keyword", pluginIndex);
 
-            executeSearchRequest(resourceIds, scroll, searchRequest, query, ActionListener.wrap(success -> {
+            executeSearchRequest(scroll, searchRequest, query, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
 
@@ -419,7 +418,6 @@ public class ResourceSharingIndexHandler {
         ActionListener<Set<String>> listener
     ) {
 
-        final Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
@@ -430,7 +428,7 @@ public class ResourceSharingIndexHandler {
 
             boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
 
-            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
+            executeSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
 
@@ -511,7 +509,6 @@ public class ResourceSharingIndexHandler {
 
         LOGGER.debug("Fetching documents from index: {}, where {} = {}", pluginIndex, field, value);
 
-        Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -523,7 +520,7 @@ public class ResourceSharingIndexHandler {
                 .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
                 .must(QueryBuilders.termQuery(field + ".keyword", value));
 
-            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
+            executeSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
                 listener.onResponse(resourceIds);
             }, exception -> {
@@ -1255,20 +1252,18 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to execute a search request and collect resource IDs from the results.
+     * Executes a search request and returns a set of collected resource IDs using scroll.
      *
-     * @param resourceIds   List to collect resource IDs
-     * @param scroll        Search Scroll
-     * @param searchRequest Request to execute
-     * @param query         Query to execute with the request
-     * @param listener      Listener to be notified when the operation completes
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param query         Query builder for the request
+     * @param listener      Listener to receive the collected resource IDs
      */
     private void executeSearchRequest(
-        Set<String> resourceIds,
         Scroll scroll,
         SearchRequest searchRequest,
         AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
-        ActionListener<Void> listener
+        ActionListener<Set<String>> listener
     ) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
             .size(1000)
@@ -1277,67 +1272,67 @@ public class ResourceSharingIndexHandler {
         searchRequest.source(searchSourceBuilder);
 
         StepListener<SearchResponse> searchStep = new StepListener<>();
-
         client.search(searchRequest, searchStep);
 
         searchStep.whenComplete(initialResponse -> {
+            Set<String> collectedResourceIds = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResults(resourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
         }, listener::onFailure);
     }
 
     /**
-     * Helper method to process scroll results recursively.
+     * Recursively processes scroll results and collects resource IDs.
      *
-     * @param resourceIds List to collect resource IDs
-     * @param scroll      Search Scroll
-     * @param scrollId    Scroll ID
-     * @param hits        Search hits
-     * @param listener    Listener to be notified when the operation completes
+     * @param collectedResourceIds Internal accumulator for resource IDs
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource IDs
      */
     private void processScrollResults(
-        Set<String> resourceIds,
+        Set<String> collectedResourceIds,
         Scroll scroll,
         String scrollId,
         SearchHit[] hits,
-        ActionListener<Void> listener
+        ActionListener<Set<String>> listener
     ) {
-        // If no hits, clean up and complete
         if (hits == null || hits.length == 0) {
-            clearScroll(scrollId, listener);
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(collectedResourceIds), listener::onFailure));
             return;
         }
 
-        // Process current batch of hits
         for (SearchHit hit : hits) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                resourceIds.add(sourceAsMap.get("resource_id").toString());
+            Map<String, Object> source = hit.getSourceAsMap();
+            if (source != null && source.containsKey("resource_id")) {
+                collectedResourceIds.add(source.get("resource_id").toString());
             }
         }
 
-        // Prepare next scroll request
-        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-        scrollRequest.scroll(scroll);
-
-        // Execute next scroll
-        client.searchScroll(scrollRequest, ActionListener.wrap(scrollResponse -> {
-            // Process next batch recursively
-            processScrollResults(resourceIds, scroll, scrollResponse.getScrollId(), scrollResponse.getHits().getHits(), listener);
-        }, e -> {
-            // Clean up scroll context on failure
-            clearScroll(scrollId, ActionListener.wrap(r -> listener.onFailure(e), ex -> {
-                e.addSuppressed(ex);
-                listener.onFailure(e);
-            }));
-        }));
+        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollRequest,
+            ActionListener.wrap(
+                scrollResponse -> processScrollResults(
+                    collectedResourceIds,
+                    scroll,
+                    scrollResponse.getScrollId(),
+                    scrollResponse.getHits().getHits(),
+                    listener
+                ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
     }
 
     /**
-     * Helper method to clear scroll context.
+     * Clears scroll context after scrolling is complete or on error.
      *
-     * @param scrollId Scroll ID
-     * @param listener Listener to be notified when the operation completes
+     * @param scrollId Scroll ID to clear
+     * @param listener Listener to notify when clearing is done
      */
     private void clearScroll(String scrollId, ActionListener<Void> listener) {
         if (scrollId == null) {
@@ -1347,7 +1342,6 @@ public class ResourceSharingIndexHandler {
 
         ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
         clearScrollRequest.addScrollId(scrollId);
-
         client.clearScroll(clearScrollRequest, ActionListener.wrap(r -> listener.onResponse(null), e -> {
             LOGGER.warn("Failed to clear scroll context", e);
             listener.onResponse(null);
