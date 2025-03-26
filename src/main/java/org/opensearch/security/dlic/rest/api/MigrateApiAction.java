@@ -74,19 +74,6 @@ public class MigrateApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(new Route(Method.POST, "/migrate")));
 
-    private static final List<CType<?>> C_TYPES = List.of(
-        CType.ACTIONGROUPS,
-        CType.AUDIT,
-        CType.ALLOWLIST,
-        CType.CONFIG,
-        CType.INTERNALUSERS,
-        CType.NODESDN,
-        CType.ROLES,
-        CType.ROLESMAPPING,
-        CType.TENANTS,
-        CType.WHITELIST
-    );
-
     @Inject
     public MigrateApiAction(
         final ClusterService clusterService,
@@ -180,7 +167,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
         if (loadedConfig.getVersion() != 1) {
             final ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder = ImmutableList.builder();
-            for (CType<?> ctype : C_TYPES) {
+            for (CType<?> ctype : CType.values()) {
                 final SecurityDynamicConfiguration<?> c7 = (SecurityDynamicConfiguration<?>) load(ctype, true);
                 if (c7.get_meta() == null) {
                     c7.set_meta(new Meta());
