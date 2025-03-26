@@ -283,7 +283,7 @@ public class ComplianceConfig {
     /**
      * Create compliance configuration from Settings defined in opensearch.yml
      * @param settings settings
-     * @param dateProvider how the current date/time is evalated for audit logs that rollover
+     * @param dateProvider how the current date/time is evaluated for audit logs that rollover
      * @return compliance configuration
      */
     public static ComplianceConfig from(Settings settings, Supplier<DateTime> dateProvider) {

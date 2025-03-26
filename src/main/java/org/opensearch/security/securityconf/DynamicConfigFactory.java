@@ -312,7 +312,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     @Override
-    public final boolean isInitialized() {
+    public boolean isInitialized() {
         return initialized.get();
     }
 
