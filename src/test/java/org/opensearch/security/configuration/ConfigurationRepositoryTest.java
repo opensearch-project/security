@@ -225,48 +225,59 @@ public class ConfigurationRepositoryTest {
 
     @Test
     public void initOnNodeStart_installDefaultConfigSuccess() throws InterruptedException, TimeoutException {
-        // Required for ComplianceConfig in audit.yml to work
-        setupObjectMapperInjectables();
+        // Backup original system property if exists
+        String originalProperty = System.getProperty("security.default_init.dir");
+        try {
+            // Required for ComplianceConfig in audit.yml to work
+            setupObjectMapperInjectables();
 
-        Settings settings = Settings.builder()
-            .put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-            .put("path.home", TEST_CONFIG_DIR)
-            .put(ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS, 1)
-            .build();
-        System.setProperty("security.default_init.dir", TEST_CONFIG_DIR);
-        ConfigurationRepository configRepository = createConfigurationRepository(settings);
-        configRepository.setDynamicConfigFactory(dynamicConfigFactory);
+            Settings settings = Settings.builder()
+                .put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put("path.home", TEST_CONFIG_DIR)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS, 1)
+                .build();
+            System.setProperty("security.default_init.dir", TEST_CONFIG_DIR);
+            ConfigurationRepository configRepository = createConfigurationRepository(settings);
+            configRepository.setDynamicConfigFactory(dynamicConfigFactory);
 
-        setupConfigurationLoaderMock(configurationLoaderSecurity7, CType.values());
+            setupConfigurationLoaderMock(configurationLoaderSecurity7, CType.values());
 
-        // Cluster Status mocks
-        when(clusterBlocks.hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)).thenReturn(false);
+            // Cluster Status mocks
+            when(clusterBlocks.hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)).thenReturn(false);
 
-        // Node mocks
-        when(discoveryNode.getName()).thenReturn("node1");
+            // Node mocks
+            when(discoveryNode.getName()).thenReturn("node1");
 
-        CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, ".opendistro_security");
+            CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, ".opendistro_security");
 
-        ClusterHealthResponse clusterHealthResponse = mock(ClusterHealthResponse.class);
+            ClusterHealthResponse clusterHealthResponse = mock(ClusterHealthResponse.class);
 
-        IndexResponse indexResponse = mock(IndexResponse.class);
+            IndexResponse indexResponse = mock(IndexResponse.class);
 
-        when(indicesAdminClient.create(any(CreateIndexRequest.class))).thenReturn(
-            getCreateIndexResponsePlainActionFuture(createIndexResponse)
-        );
-        when(clusterAdminClient.health(any(ClusterHealthRequest.class))).thenReturn(
-            getClusterHealthResponsePlainActionFuture(clusterHealthResponse)
-        );
-        when(localClient.index(any(IndexRequest.class))).thenReturn(getIndexResponsePlainActionFuture(indexResponse));
+            when(indicesAdminClient.create(any(CreateIndexRequest.class))).thenReturn(
+                getCreateIndexResponsePlainActionFuture(createIndexResponse)
+            );
+            when(clusterAdminClient.health(any(ClusterHealthRequest.class))).thenReturn(
+                getClusterHealthResponsePlainActionFuture(clusterHealthResponse)
+            );
+            when(localClient.index(any(IndexRequest.class))).thenReturn(getIndexResponsePlainActionFuture(indexResponse));
 
-        setupIndexResponseForDefaultConfig(indexResponse);
+            setupIndexResponseForDefaultConfig(indexResponse);
 
-        when(dynamicConfigFactory.isInitialized()).thenReturn(false, true);
+            when(dynamicConfigFactory.isInitialized()).thenReturn(false, true);
 
-        configRepository.initOnNodeStart().join();
+            configRepository.initOnNodeStart().join();
 
-        verify(clusterBlocks, times(1)).hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE);
-        verify(indexResponse, times(CType.values().size())).getId();
+            verify(clusterBlocks, times(1)).hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE);
+            verify(indexResponse, times(CType.values().size())).getId();
+        } finally {
+            // Cleanup: Reset system property to original state
+            if (originalProperty != null) {
+                System.setProperty("security.default_init.dir", originalProperty);
+            } else {
+                System.clearProperty("security.default_init.dir");
+            }
+        }
     }
 
     @Test
