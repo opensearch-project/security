@@ -147,54 +147,80 @@ void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareReso
 
 ---
 
-## **5. What are Scopes?**
+Here's a **cleaned-up and clarified version** of your README section, with redundancy removed, grammar improved, and examples aligned for consistency and clarity:
 
-This feature introduces a new **sharing mechanism** called **scopes**. Scopes define **the level of access** granted to users for a resource. They are **defined and maintained by plugins**, and the security plugin does **not** interpret or enforce their specific meanings. This approach gives plugins the **flexibility** to define scope names and behaviors based on their use case.
+---
 
-Each plugin must **document its scope definitions** so that users understand the **sharing semantics** and how different scopes affect access control.
+## **5. What are ActionGroups?**
 
-Scopes enable **granular access control**, allowing shareableResources to be shared with **customized permission levels**, making the system more flexible and adaptable to different use cases.
+This feature uses a **sharing mechanism** called **ActionGroups** to define the **level of access** granted to users for a resource. Currently, only one action group is available: `default`.
 
-### **Common Scopes for Plugins to declare**
-| Scope        | Description                                         |
-|-------------|-----------------------------------------------------|
-| `PUBLIC`    | The resource is accessible to all users.            |
-| `READ_ONLY` | Users can view but not modify the resource.         |
-| `READ_WRITE` | Users can view and modify the resource.             |
+When sharing a resource, users must understand that access is tied to **API permissions**. For example, if a user has delete permissions, they can delete any resource shared with them.
 
-By default, all shareableResources are private and only visible to the owner and super-admins. Resources become accessible to others only when explicitly shared.
+By default, all `shareableResources` are private — visible only to their **owner** and **super-admins**. A resource becomes accessible to others only when explicitly shared.
 
-SPI provides you an interface, with two default scopes `PUBLIC` and `READ_ONLY`, which can be extended to introduce more plugin-specific values.
+> This mechanism will be more actively used once the Resource Authorization framework is implemented as a standalone feature.
 
-Here’s a cleaned-up version of your last section for better clarity and structure:
+### **Example: Publicly Shared Resource**
 
-#### **Example: PUBLIC Scoped Document**
-If a resource is intended to be publicly accessible, it must be shared using the following structure:
+To make a resource accessible to everyone, share it with all entities using the wildcard `*`:
 
 ```json
 {
-    "share_with": {
-        "public": {
-            "backend_roles": ["*"],
-            "roles": ["*"],
-            "users": ["*"]
-        }
+  "share_with": {
+    "default": {
+      "backend_roles": ["*"],
+      "roles": ["*"],
+      "users": ["*"]
     }
+  }
 }
 ```
 
-In this structure:
-- `"backend_roles": ["*"]` → Grants access to all backend roles.
-- `"roles": ["*"]` → Grants access to all roles.
-- `"users": ["*"]` → Grants access to all users.
+This grants access to:
+- **All backend roles** via `"backend_roles": ["*"]`
+- **All roles** via `"roles": ["*"]`
+- **All users** via `"users": ["*"]`
 
-**This ensures that the resource is accessible to everyone.**
+**The resource becomes publicly accessible to all entities.**
+
+### **Example: Restricted/Exclusively Shared Resource**
+
+To restrict access to specific users, roles, or backend roles:
+
+```json
+{
+  "share_with": {
+    "default": {
+      "backend_roles": ["backend_role1"],
+      "roles": ["role1"],
+      "users": ["user1"]
+    }
+  }
+}
+```
+
+This grants access only to:
+- Backend role: `backend_role1`
+- Role: `role1`
+- User: `user1`
+
+**The resource is accessible only to the specified entities.**
 
 
-### **Using Scopes in API Design**
-- APIs should be logically paired with correct scopes.
-  - Example, **GET APIs** should be logically paired with **`READ_ONLY`** and **`PUBLIC`** scopes. When verifying access, these scopes must be **passed to the security plugin** via the `ResourceSharingNodeClient` to determine whether a user has the required permissions.
+### **Example: Private Resource**
 
+To keep a resource fully private:
+
+```json
+{
+  "share_with": {}
+}
+```
+
+Since no entities are listed, the resource is accessible **only by its creator and super-admins**.
+
+**This is the default state for all new resources.**
 
 ---
 
@@ -266,14 +292,13 @@ In addition to client methods, the **Security Plugin** introduces new **REST API
   POST /_plugins/_security/resources/verify_access
   ```
 - **Description:**
-  Verifies whether the current user has access to a specified resource within the given index and scopes.
+  Verifies whether the current user has access to a specified resource.
 
 #### **Request Body:**
 ```json
 {
   "resource_id": "my-resource",
-  "resource_index": "resource-index",
-  "scopes": ["READ_ONLY"]
+  "resource_index": "resource-index"
 }
 ```
 
@@ -282,7 +307,6 @@ In addition to client methods, the **Security Plugin** introduces new **REST API
 |-----------------|----------|-------------|
 | `resource_id`   | String   | Unique identifier of the resource being accessed. |
 | `resource_index`| String   | The OpenSearch index where the resource is stored. |
-| `scopes`        | Array    | The list of scopes to check access against (e.g., `"READ_ONLY"`, `"READ_WRITE"`). |
 
 #### **Response:**
 Returns whether the user has permission to access the resource.
@@ -305,7 +329,7 @@ Returns whether the user has permission to access the resource.
   POST /_plugins/_security/resources/share
   ```
 - **Description:**
-  Grants access to a resource for specified **users, roles, and backend roles** under defined **scopes**.
+  Grants access to a resource for specified **users, roles, and backend roles**.
 
 #### **Request Body:**
 ```json
@@ -313,13 +337,9 @@ Returns whether the user has permission to access the resource.
   "resource_id": "my-resource",
   "resource_index": "resource-index",
   "share_with": {
-      "your-scope-name": {
-          "users": ["shared-user-name"],
-          "backend_roles": ["shared-backend-roles"]
-      },
-      "your-scope-name-2": {
-          "roles": ["shared-roles"]
-      }
+      "users": ["shared-user-name"],
+      "roles": ["shared-roles"],
+      "backend_roles": ["shared-backend-roles"]
   }
 }
 ```
@@ -330,7 +350,6 @@ Returns whether the user has permission to access the resource.
 | `resource_id`   | String  | The unique identifier of the resource to be shared. |
 | `resource_index`| String  | The OpenSearch index where the resource is stored. |
 | `share_with`    | Object  | Defines which **users, roles, or backend roles** will gain access. |
-| `your-scope-name` | Object | The scope under which the resource is shared (e.g., `"READ_ONLY"`, `"PUBLIC"`). |
 | `users`        | Array   | List of usernames allowed to access the resource. |
 | `roles`        | Array   | List of role names granted access. |
 | `backend_roles`| Array   | List of backend roles assigned to the resource. |
@@ -346,13 +365,9 @@ Returns the updated **resource sharing state**.
       "user": "you"
     },
     "share_with": {
-      "your-scope-name": {
-          "users": ["shared-user-name"],
-          "backend_roles": ["shared-backend-roles"]
-      },
-      "your-scope-name-2": {
-          "roles": ["shared-roles"]
-      }
+      "users": ["shared-user-name"],
+      "roles": ["shared-roles"],
+      "backend_roles": ["shared-backend-roles"]
     }
   }
 }
@@ -375,7 +390,7 @@ Returns the updated **resource sharing state**.
   POST /_plugins/_security/resources/revoke
   ```
 - **Description:**
-  Revokes access to a resource for specific users, roles, or backend roles under certain scopes.
+  Revokes access to a resource for specific users, roles, or backend roles.
 
 #### **Request Body:**
 ```json
@@ -384,8 +399,7 @@ Returns the updated **resource sharing state**.
   "resource_index": "resource-index",
   "entities_to_revoke": {
     "roles": ["shared-roles"]
-  },
-  "scopes": ["your-scope-name-2"]
+  }
 }
 ```
 
@@ -396,7 +410,6 @@ Returns the updated **resource sharing state**.
 | `resource_index`| String  | The OpenSearch index where the resource is stored. |
 | `entities_to_revoke` | Object | Specifies which **users, roles, or backend roles** should have their access removed. |
 | `roles`        | Array   | List of roles to revoke access from. |
-| `scopes`       | Array   | List of scopes from which access should be revoked. |
 
 #### **Response:**
 Returns the updated **resource sharing state** after revocation.
@@ -409,10 +422,8 @@ Returns the updated **resource sharing state** after revocation.
       "user": "admin"
     },
     "share_with": {
-      "your-scope-name": {
-          "users": ["shared-user-name"],
-          "backend_roles": ["shared-backend-roles"]
-      }
+      "users": ["shared-user-name"],
+      "backend_roles": ["shared-backend-roles"]
     }
   }
 }
@@ -459,7 +470,6 @@ Returns an array of accessible resources.
 ## **Additional Notes**
 - **Feature Flag:** These APIs are available only when `plugins.security.resource_sharing.enabled` is set to `true` in the configuration.
 - **Index Restrictions:** Resources must be stored in **system indices**, and **system index protection** must be enabled to prevent unauthorized access.
-- **Scopes Flexibility:** The `share_with` field allows defining **custom access scopes** as per plugin requirements.
 
 ---
 

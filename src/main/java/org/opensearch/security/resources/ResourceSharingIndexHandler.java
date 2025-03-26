@@ -120,7 +120,7 @@ public class ResourceSharingIndexHandler {
      * - created_by (object): Information about the user who created the sharing
      * - user (keyword): Username of the creator
      * - share_with (object): Access control configuration for shared resources
-     * - [scope] (object): Name of the scope
+     * - [action-group] (object): Name of the action-group
      * - users (array): List of users with access
      * - roles (array): List of roles with access
      * - backend_roles (array): List of backend roles with access
@@ -165,7 +165,7 @@ public class ResourceSharingIndexHandler {
      * @param shareWith     Object containing the sharing permissions' configuration. Can be null for initial creation.
      *                      When provided, it should contain the access control settings for different groups:
      *                      {
-     *                      "scope": {
+     *                      "action-group": {
      *                      "users": ["user1", "user2"],
      *                      "roles": ["role1", "role2"],
      *                      "backend_roles": ["backend_role1"]
@@ -266,17 +266,7 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Fetches documents that match the specified system index and have specific access type values.
-     * This method uses scroll API to handle large result sets efficiently.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Validates the RecipientType parameter</li>
-     *   <li>Creates a scrolling search request with a compound query</li>
-     *   <li>Processes results in batches using scroll API</li>
-     *   <li>Collects all matching resource IDs</li>
-     *   <li>Cleans up scroll context</li>
-     * </ol>
+     * Fetches documents withing specified resource index available to given entities.
      *
      * <p>Example query structure:
      * <pre>
@@ -319,39 +309,32 @@ public class ResourceSharingIndexHandler {
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
-     * @apiNote This method:
-     * <ul>
-     *   <li>Uses scroll API with 1-minute timeout</li>
-     *   <li>Processes results in batches of 1000 documents</li>
-     *   <li>Performs source filtering for optimization</li>
-     *   <li>Uses nested queries for accessing array elements</li>
-     *   <li>Properly cleans up scroll context after use</li>
-     * </ul>
      */
-
-    public void fetchDocumentsForAllScopes(
+    public void fetchDocumentsForAllActionGroups(
         String pluginIndex,
         Set<String> entities,
         String recipientType,
         ActionListener<Set<String>> listener
     ) {
-        // "*" must match all scopes
-        fetchDocumentsForAGivenScope(pluginIndex, entities, recipientType, "*", listener);
+        LOGGER.debug(
+            "Fetching all documents asynchronously from index: {} accessible by entities {} of type {}",
+            pluginIndex,
+            entities,
+            recipientType
+        );
+        BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
+        for (String entity : entities) {
+            shouldQuery.should(
+                QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipientType + ".keyword")
+                    .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
+            );
+        }
+        shouldQuery.minimumShouldMatch(1);
+        fetchSharedDocuments(pluginIndex, entities, recipientType, shouldQuery, listener);
     }
 
     /**
-     * Fetches documents that match the specified system index and have specific access type values for a given scope.
-     * This method uses scroll API to handle large result sets efficiently.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Validates the RecipientType parameter</li>
-     *   <li>Creates a scrolling search request with a compound query</li>
-     *   <li>Processes results in batches using scroll API</li>
-     *   <li>Collects all matching resource IDs</li>
-     *   <li>Cleans up scroll context</li>
-     * </ol>
-     *
+     * Fetches documents that match the specified system index and have specific access type values.
      * <p>Example query structure:
      * <pre>
      * {
@@ -364,9 +347,9 @@ public class ResourceSharingIndexHandler {
      *             "should": [
      *               {
      *                 "nested": {
-     *                   "path": "share_with.scope.RecipientType",
+     *                   "path": "share_with.action-group.RecipientType",
      *                   "query": {
-     *                     "term": { "share_with.scope.RecipientType": "entity_value" }
+     *                     "term": { "share_with.action-group.RecipientType": "entity_value" }
      *                   }
      *                 }
      *               }
@@ -384,6 +367,46 @@ public class ResourceSharingIndexHandler {
      *
      * @param pluginIndex   The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified RecipientType field
+     * @param recipientType The type of association with the resource. Must be one of:
+     *                      <ul>
+     *                        <li>"users" - for user-based access</li>
+     *                        <li>"roles" - for role-based access</li>
+     *                        <li>"backend_roles" - for backend role-based access</li>
+     *                      </ul>
+     * @param actionGroup   The action group to match against the action-group field
+     * @param listener      The listener to be notified when the operation completes.
+     *                      The listener receives a set of resource IDs as a result.
+     */
+    public void fetchDocumentsForAGivenActionGroup(
+        String pluginIndex,
+        Set<String> entities,
+        String recipientType,
+        String actionGroup,
+        ActionListener<Set<String>> listener
+    ) {
+        LOGGER.debug(
+            "Fetching documents asynchronously from index: {} by action-group {} accessible by entities {} of type {}",
+            pluginIndex,
+            actionGroup,
+            entities,
+            recipientType
+        );
+        BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
+        for (String entity : entities) {
+            shouldQuery.should(QueryBuilders.termQuery("share_with." + actionGroup + "." + recipientType + ".keyword", entity));
+        }
+        shouldQuery.minimumShouldMatch(1);
+
+        fetchSharedDocuments(pluginIndex, entities, recipientType, shouldQuery, listener);
+    }
+
+    /**
+     * Helper method to fetch shared documents based on action-group match.
+     * This method uses scroll API to handle large result sets efficiently.
+     *
+     *
+     * @param pluginIndex   The source index to match against the source_idx field
+     * @param entities      Set of values to match in the specified RecipientType field
      * @param recipientType The type of association with the resource. It can be one of:
      *                      <ul>
      *                        <li>"users" - for user-based access</li>
@@ -391,7 +414,7 @@ public class ResourceSharingIndexHandler {
      *                        <li>"backend_roles" - for backend role-based access</li>
      *                      </ul>
      *                      or a custom string representing a type that was registered using {@link org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry}
-     * @param scope         The scope of the access. Should be implementation of {@link org.opensearch.security.spi.resources.ResourceAccessScope}
+     * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
@@ -404,20 +427,13 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public void fetchDocumentsForAGivenScope(
+    public void fetchSharedDocuments(
         String pluginIndex,
         Set<String> entities,
         String recipientType,
-        String scope,
+        BoolQueryBuilder actionGroupQuery,
         ActionListener<Set<String>> listener
     ) {
-        LOGGER.debug(
-            "Fetching documents asynchronously from index: {}, where share_with.{}.{} contains any of {}",
-            pluginIndex,
-            scope,
-            recipientType,
-            entities
-        );
 
         final Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -428,22 +444,7 @@ public class ResourceSharingIndexHandler {
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
 
-            BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
-            if ("*".equals(scope)) {
-                for (String entity : entities) {
-                    shouldQuery.should(
-                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipientType + ".keyword")
-                            .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
-                    );
-                }
-            } else {
-                for (String entity : entities) {
-                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + recipientType + ".keyword", entity));
-                }
-            }
-            shouldQuery.minimumShouldMatch(1);
-
-            boolQuery.must(QueryBuilders.existsQuery("share_with")).must(shouldQuery);
+            boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
 
             executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery, ActionListener.wrap(success -> {
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
@@ -451,9 +452,8 @@ public class ResourceSharingIndexHandler {
 
             }, exception -> {
                 LOGGER.error(
-                    "Search failed for pluginIndex={}, scope={}, recipientType={}, entities={}",
+                    "Search failed for pluginIndex={}, recipientType={}, entities={}",
                     pluginIndex,
-                    scope,
                     recipientType,
                     entities,
                     exception
@@ -463,10 +463,9 @@ public class ResourceSharingIndexHandler {
             }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, scope: {}, RecipientType: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, RecipientType: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
-                scope,
                 recipientType,
                 entities,
                 e
@@ -695,7 +694,7 @@ public class ResourceSharingIndexHandler {
      * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
-     *                        "scope": {
+     *                        "action-group": {
      *                        "users": ["user1", "user2"],
      *                        "roles": ["role1", "role2"],
      *                        "backend_roles": ["backend_role1"]
@@ -753,32 +752,32 @@ public class ResourceSharingIndexHandler {
                 }
 
                 for (def entry : params.shareWith.entrySet()) {
-                    def scopeName = entry.getKey();
-                    def newScope = entry.getValue();
+                    def actionGroupName = entry.getKey();
+                    def newActionGroup = entry.getValue();
 
-                    if (!ctx._source.share_with.containsKey(scopeName)) {
-                        def newScopeEntry = [:];
-                        for (def field : newScope.entrySet()) {
+                    if (!ctx._source.share_with.containsKey(actionGroupName)) {
+                        def newActionGroupEntry = [:];
+                        for (def field : newActionGroup.entrySet()) {
                             if (field.getValue() != null && !field.getValue().isEmpty()) {
-                                newScopeEntry[field.getKey()] = new HashSet(field.getValue());
+                                newActionGroupEntry[field.getKey()] = new HashSet(field.getValue());
                             }
                         }
-                        ctx._source.share_with[scopeName] = newScopeEntry;
+                        ctx._source.share_with[actionGroupName] = newActionGroupEntry;
                     } else {
-                        def existingScope = ctx._source.share_with[scopeName];
+                        def existingActionGroup = ctx._source.share_with[actionGroupName];
 
-                        for (def field : newScope.entrySet()) {
+                        for (def field : newActionGroup.entrySet()) {
                             def fieldName = field.getKey();
                             def newValues = field.getValue();
 
                             if (newValues != null && !newValues.isEmpty()) {
-                                if (!existingScope.containsKey(fieldName)) {
-                                    existingScope[fieldName] = new HashSet();
+                                if (!existingActionGroup.containsKey(fieldName)) {
+                                    existingActionGroup[fieldName] = new HashSet();
                                 }
 
                                 for (def value : newValues) {
-                                    if (!existingScope[fieldName].contains(value)) {
-                                        existingScope[fieldName].add(value);
+                                    if (!existingActionGroup[fieldName].contains(value)) {
+                                        existingActionGroup[fieldName].add(value);
                                     }
                                 }
                             }
@@ -825,7 +824,7 @@ public class ResourceSharingIndexHandler {
      *   "source_idx": "resource_index_name",
      *   "resource_id": "resource_id",
      *   "share_with": {
-     *     "scope": {
+     *     "action-group": {
      *       "users": ["user1", "user2"],
      *       "roles": ["role1", "role2"],
      *       "backend_roles": ["backend_role1"]
@@ -838,7 +837,7 @@ public class ResourceSharingIndexHandler {
      * @param sourceIdx       The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param scopes          A get of scopes to revoke access from. If null or empty, access is revoked from all scopes
+     * @param actionGroups     A set of action-groups to revoke access from. If null or empty, access is revoked from all action-groups
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
@@ -860,7 +859,7 @@ public class ResourceSharingIndexHandler {
         String resourceId,
         String sourceIdx,
         Map<RecipientType, Set<String>> revokeAccess,
-        Set<String> scopes,
+        Set<String> actionGroups,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
@@ -873,11 +872,11 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             LOGGER.debug(
-                "Revoking access for resource {} in {} for entities: {} and scopes: {}",
+                "Revoking access for resource {} in {} for entities: {} and actionGroups: {}",
                 resourceId,
                 sourceIdx,
                 revokeAccess,
-                scopes
+                actionGroups
             );
 
             StepListener<ResourceSharing> currentSharingListener = new StepListener<>();
@@ -902,40 +901,45 @@ public class ResourceSharingIndexHandler {
                 for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
                     revoke.put(entry.getKey().type().toLowerCase(), new ArrayList<>(entry.getValue()));
                 }
-                List<String> scopesToUse = (scopes != null) ? new ArrayList<>(scopes) : new ArrayList<>();
+                List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();
 
-                Script revokeScript = new Script(ScriptType.INLINE, "painless", """
-                    if (ctx._source.share_with != null) {
-                        Set scopesToProcess = new HashSet(params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
+                Script revokeScript = new Script(
+                    ScriptType.INLINE,
+                    "painless",
+                    """
+                        if (ctx._source.share_with != null) {
+                            Set actionGroupsToProcess = new HashSet(params.actionGroups.isEmpty() ? ctx._source.share_with.keySet() : params.actionGroups);
 
-                        for (def scopeName : scopesToProcess) {
-                            if (ctx._source.share_with.containsKey(scopeName)) {
-                                def existingScope = ctx._source.share_with.get(scopeName);
+                            for (def actionGroupName : actionGroupsToProcess) {
+                                if (ctx._source.share_with.containsKey(actionGroupName)) {
+                                    def existingActionGroup = ctx._source.share_with.get(actionGroupName);
 
-                                for (def entry : params.revokeAccess.entrySet()) {
-                                    def RecipientType = entry.getKey();
-                                    def entitiesToRemove = entry.getValue();
+                                    for (def entry : params.revokeAccess.entrySet()) {
+                                        def RecipientType = entry.getKey();
+                                        def entitiesToRemove = entry.getValue();
 
-                                    if (existingScope.containsKey(RecipientType) && existingScope[RecipientType] != null) {
-                                        if (!(existingScope[RecipientType] instanceof HashSet)) {
-                                            existingScope[RecipientType] = new HashSet(existingScope[RecipientType]);
-                                        }
+                                        if (existingActionGroup.containsKey(RecipientType) && existingActionGroup[RecipientType] != null) {
+                                            if (!(existingActionGroup[RecipientType] instanceof HashSet)) {
+                                                existingActionGroup[RecipientType] = new HashSet(existingActionGroup[RecipientType]);
+                                            }
 
-                                        existingScope[RecipientType].removeAll(entitiesToRemove);
+                                            existingActionGroup[RecipientType].removeAll(entitiesToRemove);
 
-                                        if (existingScope[RecipientType].isEmpty()) {
-                                            existingScope.remove(RecipientType);
+                                            if (existingActionGroup[RecipientType].isEmpty()) {
+                                                existingActionGroup.remove(RecipientType);
+                                            }
                                         }
                                     }
-                                }
 
-                                if (existingScope.isEmpty()) {
-                                    ctx._source.share_with.remove(scopeName);
+                                    if (existingActionGroup.isEmpty()) {
+                                        ctx._source.share_with.remove(actionGroupName);
+                                    }
                                 }
                             }
                         }
-                    }
-                    """, Map.of("revokeAccess", revoke, "scopes", scopesToUse));
+                        """,
+                    Map.of("revokeAccess", revoke, "actionGroups", actionGroupsToUse)
+                );
                 updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript, revokeUpdateListener);
 
             }, listener::onFailure);

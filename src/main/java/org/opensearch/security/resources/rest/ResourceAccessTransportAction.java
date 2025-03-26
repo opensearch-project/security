@@ -95,7 +95,7 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
             request.getResourceId(),
             request.getResourceIndex(),
             parseRevokedEntities(request.getRevokedEntities()),
-            request.getScopes(),
+            request.getActionGroups(),
             ActionListener.wrap(success -> listener.onResponse(new ResourceAccessResponse(success)), listener::onFailure)
         );
     }
@@ -104,7 +104,7 @@ public class ResourceAccessTransportAction extends HandledTransportAction<Resour
         resourceAccessHandler.hasPermission(
             request.getResourceId(),
             request.getResourceIndex(),
-            request.getScopes(),
+            request.getActionGroups(),
             ActionListener.wrap(hasPermission -> listener.onResponse(new ResourceAccessResponse(hasPermission)), listener::onFailure)
         );
     }

@@ -35,7 +35,7 @@ import org.opensearch.security.spi.resources.sharing.RecipientType;
 import org.opensearch.security.spi.resources.sharing.RecipientTypeRegistry;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
-import org.opensearch.security.spi.resources.sharing.SharedWithScope;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -212,15 +212,15 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Checks whether current user has given permission (scope) to access given resource.
+     * Checks whether current user has permission to access given resource.
      *
      * @param resourceId    The resource ID to check access for.
      * @param resourceIndex The resource index containing the resource.
-     * @param scopes         The permission scope(s) to check.
+     * @param actionGroups  The set of action groups to check permission for.
      * @param listener      The listener to be notified with the permission check result.
      */
-    public void hasPermission(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener) {
-        validateArguments(resourceId, resourceIndex, scopes);
+    public void hasPermission(String resourceId, String resourceIndex, Set<String> actionGroups, ActionListener<Boolean> listener) {
+        validateArguments(resourceId, resourceIndex, actionGroups);
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
@@ -233,15 +233,10 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.info("Checking if user '{}' has '{}' permission to resource '{}'", user.getName(), scopes.toString(), resourceId);
+        LOGGER.info("Checking if user '{}' has permission to resource '{}'", user.getName(), resourceId);
 
         if (adminDNs.isAdmin(user)) {
-            LOGGER.debug(
-                "User '{}' is admin, automatically granted '{}' permission on '{}'",
-                user.getName(),
-                scopes.toString(),
-                resourceId
-            );
+            LOGGER.debug("User '{}' is admin, automatically granted permission on '{}'", user.getName(), resourceId);
             listener.onResponse(true);
             return;
         }
@@ -263,14 +258,14 @@ public class ResourceAccessHandler {
             userBackendRoles.add("*");
             if (isOwnerOfResource(document, user.getName())
                 || isSharedWithEveryone(document)
-                || isSharedWithEntity(document, Recipient.USERS, Set.of(user.getName(), "*"), scopes)
-                || isSharedWithEntity(document, Recipient.ROLES, userRoles, scopes)
-                || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, scopes)) {
+                || isSharedWithEntity(document, Recipient.USERS, Set.of(user.getName(), "*"), actionGroups)
+                || isSharedWithEntity(document, Recipient.ROLES, userRoles, actionGroups)
+                || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, actionGroups)) {
 
-                LOGGER.debug("User '{}' has '{}' permission to resource '{}'", user.getName(), scopes.toString(), resourceId);
+                LOGGER.debug("User '{}' has permission to resource '{}'", user.getName(), resourceId);
                 listener.onResponse(true);
             } else {
-                LOGGER.debug("User '{}' does not have '{}' permission to resource '{}'", user.getName(), scopes.toString(), resourceId);
+                LOGGER.debug("User '{}' does not have permission to resource '{}'", user.getName(), resourceId);
                 listener.onResponse(false);
             }
         }, exception -> {
@@ -289,7 +284,7 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to share.
      * @param resourceIndex The index where resource is store
-     * @param shareWith     The users, roles, and backend roles as well as scope to share the resource with.
+     * @param shareWith     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void shareWith(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
@@ -334,17 +329,17 @@ public class ResourceAccessHandler {
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
      * @param revokeAccess  The users, roles, and backend roles to revoke access for.
-     * @param scopes        The permission scopes to revoke access for.
+     * @param actionGroups  The action groups to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void revokeAccess(
         String resourceId,
         String resourceIndex,
         Map<RecipientType, Set<String>> revokeAccess,
-        Set<String> scopes,
+        Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {
-        validateArguments(resourceId, resourceIndex, revokeAccess, scopes);
+        validateArguments(resourceId, resourceIndex, revokeAccess, actionGroups);
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
@@ -359,7 +354,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("User {} revoking access to resource {} for {} for scopes {}.", user.getName(), resourceId, revokeAccess, scopes);
+        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, revokeAccess);
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
@@ -367,7 +362,7 @@ public class ResourceAccessHandler {
             resourceId,
             resourceIndex,
             revokeAccess,
-            scopes,
+            actionGroups,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {
@@ -467,7 +462,7 @@ public class ResourceAccessHandler {
         Set<String> entitiesCopy = new HashSet<>(entities);
         // To allow "public" resources to be matched for any user, role, backend_role
         entitiesCopy.add("*");
-        this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entitiesCopy, recipientType, listener);
+        this.resourceSharingIndexHandler.fetchDocumentsForAllActionGroups(resourceIndex, entitiesCopy, recipientType, listener);
     }
 
     /**
@@ -482,17 +477,18 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Checks if the given resource is shared with the specified entities and scope.
+     * Checks if the given resource is shared with the specified entities.
      *
      * @param document  The ResourceSharing document to check.
      * @param recipient The recipient entity
      * @param entities  The set of entities to check for sharing.
-     * @param scopes    The permission scope(s) to check.
-     * @return True if the resource is shared with the entities and scope, false otherwise.
+     * @param actionGroups The set of action groups to check for sharing.
+     *
+     * @return True if the resource is shared with the entities, false otherwise.
      */
-    private boolean isSharedWithEntity(ResourceSharing document, Recipient recipient, Set<String> entities, Set<String> scopes) {
+    private boolean isSharedWithEntity(ResourceSharing document, Recipient recipient, Set<String> entities, Set<String> actionGroups) {
         for (String entity : entities) {
-            if (checkSharing(document, recipient, entity, scopes)) {
+            if (checkSharing(document, recipient, entity, actionGroups)) {
                 return true;
             }
         }
@@ -500,38 +496,41 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Checks if the given resource is shared with everyone, i.e. the scope is named "*"
+     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
      *
      * @param document The ResourceSharing document to check.
      * @return True if the resource is shared with everyone, false otherwise.
      */
     private boolean isSharedWithEveryone(ResourceSharing document) {
         return document.getShareWith() != null
-            && document.getShareWith().getSharedWithScopes().stream().anyMatch(sharedWithScope -> sharedWithScope.getScope().equals("*"));
+            && document.getShareWith()
+                .getSharedWithActionGroups()
+                .stream()
+                .anyMatch(sharedWithActionGroup -> sharedWithActionGroup.getActionGroup().equals("*"));
     }
 
     /**
-     * Checks if the given resource is shared with the specified entity and scope.
+     * Checks if the given resource is shared with the specified entity.
      *
      * @param document   The ResourceSharing document to check.
      * @param recipient  The recipient entity
      * @param entity     The entity to check for sharing.
-     * @param scopes     The permission scope(s) to check.
-     * @return True if the resource is shared with the entity and scope, false otherwise.
+     * @return True if the resource is shared with the entity, false otherwise.
      */
-    private boolean checkSharing(ResourceSharing document, Recipient recipient, String entity, Set<String> scopes) {
+    private boolean checkSharing(ResourceSharing document, Recipient recipient, String entity, Set<String> actionGroups) {
+        // Check if document is private (only visible to owner and super-admins)
         if (document.getShareWith() == null) {
             return false;
         }
 
         return document.getShareWith()
-            .getSharedWithScopes()
+            .getSharedWithActionGroups()
             .stream()
-            .filter(sharedWithScope -> scopes.contains(sharedWithScope.getScope()))
+            .filter(sharedWithActionGroup -> actionGroups.contains(sharedWithActionGroup.getActionGroup()))
             .findFirst()
-            .map(sharedWithScope -> {
-                SharedWithScope.ScopeRecipients scopePermissions = sharedWithScope.getSharedWithPerScope();
-                Map<RecipientType, Set<String>> recipients = scopePermissions.getRecipients();
+            .map(sharedWithActionGroup -> {
+                SharedWithActionGroup.ActionGroupRecipients aGs = sharedWithActionGroup.getSharedWithPerActionGroup();
+                Map<RecipientType, Set<String>> recipients = aGs.getRecipients();
 
                 return switch (recipient) {
                     case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.get(
@@ -539,7 +538,7 @@ public class ResourceAccessHandler {
                     ).contains(entity);
                 };
             })
-            .orElse(false); // Return false if no matching scope is found
+            .orElse(false); // Return false if no matching action-group is found
     }
 
     private void validateArguments(Object... args) {

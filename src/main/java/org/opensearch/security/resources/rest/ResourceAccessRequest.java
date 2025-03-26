@@ -10,6 +10,7 @@ package org.opensearch.security.resources.rest;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,11 +27,12 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 /**
  * This class represents a request to access a resource.
- * It encapsulates the operation, resource ID, resource index, scope, share with information, revoked entities, and scopes.
+ * It encapsulates the operation, resource ID, resource index, share with information, revoked entities, and actionGroups.
  *
  * @opensearch.experimental
  */
@@ -48,7 +50,7 @@ public class ResourceAccessRequest extends ActionRequest {
     private final String resourceIndex;
     private final ShareWith shareWith;
     private final Map<String, Set<String>> revokedEntities;
-    private final Set<String> scopes;
+    private final Set<String> actionGroups;
 
     /**
      * Private constructor to enforce usage of Builder
@@ -59,7 +61,7 @@ public class ResourceAccessRequest extends ActionRequest {
         this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
         this.revokedEntities = builder.revokedEntities;
-        this.scopes = builder.scopes;
+        this.actionGroups = builder.actionGroups;
     }
 
     /**
@@ -90,8 +92,8 @@ public class ResourceAccessRequest extends ActionRequest {
             builder.revokedEntities((Map<String, Object>) source.get("entities_to_revoke"));
         }
 
-        if (source.containsKey("scopes")) {
-            builder.scopes(Set.copyOf((List<String>) source.get("scopes"))); // Ensuring Set<String> type
+        if (source.containsKey("action_groups")) {
+            builder.actionGroups(Set.copyOf((List<String>) source.get("action_groups")));
         }
 
         return builder.build();
@@ -104,7 +106,7 @@ public class ResourceAccessRequest extends ActionRequest {
         this.resourceIndex = in.readOptionalString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.revokedEntities = in.readMap(StreamInput::readString, valIn -> valIn.readSet(StreamInput::readString));
-        this.scopes = in.readSet(StreamInput::readString);
+        this.actionGroups = in.readSet(StreamInput::readString);
     }
 
     @Override
@@ -114,7 +116,7 @@ public class ResourceAccessRequest extends ActionRequest {
         out.writeOptionalString(resourceIndex);
         out.writeOptionalWriteable(shareWith);
         out.writeMap(revokedEntities, StreamOutput::writeString, StreamOutput::writeStringCollection);
-        out.writeStringCollection(scopes);
+        out.writeStringCollection(actionGroups);
     }
 
     @Override
@@ -142,8 +144,8 @@ public class ResourceAccessRequest extends ActionRequest {
         return revokedEntities;
     }
 
-    public Set<String> getScopes() {
-        return scopes;
+    public Set<String> getActionGroups() {
+        return actionGroups;
     }
 
     /**
@@ -155,7 +157,7 @@ public class ResourceAccessRequest extends ActionRequest {
         private String resourceIndex;
         private ShareWith shareWith;
         private Map<String, Set<String>> revokedEntities;
-        private Set<String> scopes;
+        private Set<String> actionGroups;
 
         public Builder operation(Operation operation) {
             this.operation = operation;
@@ -190,12 +192,15 @@ public class ResourceAccessRequest extends ActionRequest {
             return this;
         }
 
-        public Builder scopes(Set<String> scopes) {
-            this.scopes = scopes;
+        public Builder actionGroups(Set<String> actionGroups) {
+            this.actionGroups = actionGroups;
             return this;
         }
 
         public ResourceAccessRequest build() {
+            // TODO Remove following line once ResourceAuthz framework is implemented as a standalone framework
+            this.actionGroups = Set.of(ResourceAccessActionGroups.PLACE_HOLDER);
+
             return new ResourceAccessRequest(this);
         }
 
@@ -204,7 +209,17 @@ public class ResourceAccessRequest extends ActionRequest {
                 throw new IllegalArgumentException("share_with is required and cannot be empty");
             }
 
-            String jsonString = XContentFactory.jsonBuilder().map(source).toString();
+            // TODO Remove lines 212-219 once ResourceAuthz framework is implemented as a standalone framework
+            // Input Structure for share_with:
+            // { users: [...], roles: [...], backend_roles: [...] }
+            // Final Structure:
+            // { "<ResourceAccessActionGroups.PLACE_HOLDER>" : { users: [...], roles: [...], backend_roles: [...] } }
+            // We add ResourceAccessActionGroups.PLACE_HOLDER as an action-group to allow share_with to be future expandable to allow
+            // sharing with different action groups
+            Map<String, Object> shareWithMap = new HashMap<>();
+            shareWithMap.put(ResourceAccessActionGroups.PLACE_HOLDER, source);
+
+            String jsonString = XContentFactory.jsonBuilder().map(shareWithMap).toString();
 
             try (
                 XContentParser parser = XContentType.JSON.xContent()

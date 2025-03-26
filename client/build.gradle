@@ -10,9 +10,9 @@ plugins {
 }
 
 ext {
-    opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "beta1")
 
     // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
     version_tokens = opensearch_version.tokenize('-')
@@ -34,7 +34,7 @@ repositories {
 
 dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
+    compileOnly project(path: ":opensearch-resource-sharing-spi", configuration: "shadow")
     compileOnly project(":")
 }
 

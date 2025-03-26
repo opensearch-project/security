@@ -26,7 +26,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
 
 /**
- * Client for resource sharing operations.
+ * Node client responsible for handling resource sharing operations such as verifying,
+ * sharing, revoking, and listing access to shareable resources.
  *
  * @opensearch.experimental
  */
@@ -35,50 +36,45 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     private static final Logger log = LogManager.getLogger(ResourceSharingNodeClient.class);
 
     private final Client client;
-    private final boolean resourceSharingEnabled;
-    private final boolean isSecurityDisabled;
+    private final Settings settings;
 
+    /**
+     * Constructs a new ResourceSharingNodeClient.
+     *
+     * @param client   The transport client to send requests.
+     * @param settings The OpenSearch cluster settings.
+     */
     public ResourceSharingNodeClient(Client client, Settings settings) {
         this.client = client;
-        this.resourceSharingEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        Settings securitySettings = settings.getAsSettings(ConfigConstants.SECURITY_SETTINGS_PREFIX);
-        this.isSecurityDisabled = securitySettings.isEmpty()
-            || settings.getAsBoolean(ConfigConstants.OPENSEARCH_SECURITY_DISABLED, ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT);
+        this.settings = settings;
     }
 
     /**
-     * Verifies if the current user has access to the specified resource.
-     * @param resourceId     The ID of the resource to verify access for.
-     * @param resourceIndex  The index containing the resource.
-     * @param scopes         The scopes to be checked against.
-     * @param listener       The listener to be notified with the access verification result.
+     * Verifies whether the current user has access to the specified resource.
+     *
+     * @param resourceId    The ID of the resource to verify.
+     * @param resourceIndex The index in which the resource resides.
+     * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
     @Override
-    public void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener) {
-        if (isSecurityDisabled || !resourceSharingEnabled) {
-            String message = isSecurityDisabled ? "Security Plugin is disabled." : "ShareableResource Access Control feature is disabled.";
+    public void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
+        if (handleIfDisabled("Access to resource is automatically granted.", listener, true)) return;
 
-            log.warn("{} {}", message, "Access to resource is automatically granted");
-            listener.onResponse(true);
-            return;
-        }
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.VERIFY)
             .resourceId(resourceId)
             .resourceIndex(resourceIndex)
-            .scopes(scopes)
             .build();
-        client.execute(ResourceAccessAction.INSTANCE, request, verifyAccessResponseListener(listener));
+
+        client.execute(ResourceAccessAction.INSTANCE, request, accessResponseListener(listener));
     }
 
     /**
-     * Shares the specified resource with the given users, roles, and backend roles.
-     * @param resourceId     The ID of the resource to share.
-     * @param resourceIndex  The index containing the resource.
-     * @param shareWith      The users, roles, and backend roles to share the resource with.
-     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     * Shares a resource with specified users, roles, or backend roles.
+     *
+     * @param resourceId    The ID of the resource to share.
+     * @param resourceIndex The index containing the resource.
+     * @param shareWith     A map of entities (users/roles/backend roles) to share with.
+     * @param listener      Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
     public void shareResource(
@@ -87,98 +83,150 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
         Map<String, Object> shareWith,
         ActionListener<ResourceSharing> listener
     ) {
-        if (isResourceAccessControlOrSecurityPluginDisabled("Resource is not shareable.", listener)) {
-            return;
-        }
+        if (handleIfDisabled("Resource is not shareable.", listener)) return;
+
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.SHARE)
             .resourceId(resourceId)
             .resourceIndex(resourceIndex)
             .shareWith(shareWith)
             .build();
-        client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
+
+        client.execute(ResourceAccessAction.INSTANCE, request, sharingResponseListener(listener));
     }
 
     /**
-     * Revokes access to the specified resource for the given entities and scopes.
-     * @param resourceId     The ID of the resource to revoke access for.
-     * @param resourceIndex  The index containing the resource.
-     * @param entitiesToRevoke The entities to revoke access for.
-     * @param scopes         The scopes to revoke access for.
-     * @param listener       The listener to be notified with the updated ResourceSharing document.
+     * Revokes previously granted access to a resource for specific users or roles.
+     *
+     * @param resourceId        The ID of the resource.
+     * @param resourceIndex     The index containing the resource.
+     * @param entitiesToRevoke  A map of entities whose access is to be revoked.
+     * @param listener          Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
     public void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
         Map<String, Object> entitiesToRevoke,
-        Set<String> scopes,
         ActionListener<ResourceSharing> listener
     ) {
-        if (isResourceAccessControlOrSecurityPluginDisabled("Resource access is not revoked.", listener)) {
-            return;
-        }
+        if (handleIfDisabled("Resource access is not revoked.", listener)) return;
+
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.REVOKE)
             .resourceId(resourceId)
             .resourceIndex(resourceIndex)
             .revokedEntities(entitiesToRevoke)
-            .scopes(scopes)
             .build();
-        client.execute(ResourceAccessAction.INSTANCE, request, sharingInfoResponseListener(listener));
+
+        client.execute(ResourceAccessAction.INSTANCE, request, sharingResponseListener(listener));
     }
 
     /**
-     * Lists all resources accessible by the current user.
+     * Lists all resources the current user has access to within the given index.
      *
-     * @param listener The listener to be notified with the set of accessible resources.
+     * @param resourceIndex The index to search for accessible resources.
+     * @param listener      Callback receiving a set of {@link ShareableResource} instances.
      */
     @Override
     public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener) {
-        if (isResourceAccessControlOrSecurityPluginDisabled("Unable to list all accessible resources.", listener)) {
-            return;
-        }
+        if (handleIfDisabled("Unable to list all accessible resources.", listener)) return;
+
         ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.LIST)
             .resourceIndex(resourceIndex)
             .build();
+
         client.execute(
             ResourceAccessAction.INSTANCE,
             request,
-            ActionListener.wrap(response -> { listener.onResponse(response.getResources()); }, listener::onFailure)
+            ActionListener.wrap(response -> listener.onResponse(response.getResources()), listener::onFailure)
         );
     }
 
     /**
-     * Checks if resource sharing or the security plugin is disabled and handles the error accordingly.
+     * Checks whether security or resource sharing is disabled and invokes failure on the listener if so.
      *
-     * @param disabledMessage The message to be logged if the feature is disabled.
-     * @param listener        The listener to be notified with the error.
-     * @return {@code true} if either resource sharing or the security plugin is disabled, otherwise {@code false}.
+     * @param contextMessage  The context-specific message to log.
+     * @param listener The listener to notify with the exception.
+     * @return {@code true} if the feature is disabled, otherwise {@code false}.
      */
-    private boolean isResourceAccessControlOrSecurityPluginDisabled(String disabledMessage, ActionListener<?> listener) {
-        if (isSecurityDisabled || !resourceSharingEnabled) {
-            String message = (isSecurityDisabled ? "Security Plugin" : "Resource Access Control feature") + " is disabled.";
-
-            log.warn("{} {}", message, disabledMessage);
-            listener.onFailure(new ResourceSharingFeatureDisabledException(message + " " + disabledMessage));
+    private boolean handleIfDisabled(String contextMessage, ActionListener<?> listener) {
+        String featureDisabledMessage = securityOrFeatureDisabledMessage();
+        if (!featureDisabledMessage.isEmpty()) {
+            handleFeatureDisabled(featureDisabledMessage + " " + contextMessage, listener);
             return true;
         }
         return false;
     }
 
     /**
-     * Notifies the listener with the access request result.
-     * @param listener The listener to be notified with the access request result.
-     * @return An ActionListener that handles the ResourceAccessResponse and notifies the listener.
+     * Checks whether security or resource sharing is disabled and responds with a default value if so.
+     *
+     * @param message        The context-specific message to log.
+     * @param listener       The listener to notify.
+     * @param defaultResponse The default response value to send.
+     * @param <T>            The type of the default response.
+     * @return {@code true} if the feature is disabled, otherwise {@code false}.
      */
-    private ActionListener<ResourceAccessResponse> verifyAccessResponseListener(ActionListener<Boolean> listener) {
+    private <T> boolean handleIfDisabled(String message, ActionListener<T> listener, T defaultResponse) {
+        String fullMessage = securityOrFeatureDisabledMessage();
+        if (!fullMessage.isEmpty()) {
+            log.warn("{} {}", fullMessage, message);
+            listener.onResponse(defaultResponse);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Determines whether the security plugin or resource sharing feature is disabled.
+     *
+     * @return A non-empty message if disabled, otherwise an empty string.
+     */
+    private String securityOrFeatureDisabledMessage() {
+        boolean sharingEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+
+        Settings securitySettings = settings.getByPrefix(ConfigConstants.SECURITY_SETTINGS_PREFIX);
+        boolean securityDisabled = securitySettings.isEmpty()
+            || this.settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_SECURITY_DISABLED,
+                ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT
+            );
+
+        if (securityDisabled) return "Security Plugin is disabled.";
+        if (!sharingEnabled) return "ShareableResource Access Control feature is disabled.";
+        return "";
+    }
+
+    /**
+     * Notifies the listener that the feature is disabled.
+     *
+     * @param message  The error message to log and send.
+     * @param listener The listener to notify with the exception.
+     */
+    private void handleFeatureDisabled(String message, ActionListener<?> listener) {
+        log.warn("{}", message);
+        listener.onFailure(new ResourceSharingFeatureDisabledException(message));
+    }
+
+    /**
+     * Wraps a listener to extract permission result from a {@link ResourceAccessResponse}.
+     *
+     * @param listener The listener to notify with a Boolean.
+     * @return An action listener for the access response.
+     */
+    private ActionListener<ResourceAccessResponse> accessResponseListener(ActionListener<Boolean> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getHasPermission()), listener::onFailure);
     }
 
     /**
-     * Notifies the listener with the updated ResourceSharing document.
-     * @param listener The listener to be notified with the updated ResourceSharing document.
-     * @return An ActionListener that handles the ResourceAccessResponse and notifies the listener.
+     * Wraps a listener to extract sharing info from a {@link ResourceAccessResponse}.
+     *
+     * @param listener The listener to notify with a {@link ResourceSharing} document.
+     * @return An action listener for the sharing response.
      */
-    private ActionListener<ResourceAccessResponse> sharingInfoResponseListener(ActionListener<ResourceSharing> listener) {
+    private ActionListener<ResourceAccessResponse> sharingResponseListener(ActionListener<ResourceSharing> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
     }
 }

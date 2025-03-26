@@ -26,10 +26,9 @@ public interface ResourceSharingClient {
      * Verifies if the current user has access to the specified resource.
      * @param resourceId     The ID of the resource to verify access for.
      * @param resourceIndex  The index containing the resource.
-     * @param scopes         The scopes to be checked against.
      * @param listener       The listener to be notified with the access verification result.
      */
-    void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener);
+    void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
 
     /**
      * Shares a resource with the specified users, roles, and backend roles.
@@ -41,18 +40,16 @@ public interface ResourceSharingClient {
     void shareResource(String resourceId, String resourceIndex, Map<String, Object> shareWith, ActionListener<ResourceSharing> listener);
 
     /**
-     * Revokes access to a resource for the specified entities and scopes.
+     * Revokes access to a resource for the specified entities.
      * @param resourceId     The ID of the resource to revoke access for.
      * @param resourceIndex  The index containing the resource.
      * @param entitiesToRevoke The entities to revoke access for.
-     * @param scopes         The scopes to revoke access for.
      * @param listener       The listener to be notified with the updated ResourceSharing document.
      */
     void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
         Map<String, Object> entitiesToRevoke,
-        Set<String> scopes,
         ActionListener<ResourceSharing> listener
     );
 

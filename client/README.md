@@ -92,20 +92,18 @@ Below are examples demonstrating how to use each API effectively.
 ---
 
 ### **1. `verifyResourceAccess`**
-**Checks if the current user has access to a resource** based on predefined **scopes**.
+**Checks if the current user has access to a resource**.
 
 #### **Method Signature:**
 ```java
-void verifyResourceAccess(String resourceId, String resourceIndex, Set<String> scopes, ActionListener<Boolean> listener);
+void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
 ```
 
 #### **Example Usage:**
 ```java
-Set<String> scopes = Set.of("READ_ONLY");
 resourceSharingClient.verifyResourceAccess(
     "resource-123",
     "resource_index",
-    scopes,
     ActionListener.wrap(isAuthorized -> {
         if (isAuthorized) {
             System.out.println("User has access to the resource.");
@@ -157,7 +155,7 @@ resourceSharingClient.shareResource(
 
 #### **Method Signature:**
 ```java
-void revokeResourceAccess(String resourceId, String resourceIndex, Map<String, Object> entitiesToRevoke, Set<String> scopes, ActionListener<ResourceSharing> listener);
+void revokeResourceAccess(String resourceId, String resourceIndex, Map<String, Object> entitiesToRevoke, ActionListener<ResourceSharing> listener);
 ```
 
 #### **Example Usage:**
@@ -166,13 +164,11 @@ Map<String, Object> entitiesToRevoke = Map.of(
     "users", List.of("user_2"),
     "roles", List.of("viewer_role")
 );
-Set<String> scopesToRevoke = Set.of("READ_ONLY");
 
 resourceSharingClient.revokeResourceAccess(
     "resource-123",
     "resource_index",
     entitiesToRevoke,
-    scopesToRevoke,
     ActionListener.wrap(response -> {
         System.out.println("Resource access successfully revoked for: " + entitiesToRevoke);
     }, e -> {
