@@ -10,7 +10,7 @@ plugins {
 }
 
 ext {
-    opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
 }
 
 repositories {
@@ -26,6 +26,10 @@ dependencies {
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+shadowJar {
+    archiveClassifier.set(null)
 }
 
 task sourcesJar(type: Jar) {

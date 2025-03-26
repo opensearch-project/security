@@ -20,55 +20,56 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 /**
- * This class contains information about whom a resource is shared with and at what scope.
- * Example:
+ * This class contains information about whom a resource is shared with and what is the action-group associated with it.
+ *
+ * <p>Example usage:
+ * <pre>
  * "share_with": {
- * "read_only": {
- * "users": [],
- * "roles": [],
- * "backend_roles": []
- * },
- * "read_write": {
- * "users": [],
- * "roles": [],
- * "backend_roles": []
+ *   "default": {
+ *     "users": [],
+ *     "roles": [],
+ *     "backend_roles": []
+ *   }
  * }
- * }
+ * </pre>
+ *
+ * "default" is a place-holder {@link org.opensearch.security.spi.resources.ResourceAccessActionGroups#PLACE_HOLDER } that must be replaced with action-group names once Resource Authorization framework is implemented.
  *
  * @opensearch.experimental
  */
+
 public class ShareWith implements ToXContentFragment, NamedWriteable {
 
     /**
-     * A set of objects representing the scopes and their associated users, roles, and backend roles.
+     * A set of objects representing the action-groups and their associated users, roles, and backend roles.
      */
-    private final Set<SharedWithScope> sharedWithScopes;
+    private final Set<SharedWithActionGroup> sharedWithActionGroups;
 
-    public ShareWith(Set<SharedWithScope> sharedWithScopes) {
-        this.sharedWithScopes = sharedWithScopes;
+    public ShareWith(Set<SharedWithActionGroup> sharedWithActionGroups) {
+        this.sharedWithActionGroups = sharedWithActionGroups;
     }
 
     public ShareWith(StreamInput in) throws IOException {
-        this.sharedWithScopes = in.readSet(SharedWithScope::new);
+        this.sharedWithActionGroups = in.readSet(SharedWithActionGroup::new);
     }
 
-    public Set<SharedWithScope> getSharedWithScopes() {
-        return sharedWithScopes;
+    public Set<SharedWithActionGroup> getSharedWithActionGroups() {
+        return sharedWithActionGroups;
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
 
-        for (SharedWithScope scope : sharedWithScopes) {
-            scope.toXContent(builder, params);
+        for (SharedWithActionGroup actionGroup : sharedWithActionGroups) {
+            actionGroup.toXContent(builder, params);
         }
 
         return builder.endObject();
     }
 
     public static ShareWith fromXContent(XContentParser parser) throws IOException {
-        Set<SharedWithScope> sharedWithScopes = new HashSet<>();
+        Set<SharedWithActionGroup> sharedWithActionGroups = new HashSet<>();
 
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
             parser.nextToken();
@@ -76,14 +77,14 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
 
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            // Each field in the object represents a SharedWithScope
+            // Each field in the object represents a SharedWithActionGroup
             if (token == XContentParser.Token.FIELD_NAME) {
-                SharedWithScope scope = SharedWithScope.fromXContent(parser);
-                sharedWithScopes.add(scope);
+                SharedWithActionGroup actionGroup = SharedWithActionGroup.fromXContent(parser);
+                sharedWithActionGroups.add(actionGroup);
             }
         }
 
-        return new ShareWith(sharedWithScopes);
+        return new ShareWith(sharedWithActionGroups);
     }
 
     @Override
@@ -93,11 +94,11 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeCollection(sharedWithScopes);
+        out.writeCollection(sharedWithActionGroups);
     }
 
     @Override
     public String toString() {
-        return "ShareWith " + sharedWithScopes;
+        return "ShareWith " + sharedWithActionGroups;
     }
 }

@@ -137,12 +137,10 @@ Use the **client API methods** to manage resource sharing.
 
 #### **Example: Verifying Resource Access**
 ```java
-Set<String> scopes = Set.of("read_only");
 ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
 resourceSharingClient.verifyResourceAccess(
     "resource-123",
     "resource_index",
-    scopes,
     ActionListener.wrap(isAuthorized -> {
         if (isAuthorized) {
             System.out.println("User has access to the resource.");

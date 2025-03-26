@@ -22,94 +22,94 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 /**
- * This class represents the scope at which a resource is shared with for a particular scope.
+ * This class represents the entities with which a resource is shared for a particular action-group.
  * Example:
- * "read_only": {
+ * "default": {
  * "users": [],
  * "roles": [],
  * "backend_roles": []
  * }
- * where "users", "roles" and "backend_roles" are the recipient entities
+ * where "users", "roles" and "backend_roles" are the recipient entities, and "default" is the action-group
  *
  * @opensearch.experimental
  */
-public class SharedWithScope implements ToXContentFragment, NamedWriteable {
+public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable {
 
-    private final String scope;
+    private final String actionGroup;
 
-    private final ScopeRecipients scopeRecipients;
+    private final ActionGroupRecipients actionGroupRecipients;
 
-    public SharedWithScope(String scope, ScopeRecipients scopeRecipients) {
-        this.scope = scope;
-        this.scopeRecipients = scopeRecipients;
+    public SharedWithActionGroup(String actionGroup, ActionGroupRecipients actionGroupRecipients) {
+        this.actionGroup = actionGroup;
+        this.actionGroupRecipients = actionGroupRecipients;
     }
 
-    public SharedWithScope(StreamInput in) throws IOException {
-        this.scope = in.readString();
-        this.scopeRecipients = new ScopeRecipients(in);
+    public SharedWithActionGroup(StreamInput in) throws IOException {
+        this.actionGroup = in.readString();
+        this.actionGroupRecipients = new ActionGroupRecipients(in);
     }
 
-    public String getScope() {
-        return scope;
+    public String getActionGroup() {
+        return actionGroup;
     }
 
-    public ScopeRecipients getSharedWithPerScope() {
-        return scopeRecipients;
+    public ActionGroupRecipients getSharedWithPerActionGroup() {
+        return actionGroupRecipients;
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(scope);
+        builder.field(actionGroup);
         builder.startObject();
 
-        scopeRecipients.toXContent(builder, params);
+        actionGroupRecipients.toXContent(builder, params);
 
         return builder.endObject();
     }
 
-    public static SharedWithScope fromXContent(XContentParser parser) throws IOException {
-        String scope = parser.currentName();
+    public static SharedWithActionGroup fromXContent(XContentParser parser) throws IOException {
+        String actionGroup = parser.currentName();
 
         parser.nextToken();
 
-        ScopeRecipients scopeRecipients = ScopeRecipients.fromXContent(parser);
+        ActionGroupRecipients actionGroupRecipients = ActionGroupRecipients.fromXContent(parser);
 
-        return new SharedWithScope(scope, scopeRecipients);
+        return new SharedWithActionGroup(actionGroup, actionGroupRecipients);
     }
 
     @Override
     public String toString() {
-        return "{" + scope + ": " + scopeRecipients + '}';
+        return "{" + actionGroup + ": " + actionGroupRecipients + '}';
     }
 
     @Override
     public String getWriteableName() {
-        return "shared_with_scope";
+        return "shared_with_action_group";
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(scope);
-        out.writeNamedWriteable(scopeRecipients);
+        out.writeString(actionGroup);
+        out.writeNamedWriteable(actionGroupRecipients);
     }
 
     /**
-     * This class represents the entities with whom a resource is shared with for a given scope.
+     * This class represents the entities with whom a resource is shared with for a given action-group.
      *
      * @opensearch.experimental
      */
-    public static class ScopeRecipients implements ToXContentFragment, NamedWriteable {
+    public static class ActionGroupRecipients implements ToXContentFragment, NamedWriteable {
 
         private final Map<RecipientType, Set<String>> recipients;
 
-        public ScopeRecipients(Map<RecipientType, Set<String>> recipients) {
+        public ActionGroupRecipients(Map<RecipientType, Set<String>> recipients) {
             if (recipients == null) {
                 throw new IllegalArgumentException("Recipients map cannot be null");
             }
             this.recipients = recipients;
         }
 
-        public ScopeRecipients(StreamInput in) throws IOException {
+        public ActionGroupRecipients(StreamInput in) throws IOException {
             this.recipients = in.readMap(
                 key -> RecipientTypeRegistry.fromValue(key.readString()),
                 input -> input.readSet(StreamInput::readString)
@@ -122,10 +122,10 @@ public class SharedWithScope implements ToXContentFragment, NamedWriteable {
 
         @Override
         public String getWriteableName() {
-            return "scope_recipients";
+            return "action_group_recipients";
         }
 
-        public static ScopeRecipients fromXContent(XContentParser parser) throws IOException {
+        public static ActionGroupRecipients fromXContent(XContentParser parser) throws IOException {
             Map<RecipientType, Set<String>> recipients = new HashMap<>();
 
             XContentParser.Token token;
@@ -143,7 +143,7 @@ public class SharedWithScope implements ToXContentFragment, NamedWriteable {
                 }
             }
 
-            return new ScopeRecipients(recipients);
+            return new ActionGroupRecipients(recipients);
         }
 
         @Override
