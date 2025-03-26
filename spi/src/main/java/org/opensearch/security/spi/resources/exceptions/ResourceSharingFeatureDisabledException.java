@@ -42,19 +42,6 @@ public final class ResourceSharingFeatureDisabledException extends OpenSearchExc
 
     @Override
     public RestStatus status() {
-        String message = getMessage();
-        if (message.contains("not authorized")) {
-            return RestStatus.FORBIDDEN;
-        } else if (message.startsWith("No authenticated")) {
-            return RestStatus.UNAUTHORIZED;
-        } else if (message.contains("not found")) {
-            return RestStatus.NOT_FOUND;
-        } else if (message.contains("not a system index")) {
-            return RestStatus.BAD_REQUEST;
-        } else if (message.contains("is disabled")) {
-            return RestStatus.NOT_IMPLEMENTED;
-        }
-
-        return RestStatus.INTERNAL_SERVER_ERROR;
+        return RestStatus.NOT_IMPLEMENTED;
     }
 }
