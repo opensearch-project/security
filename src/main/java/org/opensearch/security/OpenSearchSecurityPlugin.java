@@ -201,6 +201,7 @@ import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -1177,6 +1178,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr.setDynamicConfigFactory(dcf);
 
+        UserFactory userFactory = new UserFactory.Caching();
+
         si = new SecurityInterceptor(
             settings,
             threadPool,
@@ -1188,7 +1191,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(sslExceptionHandler),
             Objects.requireNonNull(cih),
             SSLConfig,
-            OpenSearchSecurityPlugin::isActionTraceEnabled
+            OpenSearchSecurityPlugin::isActionTraceEnabled,
+            userFactory
         );
         components.add(principalExtractor);
 

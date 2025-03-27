@@ -86,7 +86,7 @@ public class InternalAuthBackendTests {
         internalAuthenticationBackend.authenticate(validUsernameAuth);
 
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
-        verify(internalUsersModel, times(1)).getBackenRoles(validUsernameAuth.getUsername());
+        verify(internalUsersModel, times(1)).getBackendRoles(validUsernameAuth.getUsername());
     }
 
     @Test
