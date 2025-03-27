@@ -92,8 +92,6 @@ import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import io.netty.handler.ssl.OpenSsl;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -123,8 +121,6 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                 + " "
                 + System.getProperty("java.vm.name")
         );
-        log.info("Open SSL available: " + OpenSsl.isAvailable());
-        log.info("Open SSL version: " + OpenSsl.versionString());
         withRemoteCluster = Boolean.parseBoolean(System.getenv("TESTARG_unittests_with_remote_cluster"));
         log.info("With remote cluster: " + withRemoteCluster);
         // System.setProperty("security.display_lic_none","true");
@@ -134,7 +130,6 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name", "mock").build());
 
     // TODO Test Matrix
-    protected boolean allowOpenSSL = false; // disabled, we test this already in SSL Plugin
     // enable//disable enterprise modules
     // 1node and 3 node
 
@@ -296,9 +291,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
         final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
-        Settings.Builder builder = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
+        Settings.Builder builder = Settings.builder();
 
         // If custom transport settings are not defined use defaults
         if (!hasCustomTransportSettings(other)) {
