@@ -25,10 +25,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 
 import io.netty.handler.ssl.OpenSsl;
+import org.opensearch.security.ssl.config.CertType;
 
 public final class SSLConfigConstants {
     /**
-     * Global configurations
+     * Global configurations.
      */
     public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
     public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
@@ -37,7 +38,7 @@ public final class SSLConfigConstants {
     public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
     /**
-     * Shared settings prefixes/postfixes
+     * Shared settings prefixes/postfixes.
      */
     public static final String ENABLED = "enabled";
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
@@ -67,7 +68,7 @@ public final class SSLConfigConstants {
     public static final String PEM_KEY_PASSWORD = "pemkey_password";
 
     /**
-     * HTTP transport security settings
+     * HTTP transport security settings.
      */
     public static final String HTTP_SETTINGS = "http";
     public static final String SSL_HTTP_PREFIX = SSL_PREFIX + HTTP_SETTINGS + ".";
@@ -108,6 +109,48 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_CRL_DISABLE_OCSP = SSL_HTTP_CRL_PREFIX + "disable_ocsp";
     public static final String SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP = SSL_HTTP_CRL_PREFIX + "disable_crldp";
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
+
+    /**
+     * Auxiliary transport security settings.
+     */
+    public static final String AUX_SETTINGS = "aux";
+    public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
+    public static final String SSL_AUX_CRL_PREFIX = SSL_AUX_PREFIX + "crl.";
+
+    // aux enable settings
+    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
+    public static final String SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE = SSL_AUX_PREFIX + ENABLE_OPENSSL_IF_AVAILABLE;
+    public static final String SECURITY_SSL_AUX_ENABLED = SSL_AUX_PREFIX + ENABLED;
+    public static final String SECURITY_SSL_AUX_ENABLED_CIPHERS = SSL_AUX_PREFIX + ENABLED_CIPHERS;
+    public static final String SECURITY_SSL_AUX_ENABLED_PROTOCOLS = SSL_AUX_PREFIX + ENABLED_PROTOCOLS;
+
+    // aux allowed settings
+    public static final String[] ALLOWED_OPENSSL_AUX_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
+    public static final String[] ALLOWED_OPENSSL_AUX_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1", "TLSv1" };
+
+    // aux keystore settings
+    public static final String SECURITY_SSL_AUX_KEYSTORE_TYPE = SSL_AUX_PREFIX + KEYSTORE_TYPE;
+    public static final String SECURITY_SSL_AUX_KEYSTORE_ALIAS = SSL_AUX_PREFIX + KEYSTORE_ALIAS;
+    public static final String SECURITY_SSL_AUX_KEYSTORE_FILEPATH = SSL_AUX_PREFIX + KEYSTORE_FILEPATH;
+    public static final String SECURITY_SSL_AUX_PEMKEY_FILEPATH = SSL_AUX_PREFIX + PEM_KEY_FILEPATH;
+    public static final String SECURITY_SSL_AUX_PEMCERT_FILEPATH = SSL_AUX_PREFIX + PEM_CERT_FILEPATH;
+
+    // aux truststore settings
+    public static final String SECURITY_SSL_AUX_CLIENTAUTH_MODE = SSL_AUX_PREFIX + CLIENT_AUTH_MODE;
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_TYPE = SSL_AUX_PREFIX + TRUSTSTORE_TYPE;
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = SSL_AUX_PREFIX + TRUSTSTORE_ALIAS;
+    public static final String SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = SSL_AUX_PREFIX + TRUSTSTORE_FILEPATH;
+    public static final String SECURITY_SSL_AUX_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_AUX_PREFIX + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+    public static final String SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = SSL_AUX_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
+
+    // aux cert revocation list settings
+    public static final String SECURITY_SSL_AUX_CRL_FILE = SSL_AUX_CRL_PREFIX + "file_path";
+    public static final String SECURITY_SSL_AUX_CRL_VALIDATE = SSL_AUX_CRL_PREFIX + "validate";
+    public static final String SECURITY_SSL_AUX_CRL_PREFER_CRLFILE_OVER_OCSP = SSL_AUX_CRL_PREFIX + "prefer_crlfile_over_ocsp";
+    public static final String SECURITY_SSL_AUX_CRL_CHECK_ONLY_END_ENTITIES = SSL_AUX_CRL_PREFIX + "check_only_end_entities";
+    public static final String SECURITY_SSL_AUX_CRL_DISABLE_OCSP = SSL_AUX_CRL_PREFIX + "disable_ocsp";
+    public static final String SECURITY_SSL_AUX_CRL_DISABLE_CRLDP = SSL_AUX_CRL_PREFIX + "disable_crldp";
+    public static final String SECURITY_SSL_AUX_CRL_VALIDATION_DATE = SSL_AUX_CRL_PREFIX + "validation_date";
 
     /**
      * Transport layer (node-to-node) settings.
@@ -180,15 +223,14 @@ public final class SSLConfigConstants {
         + "resolve_hostname";
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
-    public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
+    public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
         List<String> configuredProtocols = null;
 
-        if (settings != null) {
-            if (http) {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
-            } else {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
-            }
+        switch (certType){
+            case HTTP -> configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
+            case AUX -> configuredProtocols = settings.getAsList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
+            default -> throw new RuntimeException("Unsupported cert type: " + certType);
         }
 
         if (configuredProtocols != null && configuredProtocols.size() > 0) {
@@ -196,6 +238,23 @@ public final class SSLConfigConstants {
         }
 
         return ALLOWED_SSL_PROTOCOLS.clone();
+    }
+
+    public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
+        List<String> configuredCiphers = null;
+
+        switch (certType){
+            case HTTP -> configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
+            case AUX -> configuredCiphers = settings.getAsList(SECURITY_SSL_AUX_ENABLED_CIPHERS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
+            default -> throw new RuntimeException("Unsupported cert type: " + certType);
+        }
+
+        if (configuredCiphers != null && configuredCiphers.size() > 0) {
+            return configuredCiphers;
+        }
+
+        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
     }
 
     // @formatter:off
@@ -312,27 +371,7 @@ public final class SSLConfigConstants {
     };
     // @formatter:on
 
-    public static List<String> getSecureSSLCiphers(Settings settings, boolean http) {
-
-        List<String> configuredCiphers = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
-            } else {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
-            }
-        }
-
-        if (configuredCiphers != null && configuredCiphers.size() > 0) {
-            return configuredCiphers;
-        }
-
-        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
-    }
-
     private SSLConfigConstants() {
 
     }
-
 }
