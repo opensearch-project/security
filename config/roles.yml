@@ -2,6 +2,30 @@ _meta:
   type: "roles"
   config_version: 2
 
+# Allows users to update cluster routing and blocks settings
+settings_admin:
+  cluster_permissions:
+    - "cluster:admin/settings/*"
+  allowed_settings:
+    cluster:
+      - "cluster.routing.*"
+      - "cluster.blocks.*"
+    index:
+      - "index.number_of_replicas"
+      - "index.refresh_interval"
+
+
+# Allows users to update index routing and blocks settings
+index_manager:
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/settings/*"
+      allowed_settings:
+        - "index.number_of_replicas"
+        - "index.refresh_interval"
+
 # Restrict users so they can only view visualization and dashboard on OpenSearchDashboards
 kibana_read_only:
   reserved: true
