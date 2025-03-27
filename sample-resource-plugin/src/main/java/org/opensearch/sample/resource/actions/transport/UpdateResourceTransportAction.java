@@ -13,6 +13,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
@@ -21,6 +22,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
@@ -29,7 +31,6 @@ import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.client.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -71,7 +72,10 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(
-                    new UnauthorizedResourceAccessException("Current user is not authorized to access resource: " + request.getResourceId())
+                    new OpenSearchStatusException(
+                        "Current user is not authorized to access resource: " + request.getResourceId(),
+                        RestStatus.FORBIDDEN
+                    )
                 );
                 return;
             }

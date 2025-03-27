@@ -14,6 +14,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -27,6 +28,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
@@ -38,9 +40,6 @@ import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.client.resources.ResourceSharingClient;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingFeatureDisabledException;
-import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -82,7 +81,8 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
                     listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
                 }, failure -> {
-                    if (failure instanceof ResourceSharingFeatureDisabledException) {
+                    if (failure instanceof OpenSearchStatusException
+                        && ((OpenSearchStatusException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
                         getAllResourcesAction(listener);
                         return;
                     }
@@ -99,7 +99,10 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(
-                    new UnauthorizedResourceAccessException("Current user is not authorized to access resource: " + request.getResourceId())
+                    new OpenSearchStatusException(
+                        "Current user is not authorized to access resource: " + request.getResourceId(),
+                        RestStatus.FORBIDDEN
+                    )
                 );
                 return;
             }
@@ -154,7 +157,9 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                     }
                     listener.onResponse(new GetResourceResponse(resources));
                 } catch (Exception e) {
-                    listener.onFailure(new ResourceSharingException("Failed to parse resources: " + e.getMessage(), e));
+                    listener.onFailure(
+                        new OpenSearchStatusException("Failed to parse resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
+                    );
                 }
             }, listener::onFailure));
         }

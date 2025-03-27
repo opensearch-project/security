@@ -42,7 +42,7 @@ plugins.security.system_indices.enabled: true
 
 ## User setup:
 1. **New Security Permission Requirement**
-    - Users need **`cluster:admin/security/resource_access`** in their role to **interact with shared resources**.
+    - Users need **`cluster:admin/security/resource_access/*`** in their role to **interact with shared resources**.
     - This applies **in addition to** any plugin-specific cluster permissions.
 
 2. **No Index-Level Permissions Required**
@@ -55,12 +55,12 @@ plugins.security.system_indices.enabled: true
     ```yaml
     sample_full_access:
      cluster_permissions:
-       - 'cluster:admin/security/resource_access'
+       - 'cluster:admin/security/resource_access/*'
        - 'cluster:admin/sample-resource-plugin/*'
 
     sample_read_access:
      cluster_permissions:
-       - 'cluster:admin/security/resource_access'
+       - 'cluster:admin/security/resource_access/*'
        - 'cluster:admin/sample-resource-plugin/get'
     ```
 
