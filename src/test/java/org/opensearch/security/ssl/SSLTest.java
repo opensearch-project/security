@@ -33,7 +33,6 @@ import javax.net.ssl.SSLHandshakeException;
 import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -62,8 +61,6 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
 import org.opensearch.transport.client.Client;
 
-import io.netty.util.internal.PlatformDependent;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
@@ -79,8 +76,6 @@ public class SSLTest extends SingleClusterTest {
     @Rule
     public final ExpectedException thrown = ExpectedException.none();
 
-    protected boolean allowOpenSSL = false;
-
     @Test
     public void testHttps() throws Exception {
 
@@ -88,8 +83,6 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
@@ -139,8 +132,6 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
@@ -162,23 +153,14 @@ public class SSLTest extends SingleClusterTest {
             String[] enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledCipherSuites();
             String[] enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
 
-            if (allowOpenSSL) {
-                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
-                Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
-            } else {
-                assertThat(enabledProtocols.length, is(1));
-                assertThat(enabledProtocols[0], is("SSLv3"));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
-            }
+            assertThat(enabledProtocols.length, is(1));
+            assertThat(enabledProtocols[0], is("SSLv3"));
+            assertThat(enabledCiphers.length, is(1));
+            assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
 
             settings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
@@ -199,33 +181,20 @@ public class SSLTest extends SingleClusterTest {
                 .getEnabledCipherSuites();
             enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
 
-            if (allowOpenSSL) {
-                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
-                Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
-            } else {
-                assertThat(enabledProtocols.length, is(1));
-                assertThat(enabledProtocols[0], is("SSLv3"));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
-            }
+            assertThat(enabledProtocols.length, is(1));
+            assertThat(enabledProtocols[0], is("SSLv3"));
+            assertThat(enabledCiphers.length, is(1));
+            assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
+
             enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1)
                 .getEnabledCipherSuites();
             enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1)
                 .getEnabledProtocols();
 
-            if (allowOpenSSL) {
-                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
-                Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
-            } else {
-                assertThat(enabledProtocols.length, is(1));
-                assertThat(enabledProtocols[0], is("SSLv3"));
-                assertThat(enabledCiphers.length, is(1));
-                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
-            }
+            assertThat(enabledProtocols.length, is(1));
+            assertThat(enabledProtocols[0], is("SSLv3"));
+            assertThat(enabledCiphers.length, is(1));
+            assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
         } catch (OpenSearchSecurityException e) {
             Assert.assertTrue(
                 "Check if error contains 'no valid cipher suites' -> " + e.toString(),
@@ -245,8 +214,6 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
@@ -279,8 +246,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
@@ -332,8 +297,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem")
@@ -379,8 +342,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem")
@@ -431,8 +392,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
@@ -481,8 +440,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
@@ -532,8 +489,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
@@ -578,8 +533,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "OPTIONAL")
@@ -612,8 +565,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
@@ -646,8 +597,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
@@ -685,8 +634,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
@@ -717,8 +664,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
@@ -805,8 +750,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
@@ -883,8 +826,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem")
@@ -930,8 +871,6 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
@@ -960,14 +899,9 @@ public class SSLTest extends SingleClusterTest {
     @Test
     public void testNodeClientSSLwithJavaTLSv13() throws Exception {
 
-        // Java TLS 1.3 is available since Java 11
-        Assume.assumeTrue(!allowOpenSSL && PlatformDependent.javaVersion() >= 11);
-
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
@@ -1025,8 +959,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
@@ -1068,8 +1000,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
@@ -1127,8 +1057,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
 
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, "node-0-client")
@@ -1192,8 +1120,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
@@ -1238,8 +1164,6 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH,

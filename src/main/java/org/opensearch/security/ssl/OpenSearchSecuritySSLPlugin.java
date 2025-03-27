@@ -91,9 +91,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.util.internal.PlatformDependent;
-
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
@@ -116,7 +113,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         System.getProperty("opensearch.unsafe.use_netty_default_allocator"),
         false
     );
-    public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
     public static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
@@ -208,17 +204,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-
-        // TODO check initialize native netty open ssl libs still neccessary
-        AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
-                PlatformDependent.newFixedMpscQueue(1);
-                OpenSsl.isAvailable();
-                return null;
-            }
-        });
 
         this.settings = settings;
         this.sharedGroupFactory = new SharedGroupFactory(settings);
@@ -418,24 +403,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(
             Setting.boolSetting(
-                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE,
-                OPENSSL_SUPPORTED,
-                Property.NodeScope,
-                Property.Filtered
-            )
-        );
-        settings.add(
-            Setting.boolSetting(
                 SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
                 SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT,
-                Property.NodeScope,
-                Property.Filtered
-            )
-        );
-        settings.add(
-            Setting.boolSetting(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE,
-                OPENSSL_SUPPORTED,
                 Property.NodeScope,
                 Property.Filtered
             )
