@@ -19,17 +19,15 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
-import org.opensearch.security.spi.resources.exceptions.ResourceNotFoundException;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
-import org.opensearch.security.spi.resources.exceptions.UnauthenticatedResourceAccessException;
-import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -188,11 +186,21 @@ public class ResourceAccessHandler {
             // Send final response
             resourcesListener.whenComplete(
                 listener::onResponse,
-                ex -> listener.onFailure(new ResourceSharingException("Failed to get accessible resources: " + ex.getMessage(), ex))
+                ex -> listener.onFailure(
+                    new OpenSearchStatusException(
+                        "Failed to get accessible resources: " + ex.getMessage(),
+                        RestStatus.INTERNAL_SERVER_ERROR
+                    )
+                )
             );
         } catch (Exception e) {
             LOGGER.warn("Failed to process accessible resources request: {}", e.getMessage());
-            listener.onFailure(new ResourceSharingException("Failed to process accessible resources request: " + e.getMessage(), e));
+            listener.onFailure(
+                new OpenSearchStatusException(
+                    "Failed to process accessible resources request: " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR
+                )
+            );
         }
     }
 
@@ -213,7 +221,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user found. Access to resource {} is not authorized", resourceId);
+            LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
             listener.onResponse(false);
             return;
         }
@@ -233,7 +241,10 @@ public class ResourceAccessHandler {
             if (document == null) {
                 LOGGER.warn("ShareableResource '{}' not found in index '{}'", resourceId, resourceIndex);
                 listener.onFailure(
-                    new ResourceNotFoundException("ShareableResource " + resourceId + " not found in index " + resourceIndex)
+                    new OpenSearchStatusException(
+                        "ShareableResource " + resourceId + " not found in index " + resourceIndex,
+                        RestStatus.NOT_FOUND
+                    )
                 );
                 return;
             }
@@ -283,7 +294,10 @@ public class ResourceAccessHandler {
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);
             listener.onFailure(
-                new UnauthenticatedResourceAccessException("No authenticated user found. Failed to share resource " + resourceId)
+                new OpenSearchStatusException(
+                    "No authenticated user found. Failed to share resource " + resourceId,
+                    RestStatus.UNAUTHORIZED
+                )
             );
             return;
         }
@@ -334,7 +348,10 @@ public class ResourceAccessHandler {
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to revoker access to resource {}", resourceId);
             listener.onFailure(
-                new UnauthorizedResourceAccessException("No authenticated user found. Failed to revoke access to resource {}" + resourceId)
+                new OpenSearchStatusException(
+                    "No authenticated user found. Failed to revoke access to resource {}" + resourceId,
+                    RestStatus.UNAUTHORIZED
+                )
             );
             return;
         }
@@ -392,7 +409,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            listener.onFailure(new UnauthenticatedResourceAccessException("No authenticated user available."));
+            listener.onFailure(new OpenSearchStatusException("No authenticated user available.", RestStatus.UNAUTHORIZED));
             return;
         }
 

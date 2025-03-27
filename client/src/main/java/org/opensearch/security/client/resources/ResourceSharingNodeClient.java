@@ -14,13 +14,22 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.resources.rest.ResourceAccessAction;
-import org.opensearch.security.resources.rest.ResourceAccessRequest;
-import org.opensearch.security.resources.rest.ResourceAccessResponse;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.resources.rest.list.ListAccessibleResourcesAction;
+import org.opensearch.security.resources.rest.list.ListAccessibleResourcesRequest;
+import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessAction;
+import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessRequest;
+import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessResponse;
+import org.opensearch.security.resources.rest.share.ShareResourceAction;
+import org.opensearch.security.resources.rest.share.ShareResourceRequest;
+import org.opensearch.security.resources.rest.share.ShareResourceResponse;
+import org.opensearch.security.resources.rest.verify.VerifyResourceAccessAction;
+import org.opensearch.security.resources.rest.verify.VerifyResourceAccessRequest;
+import org.opensearch.security.resources.rest.verify.VerifyResourceAccessResponse;
 import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingFeatureDisabledException;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
@@ -60,12 +69,11 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     public void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
         if (handleIfDisabled("Access to resource is automatically granted.", listener, true)) return;
 
-        ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.VERIFY)
-            .resourceId(resourceId)
+        VerifyResourceAccessRequest request = new VerifyResourceAccessRequest.Builder().resourceId(resourceId)
             .resourceIndex(resourceIndex)
             .build();
 
-        client.execute(ResourceAccessAction.INSTANCE, request, accessResponseListener(listener));
+        client.execute(VerifyResourceAccessAction.INSTANCE, request, accessResponseListener(listener));
     }
 
     /**
@@ -85,13 +93,12 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     ) {
         if (handleIfDisabled("Resource is not shareable.", listener)) return;
 
-        ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.SHARE)
-            .resourceId(resourceId)
+        ShareResourceRequest request = new ShareResourceRequest.Builder().resourceId(resourceId)
             .resourceIndex(resourceIndex)
             .shareWith(shareWith)
             .build();
 
-        client.execute(ResourceAccessAction.INSTANCE, request, sharingResponseListener(listener));
+        client.execute(ShareResourceAction.INSTANCE, request, sharingResponseListener(listener));
     }
 
     /**
@@ -111,13 +118,12 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     ) {
         if (handleIfDisabled("Resource access is not revoked.", listener)) return;
 
-        ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.REVOKE)
-            .resourceId(resourceId)
+        RevokeResourceAccessRequest request = new RevokeResourceAccessRequest.Builder().resourceId(resourceId)
             .resourceIndex(resourceIndex)
             .revokedEntities(entitiesToRevoke)
             .build();
 
-        client.execute(ResourceAccessAction.INSTANCE, request, sharingResponseListener(listener));
+        client.execute(RevokeResourceAccessAction.INSTANCE, request, revokeResponseListener(listener));
     }
 
     /**
@@ -130,12 +136,10 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener) {
         if (handleIfDisabled("Unable to list all accessible resources.", listener)) return;
 
-        ResourceAccessRequest request = new ResourceAccessRequest.Builder().operation(ResourceAccessRequest.Operation.LIST)
-            .resourceIndex(resourceIndex)
-            .build();
+        ListAccessibleResourcesRequest request = new ListAccessibleResourcesRequest.Builder().resourceIndex(resourceIndex).build();
 
         client.execute(
-            ResourceAccessAction.INSTANCE,
+            ListAccessibleResourcesAction.INSTANCE,
             request,
             ActionListener.wrap(response -> listener.onResponse(response.getResources()), listener::onFailure)
         );
@@ -207,26 +211,36 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      */
     private void handleFeatureDisabled(String message, ActionListener<?> listener) {
         log.debug("{}", message);
-        listener.onFailure(new ResourceSharingFeatureDisabledException(message));
+        listener.onFailure(new OpenSearchStatusException(message, RestStatus.NOT_IMPLEMENTED));
     }
 
     /**
-     * Wraps a listener to extract permission result from a {@link ResourceAccessResponse}.
+     * Wraps a listener to extract permission result from a {@link VerifyResourceAccessResponse}.
      *
      * @param listener The listener to notify with a Boolean.
      * @return An action listener for the access response.
      */
-    private ActionListener<ResourceAccessResponse> accessResponseListener(ActionListener<Boolean> listener) {
+    private ActionListener<VerifyResourceAccessResponse> accessResponseListener(ActionListener<Boolean> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getHasPermission()), listener::onFailure);
     }
 
     /**
-     * Wraps a listener to extract sharing info from a {@link ResourceAccessResponse}.
+     * Wraps a listener to extract sharing info from a {@link ShareResourceResponse}.
      *
      * @param listener The listener to notify with a {@link ResourceSharing} document.
      * @return An action listener for the sharing response.
      */
-    private ActionListener<ResourceAccessResponse> sharingResponseListener(ActionListener<ResourceSharing> listener) {
+    private ActionListener<ShareResourceResponse> sharingResponseListener(ActionListener<ResourceSharing> listener) {
+        return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
+    }
+
+    /**
+     * Wraps a listener to extract sharing info from a {@link RevokeResourceAccessResponse}.
+     *
+     * @param listener The listener to notify with a {@link ResourceSharing} document.
+     * @return An action listener for the sharing response.
+     */
+    private ActionListener<RevokeResourceAccessResponse> revokeResponseListener(ActionListener<ResourceSharing> listener) {
         return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
     }
 }

@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -45,6 +46,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -68,8 +70,6 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
-import org.opensearch.security.spi.resources.exceptions.ResourceSharingException;
-import org.opensearch.security.spi.resources.exceptions.UnauthorizedResourceAccessException;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -201,7 +201,7 @@ public class ResourceSharingIndexHandler {
             return entry;
         } catch (Exception e) {
             LOGGER.error("Failed to create {} entry.", resourceSharingIndex, e);
-            throw new ResourceSharingException("Failed to create " + resourceSharingIndex + " entry.", e);
+            throw new OpenSearchStatusException("Failed to create " + resourceSharingIndex + " entry.", RestStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -629,9 +629,9 @@ public class ResourceSharingIndexHandler {
                     } catch (Exception e) {
                         LOGGER.error("Failed to parse document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
                         listener.onFailure(
-                            new ResourceSharingException(
+                            new OpenSearchStatusException(
                                 "Failed to parse document for resourceId: " + resourceId + " from index: " + pluginIndex,
-                                e
+                                RestStatus.INTERNAL_SERVER_ERROR
                             )
                         );
                     }
@@ -642,9 +642,9 @@ public class ResourceSharingIndexHandler {
 
                     LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
                     listener.onFailure(
-                        new ResourceSharingException(
+                        new OpenSearchStatusException(
                             "Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex,
-                            e
+                            RestStatus.INTERNAL_SERVER_ERROR
                         )
                     );
 
@@ -653,7 +653,10 @@ public class ResourceSharingIndexHandler {
         } catch (Exception e) {
             LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
             listener.onFailure(
-                new ResourceSharingException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e)
+                new OpenSearchStatusException(
+                    "Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                    RestStatus.INTERNAL_SERVER_ERROR
+                )
             );
         }
     }
@@ -697,7 +700,7 @@ public class ResourceSharingIndexHandler {
             });
         } catch (IOException e) {
             LOGGER.error("Failed to build json content", e);
-            listener.onFailure(new ResourceSharingException("Failed to build json content", e));
+            listener.onFailure(new OpenSearchStatusException("Failed to build json content", RestStatus.INTERNAL_SERVER_ERROR));
             return;
         }
 
@@ -715,8 +718,9 @@ public class ResourceSharingIndexHandler {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
                 listener.onFailure(
-                    new UnauthorizedResourceAccessException(
-                        "User " + requestUserName + " is not authorized to share resource " + resourceId
+                    new OpenSearchStatusException(
+                        "User " + requestUserName + " is not authorized to share resource " + resourceId,
+                        RestStatus.FORBIDDEN
                     )
                 );
             }
@@ -859,8 +863,9 @@ public class ResourceSharingIndexHandler {
                 // Only admin or the creator of the resource is currently allowed to revoke access
                 if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
                     listener.onFailure(
-                        new UnauthorizedResourceAccessException(
-                            "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId
+                        new OpenSearchStatusException(
+                            "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId,
+                            RestStatus.FORBIDDEN
                         )
                     );
                 }
@@ -1146,7 +1151,9 @@ public class ResourceSharingIndexHandler {
                     }
                     listener.onResponse(result);
                 } catch (Exception e) {
-                    listener.onFailure(new ResourceSharingException("Failed to parse resources: " + e.getMessage(), e));
+                    listener.onFailure(
+                        new OpenSearchStatusException("Failed to parse resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
+                    );
                 }
             }, e -> {
                 if (e instanceof IndexNotFoundException) {
@@ -1154,7 +1161,9 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(e);
                 } else {
                     LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
-                    listener.onFailure(new ResourceSharingException("Failed to fetch resources: " + e.getMessage(), e));
+                    listener.onFailure(
+                        new OpenSearchStatusException("Failed to fetch resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
+                    );
                 }
             }));
         }

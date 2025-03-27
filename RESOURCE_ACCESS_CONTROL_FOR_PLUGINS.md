@@ -231,19 +231,19 @@ To enable users to interact with the **Resource Sharing and Access Control** fea
 ### **Required Cluster Permissions**
 Users must be assigned the following **cluster permissions** in `roles.yml`:
 
-- **`cluster:admin/security/resource_access`** → Required to evaluate resource permissions.
+- **`cluster:admin/security/resource_access/*`** → Required to evaluate resource permissions.
 - **Plugin-specific cluster permissions** → Required to interact with the plugin’s APIs.
 
 #### **Example Role Configurations**
 ```yaml
 sample_full_access:
   cluster_permissions:
-    - 'cluster:admin/security/resource_access'
+    - 'cluster:admin/security/resource_access/*'
     - 'cluster:admin/sample-resource-plugin/*'
 
 sample_read_access:
   cluster_permissions:
-    - 'cluster:admin/security/resource_access'
+    - 'cluster:admin/security/resource_access/*'
     - 'cluster:admin/sample-resource-plugin/get'
 ```
 
@@ -264,7 +264,7 @@ sample_read_access:
 ### **Summary**
 | **Requirement** | **Description**                                                                       |
 |---------------|---------------------------------------------------------------------------------------|
-| **Cluster Permission** | `cluster:admin/security/resource_access` required for resource evaluation.            |
+| **Cluster Permission** | `cluster:admin/security/resource_access/*` required for resource evaluation.            |
 | **Plugin API Permissions** | Users must also have relevant plugin API cluster permissions.                         |
 | **Resource Sharing** | Access is granted only if the resource is shared with the user or they are the owner. |
 | **No Index Permissions Needed** | The `.opensearch_resource_sharing` index and resource indices are system-protected.   |
@@ -365,13 +365,17 @@ Returns the updated **resource sharing state**.
       "user": "you"
     },
     "share_with": {
-      "users": ["shared-user-name"],
-      "roles": ["shared-roles"],
-      "backend_roles": ["shared-backend-roles"]
+      "default": {
+        "users": ["shared-user-name"],
+        "roles": ["shared-roles"],
+        "backend_roles": ["shared-backend-roles"]
+      }
     }
   }
 }
 ```
+
+Note: `default` is a place-holder action-group that will eventually be replaced with actual action-groups in the future.
 
 #### **Response Fields:**
 | Field          | Type    | Description |
@@ -422,12 +426,16 @@ Returns the updated **resource sharing state** after revocation.
       "user": "admin"
     },
     "share_with": {
-      "users": ["shared-user-name"],
-      "backend_roles": ["shared-backend-roles"]
+      "default": {
+        "users": ["shared-user-name"],
+        "backend_roles": ["shared-backend-roles"]
+      }
     }
   }
 }
 ```
+
+Note: `default` is a place-holder action-group that will eventually be replaced with actual action-groups in the future.
 
 #### **Response Fields:**
 | Field          | Type    | Description |

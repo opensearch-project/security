@@ -6,15 +6,11 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.rest;
+package org.opensearch.security.resources.rest.share;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -31,51 +27,31 @@ import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 /**
- * This class represents a request to access a resource.
- * It encapsulates the operation, resource ID, resource index, share with information, revoked entities, and actionGroups.
+ * This class represents a request to share access to a resource.
  *
  * @opensearch.experimental
  */
-public class ResourceAccessRequest extends ActionRequest {
+public class ShareResourceRequest extends ActionRequest {
 
-    public enum Operation {
-        LIST,
-        SHARE,
-        REVOKE,
-        VERIFY
-    }
-
-    private final Operation operation;
     private final String resourceId;
     private final String resourceIndex;
     private final ShareWith shareWith;
-    private final Map<String, Set<String>> revokedEntities;
-    private final Set<String> actionGroups;
 
     /**
      * Private constructor to enforce usage of Builder
      */
-    private ResourceAccessRequest(Builder builder) {
-        this.operation = builder.operation;
+    private ShareResourceRequest(Builder builder) {
         this.resourceId = builder.resourceId;
         this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
-        this.revokedEntities = builder.revokedEntities;
-        this.actionGroups = builder.actionGroups;
     }
 
     /**
-     * Static factory method to initialize ResourceAccessRequest from a Map.
+     * Static factory method to initialize ShareResourceRequest from a Map.
      */
     @SuppressWarnings("unchecked")
-    public static ResourceAccessRequest from(Map<String, Object> source, Map<String, String> params) throws IOException {
+    public static ShareResourceRequest from(Map<String, Object> source, Map<String, String> params) throws IOException {
         Builder builder = new Builder();
-
-        if (source.containsKey("operation")) {
-            builder.operation((Operation) source.get("operation"));
-        } else {
-            throw new IllegalArgumentException("Missing required field: operation");
-        }
 
         builder.resourceId((String) source.get("resource_id"));
         String resourceIndex = params.getOrDefault("resource_index", (String) source.get("resource_index"));
@@ -88,44 +64,26 @@ public class ResourceAccessRequest extends ActionRequest {
             builder.shareWith((Map<String, Object>) source.get("share_with"));
         }
 
-        if (source.containsKey("entities_to_revoke")) {
-            builder.revokedEntities((Map<String, Object>) source.get("entities_to_revoke"));
-        }
-
-        if (source.containsKey("action_groups")) {
-            builder.actionGroups(Set.copyOf((List<String>) source.get("action_groups")));
-        }
-
         return builder.build();
     }
 
-    public ResourceAccessRequest(StreamInput in) throws IOException {
+    public ShareResourceRequest(StreamInput in) throws IOException {
         super(in);
-        this.operation = in.readEnum(Operation.class);
         this.resourceId = in.readOptionalString();
         this.resourceIndex = in.readOptionalString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        this.revokedEntities = in.readMap(StreamInput::readString, valIn -> valIn.readSet(StreamInput::readString));
-        this.actionGroups = in.readSet(StreamInput::readString);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(operation);
         out.writeOptionalString(resourceId);
         out.writeOptionalString(resourceIndex);
         out.writeOptionalWriteable(shareWith);
-        out.writeMap(revokedEntities, StreamOutput::writeString, StreamOutput::writeStringCollection);
-        out.writeStringCollection(actionGroups);
     }
 
     @Override
     public ActionRequestValidationException validate() {
         return null;
-    }
-
-    public Operation getOperation() {
-        return operation;
     }
 
     public String getResourceId() {
@@ -140,29 +98,13 @@ public class ResourceAccessRequest extends ActionRequest {
         return shareWith;
     }
 
-    public Map<String, Set<String>> getRevokedEntities() {
-        return revokedEntities;
-    }
-
-    public Set<String> getActionGroups() {
-        return actionGroups;
-    }
-
     /**
-     * Builder for ResourceAccessRequest
+     * Builder for ShareResourceRequest
      */
     public static class Builder {
-        private Operation operation;
         private String resourceId;
         private String resourceIndex;
         private ShareWith shareWith;
-        private Map<String, Set<String>> revokedEntities;
-        private Set<String> actionGroups;
-
-        public Builder operation(Operation operation) {
-            this.operation = operation;
-            return this;
-        }
 
         public Builder resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -183,25 +125,8 @@ public class ResourceAccessRequest extends ActionRequest {
             return this;
         }
 
-        public Builder revokedEntities(Map<String, Object> source) {
-            try {
-                this.revokedEntities = parseRevokedEntities(source);
-            } catch (Exception e) {
-                this.revokedEntities = null;
-            }
-            return this;
-        }
-
-        public Builder actionGroups(Set<String> actionGroups) {
-            this.actionGroups = actionGroups;
-            return this;
-        }
-
-        public ResourceAccessRequest build() {
-            // TODO Remove following line once ResourceAuthz framework is implemented as a standalone framework
-            this.actionGroups = Set.of(ResourceAccessActionGroups.PLACE_HOLDER);
-
-            return new ResourceAccessRequest(this);
+        public ShareResourceRequest build() {
+            return new ShareResourceRequest(this);
         }
 
         private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
@@ -230,22 +155,6 @@ public class ResourceAccessRequest extends ActionRequest {
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
             }
-        }
-
-        private Map<String, Set<String>> parseRevokedEntities(Map<String, Object> source) {
-
-            return source.entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() instanceof Collection<?>)
-                .collect(
-                    Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> ((Collection<?>) entry.getValue()).stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .collect(Collectors.toSet())
-                    )
-                );
         }
     }
 }
