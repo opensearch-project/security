@@ -91,6 +91,9 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.util.internal.PlatformDependent;
+
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
@@ -204,6 +207,17 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
+
+        // TODO check initialize native netty open ssl libs still neccessary
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
+                PlatformDependent.newFixedMpscQueue(1);
+                OpenSsl.isAvailable();
+                return null;
+            }
+        });
 
         this.settings = settings;
         this.sharedGroupFactory = new SharedGroupFactory(settings);
