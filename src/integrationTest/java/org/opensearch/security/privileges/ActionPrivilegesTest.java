@@ -929,6 +929,37 @@ public class ActionPrivilegesTest {
                     .startsWith("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating role role_with_errors")
             );
         }
+
+        @Test
+        public void aliasesOnDataStreamBackingIndices() throws Exception {
+            // We create a meta data object with a data stream ds_a. Implicitly, the utility method will create
+            // the backing indices ".ds-ds_a-000001", ".ds-ds_a-000002" and ".ds-ds_a-000003".
+            // Additionally, we create an alias which only contains ".ds-ds_a-000001", but not the other backing indices.
+            Map<String, IndexAbstraction> metadata = dataStreams("ds_a").alias("alias_a").of(".ds-ds_a-000001").build().getIndicesLookup();
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
+                "role:\n"
+                    + "  index_permissions:\n"
+                    + "  - index_patterns: ['alias_a']\n"
+                    + "    allowed_actions: ['indices:data/write/index']",
+                CType.ROLES
+            );
+            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> metadata, Settings.EMPTY);
+            subject.updateStatefulIndexPrivileges(metadata, 2);
+
+            PrivilegesEvaluatorResponse resultForIndexCoveredByAlias = subject.hasIndexPrivilege(
+                ctx("role"),
+                Set.of("indices:data/write/index"),
+                IndexResolverReplacer.Resolved.ofIndex(".ds-ds_a-000001")
+            );
+            assertThat(resultForIndexCoveredByAlias, isAllowed());
+
+            PrivilegesEvaluatorResponse resultForIndexNotCoveredByAlias = subject.hasIndexPrivilege(
+                ctx("role"),
+                Set.of("indices:data/write/index"),
+                IndexResolverReplacer.Resolved.ofIndex(".ds-ds_a-000002")
+            );
+            assertThat(resultForIndexNotCoveredByAlias, isForbidden());
+        }
     }
 
     /**

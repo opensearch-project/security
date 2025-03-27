@@ -1026,7 +1026,23 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                                     if (indicesEntry.getValue() instanceof IndexAbstraction.Alias) {
                                         // For aliases we additionally add the sub-indices to the privilege map
                                         for (IndexMetadata subIndex : indicesEntry.getValue().getIndices()) {
-                                            indexToRoles.get(subIndex.getIndex().getName()).add(roleName);
+                                            String subIndexName = subIndex.getIndex().getName();
+                                            // We need to check whether the subIndex is part of the global indices
+                                            // metadata map because that map has been filtered by relevantOnly().
+                                            // This method removes all closed indices and data stream backing indices
+                                            // because these indices get a separate treatment. However, these indices
+                                            // might still appear as member indices of aliases. Trying to add these
+                                            // to the SubSetBuilder indexToRoles would result in an IllegalArgumentException
+                                            // because the subIndex will not be part of the super set.
+                                            if (indices.containsKey(subIndexName)) {
+                                                indexToRoles.get(subIndexName).add(roleName);
+                                            } else {
+                                                log.debug(
+                                                    "Ignoring member index {} of alias {}. This is usually the case because the index is closed or a data stream backing index.",
+                                                    subIndexName,
+                                                    indicesEntry.getKey()
+                                                );
+                                            }
                                         }
                                     }
 
