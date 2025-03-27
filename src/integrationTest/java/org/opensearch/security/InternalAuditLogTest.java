@@ -9,11 +9,10 @@
 */
 package org.opensearch.security;
 
-import java.time.Duration;
-
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +24,6 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -50,22 +48,9 @@ public class InternalAuditLogTest {
     @Test
     public void testAuditLogShouldBeGreenInSingleNodeCluster() throws InterruptedException {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.get(""); // demo request for insuring audit-log index is created beforehand
-            int retriesLeft = 5;
-            while (retriesLeft > 0) {
-                retriesLeft = retriesLeft - 1;
-                try {
-                    TestRestClient.HttpResponse indicesResponse = client.get("_cat/indices");
-                    assertThat(indicesResponse.getBody(), containsString("security-auditlog"));
-                    assertThat(indicesResponse.getBody(), containsString("green"));
-                    break;
-                } catch (AssertionError e) {
-                    if (retriesLeft == 0) {
-                        throw e;
-                    }
-                    Thread.sleep(Duration.ofSeconds(1));
-                }
-            }
+            Awaitility.await()
+                .alias("Load configuration")
+                .until(() -> client.get("_cat/indices").getBody(), containsString("green open security-auditlog"));
         }
     }
 }
