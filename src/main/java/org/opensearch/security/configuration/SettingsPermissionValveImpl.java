@@ -2,12 +2,14 @@ package org.opensearch.security.configuration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -78,11 +80,17 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
         // Get allowed settings patterns from user's roles
         Set<String> allowedSettings = getAllowedSettingsFromRoles(context);
 
+        // For backwards compatibility we will allow all settings if no allowed settings are defined
+        if (allowedSettings.isEmpty()) {
+            return true;
+        }
+        log.debug("Allowed settings: {} for user: {}", allowedSettings, context.getUser().getName());
+
         // Validate persistent settings
         if (!validateSettingsMap(request.persistentSettings(), allowedSettings)) {
             auditLog.logMissingPrivileges(context.getAction(), request, context.getTask());
             listener.onFailure(
-                new SecurityException("User not authorized to modify these cluster settings: " + request.persistentSettings().keySet())
+                new OpenSearchSecurityException("User not authorized to modify these cluster settings: " + request.persistentSettings().keySet(), RestStatus.FORBIDDEN)
             );
             return false;
         }
@@ -91,7 +99,7 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
         if (!validateSettingsMap(request.transientSettings(), allowedSettings)) {
             auditLog.logMissingPrivileges(context.getAction(), request, context.getTask());
             listener.onFailure(
-                new SecurityException("User not authorized to modify these cluster settings: " + request.transientSettings().keySet())
+                new OpenSearchSecurityException("User not authorized to modify these cluster settings: " + request.transientSettings().keySet(), RestStatus.FORBIDDEN)
             );
             return false;
         }
