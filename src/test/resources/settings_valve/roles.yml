@@ -1,0 +1,40 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+cluster_settings_role:
+  cluster_permissions:
+    - "cluster:admin/settings/*"
+  allowed_cluster_settings:
+    - "cluster.routing.*"
+
+index_settings_role:
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/settings/*"
+      allowed_settings:
+        - "index.number_of_replicas"
+
+wildcard_settings_role:
+  cluster_permissions:
+    - "cluster:admin/settings/*"
+  allowed_cluster_settings:
+    - "cluster.routing.*"
+
+admin:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "OPENDISTRO_SECURITY_CLUSTER_ALL"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
+  tenant_permissions: []
