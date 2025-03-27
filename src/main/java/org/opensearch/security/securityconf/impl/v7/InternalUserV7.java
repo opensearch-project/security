@@ -33,12 +33,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
+
+    private final Logger log = LogManager.getLogger(InternalUserV7.class);
 
     private String hash;
     private boolean reserved;
@@ -51,6 +55,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
     private Map<String, String> attributes = Collections.emptyMap();
     private String description;
     private List<String> opendistro_security_roles = Collections.emptyList();
+    private List<String> direct_security_roles = Collections.emptyList();
 
     private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
         super();
@@ -116,7 +121,18 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
     }
 
     public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
+        log.warn("Deprecated configuration opendistro_security_roles set. Kindly use direct_security_roles instead.");
         this.opendistro_security_roles = opendistro_security_roles;
+        this.direct_security_roles = opendistro_security_roles;
+    }
+
+    public List<String> getDirect_security_roles() {
+        return direct_security_roles;
+    }
+
+    public void setDirect_security_roles(List<String> direct_security_roles) {
+        this.opendistro_security_roles = direct_security_roles;
+        this.direct_security_roles = direct_security_roles;
     }
 
     public Map<String, String> getAttributes() {

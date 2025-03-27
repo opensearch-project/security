@@ -34,7 +34,6 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -43,9 +42,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.DIRECT_SECURITY_ROLES;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.OPENDISTRO_SECURITY_ROLES;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 
-public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
+public abstract class AbstractInternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
     private final static String REST_API_ADMIN_INTERNAL_USERS_ONLY = "rest_api_admin_iternal_users_only";
 
@@ -67,12 +68,12 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             );
     }
 
-    public InternalUsersRestApiIntegrationTest() {
+    public AbstractInternalUsersRestApiIntegrationTest() {
         super("internalusers", new TestDescriptor() {
 
             @Override
             public ToXContentObject entityPayload(Boolean hidden, Boolean reserved, Boolean _static) {
-                return internalUser(hidden, reserved, _static, randomAsciiAlphanumOfLength(10), null, null, null);
+                return internalUserInitWithoutRoles(hidden, reserved, _static, randomAsciiAlphanumOfLength(10));
             }
 
             @Override
@@ -92,11 +93,37 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         });
     }
 
-    static ToXContentObject internalUserWithPassword(final String password) {
+    static ToXContentObject internalUserInitWithoutRoles(
+        final Boolean hidden,
+        final Boolean reserved,
+        final Boolean _static,
+        final String password
+    ) {
+        return (builder, params) -> {
+            builder.startObject();
+            if (hidden != null) {
+                builder.field("hidden", hidden);
+            }
+            if (reserved != null) {
+                builder.field("reserved", reserved);
+            }
+            if (_static != null) {
+                builder.field("static", _static);
+            }
+            if (password == null) {
+                builder.field("password").nullValue();
+            } else {
+                builder.field("password", password);
+            }
+            return builder.endObject();
+        };
+    }
+
+    ToXContentObject internalUserWithPassword(final String password) {
         return internalUser(null, null, null, password, null, null, null);
     }
 
-    static ToXContentObject internalUser(
+    ToXContentObject internalUser(
         final Boolean hidden,
         final Boolean reserved,
         final String password,
@@ -107,7 +134,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         return internalUser(hidden, reserved, null, password, backendRoles, attributes, securityRoles);
     }
 
-    static ToXContentObject internalUser(
+    ToXContentObject internalUser(
         final String password,
         final ToXContentObject backendRoles,
         final ToXContentObject attributes,
@@ -116,7 +143,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         return internalUser(null, null, null, password, backendRoles, attributes, securityRoles);
     }
 
-    static ToXContentObject internalUser(
+    ToXContentObject internalUser(
         final Boolean hidden,
         final Boolean reserved,
         final Boolean _static,
@@ -149,12 +176,14 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 builder.field("attributes", attributes);
             }
             if (securityRoles != null) {
-                builder.field("opendistro_security_roles");
+                builder.field(getRoleField());
                 securityRoles.toXContent(builder, params);
             }
             return builder.endObject();
         };
     }
+
+    protected abstract String getRoleField();
 
     static ToXContentObject defaultServiceUser() {
         return serviceUser(null, null, null); // default user is disabled
@@ -413,11 +442,11 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(actualObjectNode.toPrettyString(), not(actualObjectNode.has("hash")));
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("backend_roles"), is(expectedObjectNode.get("backend_roles")));
         assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("attributes"), is(expectedObjectNode.get("attributes")));
-        assertThat(
-            actualObjectNode.toPrettyString(),
-            actualObjectNode.get("opendistro_security_roles"),
-            is(expectedObjectNode.get("opendistro_security_roles"))
-        );
+        // can be either of OPENSEARCH_SECURITY_ROLES or OPENDISTRO_SECURITY_ROLES
+        JsonNode expectedRoles = expectedObjectNode.get(DIRECT_SECURITY_ROLES) != null
+            ? expectedObjectNode.get(DIRECT_SECURITY_ROLES)
+            : expectedObjectNode.get(OPENDISTRO_SECURITY_ROLES);
+        assertThat(actualObjectNode.toPrettyString(), actualObjectNode.get("opendistro_security_roles"), is(expectedRoles));
     }
 
     String filterBy(final String value) {
@@ -435,7 +464,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         });
     }
 
-    void assertFilterByUsers(final HttpResponse response, final boolean hasServiceUser, final boolean hasInternalUser) {
+    void assertFilterByUsers(final TestRestClient.HttpResponse response, final boolean hasServiceUser, final boolean hasInternalUser) {
         assertThat(response.getBody(), response.bodyAsJsonNode().has(SERVICE_ACCOUNT_USER), is(hasServiceUser));
         assertThat(response.getBody(), response.bodyAsJsonNode().has(NEW_USER), is(hasInternalUser));
     }
@@ -683,10 +712,10 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     public void parallelPutRequests() throws Exception {
         withUser(ADMIN_USER_NAME, client -> {
             final var userName = randomAsciiAlphanumOfLength(10);
-            final var httpResponses = new HttpResponse[10];
+            final var httpResponses = new TestRestClient.HttpResponse[10];
 
             try (final var executorService = Executors.newFixedThreadPool(httpResponses.length)) {
-                final var futures = new ArrayList<Future<HttpResponse>>(httpResponses.length);
+                final var futures = new ArrayList<Future<TestRestClient.HttpResponse>>(httpResponses.length);
                 for (int i = 0; i < httpResponses.length; i++) {
                     futures.add(
                         executorService.submit(
@@ -702,7 +731,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 }
             }
             boolean created = false;
-            for (HttpResponse response : httpResponses) {
+            for (TestRestClient.HttpResponse response : httpResponses) {
                 int sc = response.getStatusCode();
                 switch (sc) {
                     case HttpStatus.SC_CREATED:
