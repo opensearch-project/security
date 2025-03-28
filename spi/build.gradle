@@ -1,0 +1,90 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'io.github.goooler.shadow' version "8.1.7"
+}
+
+ext {
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+}
+
+dependencies {
+    compileOnly "org.opensearch:opensearch:${opensearch_version}"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+shadowJar {
+    archiveClassifier.set(null)
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier.set 'javadoc'
+    from tasks.javadoc
+}
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name.set("OpenSearch Resource Sharing SPI")
+                packaging = "jar"
+                description.set("OpenSearch Security Resource Sharing")
+                url.set("https://github.com/opensearch-project/security")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                scm {
+                    connection.set("scm:git@github.com:opensearch-project/security.git")
+                    developerConnection.set("scm:git@github.com:opensearch-project/security.git")
+                    url.set("https://github.com/opensearch-project/security.git")
+                }
+                developers {
+                    developer {
+                        name.set("OpenSearch Contributors")
+                        url.set("https://github.com/opensearch-project")
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "Snapshots"
+            url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
+            credentials {
+                username "$System.env.SONATYPE_USERNAME"
+                password "$System.env.SONATYPE_PASSWORD"
+            }
+        }
+        maven {
+            name = 'staging'
+            url = "${rootProject.buildDir}/local-staging-repo"
+        }
+    }
+}
