@@ -54,7 +54,6 @@ import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -76,7 +75,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty(CType.TENANTS);
-    private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
     private static final AuditConfig defaultAuditConfig = AuditConfig.from(Settings.EMPTY);
 

@@ -45,7 +45,6 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
-    private String securityWhitelist = "whitelist.yml";
     private String securityAllowlist = "allowlist.yml";
     private String securityAudit = "audit.yml";
     private String securityConfigAsYamlString = null;
@@ -92,11 +91,6 @@ public class DynamicSecurityConfig {
 
     public DynamicSecurityConfig setSecurityNodesDn(String nodesDn) {
         this.securityNodesDn = nodesDn;
-        return this;
-    }
-
-    public DynamicSecurityConfig setSecurityWhitelist(String whitelist) {
-        this.securityWhitelist = whitelist;
         return this;
     }
 

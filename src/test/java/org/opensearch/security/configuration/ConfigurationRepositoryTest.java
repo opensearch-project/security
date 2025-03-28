@@ -516,7 +516,7 @@ public class ConfigurationRepositoryTest {
 
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false);
 
-        assertThat(result.size(), is(10));
+        assertThat(result.size(), is(CType.values().size()));
     }
 
     @Test(expected = OpenSearchException.class)
@@ -566,7 +566,7 @@ public class ConfigurationRepositoryTest {
 
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false, false);
 
-        assertThat(result.size(), is(10));
+        assertThat(result.size(), is(CType.values().size()));
     }
 
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {
@@ -631,7 +631,6 @@ public class ConfigurationRepositoryTest {
             "actiongroups",
             "tenants",
             "nodesdn",
-            "whitelist",
             "allowlist",
             "audit" };
     }
