@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap;
+package org.opensearch.security.auth.ldap;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -22,7 +22,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auth.ldap.LdapUser;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.ssl.util.ExceptionUtils;

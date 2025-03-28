@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt.keybyoidc;
+package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,7 +35,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetRetriever;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;

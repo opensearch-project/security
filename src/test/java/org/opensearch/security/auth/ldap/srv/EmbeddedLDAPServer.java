@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap.srv;
+package org.opensearch.security.auth.ldap.srv;
 
 public class EmbeddedLDAPServer {
 

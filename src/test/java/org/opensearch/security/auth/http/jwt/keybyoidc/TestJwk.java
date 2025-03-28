@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt.keybyoidc;
+package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap;
+package org.opensearch.security.auth.ldap;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;

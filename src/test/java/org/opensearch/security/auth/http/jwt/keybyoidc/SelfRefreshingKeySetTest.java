@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt.keybyoidc;
+package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -19,11 +19,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import org.opensearch.security.auth.http.jwt.keybyoidc.BadCredentialsException;
-import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetProvider;
-import org.opensearch.security.auth.http.jwt.keybyoidc.SelfRefreshingKeySet;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;

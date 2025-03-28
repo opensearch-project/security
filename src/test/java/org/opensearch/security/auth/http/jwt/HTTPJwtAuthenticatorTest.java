@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt;
+package org.opensearch.security.auth.http.jwt;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -33,7 +33,6 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 

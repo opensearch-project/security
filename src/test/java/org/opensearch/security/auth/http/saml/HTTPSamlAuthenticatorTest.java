@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.saml;
+package org.opensearch.security.auth.http.saml;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -51,7 +51,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;

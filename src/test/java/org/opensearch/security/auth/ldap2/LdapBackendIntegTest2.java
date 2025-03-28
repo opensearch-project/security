@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap;
+package org.opensearch.security.auth.ldap2;
 
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
@@ -19,6 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -26,12 +27,10 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class LdapBackendIntegTest extends SingleClusterTest {
+public class LdapBackendIntegTest2 extends SingleClusterTest {
 
     private static EmbeddedLDAPServer ldapServer = null;
 
@@ -54,7 +53,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
 
     @Test
     public void testIntegLdapAuthenticationSSL() throws Exception {
-        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
+        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config_ldap2.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
@@ -63,7 +62,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
 
     @Test
     public void testIntegLdapAuthenticationSSLFail() throws Exception {
-        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
+        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config_ldap2.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
@@ -72,7 +71,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
 
     @Test
     public void testAttributesWithImpersonation() throws Exception {
-        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
+        String securityConfigAsYamlString = FileHelper.loadFile("ldap/config_ldap2.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".cn=Captain Spock,ou=people,o=TEST", "*")

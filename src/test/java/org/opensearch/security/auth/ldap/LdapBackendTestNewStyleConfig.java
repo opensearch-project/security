@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap;
+package org.opensearch.security.auth.ldap;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -24,9 +24,9 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auth.ldap.LdapUser;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
+import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -34,7 +34,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;

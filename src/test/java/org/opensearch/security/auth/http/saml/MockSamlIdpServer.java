@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.saml;
+package org.opensearch.security.auth.http.saml;
 
 import java.io.BufferedReader;
 import java.io.Closeable;

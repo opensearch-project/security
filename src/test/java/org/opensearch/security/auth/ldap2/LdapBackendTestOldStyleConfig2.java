@@ -9,13 +9,12 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.ldap2;
+package org.opensearch.security.auth.ldap2;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -34,18 +33,15 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.LdapUser;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
+import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
-import org.opensearch.security.auth.ldap2.LDAPAuthenticationBackend2;
-import org.opensearch.security.auth.ldap2.LDAPAuthorizationBackend2;
-import org.opensearch.security.auth.ldap2.LDAPConnectionFactoryFactory;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -56,7 +52,9 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
-public class LdapBackendTestNewStyleConfig2 {
+public class LdapBackendTestOldStyleConfig2 {
+
+    private static final WildcardMatcher EXCEPTION_MATCHER = WildcardMatcher.from("*unsupported*ciphersuite*aaa*");
 
     static {
         System.setProperty("security.display_lic_none", "true");
@@ -71,7 +69,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public static void startLdapServer() throws Exception {
         ldapServer = new EmbeddedLDAPServer();
         ldapServer.start();
-        ldapServer.applyLdif("base.ldif", "base2.ldif");
+        ldapServer.applyLdif("base.ldif");
         ldapPort = ldapServer.getLdapPort();
         ldapsPort = ldapServer.getLdapsPort();
     }
@@ -96,7 +94,22 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthentication() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .build();
+
+        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
+        );
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+    }
+
+    @Test
+    public void testLdapAuthenticationPooled() throws Exception {
+
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_POOL_ENABLED, true)
             .build();
 
         final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -110,7 +123,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationFakeLogin() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, true)
             .build();
 
@@ -123,7 +136,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapInjection() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         String injectString = "*jack*";
@@ -138,8 +151,8 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationBindDn() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
             .put(ConfigConstants.LDAP_PASSWORD, "spocksecret")
             .build();
@@ -153,11 +166,10 @@ public class LdapBackendTestNewStyleConfig2 {
 
     @Test
     public void testLdapAuthenticationWrongBindDn() throws Exception {
-
         try {
             final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-                .put("users.u1.search", "(uid={0})")
-                .put("users.u1.base", "ou=people,o=TEST")
+                .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+                .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
                 .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
                 .put(ConfigConstants.LDAP_PASSWORD, "wrong")
                 .build();
@@ -175,7 +187,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationBindFail() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -187,7 +199,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationNoUser() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -199,7 +211,20 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationFail() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .build();
+
+        new LDAPAuthenticationBackend2(settings, null).authenticate(
+            new AuthCredentials("jacksonm", "xxxxx".getBytes(StandardCharsets.UTF_8))
+        );
+    }
+
+    @Test(expected = OpenSearchSecurityException.class)
+    public void testLdapAuthenticationFailPooled() throws Exception {
+
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_POOL_ENABLED, true)
             .build();
 
         new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -211,8 +236,30 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSSL() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+            )
+            .put("verify_hostnames", false)
+            .put("path.home", ".")
+            .build();
+
+        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
+        );
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+    }
+
+    @Test
+    public void testLdapAuthenticationSSLPooled() throws Exception {
+
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
+            .put(ConfigConstants.LDAP_POOL_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
@@ -232,7 +279,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSSLPEMFile() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
@@ -267,7 +314,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -291,10 +338,10 @@ public class LdapBackendTestNewStyleConfig2 {
     }
 
     @Test
-    public void testLdapAuthenticationSSLUnknownCipher() throws Exception {
+    public void testLdapAuthenticationSSLUnknowCipher() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -311,11 +358,8 @@ public class LdapBackendTestNewStyleConfig2 {
             );
             Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
-            Assert.assertTrue(
-                ExceptionUtils.getStackTrace(e),
-                WildcardMatcher.from("*unsupported*ciphersuite*aaa*").test(ExceptionUtils.getStackTrace(e).toLowerCase())
-            );
+            assertThat(e.getCause().getClass().toString(), org.ldaptive.provider.ConnectionException.class, is(e.getCause().getClass()));
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e), EXCEPTION_MATCHER.test(ExceptionUtils.getStackTrace(e).toLowerCase()));
         }
 
     }
@@ -324,7 +368,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSpecialCipherProtocol() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -348,7 +392,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSSLNoKeystore() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -369,12 +413,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationSSLFailPlain() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .build();
 
         try {
-            new LDAPAuthenticationBackend2(settings, null).authenticate(
+            new LDAPAuthenticationBackend2(settings, new File("").toPath()).authenticate(
                 new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
             );
             Assert.fail("Expected exception");
@@ -387,7 +431,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapExists() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         final LDAPAuthenticationBackend2 lbe = new LDAPAuthenticationBackend2(settings, null);
@@ -399,11 +443,11 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorization() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             // .put("plugins.security.authentication.authorization.ldap.userrolename",
             // "(uniqueMember={0})")
             .build();
@@ -422,37 +466,37 @@ public class LdapBackendTestNewStyleConfig2 {
     }
 
     @Test
-    public void testLdapAuthorizationReturnAttributes() throws Exception {
+    public void testLdapAuthorizationPooled() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember={0})")
-            .putList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, "mail", "cn", "uid")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_POOL_ENABLED, true)
+            // .put("plugins.security.authentication.authorization.ldap.userrolename",
+            // "(uniqueMember={0})")
             .build();
 
         final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
-
-        final String[] attributes = user.getUserEntry().getAttributeNames();
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(attributes.length, is(3));
-        Assert.assertTrue(Arrays.asList(attributes).contains("mail"));
-        Assert.assertTrue(Arrays.asList(attributes).contains("cn"));
-        Assert.assertTrue(Arrays.asList(attributes).contains("uid"));
+        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        assertThat(user.getRoles().size(), is(2));
+        assertThat(new ArrayList<>(new TreeSet<>(user.getRoles())).get(0), is("ceo"));
+        assertThat(user.getUserEntry().getDn(), is(user.getName()));
     }
 
     @Test
     public void testLdapAuthenticationReferral() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         final Connection con = new LDAPConnectionFactoryFactory(settings, null).createBasicConnectionFactory().getConnection();
@@ -494,11 +538,11 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapEscape() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .build();
@@ -518,11 +562,11 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationRoleSearchUsername() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(cn={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(cn={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember=cn={1},ou=people,o=TEST)")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember=cn={1},ou=people,o=TEST)")
             .build();
 
         final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -543,11 +587,11 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationOnly() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .build();
 
         final User user = new User("jacksonm");
@@ -564,36 +608,34 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationNested() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
-            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested2"))
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .build();
 
         final User user = new User("spock");
 
-        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(3));
-        Assert.assertTrue(user.getRoles().contains("nested1"));
-        Assert.assertFalse(user.getRoles().contains("nested2"));
+        assertThat(user.getRoles().size(), is(4));
+        assertThat(new ArrayList<>(new TreeSet<>(user.getRoles())).get(1), is("nested1"));
     }
 
     @Test
     public void testLdapAuthorizationNestedFilter() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "cn=nested2,ou=groups,o=TEST")
             .build();
 
@@ -612,12 +654,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationDnNested() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "dn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .build();
 
         final User user = new User("spock");
@@ -634,13 +676,13 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationDn() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "dn")
             .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "UID")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .build();
 
         final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(new AuthCredentials("jacksonm", "secret".getBytes()));
@@ -657,8 +699,8 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationUserNameAttribute() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
             .build();
 
@@ -673,7 +715,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthenticationStartTLS() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -694,11 +736,11 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationSkipUsers() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .putList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS, "cn=Michael Jackson,ou*people,o=TEST")
             .build();
 
@@ -718,12 +760,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationNestedAttr() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
@@ -743,12 +785,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationNestedAttrFilter() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "cn=rolemo4*")
@@ -767,15 +809,15 @@ public class LdapBackendTestNewStyleConfig2 {
     }
 
     @Test
-    public void testLdapAuthorizationNestedAttrFilterAll() {
+    public void testLdapAuthorizationNestedAttrFilterAll() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "*")
@@ -788,20 +830,21 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
         assertThat(user.getRoles().size(), is(4));
+
     }
 
     @Test
     public void testLdapAuthorizationNestedAttrFilterAllEqualsNestedFalse() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false) // -> same like
                                                                          // putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER,
                                                                          // "*")
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
@@ -820,12 +863,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationNestedAttrNoRoleSearch() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "unused")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "unused")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(((unused")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(((unused")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, false)
             .build();
@@ -845,7 +888,7 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testCustomAttributes() throws Exception {
 
         Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .build();
 
         LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
@@ -854,13 +897,10 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
         assertThat(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().size(), is(16));
-        Assert.assertFalse(
-            user.getCustomAttributesMap().toString(),
-            user.getCustomAttributesMap().keySet().contains("attr.ldap.userpassword")
-        );
+        Assert.assertFalse(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().containsKey("attr.ldap.userpassword"));
 
         settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 0)
             .build();
 
@@ -871,7 +911,7 @@ public class LdapBackendTestNewStyleConfig2 {
         assertThat(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().size(), is(2));
 
         settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .putList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, "*objectclass*", "entryParentId")
             .build();
 
@@ -887,12 +927,12 @@ public class LdapBackendTestNewStyleConfig2 {
     public void testLdapAuthorizationNonDNRoles() throws Exception {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description, ou") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
@@ -912,131 +952,6 @@ public class LdapBackendTestNewStyleConfig2 {
             "Roles do not contain non-LDAP role 'anotherrole' from second role name",
             user.getRoles().contains("anotherrole")
         );
-    }
-
-    @Test
-    public void testChainedLdapAuthentication1() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("users.u2.search", "(uid={0})")
-            .put("users.u2.base", "ou=people2,o=TEST")
-            .build();
-
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
-        );
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-    }
-
-    @Test
-    public void testChainedLdapAuthentication2() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("users.u2.search", "(uid={0})")
-            .put("users.u2.base", "ou=people2,o=TEST")
-            .build();
-
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("presleye", "secret".getBytes(StandardCharsets.UTF_8))
-        );
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Elvis Presley,ou=people2,o=TEST"));
-    }
-
-    @Test(expected = OpenSearchSecurityException.class)
-    public void testChainedLdapAuthenticationDuplicate() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put(ConfigConstants.LDAP_SEARCH_ALL_BASES, true)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("users.u2.search", "(uid={0})")
-            .put("users.u2.base", "ou=people2,o=TEST")
-            .build();
-
-        new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
-        );
-
-        // Fails with OpenSearchSecurityException because two possible instances are
-        // found
-    }
-
-    @Test
-    public void testChainedLdapExists() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u2.search", "(uid={0})")
-            .put("users.u2.base", "ou=people2,o=TEST")
-            .build();
-
-        final LDAPAuthenticationBackend2 lbe = new LDAPAuthenticationBackend2(settings, null);
-        Assert.assertTrue(lbe.exists(new User("jacksonm")));
-        Assert.assertTrue(lbe.exists(new User("presleye")));
-        Assert.assertFalse(lbe.exists(new User("doesnotexist")));
-    }
-
-    @Test
-    public void testChainedLdapAuthorization() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.base", "ou=groups,o=TEST")
-            .put("roles.g1.search", "(uniqueMember={0})")
-            .put("roles.g2.base", "ou=groups2,o=TEST")
-            .put("roles.g2.search", "(uniqueMember={0})")
-            .build();
-
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
-        );
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
-
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(3));
-
-        Assert.assertTrue(user.getRoles().contains("ceo"));
-        Assert.assertTrue(user.getRoles().contains("king"));
-        Assert.assertTrue(user.getRoles().contains("role2"));
-
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
-    }
-
-    @Test
-    public void testCrossChainedLdapAuthorization() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people2,o=TEST")
-            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put("roles.g1.base", "ou=groups,o=TEST")
-            .put("roles.g1.search", "(uniqueMember={0})")
-            .put("roles.g2.base", "ou=groups2,o=TEST")
-            .put("roles.g2.search", "(uniqueMember={0})")
-            .build();
-
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("mercuryf", "secret".getBytes(StandardCharsets.UTF_8))
-        );
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
-
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Freddy Mercury,ou=people2,o=TEST"));
-        assertThat(user.getRoles().size(), is(1));
-
-        Assert.assertTrue(user.getRoles().contains("crossnested2"));
-        // The user is NOT in crossnested1!
     }
 
     @Test
@@ -1184,4 +1099,5 @@ public class LdapBackendTestNewStyleConfig2 {
         }
 
     }
+
 }
