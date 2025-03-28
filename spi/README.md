@@ -112,49 +112,6 @@ Ensure that your **plugin declaration class** implements `ResourceSharingExtensi
 
 ---
 
-### **6. Create a Client Accessor**
-A **singleton accessor** should be created to manage the `ResourceSharingNodeClient`.
-Example:
-```java
-public class ResourceSharingClientAccessor {
-    private static ResourceSharingNodeClient INSTANCE;
-
-    private ResourceSharingClientAccessor() {}
-
-    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
-        if (INSTANCE == null) {
-            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings);
-        }
-        return INSTANCE;
-    }
-}
-```
-
----
-
-### **7. Utilize `ResourceSharingNodeClient` for Access Control**
-Use the **client API methods** to manage resource sharing.
-
-#### **Example: Verifying Resource Access**
-```java
-ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
-resourceSharingClient.verifyResourceAccess(
-    "resource-123",
-    "resource_index",
-    ActionListener.wrap(isAuthorized -> {
-        if (isAuthorized) {
-            System.out.println("User has access to the resource.");
-        } else {
-            System.out.println("Access denied.");
-        }
-    }, e -> {
-        System.err.println("Failed to verify access: " + e.getMessage());
-    })
-);
-```
-
----
-
 ## **License**
 This project is licensed under the **Apache 2.0 License**.
 
