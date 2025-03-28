@@ -28,7 +28,7 @@ import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
+import org.opensearch.security.auth.ldap.LdapUser;
 import org.ldaptive.LdapEntry;
 
 import static org.hamcrest.MatcherAssert.assertThat;

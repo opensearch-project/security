@@ -29,7 +29,7 @@ import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
+import org.opensearch.security.auth.ldap.LdapUser;
 
 import static org.opensearch.security.support.SafeSerializationUtils.prohibitUnsafeClasses;
 

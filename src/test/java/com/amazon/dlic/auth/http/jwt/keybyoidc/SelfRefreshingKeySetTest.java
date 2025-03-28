@@ -22,6 +22,10 @@ import org.junit.Test;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
+import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
+import org.opensearch.security.auth.http.jwt.keybyoidc.BadCredentialsException;
+import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetProvider;
+import org.opensearch.security.auth.http.jwt.keybyoidc.SelfRefreshingKeySet;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

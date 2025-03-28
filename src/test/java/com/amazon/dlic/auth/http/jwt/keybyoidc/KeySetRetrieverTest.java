@@ -35,10 +35,11 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetRetriever;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

@@ -51,6 +51,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
@@ -63,8 +64,8 @@ import org.opensaml.saml.saml2.core.NameIDType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
+import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
+import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
 
 public class HTTPSamlAuthenticatorTest {
     protected MockSamlIdpServer mockSamlIdpServer;
