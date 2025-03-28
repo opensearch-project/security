@@ -30,6 +30,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.ldap.LdapUser;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
+import org.opensearch.security.auth.ldap.util.ConfigConstants;
+import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap2.LDAPAuthenticationBackend2;
 import org.opensearch.security.auth.ldap2.LDAPAuthorizationBackend2;
 import org.opensearch.security.auth.ldap2.LDAPConnectionFactoryFactory;
@@ -39,12 +44,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.auth.ldap.LdapUser;
-import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
-import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
 import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
-import org.opensearch.security.auth.ldap.util.ConfigConstants;
-import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;

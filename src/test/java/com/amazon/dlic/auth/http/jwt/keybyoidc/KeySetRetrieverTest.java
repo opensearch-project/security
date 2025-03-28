@@ -38,7 +38,6 @@ import org.junit.Test;
 import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetRetriever;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
-
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 
 import static org.hamcrest.MatcherAssert.assertThat;

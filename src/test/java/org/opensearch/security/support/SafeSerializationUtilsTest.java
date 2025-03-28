@@ -21,9 +21,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import org.opensearch.security.auth.UserInjector;
+import org.opensearch.security.auth.ldap.LdapUser;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.auth.ldap.LdapUser;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;

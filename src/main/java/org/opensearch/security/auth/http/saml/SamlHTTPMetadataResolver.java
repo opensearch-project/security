@@ -24,8 +24,8 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4;
+
 import net.shibboleth.shared.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 

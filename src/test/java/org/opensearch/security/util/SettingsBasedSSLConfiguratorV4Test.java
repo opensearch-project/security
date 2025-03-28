@@ -67,7 +67,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
-
 import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import static org.hamcrest.CoreMatchers.either;

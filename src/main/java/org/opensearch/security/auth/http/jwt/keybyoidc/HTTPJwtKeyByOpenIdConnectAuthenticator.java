@@ -14,7 +14,6 @@ package org.opensearch.security.auth.http.jwt.keybyoidc;
 import java.nio.file.Path;
 
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 

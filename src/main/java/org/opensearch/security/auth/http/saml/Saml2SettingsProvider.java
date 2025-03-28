@@ -28,8 +28,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
+
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.settings.SettingsBuilder;
 import net.shibboleth.shared.resolver.CriteriaSet;

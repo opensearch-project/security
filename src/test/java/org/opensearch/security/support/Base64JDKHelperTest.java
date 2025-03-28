@@ -25,10 +25,10 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.security.auth.UserInjector;
+import org.opensearch.security.auth.ldap.LdapUser;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.auth.ldap.LdapUser;
 import org.ldaptive.LdapEntry;
 
 import static org.hamcrest.MatcherAssert.assertThat;

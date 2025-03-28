@@ -23,12 +23,11 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.LdapUser;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
+import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
-
-import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
-import org.opensearch.security.auth.ldap.util.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

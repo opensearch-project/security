@@ -34,9 +34,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.DefaultObjectMapper;
-
 import org.opensearch.security.auth.http.jwt.oidc.json.OpenIdProviderConfiguration;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfig;
+
 import com.nimbusds.jose.jwk.JWKSet;
 import joptsimple.internal.Strings;
 

@@ -43,12 +43,12 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.auth.http.kerberos.util.JaasKrbUtil;
+import org.opensearch.security.auth.http.kerberos.util.KrbConstants;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
-import org.opensearch.security.auth.http.kerberos.util.JaasKrbUtil;
-import org.opensearch.security.auth.http.kerberos.util.KrbConstants;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
