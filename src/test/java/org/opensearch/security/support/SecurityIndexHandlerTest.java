@@ -302,6 +302,34 @@ public class SecurityIndexHandlerTest {
     }
 
     @Test
+    public void testUploadDefaultConfiguration_includeAuditFileIfPresent() throws IOException {
+        final var listener = spy(
+            ActionListener.<Set<SecurityConfig>>wrap(
+                configuration -> assertTrue(configuration.stream().anyMatch(sc -> sc.type() == CType.AUDIT)),
+                e -> fail("Unexpected behave")
+            )
+        );
+
+        for (final var c : CType.values()) {
+            try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
+                final var source = YAML.get(c).get();
+                io.write(source);
+                io.flush();
+            }
+        }
+        doAnswer(invocation -> {
+            ActionListener<BulkResponse> actionListener = invocation.getArgument(1);
+            final var r = mock(BulkResponse.class);
+            when(r.hasFailures()).thenReturn(false);
+            actionListener.onResponse(r);
+            return null;
+        }).when(client).bulk(any(BulkRequest.class), any());
+
+        securityIndexHandler.uploadDefaultConfiguration(configFolder, listener);
+        verify(listener).onResponse(any());
+    }
+
+    @Test
     public void testLoadConfiguration_shouldFailIfResponseHasFailures() {
         final var listener = spy(
             ActionListener.<ConfigurationMap>wrap(
