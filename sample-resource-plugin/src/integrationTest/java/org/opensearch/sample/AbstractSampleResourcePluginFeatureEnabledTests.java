@@ -13,7 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -52,8 +52,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            ResourcePluginInfo.getInstance().getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
-            ResourcePluginInfo.getInstance().getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
         }
     }
 
@@ -98,13 +98,13 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.getStatusReason(), containsString("Created"));
             resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
             // Also update the in-memory map and get
-            ResourcePluginInfo.getInstance().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
             ResourceProvider provider = new ResourceProvider(
                 SampleResource.class.getCanonicalName(),
                 RESOURCE_INDEX_NAME,
                 new SampleResourceParser()
             );
-            ResourcePluginInfo.getInstance().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
@@ -327,13 +327,13 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             assertThat(response.getStatusReason(), containsString("Created"));
             resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
             // Also update the in-memory map and get
-            ResourcePluginInfo.getInstance().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
             ResourceProvider provider = new ResourceProvider(
                 SampleResource.class.getCanonicalName(),
                 RESOURCE_INDEX_NAME,
                 new SampleResourceParser()
             );
-            ResourcePluginInfo.getInstance().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             Thread.sleep(1000);
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
