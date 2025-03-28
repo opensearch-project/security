@@ -67,7 +67,7 @@ import static org.opensearch.security.authtoken.jwt.KeyPaddingUtil.padSecret;
 
 class AuthTokenProcessorHandler {
     private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
-    private static final Logger token_log = LogManager.getLogger("com.amazon.dlic.auth.http.saml.Token");
+    private static final Logger token_log = LogManager.getLogger("org.opensearch.security.auth.http.saml.Token");
     private static final Pattern EXPIRY_SETTINGS_PATTERN = Pattern.compile("\\s*(\\w+)\\s*(?:\\+\\s*(\\w+))?\\s*");
 
     private Saml2SettingsProvider saml2SettingsProvider;
