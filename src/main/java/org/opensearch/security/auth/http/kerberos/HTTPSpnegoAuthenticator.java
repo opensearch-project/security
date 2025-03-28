@@ -92,8 +92,6 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                             System.setProperty("sun.security.krb5.debug", "true");
                             System.setProperty("java.security.debug", "gssloginconfig,logincontext,configparser,configfile");
                             System.setProperty("sun.security.spnego.debug", "true");
-                            System.out.println("Kerberos debug is enabled");
-                            System.err.println("Kerberos debug is enabled");
                             log.info("Kerberos debug is enabled on stdout");
                         } else {
                             log.debug("Kerberos debug is NOT enabled");
