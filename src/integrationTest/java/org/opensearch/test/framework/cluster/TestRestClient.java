@@ -1,30 +1,30 @@
 /*
-* Copyright 2021 floragunn GmbH
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ * Copyright 2021 floragunn GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
 /*
-* SPDX-License-Identifier: Apache-2.0
-*
-* The OpenSearch Contributors require contributions made to
-* this file be licensed under the Apache-2.0 license or a
-* compatible open source license.
-*
-* Modifications Copyright OpenSearch Contributors. See
-* GitHub history for details.
-*/
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
 
 package org.opensearch.test.framework.cluster;
 
@@ -79,18 +79,18 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
-* A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
-* obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
-*
-* Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
-* instance from OpenSearchClientProvider.
-*/
+ * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
+ * obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
+ *
+ * Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
+ * instance from OpenSearchClientProvider.
+ */
 public class TestRestClient implements AutoCloseable {
 
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
-    private boolean enableHTTPClientSSL = true;
-    private boolean sendHTTPClientCertificate = false;
+    private boolean enableHTTPClientSSL;
+    private boolean sendHTTPClientCertificate;
     private InetSocketAddress nodeHttpAddress;
     private RequestConfig requestConfig;
     private List<Header> headers = new ArrayList<>();
@@ -99,11 +99,20 @@ public class TestRestClient implements AutoCloseable {
 
     private final InetAddress sourceInetAddress;
 
-    public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext, InetAddress sourceInetAddress) {
+    public TestRestClient(
+            InetSocketAddress nodeHttpAddress,
+            List<Header> headers,
+            SSLContext sslContext,
+            InetAddress sourceInetAddress,
+            boolean enableHTTPClientSSL,
+            boolean sendHTTPClientCertificate
+    ) {
         this.nodeHttpAddress = nodeHttpAddress;
         this.headers.addAll(headers);
         this.sslContext = sslContext;
         this.sourceInetAddress = sourceInetAddress;
+        this.enableHTTPClientSSL = enableHTTPClientSSL;
+        this.sendHTTPClientCertificate = sendHTTPClientCertificate;
     }
 
     public HttpResponse get(String path, Header... headers) {
@@ -126,7 +135,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse getAuthInfo(Map<String, String> urlParams, Header... headers) {
         String urlParamsString = "?"
-            + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
+                + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo" + urlParamsString), headers);
     }
 
@@ -308,9 +317,9 @@ public class TestRestClient implements AutoCloseable {
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
             } else {
                 assertThat(
-                    "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
-                    body.charAt(0),
-                    not(equalTo('{'))
+                        "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
+                        body.charAt(0),
+                        not(equalTo('{'))
                 );
             }
 
@@ -346,8 +355,8 @@ public class TestRestClient implements AutoCloseable {
 
         public Optional<Header> findHeader(String name) {
             return Arrays.stream(header)
-                .filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
-                .findFirst();
+                    .filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
+                    .findFirst();
         }
 
         public Header getHeader(String name) {
@@ -376,8 +385,8 @@ public class TestRestClient implements AutoCloseable {
 
         public List<String> getTextArrayFromJsonBody(String jsonPointer) {
             return StreamSupport.stream(getJsonNodeAt(jsonPointer).spliterator(), false)
-                .map(JsonNode::textValue)
-                .collect(Collectors.toList());
+                    .map(JsonNode::textValue)
+                    .collect(Collectors.toList());
         }
 
         public int getIntFromJsonBody(String jsonPointer) {
@@ -411,16 +420,16 @@ public class TestRestClient implements AutoCloseable {
         @Override
         public String toString() {
             return "HttpResponse [inner="
-                + inner
-                + ", body="
-                + body
-                + ", header="
-                + Arrays.toString(header)
-                + ", statusCode="
-                + statusCode
-                + ", statusReason="
-                + statusReason
-                + "]";
+                    + inner
+                    + ", body="
+                    + body
+                    + ", header="
+                    + Arrays.toString(header)
+                    + ", statusCode="
+                    + statusCode
+                    + ", statusReason="
+                    + statusReason
+                    + "]";
         }
 
         public <T> T getBodyAs(Class<T> authInfoClass) {
