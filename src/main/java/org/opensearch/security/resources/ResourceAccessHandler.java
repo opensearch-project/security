@@ -49,15 +49,18 @@ public class ResourceAccessHandler {
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
-        AdminDNs adminDns
+        AdminDNs adminDns,
+        ResourcePluginInfo resourcePluginInfo
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     /**
@@ -161,8 +164,7 @@ public class ResourceAccessHandler {
         try {
             validateArguments(resourceIndex);
 
-            ShareableResourceParser<T> parser = (ShareableResourceParser<T>) ResourcePluginInfo.getInstance()
-                .getResourceProviders()
+            ShareableResourceParser<T> parser = (ShareableResourceParser<T>) resourcePluginInfo.getResourceProviders()
                 .get(resourceIndex)
                 .shareableResourceParser();
 

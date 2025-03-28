@@ -58,6 +58,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -300,6 +301,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexManagementRepository resourceSharingIndexManagementRepository;
+    private static final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
     public static boolean isActionTraceEnabled() {
 
@@ -771,7 +773,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             if (settings.getAsBoolean(
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            ) && ResourcePluginInfo.getInstance().getResourceIndices().contains(indexModule.getIndex().getName())) {
+            ) && resourcePluginInfo.getResourceIndices().contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceIndexListener);
                 log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
@@ -1182,7 +1184,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
+
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
         // Resource Sharing index is enabled by default
         boolean isResourceSharingEnabled = settings.getAsBoolean(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
@@ -2320,11 +2323,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resourceProviders.put(resourceIndexName, resourceProvider);
                 log.info("Loaded resource sharing extension: {}, index: {}", resourceType, resourceIndexName);
             }
-            ResourcePluginInfo.getInstance().setResourceIndices(resourceIndices);
-            ResourcePluginInfo.getInstance().setResourceProviders(resourceProviders);
+            resourcePluginInfo.setResourceIndices(resourceIndices);
+            resourcePluginInfo.setResourceProviders(resourceProviders);
         }
     }
     // CS-ENFORCE-SINGLE
+
+    @VisibleForTesting
+    public static ResourcePluginInfo getResourcePluginInfo() {
+        return resourcePluginInfo;
+    }
 
     public static class GuiceHolder implements LifecycleComponent {
 

@@ -28,15 +28,6 @@ public class ResourcePluginInfo {
     private final Map<String, ResourceProvider> resourceProviderMap = new HashMap<>();
     private final Set<String> resourceIndices = new HashSet<>();
 
-    private ResourcePluginInfo() {}
-
-    public static ResourcePluginInfo getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new ResourcePluginInfo();
-        }
-        return INSTANCE;
-    }
-
     public void setResourceProviders(Map<String, ResourceProvider> providerMap) {
         resourceProviderMap.clear();
         resourceProviderMap.putAll(providerMap);
