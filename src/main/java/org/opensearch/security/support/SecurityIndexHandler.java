@@ -98,12 +98,7 @@ public class SecurityIndexHandler {
                     for (final var cType : CType.values()) {
                         final var fileExists = Files.exists(cType.configFile(configDir));
                         // Audit config is not packaged by default and while list is deprecated
-                        if ((cType == CType.AUDIT || cType == CType.WHITELIST) && !fileExists) continue;
-                        if (cType == CType.WHITELIST) {
-                            LOGGER.warn(
-                                "WHITELIST configuration type is deprecated and will be replaced with ALLOWLIST in the next major version"
-                            );
-                        }
+                        if (cType == CType.AUDIT && !fileExists) continue;
                         final var yamlContent = yamlContentFor(cType, configDir);
                         final var hash = Hashing.goodFastHash(MINIMUM_HASH_BITS).hashBytes(yamlContent.toBytesRef().bytes);
                         configuration.add(new SecurityConfig(cType, hash.toString(), null));

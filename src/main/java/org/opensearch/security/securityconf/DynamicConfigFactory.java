@@ -171,7 +171,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<RoleMappingsV7> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<TenantV7> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<NodesDn> nodesDn = cr.getConfiguration(CType.NODESDN);
-        SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting = cr.getConfiguration(CType.WHITELIST);
         SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSetting = cr.getConfiguration(CType.ALLOWLIST);
 
         if (log.isDebugEnabled()) {
@@ -213,11 +212,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 + " with "
                 + nodesDn.getCEntries().size()
                 + " entries\n"
-                + " whitelist "
-                + whitelistingSetting.getImplementingClass()
-                + " with "
-                + whitelistingSetting.getCEntries().size()
-                + " entries\n"
                 + " allowlist "
                 + allowlistingSetting.getImplementingClass()
                 + " with "
@@ -230,7 +224,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final WhitelistingSettings whitelist = cr.getConfiguration(CType.WHITELIST).getCEntry("config");
         final AllowlistingSettings allowlist = cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
@@ -278,7 +271,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(whitelist == null ? defaultWhitelistingSettings : whitelist);
         eventBus.post(allowlist == null ? defaultAllowlistingSettings : allowlist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit == null ? defaultAuditConfig : audit);

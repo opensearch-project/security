@@ -172,15 +172,6 @@ public class DynamicSecurityConfig {
 
         }
 
-        final String whitelistYmlFile = prefix + securityWhitelist;
-        if (null != FileHelper.getAbsoluteFilePathFromClassPath(whitelistYmlFile)) {
-            ret.add(
-                new IndexRequest(securityIndexName).id(CType.WHITELIST.toLCString())
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(whitelistYmlFile))
-            );
-        }
-
         final String allowlistYmlFile = prefix + securityAllowlist;
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(allowlistYmlFile)) {
             ret.add(

@@ -122,9 +122,7 @@ public class SecurityIndexHandlerTest {
         CType.ROLESMAPPING,
         () -> ROLES_MAPPING_YAML,
         CType.TENANTS,
-        () -> emptyYamlConfigFor(CType.TENANTS),
-        CType.WHITELIST,
-        () -> emptyYamlConfigFor(CType.WHITELIST)
+        () -> emptyYamlConfigFor(CType.TENANTS)
     );
 
     @Rule
@@ -285,35 +283,6 @@ public class SecurityIndexHandlerTest {
 
         for (final var c : CType.requiredConfigTypes()) {
             if (c == CType.AUDIT) continue;
-            try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
-                final var source = YAML.get(c).get();
-                io.write(source);
-                io.flush();
-            }
-        }
-        doAnswer(invocation -> {
-            ActionListener<BulkResponse> actionListener = invocation.getArgument(1);
-            final var r = mock(BulkResponse.class);
-            when(r.hasFailures()).thenReturn(false);
-            actionListener.onResponse(r);
-            return null;
-        }).when(client).bulk(any(BulkRequest.class), any());
-
-        securityIndexHandler.uploadDefaultConfiguration(configFolder, listener);
-        verify(listener).onResponse(any());
-    }
-
-    @Test
-    public void testUploadDefaultConfiguration_shouldSkipWhitelist() throws IOException {
-        final var listener = spy(
-            ActionListener.<Set<SecurityConfig>>wrap(
-                configuration -> assertFalse(configuration.stream().anyMatch(sc -> sc.type() == CType.WHITELIST)),
-                e -> fail("Unexpected behave")
-            )
-        );
-
-        for (final var c : CType.requiredConfigTypes()) {
-            if (c == CType.WHITELIST) continue;
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 final var source = YAML.get(c).get();
                 io.write(source);
