@@ -845,8 +845,6 @@ public class SecurityAdmin {
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(restHighLevelClient, cd + "nodes_dn_" + date + ".yml", index, "nodesdn", populateFileIfEmpty)
                     && success;
-                success = retrieveFile(restHighLevelClient, cd + "whitelist_" + date + ".yml", index, "whitelist", populateFileIfEmpty)
-                    && success;
                 success = retrieveFile(restHighLevelClient, cd + "allowlist_" + date + ".yml", index, "allowlist", populateFileIfEmpty)
                     && success;
                 return (success ? 0 : -1);
@@ -1355,7 +1353,6 @@ public class SecurityAdmin {
 
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/tenants.yml", index, "tenants") && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/nodes_dn.yml", index, "nodesdn", true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/whitelist.yml", index, "whitelist", true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/allowlist.yml", index, "allowlist", true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit") && success;
 
@@ -1374,7 +1371,6 @@ public class SecurityAdmin {
         success = uploadFile(tc, cd + "tenants.yml", index, "tenants", resolveEnvVars) && success;
 
         success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd + "whitelist.yml", index, "whitelist", resolveEnvVars) && success;
         if (new File(cd + "audit.yml").exists()) {
             success = uploadFile(tc, cd + "audit.yml", index, "audit", resolveEnvVars) && success;
         }

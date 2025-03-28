@@ -60,7 +60,7 @@ admin_all_access:
   backend_roles:
     - "vulcan"
   attributes: {}
-  description: "sample user with all_access, used to test whitelisting"
+  description: "sample user with all_access, used to test allowlisting"
 rest_api_admin_user:
   hash: "$2y$12$X5ZamIheHYc2bihGTbK66Oe1.1vJ19akH0OFGF7TvI2BhbbED.KcO"
   reserved: false

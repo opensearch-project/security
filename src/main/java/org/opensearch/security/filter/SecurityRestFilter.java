@@ -55,7 +55,6 @@ import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -86,7 +85,6 @@ public class SecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    private WhitelistingSettings whitelistingSettings;
     private AllowlistingSettings allowlistingSettings;
 
     public static final String HEALTH_SUFFIX = "health";
@@ -114,7 +112,6 @@ public class SecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
-        this.whitelistingSettings = new WhitelistingSettings();
         this.allowlistingSettings = new AllowlistingSettings();
     }
 
@@ -179,8 +176,7 @@ public class SecurityRestFilter {
             if (user != null) {
                 auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
             }
-            final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
-                .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
+            final Optional<SecurityResponse> deniedResponse = allowlistingSettings.checkRequestIsAllowed(requestChannel);
 
             if (deniedResponse.isPresent()) {
                 channel.sendResponse(deniedResponse.get().asRestResponse());
@@ -207,7 +203,7 @@ public class SecurityRestFilter {
      * If allowlisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are allowlisted in {@link #requests}
      * For example: if allowlisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
-     * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
+     * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_opendistro/_security/api/allowlist is only accessible by SuperAdmin.
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
@@ -318,11 +314,6 @@ public class SecurityRestFilter {
                 );
             }
         }
-    }
-
-    @Subscribe
-    public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
-        this.whitelistingSettings = whitelistingSettings;
     }
 
     @Subscribe
