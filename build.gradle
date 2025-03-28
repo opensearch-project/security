@@ -503,7 +503,6 @@ configurations {
             force "org.mockito:mockito-core:5.16.1"
             force "net.bytebuddy:byte-buddy:1.15.11"
             force "org.ow2.asm:asm:9.7.1"
-            force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
     }
 
@@ -722,7 +721,7 @@ dependencies {
     runtimeOnly 'com.google.guava:failureaccess:1.0.3'
     runtimeOnly 'org.apache.commons:commons-text:1.13.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.0.0'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
