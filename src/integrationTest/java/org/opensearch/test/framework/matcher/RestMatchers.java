@@ -18,6 +18,35 @@ public class RestMatchers {
 
     private RestMatchers() {}
 
+    public static DiagnosingMatcher<HttpResponse> isOk() {
+        return new DiagnosingMatcher<HttpResponse>() {
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Response has status 200 OK");
+            }
+
+            @Override
+            protected boolean matches(Object item, Description mismatchDescription) {
+                if (!(item instanceof HttpResponse)) {
+                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
+                    return false;
+                }
+
+                HttpResponse response = (HttpResponse) item;
+
+                if (response.getStatusCode() == 200) {
+                    return true;
+                } else {
+                    mismatchDescription.appendText("Status is not 200 OK: ").appendValue(item);
+                    return false;
+                }
+
+            }
+
+        };
+    }
+
     public static DiagnosingMatcher<HttpResponse> isForbidden(String jsonPointer, String patternString) {
         return new DiagnosingMatcher<HttpResponse>() {
 
