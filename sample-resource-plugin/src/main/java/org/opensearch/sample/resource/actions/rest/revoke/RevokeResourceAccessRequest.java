@@ -9,12 +9,12 @@
 package org.opensearch.sample.resource.actions.rest.revoke;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
 /**
  * Request object for revoking access to a sample resource
@@ -22,22 +22,22 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 public class RevokeResourceAccessRequest extends ActionRequest {
 
     String resourceId;
-    Map<String, Object> entitiesToRevoke;
+    SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke;
 
-    public RevokeResourceAccessRequest(String resourceId, Map<String, Object> entitiesToRevoke) {
+    public RevokeResourceAccessRequest(String resourceId, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke) {
         this.resourceId = resourceId;
         this.entitiesToRevoke = entitiesToRevoke;
     }
 
     public RevokeResourceAccessRequest(StreamInput in) throws IOException {
         resourceId = in.readString();
-        entitiesToRevoke = in.readMap();
+        entitiesToRevoke = in.readNamedWriteable(SharedWithActionGroup.ActionGroupRecipients.class);
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         out.writeString(resourceId);
-        out.writeMap(entitiesToRevoke);
+        out.writeNamedWriteable(entitiesToRevoke);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         return resourceId;
     }
 
-    public Map<String, Object> getEntitiesToRevoke() {
+    public SharedWithActionGroup.ActionGroupRecipients getEntitiesToRevoke() {
         return entitiesToRevoke;
     }
 }

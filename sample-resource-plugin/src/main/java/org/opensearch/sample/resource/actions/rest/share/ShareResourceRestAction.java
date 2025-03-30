@@ -12,11 +12,16 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -57,7 +62,20 @@ public class ShareResourceRestAction extends BaseRestHandler {
 
         Map<String, Object> shareWith = (Map<String, Object>) source.get("share_with");
 
-        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, shareWith);
+        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, parseShareWith(shareWith));
         return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
+    }
+
+    private SharedWithActionGroup.ActionGroupRecipients parseShareWith(Map<String, Object> source) throws IOException {
+        String jsonString = XContentFactory.jsonBuilder().map(source).toString();
+
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
+        ) {
+            return SharedWithActionGroup.ActionGroupRecipients.fromXContent(parser);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+        }
     }
 }
