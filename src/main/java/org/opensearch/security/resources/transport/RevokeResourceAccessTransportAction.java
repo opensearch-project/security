@@ -8,10 +8,6 @@
 
 package org.opensearch.security.resources.transport;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -23,7 +19,6 @@ import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessAction;
 import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessRequest;
 import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessResponse;
-import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -70,15 +65,9 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
         resourceAccessHandler.revokeAccess(
             request.getResourceId(),
             request.getResourceIndex(),
-            parseRevokedEntities(request.getRevokedEntities()),
+            request.getRevokedEntities(),
             request.getActionGroups(),
             ActionListener.wrap(success -> listener.onResponse(new RevokeResourceAccessResponse(success)), listener::onFailure)
         );
-    }
-
-    private Map<Recipient, Set<String>> parseRevokedEntities(Map<String, Set<String>> revokeSource) {
-        return revokeSource.entrySet()
-            .stream()
-            .collect(Collectors.toMap(entry -> Recipient.fromValue(entry.getKey()), Map.Entry::getValue));
     }
 }

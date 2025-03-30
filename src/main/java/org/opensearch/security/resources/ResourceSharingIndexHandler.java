@@ -74,6 +74,7 @@ import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -663,7 +664,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, org.opensearch.security.spi.resources.sharing.SharedWithActionGroup.ActionGroupRecipients, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -830,13 +831,13 @@ public class ResourceSharingIndexHandler {
     public void revokeAccess(
         String resourceId,
         String sourceIdx,
-        Map<Recipient, Set<String>> revokeAccess,
+        SharedWithActionGroup.ActionGroupRecipients revokeAccess,
         Set<String> actionGroups,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
     ) {
-        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
+        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null) {
             listener.onFailure(new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty"));
             return;
         }
@@ -871,7 +872,7 @@ public class ResourceSharingIndexHandler {
                 }
 
                 Map<String, Object> revoke = new HashMap<>();
-                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.entrySet()) {
+                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.getRecipients().entrySet()) {
                     revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();

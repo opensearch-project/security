@@ -9,19 +9,23 @@
 package org.opensearch.security.resources.rest.revoke;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
 /**
  * This class represents a request to revoke access to a resource for given entities.
@@ -32,7 +36,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
 
     private final String resourceId;
     private final String resourceIndex;
-    private final Map<String, Set<String>> revokedEntities;
+    private final SharedWithActionGroup.ActionGroupRecipients revokedEntities;
     private final Set<String> actionGroups;
 
     /**
@@ -74,7 +78,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         super(in);
         this.resourceId = in.readOptionalString();
         this.resourceIndex = in.readOptionalString();
-        this.revokedEntities = in.readMap(StreamInput::readString, valIn -> valIn.readSet(StreamInput::readString));
+        this.revokedEntities = in.readNamedWriteable(SharedWithActionGroup.ActionGroupRecipients.class);
         this.actionGroups = in.readSet(StreamInput::readString);
     }
 
@@ -82,7 +86,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeOptionalString(resourceId);
         out.writeOptionalString(resourceIndex);
-        out.writeMap(revokedEntities, StreamOutput::writeString, StreamOutput::writeStringCollection);
+        out.writeNamedWriteable(revokedEntities);
         out.writeStringCollection(actionGroups);
     }
 
@@ -99,7 +103,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         return resourceIndex;
     }
 
-    public Map<String, Set<String>> getRevokedEntities() {
+    public SharedWithActionGroup.ActionGroupRecipients getRevokedEntities() {
         return revokedEntities;
     }
 
@@ -113,7 +117,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
     public static class Builder {
         private String resourceId;
         private String resourceIndex;
-        private Map<String, Set<String>> revokedEntities;
+        private SharedWithActionGroup.ActionGroupRecipients revokedEntities;
         private Set<String> actionGroups;
 
         public Builder resourceId(String resourceId) {
@@ -135,6 +139,15 @@ public class RevokeResourceAccessRequest extends ActionRequest {
             return this;
         }
 
+        public Builder revokedEntities(SharedWithActionGroup.ActionGroupRecipients entities) {
+            try {
+                this.revokedEntities = entities;
+            } catch (Exception e) {
+                this.revokedEntities = null;
+            }
+            return this;
+        }
+
         public Builder actionGroups(Set<String> actionGroups) {
             this.actionGroups = actionGroups;
             return this;
@@ -147,20 +160,22 @@ public class RevokeResourceAccessRequest extends ActionRequest {
             return new RevokeResourceAccessRequest(this);
         }
 
-        private Map<String, Set<String>> parseRevokedEntities(Map<String, Object> source) {
+        private SharedWithActionGroup.ActionGroupRecipients parseRevokedEntities(Map<String, Object> source) throws IOException {
+            if (source == null || source.isEmpty()) {
+                throw new IllegalArgumentException("entities_to_revoke is required and cannot be empty");
+            }
 
-            return source.entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() instanceof Collection<?>)
-                .collect(
-                    Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> ((Collection<?>) entry.getValue()).stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .collect(Collectors.toSet())
-                    )
-                );
+            String jsonString = XContentFactory.jsonBuilder().map(source).toString();
+
+            try (
+                XContentParser parser = XContentType.JSON.xContent()
+                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
+            ) {
+
+                return SharedWithActionGroup.ActionGroupRecipients.fromXContent(parser);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+            }
         }
     }
 }

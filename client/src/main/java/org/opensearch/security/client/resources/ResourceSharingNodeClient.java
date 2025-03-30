@@ -8,7 +8,6 @@
 
 package org.opensearch.security.client.resources;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +30,7 @@ import org.opensearch.security.resources.rest.verify.VerifyResourceAccessRequest
 import org.opensearch.security.resources.rest.verify.VerifyResourceAccessResponse;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
 
@@ -81,21 +81,21 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      *
      * @param resourceId    The ID of the resource to share.
      * @param resourceIndex The index containing the resource.
-     * @param shareWith     A map of entities (users/roles/backend roles) to share with.
+     * @param recipients    The recipients of the resource, including users, roles, and backend roles.
      * @param listener      Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
     public void shareResource(
         String resourceId,
         String resourceIndex,
-        Map<String, Object> shareWith,
+        SharedWithActionGroup.ActionGroupRecipients recipients,
         ActionListener<ResourceSharing> listener
     ) {
         if (handleIfDisabled("Resource is not shareable.", listener)) return;
 
         ShareResourceRequest request = new ShareResourceRequest.Builder().resourceId(resourceId)
             .resourceIndex(resourceIndex)
-            .shareWith(shareWith)
+            .shareWith(recipients)
             .build();
 
         client.execute(ShareResourceAction.INSTANCE, request, sharingResponseListener(listener));
@@ -113,7 +113,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     public void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
-        Map<String, Object> entitiesToRevoke,
+        SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     ) {
         if (handleIfDisabled("Resource access is not revoked.", listener)) return;

@@ -243,10 +243,11 @@ sample_full_access:
 
 sample_read_access:
   cluster_permissions:
-    - 'cluster:admin/security/resource_access/*'
+    - 'cluster:admin/security/resource_access/list'
     - 'cluster:admin/sample-resource-plugin/get'
 ```
 
+> Note: `cluster:admin/security/resource_access/*` encapsulates `cluster:admin/security/resource_access/list`, `cluster:admin/security/resource_access/revoke`, `cluster:admin/security/resource_access/share` and `cluster:admin/security/resource_access/verify` permissions. If a user is only intended to list their own resources then `/*` must be replaced with `/list`.
 
 ### **User Access Rules**
 1. **Users must have the required cluster permissions**

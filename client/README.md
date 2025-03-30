@@ -46,7 +46,6 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
     resourceSharingClient.verifyResourceAccess(
         resourceId,
         RESOURCE_INDEX_NAME,
-        SampleResourceScope.PUBLIC.value(),
         ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN));
@@ -129,21 +128,15 @@ void shareResource(String resourceId, String resourceIndex, Map<String, Object> 
 
 #### **Example Usage:**
 ```java
-Map<String, Object> shareWith = Map.of(
-    "users", List.of("user_1", "user_2"),
-    "roles", List.of("admin_role"),
-    "backend_roles", List.of("backend_group")
-);
 
 resourceSharingClient.shareResource(
-    "resource-123",
-    "resource_index",
-    shareWith,
-    ActionListener.wrap(response -> {
-        System.out.println("Resource successfully shared with: " + shareWith);
-    }, e -> {
-        System.err.println("Failed to share resource: " + e.getMessage());
-    })
+    request.getResourceId(),
+    RESOURCE_INDEX_NAME,
+    request.getShareWith(),
+    ActionListener.wrap(sharing -> {
+        ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
+        listener.onResponse(response);
+    }, listener::onFailure)
 );
 ```
 > **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
@@ -160,20 +153,14 @@ void revokeResourceAccess(String resourceId, String resourceIndex, Map<String, O
 
 #### **Example Usage:**
 ```java
-Map<String, Object> entitiesToRevoke = Map.of(
-    "users", List.of("user_2"),
-    "roles", List.of("viewer_role")
-);
-
 resourceSharingClient.revokeResourceAccess(
-    "resource-123",
-    "resource_index",
-    entitiesToRevoke,
-    ActionListener.wrap(response -> {
-        System.out.println("Resource access successfully revoked for: " + entitiesToRevoke);
-    }, e -> {
-        System.err.println("Failed to revoke access: " + e.getMessage());
-    })
+    request.getResourceId(),
+    RESOURCE_INDEX_NAME,
+    request.getEntitiesToRevoke(),
+    ActionListener.wrap(success -> {
+        RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());
+            listener.onResponse(response);
+        }, listener::onFailure)
 );
 ```
 > **Use Case:** When a user no longer needs access to a **resource**, their permissions can be revoked.
@@ -191,14 +178,19 @@ void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? exten
 #### **Example Usage:**
 ```java
 resourceSharingClient.listAllAccessibleResources(
-    "resource_index",
-    ActionListener.wrap(shareableResources -> {
-        for (Resource resource : shareableResources) {
-            System.out.println("Accessible Resource: " + resource.getId());
-        }
-    }, e -> {
-        System.err.println("Failed to list accessible shareableResources: " + e.getMessage());
-    })
+        RESOURCE_INDEX_NAME,
+        ActionListener.wrap(
+                resources -> {
+                    listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
+                    },
+                failure -> {
+                    if (failure instanceof OpenSearchStatusException && ((OpenSearchStatusException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
+                        getAllResourcesAction(listener);
+                        return;
+                    }
+                    listener.onFailure(failure);
+                }
+        )
 );
 ```
 > **Use Case:** Helps a user identify **which shareableResources they can interact with**.

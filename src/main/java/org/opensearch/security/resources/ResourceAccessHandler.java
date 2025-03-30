@@ -336,7 +336,7 @@ public class ResourceAccessHandler {
     public void revokeAccess(
         String resourceId,
         String resourceIndex,
-        Map<Recipient, Set<String>> revokeAccess,
+        SharedWithActionGroup.ActionGroupRecipients revokeAccess,
         Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {

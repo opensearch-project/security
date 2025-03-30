@@ -11,6 +11,7 @@ package org.opensearch.security.resources.rest.share;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -25,6 +26,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
 /**
  * This class represents a request to share access to a resource.
@@ -125,8 +127,22 @@ public class ShareResourceRequest extends ActionRequest {
             return this;
         }
 
+        public Builder shareWith(SharedWithActionGroup.ActionGroupRecipients recipients) {
+            try {
+                this.shareWith = parseShareWith(recipients);
+            } catch (Exception e) {
+                this.shareWith = null;
+            }
+            return this;
+        }
+
         public ShareResourceRequest build() {
             return new ShareResourceRequest(this);
+        }
+
+        private ShareWith parseShareWith(SharedWithActionGroup.ActionGroupRecipients recipients) {
+            SharedWithActionGroup s = new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
+            return new ShareWith(Set.of(s));
         }
 
         private ShareWith parseShareWith(Map<String, Object> source) throws IOException {

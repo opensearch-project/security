@@ -8,12 +8,12 @@
 
 package org.opensearch.security.client.resources;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
 /**
  * Interface for resource sharing client operations.
@@ -34,10 +34,15 @@ public interface ResourceSharingClient {
      * Shares a resource with the specified users, roles, and backend roles.
      * @param resourceId     The ID of the resource to share.
      * @param resourceIndex  The index containing the resource.
-     * @param shareWith      The users, roles, and backend roles to share the resource with.
+     * @param recipients     The users, roles, and backend roles to share the resource with.
      * @param listener       The listener to be notified with the updated ResourceSharing document.
      */
-    void shareResource(String resourceId, String resourceIndex, Map<String, Object> shareWith, ActionListener<ResourceSharing> listener);
+    void shareResource(
+        String resourceId,
+        String resourceIndex,
+        SharedWithActionGroup.ActionGroupRecipients recipients,
+        ActionListener<ResourceSharing> listener
+    );
 
     /**
      * Revokes access to a resource for the specified entities.
@@ -49,7 +54,7 @@ public interface ResourceSharingClient {
     void revokeResourceAccess(
         String resourceId,
         String resourceIndex,
-        Map<String, Object> entitiesToRevoke,
+        SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     );
 
