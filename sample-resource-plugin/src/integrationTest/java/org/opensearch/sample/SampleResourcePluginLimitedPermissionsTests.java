@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -95,13 +94,13 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
             assertThat(response.getStatusReason(), containsString("Created"));
 
             // Also update the in-memory map and get
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            resourcePluginInfo.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
             ResourceProvider provider = new ResourceProvider(
                 SampleResource.class.getCanonicalName(),
                 RESOURCE_INDEX_NAME,
                 new SampleResourceParser()
             );
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);

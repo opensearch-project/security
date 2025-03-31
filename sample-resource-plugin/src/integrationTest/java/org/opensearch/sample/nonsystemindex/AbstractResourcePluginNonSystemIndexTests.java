@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.AbstractSampleResourcePluginTests;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -37,10 +37,12 @@ public abstract class AbstractResourcePluginNonSystemIndexTests extends Abstract
     protected abstract LocalCluster getLocalCluster();
 
     private LocalCluster cluster;
+    ResourcePluginInfo resourcePluginInfo;
 
     @Before
     public void setup() {
         cluster = getLocalCluster();
+        resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
     }
 
     @After
@@ -48,8 +50,8 @@ public abstract class AbstractResourcePluginNonSystemIndexTests extends Abstract
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(SAMPLE_NON_SYSTEM_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().remove(SAMPLE_NON_SYSTEM_INDEX_NAME);
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().remove(SAMPLE_NON_SYSTEM_INDEX_NAME);
+            resourcePluginInfo.getResourceIndicesMutable().remove(SAMPLE_NON_SYSTEM_INDEX_NAME);
+            resourcePluginInfo.getResourceProvidersMutable().remove(SAMPLE_NON_SYSTEM_INDEX_NAME);
         }
     }
 

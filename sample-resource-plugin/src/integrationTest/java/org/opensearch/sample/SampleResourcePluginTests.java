@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -64,6 +64,8 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
 
     @Test
     public void testDirectAccess() throws Exception {
+        ResourcePluginInfo resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
+
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -93,13 +95,13 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
             HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
             // Also update the in-memory map and get
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
+            resourcePluginInfo.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
             ResourceProvider provider = new ResourceProvider(
                 SampleResource.class.getCanonicalName(),
                 RESOURCE_INDEX_NAME,
                 new SampleResourceParser()
             );
-            OpenSearchSecurityPlugin.getResourcePluginInfo().getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
