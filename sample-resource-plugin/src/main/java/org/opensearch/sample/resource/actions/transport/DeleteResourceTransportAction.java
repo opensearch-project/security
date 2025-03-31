@@ -45,6 +45,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
     private final TransportService transportService;
     private final NodeClient nodeClient;
     private final Settings settings;
+    private final Version nodeVersion;
 
     @Inject
     public DeleteResourceTransportAction(
@@ -57,6 +58,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         this.transportService = transportService;
         this.nodeClient = nodeClient;
         this.settings = settings;
+        this.nodeVersion = transportService.getLocalNode().getVersion();
     }
 
     @Override

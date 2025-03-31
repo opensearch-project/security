@@ -48,6 +48,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
     private final TransportService transportService;
     private final NodeClient nodeClient;
     private final Settings settings;
+    private final Version nodeVersion;
 
     @Inject
     public UpdateResourceTransportAction(
@@ -60,6 +61,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         this.transportService = transportService;
         this.nodeClient = nodeClient;
         this.settings = settings;
+        this.nodeVersion = transportService.getLocalNode().getVersion();
     }
 
     @Override
