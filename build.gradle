@@ -729,7 +729,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //integration test framework:
-    integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2') {
+    integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
         exclude(group: 'junit', module: 'junit')
     }
     integrationTestImplementation 'junit:junit:4.13.2'
