@@ -53,13 +53,13 @@ public DeleteResourceTransportAction(
     this.transportService = transportService;
     this.nodeClient = nodeClient;
     this.settings = settings;
+    this.nodeVersion = transportService.getLocalNode().getVersion();
 }
 
 @Override
 protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
     String resourceId = request.getResourceId();
 
-    Version nodeVersion = transportService.getLocalNode().getVersion();
     ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings, nodeVersion);
 
     resourceSharingClient.verifyResourceAccess(
