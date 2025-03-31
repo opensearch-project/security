@@ -14,14 +14,27 @@ index_settings_role:
         - "*"
       allowed_actions:
         - "indices:admin/settings/*"
+        - "indices:admin/create"
       allowed_settings:
         - "index.number_of_replicas"
 
 wildcard_settings_role:
   cluster_permissions:
     - "cluster:admin/settings/*"
+    - "indices:admin/create"
   allowed_cluster_settings:
     - "cluster.routing.*"
+
+backwards_compatible_role:
+  cluster_permissions:
+    - "cluster:admin/settings/*"
+    - "indices:admin/create"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/settings/*"
+        - "indices:admin/create"
 
 admin:
   reserved: false

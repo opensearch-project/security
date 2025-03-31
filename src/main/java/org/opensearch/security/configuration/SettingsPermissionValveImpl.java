@@ -17,13 +17,13 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -44,6 +44,7 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
 
     public SettingsPermissionValveImpl(
         ClusterService clusterService,
+        ThreadPool threadPool,
         AdminDNs adminDNs,
         AuditLog auditLog
     ) {
@@ -56,6 +57,7 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
             SecurityDynamicConfiguration<RoleV7> config = rolesConfiguration.get();
             if (config != null) {
                 // Handle any cluster state related updates if needed
+                // TODO: is this needed here? It's used in DlsFlsValveImpl but seems to be working well without it here on cluster updates
             }
         });
     }
@@ -72,13 +74,15 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
         try {
             if (request instanceof ClusterUpdateSettingsRequest) {
                 return validateClusterSettings(context, (ClusterUpdateSettingsRequest) request, listener);
-            } else if (request instanceof UpdateSettingsRequest) {
-                return validateIndexSettings(context, (UpdateSettingsRequest) request, listener);
+            } else if (request instanceof UpdateSettingsRequest updateSettingsRequest) {
+                return validateIndexSettings(context, updateSettingsRequest.settings(), updateSettingsRequest, listener);
+            } else if (request instanceof CreateIndexRequest createIndexRequest) {
+                return validateIndexSettings(context, createIndexRequest.settings(), createIndexRequest, listener);
             }
             return true;
         } catch (Exception e) {
             log.error("Error while evaluating settings permissions", e);
-            listener.onFailure(new SecurityException("Error while evaluating settings permissions: " + e.getMessage()));
+            listener.onFailure(new OpenSearchSecurityException("Error while evaluating settings permissions: " + e.getMessage(), RestStatus.FORBIDDEN));
             return false;
         }
     }
@@ -120,16 +124,21 @@ public class SettingsPermissionValveImpl implements SettingsPermissionValve {
 
     private boolean validateIndexSettings(
         PrivilegesEvaluationContext context,
-        UpdateSettingsRequest request,
+        Settings requestSettings,
+        ActionRequest request,
         ActionListener<?> listener
     ) {
         // Get allowed settings patterns from user's roles
         Set<String> allowedSettings = getAllowedSettingsFromRoles(context);
-
-        if (!validateSettingsMap(request.settings(), allowedSettings)) {
+        // For backwards compatibility we will allow all settings if no allowed settings are defined
+        if (allowedSettings.isEmpty()) {
+            return true;
+        }
+        log.debug("Allowed settings: {} for user: {}", allowedSettings, context.getUser().getName());
+        if (!validateSettingsMap(requestSettings, allowedSettings)) {
             auditLog.logMissingPrivileges(context.getAction(), request, context.getTask());
             listener.onFailure(
-                new SecurityException("User not authorized to modify these index settings: " + request.settings().keySet())
+                new OpenSearchSecurityException("User not authorized to use these settings during index creation/update: " + requestSettings.keySet(), RestStatus.FORBIDDEN)
             );
             return false;
         }

@@ -523,3 +523,8 @@ wildcard_settings_role:
   hidden: false
   users:
     - "wildcard_settings_user"
+backwards_compatible_role:
+  reserved: false
+  hidden: false
+  users:
+    - "backwards_compatible_user"

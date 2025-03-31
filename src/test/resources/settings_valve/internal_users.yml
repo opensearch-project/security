@@ -27,3 +27,8 @@ no_settings_user:
   hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHXXnZUr.X5fsC.CxIi"
   backend_roles:
     - "kibana_user"
+
+backwards_compatible_user:
+  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHXXnZUr.X5fsC.CxIi"
+  backend_roles:
+    - "backwards_compatible_role"

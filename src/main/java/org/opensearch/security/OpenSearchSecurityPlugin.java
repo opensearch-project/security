@@ -1132,7 +1132,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 threadPool,
                 dlsFlsBaseContext
             );
-            settingsPermissionValve = new SettingsPermissionValveImpl(clusterService, adminDns, auditLog);
+            settingsPermissionValve = new SettingsPermissionValveImpl(clusterService, threadPool, adminDns, auditLog);
             cr.subscribeOnChange(configMap -> { ((SettingsPermissionValveImpl) settingsPermissionValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }

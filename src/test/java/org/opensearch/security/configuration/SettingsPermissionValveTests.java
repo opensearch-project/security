@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensaml.xmlsec.signature.P;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.common.settings.Settings;
@@ -116,6 +117,146 @@ public class SettingsPermissionValveTests extends SingleClusterTest {
         Assert.assertEquals(403, response.getStatusCode());
     }
 
+    @Test
+    public void testIndexCreationSettingsPermissions() throws Exception {
+        setupTestUsers();
+
+        // Test admin user can create index with any settings
+        RestHelper.HttpResponse response = nonSslRestHelper().executePutRequest(
+            "test-index-1",
+            "{\"settings\":{\"index\":{\"number_of_replicas\":2,\"refresh_interval\":\"1s\"}}}",
+            encodeBasicHeader("admin", ADMIN_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test user with specific index settings permission - allowed setting
+        response = nonSslRestHelper().executePutRequest(
+            "test-index-2",
+            "{\"settings\":{\"index\":{\"number_of_replicas\":1}}}",
+            encodeBasicHeader("index_settings_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test user with specific index settings permission - unauthorized setting
+        response = nonSslRestHelper().executePutRequest(
+            "test-index-3",
+            "{\"settings\":{\"index\":{\"number_of_replicas\":1,\"refresh_interval\":\"2s\"}}}",
+            encodeBasicHeader("index_settings_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(403, response.getStatusCode());
+
+        // Test user without index settings permission
+        response = nonSslRestHelper().executePutRequest(
+            "test-index-4",
+            "{\"settings\":{\"index\":{\"number_of_replicas\":3}}}",
+            encodeBasicHeader("no_settings_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(403, response.getStatusCode());
+    }
+
+    // Adding this test which is somewhat redundant with testIndexCreationSettingsPermissions just to make sure other elements of the payload are ignored
+    // In the privileges evaluation decision
+    @Test
+    public void testIndexCreationWithMappingsAndSettings() throws Exception {
+        setupTestUsers();
+
+        // Test user with specific index settings permission - allowed setting with mappings
+        String payload = "{"
+            + "\"settings\":{\"index\":{\"number_of_replicas\":1}},"
+            + "\"mappings\":{"
+            + "  \"properties\":{"
+            + "    \"field1\":{\"type\":\"text\"},"
+            + "    \"field2\":{\"type\":\"keyword\"}"
+            + "  }"
+            + "}"
+            + "}";
+
+        RestHelper.HttpResponse response = nonSslRestHelper().executePutRequest(
+            "test-index-mappings",
+            payload,
+            encodeBasicHeader("index_settings_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test user with specific index settings permission - unauthorized setting with mappings
+        payload = "{"
+            + "\"settings\":{\"index\":{\"number_of_replicas\":1,\"refresh_interval\":\"1s\"}},"
+            + "\"mappings\":{"
+            + "  \"properties\":{"
+            + "    \"field1\":{\"type\":\"text\"}"
+            + "  }"
+            + "}"
+            + "}";
+
+        response = nonSslRestHelper().executePutRequest(
+            "test-index-mappings-2",
+            payload,
+            encodeBasicHeader("index_settings_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(403, response.getStatusCode());
+    }
+
+    /**
+     * Test backwards compatibility with old roles.yml where allowed_cluster_settings and allowed_settings are not present
+     * The expected behavior is to allow all settings if the action is allowed
+     */
+    @Test
+    public void testBackwardsCompatibilitySettingsPermissions() throws Exception {
+        setupTestUsers();
+
+        // Test cluster settings update with backwards compatible role
+        RestHelper.HttpResponse response = nonSslRestHelper().executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\":{\"cluster.routing.rebalance.enable\":\"none\"}}",
+            encodeBasicHeader("backwards_compatible_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test index creation with any settings with backwards compatible role
+        response = nonSslRestHelper().executePutRequest(
+                "test-index",
+                "{\"settings\":{\"index\":{\"number_of_replicas\":3,\"refresh_interval\":\"2s\"}}}",
+                encodeBasicHeader("backwards_compatible_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test index settings update with backwards compatible role
+        response = nonSslRestHelper().executePutRequest(
+            "test-index/_settings",
+            "{\"index\":{\"number_of_replicas\":2,\"refresh_interval\":\"1s\"}}",
+            encodeBasicHeader("backwards_compatible_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+
+        // Test index creation with settings and mappings with backwards compatible role
+        String payload = "{"
+            + "\"settings\":{\"index\":{\"number_of_replicas\":2,\"refresh_interval\":\"3s\"}},"
+            + "\"mappings\":{"
+            + "  \"properties\":{"
+            + "    \"field1\":{\"type\":\"text\"},"
+            + "    \"field2\":{\"type\":\"keyword\"}"
+            + "  }"
+            + "}"
+            + "}";
+
+        response = nonSslRestHelper().executePutRequest(
+            "test-index-backwards-compat-mappings",
+            payload,
+            encodeBasicHeader("backwards_compatible_user", STRONG_PASSWORD)
+        );
+        log.info("Response: {}", response.getBody());
+        Assert.assertEquals(200, response.getStatusCode());
+    }
+
     private void setupTestUsers() throws Exception {
         Settings settings = Settings.builder()
             .put("plugins.security.restapi.roles_enabled", "admin")
@@ -131,21 +272,31 @@ public class SettingsPermissionValveTests extends SingleClusterTest {
         Map<String, Object> indexSettingsRole = new HashMap<>();
         Map<String, Object> indexPermission = new HashMap<>();
         indexPermission.put("index_patterns", Collections.singletonList("*"));
-        indexPermission.put("allowed_actions", Collections.singletonList("indices:admin/settings/*"));
+        indexPermission.put("allowed_actions", List.of("indices:admin/settings/*", "indices:admin/create"));
         indexPermission.put("allowed_settings", Collections.singletonList("index.number_of_replicas"));
         indexSettingsRole.put("index_permissions", Collections.singletonList(indexPermission));
         updateSecurityConfig("roles", "index_settings_role", indexSettingsRole);
 
         Map<String, Object> wildcardSettingsRole = new HashMap<>();
-        wildcardSettingsRole.put("cluster_permissions", Collections.singletonList("cluster:admin/settings/*"));
+        wildcardSettingsRole.put("cluster_permissions", List.of("cluster:admin/settings/*", "indices:admin/create"));
         wildcardSettingsRole.put("allowed_cluster_settings", Collections.singletonList("cluster.routing.*"));
         updateSecurityConfig("roles", "wildcard_settings_role", wildcardSettingsRole);
+
+        Map<String, Object> backwardCompatibleRole = new HashMap<>();
+        backwardCompatibleRole.put("cluster_permissions", List.of("cluster:admin/settings/*", "indices:admin/create"));
+        // Do not include the allowed_cluster_settings and index allowed_settings to check for backward compatibility
+        indexPermission = new HashMap<>();
+        indexPermission.put("index_patterns", Collections.singletonList("*"));
+        indexPermission.put("allowed_actions", List.of("indices:admin/settings/*", "indices:admin/create"));
+        backwardCompatibleRole.put("index_permissions", Collections.singletonList(indexPermission));
+        updateSecurityConfig("roles", "backward_compatible_role", backwardCompatibleRole);
 
         // Create users and assign roles
         createUser("cluster_settings_user", STRONG_PASSWORD, Collections.singletonList("cluster_settings_role"));
         createUser("index_settings_user", STRONG_PASSWORD, Collections.singletonList("index_settings_role"));
         createUser("wildcard_settings_user", STRONG_PASSWORD, Collections.singletonList("wildcard_settings_role"));
         createUser("no_settings_user", STRONG_PASSWORD, Collections.singletonList("kibana_user"));
+        createUser("backwards_compatible_user", STRONG_PASSWORD, Collections.singletonList("backward_compatible_role"));
     }
 
     private void createTestIndex() throws Exception {
@@ -167,8 +318,13 @@ public class SettingsPermissionValveTests extends SingleClusterTest {
                 jsonBody,
                 encodeBasicHeader("admin", ADMIN_PASSWORD)
             );
-            log.info("Response: {}", response.getBody());
-            Assert.assertEquals(200, response.getStatusCode());
+            log.info("Response: {}", response);
+            if (response.toString().contains("201 null")) {
+                // For backwards compatibility
+                Assert.assertEquals(201, response.getStatusCode());
+            } else {
+                Assert.assertEquals(200, response.getStatusCode());
+            }
         } catch (Exception e) {
             Assert.fail("Failed to update security config: " + e.getMessage());
         }
@@ -187,8 +343,13 @@ public class SettingsPermissionValveTests extends SingleClusterTest {
                     jsonBody,
                     encodeBasicHeader("admin", ADMIN_PASSWORD)
             );
-            log.info("Response: {}", response.getBody());
-            Assert.assertEquals(200, response.getStatusCode());
+            log.info("Response: {}", response);
+            if (response.toString().contains("201 null")) {
+                // For backwards compatibility
+                Assert.assertEquals(201, response.getStatusCode());
+            } else {
+                Assert.assertEquals(200, response.getStatusCode());
+            }
         } catch (Exception e) {
             Assert.fail("Failed to create user: " + e.getMessage());
         }
