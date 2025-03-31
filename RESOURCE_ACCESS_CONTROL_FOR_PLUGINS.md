@@ -124,14 +124,28 @@ Tip: Refer to the `org.opensearch.sample.resource.client.ResourceSharingClientAc
 
 Example usage:
 ```java
- @Override
+@Inject
+public ShareResourceTransportAction(
+        Settings settings,
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient
+) {
+    super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
+    this.nodeClient = nodeClient;
+    this.settings = settings;
+    this.transportService = transportService;
+}
+
+@Override
 void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
     if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
         listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
         return;
     }
 
-    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+    Version nodeVersion = transportService.getLocalNode().getVersion();
+    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings, nodeVersion);
     resourceSharingClient.shareResource(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,

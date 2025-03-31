@@ -20,11 +20,12 @@ public class ResourceSharingClientAccessor {
      *
      * @param nodeClient The OpenSearch NodeClient instance.
      * @param settings   The OpenSearch settings.
+     * @param version    The node version.s
      * @return A singleton instance of ResourceSharingNodeClient.
      */
-    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
+    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings, Version version) {
         if (INSTANCE == null) {
-            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings);
+            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings, version);
         }
         return INSTANCE;
     }
@@ -37,11 +38,25 @@ public class ResourceSharingClientAccessor {
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
+@Inject
+public DeleteResourceTransportAction(
+    Settings settings,
+    TransportService transportService,
+    ActionFilters actionFilters,
+    NodeClient nodeClient
+) {
+    super(DeleteResourceAction.NAME, transportService, actionFilters, DeleteResourceRequest::new);
+    this.transportService = transportService;
+    this.nodeClient = nodeClient;
+    this.settings = settings;
+}
+
 @Override
 protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
     String resourceId = request.getResourceId();
 
-    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+    Version nodeVersion = transportService.getLocalNode().getVersion();
+    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings, nodeVersion);
 
     resourceSharingClient.verifyResourceAccess(
         resourceId,
