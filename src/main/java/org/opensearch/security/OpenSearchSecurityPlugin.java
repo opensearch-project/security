@@ -58,7 +58,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -301,7 +300,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexManagementRepository resourceSharingIndexManagementRepository;
-    private static final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
+    private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
     public static boolean isActionTraceEnabled() {
 
@@ -1285,6 +1284,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
+        components.add(resourcePluginInfo);
         components.add(resourceAccessHandler);
 
         components.add(sslSettingsManager);
@@ -2328,11 +2328,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
     }
     // CS-ENFORCE-SINGLE
-
-    @VisibleForTesting
-    public static ResourcePluginInfo getResourcePluginInfo() {
-        return resourcePluginInfo;
-    }
 
     public static class GuiceHolder implements LifecycleComponent {
 
