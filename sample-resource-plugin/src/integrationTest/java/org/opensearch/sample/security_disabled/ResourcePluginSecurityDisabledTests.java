@@ -116,7 +116,7 @@ public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourceP
 
     private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
         response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
-        assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Security Plugin is disabled"));
+        assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Security plugin is disabled"));
     }
 
     private void assertBadResponse(TestRestClient.HttpResponse response, String uri, String method) {

@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource.client;
 
+import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.client.resources.ResourceSharingNodeClient;
 import org.opensearch.transport.client.node.NodeClient;
@@ -23,12 +24,14 @@ public class ResourceSharingClientAccessor {
     /**
      * Get resource sharing client
      *
-     * @param nodeClient node client
+     * @param nodeClient    node client
+     * @param settings      settings
+     * @param version       version
      * @return resource sharing client
      */
-    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings) {
+    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings, Version version) {
         if (INSTANCE == null) {
-            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings);
+            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings, version);
         }
         return INSTANCE;
     }

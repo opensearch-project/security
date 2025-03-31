@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.Version;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
@@ -67,8 +68,13 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
             return;
         }
+        Version nodeVersion = transportService.getLocalNode().getVersion();
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
+            nodeClient,
+            settings,
+            nodeVersion
+        );
         resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(

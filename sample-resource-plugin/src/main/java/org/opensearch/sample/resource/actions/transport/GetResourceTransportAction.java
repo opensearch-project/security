@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
+import org.opensearch.Version;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -74,7 +75,12 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     @SuppressWarnings("unchecked")
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+        Version nodeVersion = transportService.getLocalNode().getVersion();
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
+            nodeClient,
+            settings,
+            nodeVersion
+        );
         if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
             // get all request
             if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {

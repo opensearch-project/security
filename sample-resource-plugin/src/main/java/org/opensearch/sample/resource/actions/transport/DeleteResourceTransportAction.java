@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
+import org.opensearch.Version;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
@@ -60,7 +61,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
 
     @Override
     protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
-
+        Version nodeVersion = transportService.getLocalNode().getVersion();
         String resourceId = request.getResourceId();
         if (resourceId == null || resourceId.isEmpty()) {
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
@@ -68,7 +69,11 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         }
 
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
+            nodeClient,
+            settings,
+            nodeVersion
+        );
         resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(

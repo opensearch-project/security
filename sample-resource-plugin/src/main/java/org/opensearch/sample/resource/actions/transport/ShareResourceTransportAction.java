@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.actions.transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.Version;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -33,6 +34,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
 
+    private final TransportService transportService;
     private final NodeClient nodeClient;
     private final Settings settings;
 
@@ -46,6 +48,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
         super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
         this.nodeClient = nodeClient;
         this.settings = settings;
+        this.transportService = transportService;
     }
 
     @Override
@@ -54,8 +57,13 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
             return;
         }
+        Version nodeVersion = transportService.getLocalNode().getVersion();
 
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings);
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
+            nodeClient,
+            settings,
+            nodeVersion
+        );
         resourceSharingClient.shareResource(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
