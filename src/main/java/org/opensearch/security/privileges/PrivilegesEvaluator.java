@@ -121,10 +121,12 @@ public class PrivilegesEvaluator {
             "indices:admin/mappings/fields/get*",
             "indices:admin/shards/search_shards",
             "indices:admin/resolve/index",
-            "indices:monitor/settings/get",
-            "indices:monitor/stats",
             "indices:admin/aliases/get"
         )
+    );
+
+    static final WildcardMatcher DNFOF_BY_DEFAULT_MATCHER = WildcardMatcher.from(
+        ImmutableList.of("indices:monitor/settings/get", "indices:monitor/stats")
     );
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
@@ -538,7 +540,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
+        boolean dnfofPossible = (dnfofEnabled && DNFOF_MATCHER.test(action0)) || DNFOF_BY_DEFAULT_MATCHER.test(action0);
 
         presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, requestedResolved);
 
