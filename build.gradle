@@ -495,7 +495,6 @@ configurations {
             force "org.mockito:mockito-core:5.16.1"
             force "net.bytebuddy:byte-buddy:1.15.11"
             force "org.ow2.asm:asm:9.7.1"
-            force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
     }
 
@@ -569,7 +568,6 @@ allprojects {
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
         integrationTestImplementation group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
         integrationTestImplementation project(path: ":${rootProject.name}-client", configuration: 'shadow')
-
     }
 }
 
@@ -651,7 +649,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
+    implementation project(path:":opensearch-resource-sharing-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
@@ -725,10 +723,10 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.2'
+    runtimeOnly 'com.google.guava:failureaccess:1.0.3'
     runtimeOnly 'org.apache.commons:commons-text:1.13.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.0.0'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
