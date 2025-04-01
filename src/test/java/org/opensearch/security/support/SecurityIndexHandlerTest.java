@@ -43,6 +43,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.state.SecurityConfig;

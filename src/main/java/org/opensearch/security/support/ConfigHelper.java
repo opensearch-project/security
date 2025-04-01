@@ -49,6 +49,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.Meta;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
