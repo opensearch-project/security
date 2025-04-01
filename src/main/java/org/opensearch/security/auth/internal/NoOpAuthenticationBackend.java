@@ -28,6 +28,9 @@ package org.opensearch.security.auth.internal;
 
 import java.nio.file.Path;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.user.AuthCredentials;
@@ -46,14 +49,13 @@ public class NoOpAuthenticationBackend implements AuthenticationBackend {
 
     @Override
     public User authenticate(final AuthCredentials credentials) {
-        User user = new User(credentials.getUsername(), credentials.getBackendRoles(), credentials);
-        user.addSecurityRoles(credentials.getSecurityRoles());
-        return user;
+        return new User(
+            credentials.getUsername(),
+            ImmutableSet.copyOf(credentials.getBackendRoles()),
+            ImmutableSet.copyOf(credentials.getSecurityRoles()),
+            null,
+            ImmutableMap.of(),
+            false
+        );
     }
-
-    @Override
-    public boolean exists(User user) {
-        return true;
-    }
-
 }

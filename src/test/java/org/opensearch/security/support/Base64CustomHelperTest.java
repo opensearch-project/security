@@ -17,14 +17,12 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
-import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
@@ -128,18 +126,7 @@ public class Base64CustomHelperTest {
         // format
         assertThat(Base64CustomHelper.getWriteableClassID(User.class), is(Integer.valueOf(1)));
         assertThat(Base64CustomHelper.getWriteableClassID(LdapUser.class), is(Integer.valueOf(2)));
-        assertThat(Base64CustomHelper.getWriteableClassID(UserInjector.InjectedUser.class), is(Integer.valueOf(3)));
         assertThat(Base64CustomHelper.getWriteableClassID(SourceFieldsContext.class), is(Integer.valueOf(4)));
-    }
-
-    @Test
-    public void testInjectedUser() {
-        UserInjector.InjectedUser injectedUser = new UserInjector.InjectedUser("username");
-
-        // for custom serialization, we expect InjectedUser to be returned on deserialization
-        UserInjector.InjectedUser deserializedInjecteduser = (UserInjector.InjectedUser) ds(injectedUser);
-        assertThat(deserializedInjecteduser, is(injectedUser));
-        Assert.assertTrue(deserializedInjecteduser.isInjected());
     }
 
     @Test(expected = OpenSearchException.class)

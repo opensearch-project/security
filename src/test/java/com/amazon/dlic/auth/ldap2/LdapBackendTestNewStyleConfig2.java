@@ -126,7 +126,7 @@ public class LdapBackendTestNewStyleConfig2 {
         String injectString = "*jack*";
 
         @SuppressWarnings("unused")
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials(injectString, "secret".getBytes(StandardCharsets.UTF_8))
         );
     }
@@ -388,8 +388,8 @@ public class LdapBackendTestNewStyleConfig2 {
             .build();
 
         final LDAPAuthenticationBackend2 lbe = new LDAPAuthenticationBackend2(settings, null);
-        Assert.assertTrue(lbe.exists(new User("jacksonm")));
-        Assert.assertFalse(lbe.exists(new User("doesnotexist")));
+        Assert.assertTrue(lbe.impersonate(new User("jacksonm")).isPresent());
+        Assert.assertFalse(lbe.impersonate(new User("doesnotexist")).isPresent());
     }
 
     @Test
@@ -405,17 +405,17 @@ public class LdapBackendTestNewStyleConfig2 {
             // "(uniqueMember={0})")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
         assertThat(user.getRoles().size(), is(2));
         assertThat(new ArrayList<>(new TreeSet<>(user.getRoles())).get(0), is("ceo"));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        assertThat(ldapUser.getUserEntry().getDn(), is(user.getName()));
     }
 
     @Test
@@ -430,13 +430,13 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, "mail", "cn", "uid")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend2(settings, null).addRoles(ldapUser, null);
 
-        final String[] attributes = user.getUserEntry().getAttributeNames();
+        final String[] attributes = ldapUser.getUserEntry().getAttributeNames();
 
         Assert.assertNotNull(user);
         assertThat(attributes.length, is(3));
@@ -500,12 +500,12 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("ssign", "ssignsecret".getBytes(StandardCharsets.UTF_8))
         );
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Special\\, Sign,ou=people,o=TEST"));
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        Assert.assertNotNull(ldapUser);
+        assertThat(ldapUser.getName(), is("cn=Special\\, Sign,ou=people,o=TEST"));
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
         assertThat(user.getName(), is("cn=Special\\, Sign,ou=people,o=TEST"));
         assertThat(user.getRoles().size(), is(4));
         Assert.assertTrue(user.getRoles().toString().contains("ceo"));
@@ -522,18 +522,18 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g1.search", "(uniqueMember=cn={1},ou=people,o=TEST)")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("Michael Jackson", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getOriginalUsername(), is("Michael Jackson"));
-        assertThat(user.getUserEntry().getDn(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        assertThat(ldapUser.getOriginalUsername(), is("Michael Jackson"));
+        assertThat(ldapUser.getUserEntry().getDn(), is("cn=Michael Jackson,ou=people,o=TEST"));
         assertThat(user.getRoles().size(), is(2));
         assertThat(new ArrayList<>(new TreeSet<>(user.getRoles())).get(0), is("ceo"));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        assertThat(ldapUser.getUserEntry().getDn(), is(user.getName()));
     }
 
     @Test
@@ -547,9 +547,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g1.search", "(uniqueMember={0})")
             .build();
 
-        final User user = new User("jacksonm");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("jacksonm"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("jacksonm"));
@@ -570,9 +568,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested2"))
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -594,9 +590,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "cn=nested2,ou=groups,o=TEST")
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -617,9 +611,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g1.search", "(uniqueMember={0})")
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -640,9 +632,9 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g1.search", "(uniqueMember={0})")
             .build();
 
-        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(new AuthCredentials("jacksonm", "secret".getBytes()));
+        User user = new LDAPAuthenticationBackend2(settings, null).authenticate(new AuthCredentials("jacksonm", "secret".getBytes()));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(user, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("jacksonm"));
@@ -699,16 +691,16 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS, "cn=Michael Jackson,ou*people,o=TEST")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
         assertThat(user.getRoles().size(), is(0));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        assertThat(ldapUser.getUserEntry().getDn(), is(user.getName()));
     }
 
     @Test
@@ -725,9 +717,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -751,9 +741,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "cn=rolemo4*")
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -778,9 +766,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "*")
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -803,9 +789,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -827,9 +811,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, false)
             .build();
 
-        final User user = new User("spock");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("spock"));
@@ -894,9 +876,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
 
-        final User user = new User("nondnroles");
-
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("nondnroles"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("nondnroles"));
@@ -974,9 +954,9 @@ public class LdapBackendTestNewStyleConfig2 {
             .build();
 
         final LDAPAuthenticationBackend2 lbe = new LDAPAuthenticationBackend2(settings, null);
-        Assert.assertTrue(lbe.exists(new User("jacksonm")));
-        Assert.assertTrue(lbe.exists(new User("presleye")));
-        Assert.assertFalse(lbe.exists(new User("doesnotexist")));
+        Assert.assertTrue(lbe.impersonate(new User("jacksonm")).isPresent());
+        Assert.assertTrue(lbe.impersonate(new User("presleye")).isPresent());
+        Assert.assertFalse(lbe.impersonate(new User("doesnotexist")).isPresent());
     }
 
     @Test
@@ -992,11 +972,11 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g2.search", "(uniqueMember={0})")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
@@ -1006,7 +986,7 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertTrue(user.getRoles().contains("king"));
         Assert.assertTrue(user.getRoles().contains("role2"));
 
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        assertThat(ldapUser.getUserEntry().getDn(), is(user.getName()));
     }
 
     @Test
@@ -1022,11 +1002,11 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("roles.g2.search", "(uniqueMember={0})")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
             new AuthCredentials("mercuryf", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Freddy Mercury,ou=people2,o=TEST"));
@@ -1048,9 +1028,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .build();
 
-        final User user = new User("jacksonm");
-
-        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
+        User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User("jacksonm"), null);
 
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("jacksonm"));
@@ -1071,25 +1049,25 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
             new AuthCredentials("spec186", "spec186".getBytes(StandardCharsets.UTF_8))
         );
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"));
-        assertThat(user.getUserEntry().getAttribute("cn").getStringValue(), is("AA BB/CC (DD) my, company end=with=whitespace "));
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        Assert.assertNotNull(ldapUser);
+        assertThat(ldapUser.getName(), is("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"));
+        assertThat(ldapUser.getUserEntry().getAttribute("cn").getStringValue(), is("AA BB/CC (DD) my, company end=with=whitespace "));
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         assertThat(user.getRoles().size(), is(3));
         Assert.assertTrue(user.getRoles().toString().contains("ROLE/(186) consists of\\, special="));
         Assert.assertTrue(user.getRoles().toString().contains("ROLEx(186n) consists of\\, special="));
         Assert.assertTrue(user.getRoles().toString().contains("ROLE/(186nn) consists of\\, special="));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(new User("spec186"), null);
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spec186"), null);
         Assert.assertTrue(user.getRoles().toString().contains("ROLE/(186) consists of\\, special="));
         Assert.assertTrue(user.getRoles().toString().contains("ROLEx(186n) consists of\\, special="));
         Assert.assertTrue(user.getRoles().toString().contains("ROLE/(186nn) consists of\\, special="));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(
             new User("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"),
             null
         );
@@ -1097,7 +1075,7 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertTrue(user.getRoles().toString().contains("ROLEx(186n) consists of\\, special="));
         Assert.assertTrue(user.getRoles().toString().contains("ROLE/(186nn) consists of\\, special="));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(
             new User("CN=AA BB\\/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"),
             null
         );
@@ -1119,25 +1097,25 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
+        final LdapUser ldapUser = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
             new AuthCredentials("spec186", "spec186".getBytes(StandardCharsets.UTF_8))
         );
-        Assert.assertNotNull(user);
-        assertThat(user.getName(), is("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"));
-        assertThat(user.getUserEntry().getAttribute("cn").getStringValue(), is("AA BB/CC (DD) my, company end=with=whitespace "));
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        Assert.assertNotNull(ldapUser);
+        assertThat(ldapUser.getName(), is("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"));
+        assertThat(ldapUser.getUserEntry().getAttribute("cn").getStringValue(), is("AA BB/CC (DD) my, company end=with=whitespace "));
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(ldapUser, null);
 
         assertThat(user.getRoles().size(), is(3));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186) consists of\\, special\\=chars\\ "));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186n) consists of\\, special\\=chars\\ "));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186nn) consists of\\, special\\=chars\\ "));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(new User("spec186"), null);
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spec186"), null);
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186) consists of\\, special\\=chars\\ "));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186n) consists of\\, special\\=chars\\ "));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186nn) consists of\\, special\\=chars\\ "));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(
             new User("CN=AA BB/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"),
             null
         );
@@ -1145,7 +1123,7 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186n) consists of\\, special\\=chars\\ "));
         Assert.assertTrue(user.getRoles().toString().contains("cn=ROLE/(186nn) consists of\\, special\\=chars\\ "));
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(
             new User("CN=AA BB\\/CC (DD) my\\, company end\\=with\\=whitespace\\ ,ou=people,o=TEST"),
             null
         );

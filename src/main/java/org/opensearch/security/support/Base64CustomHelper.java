@@ -26,7 +26,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.Writeable;
-import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
@@ -184,7 +183,6 @@ public class Base64CustomHelper {
     private static void registerAllWriteables() {
         registerWriteable(User.class);
         registerWriteable(LdapUser.class);
-        registerWriteable(UserInjector.InjectedUser.class);
         registerWriteable(SourceFieldsContext.class);
     }
 
