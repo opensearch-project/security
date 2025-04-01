@@ -33,6 +33,8 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.client.AdminClient;
 import org.opensearch.client.Client;
+import org.opensearch.client.ClusterAdminClient;
+import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateUpdateTask;
@@ -58,8 +60,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.transport.SecurityInterceptorTests;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.client.ClusterAdminClient;
-import org.opensearch.client.IndicesAdminClient;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;

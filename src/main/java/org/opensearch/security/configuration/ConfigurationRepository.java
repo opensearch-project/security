@@ -177,7 +177,8 @@ public class ConfigurationRepository implements ClusterStateListener {
         String lookupDir = System.getProperty("security.default_init.dir");
         final String cd = lookupDir != null
             ? (lookupDir + File.separator)
-            : new Environment(settings, configPath).configFile().toAbsolutePath().resolve("opensearch-security").toString() + File.separator;
+            : new Environment(settings, configPath).configFile().toAbsolutePath().resolve("opensearch-security").toString()
+                + File.separator;
         return cd;
     }
 
