@@ -23,19 +23,19 @@ jobs:
     outputs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 21
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 21
 
-      - name: Checkout security
-        uses: actions/checkout@v4
+    - name: Checkout security
+      uses: actions/checkout@v4
 
-      - name: Generate list of tasks
-        id: set-matrix
-        run: |
-          echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
+    - name: Generate list of tasks
+      id: set-matrix
+      run: |
+        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
   publish-components-to-maven-local:
     runs-on: ubuntu-latest
@@ -76,28 +76,28 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
 
-      - name: Checkout security
-        uses: actions/checkout@v4
+    - name: Checkout security
+      uses: actions/checkout@v4
 
-      - name: Build and Test
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-disabled: true
-          arguments: |
-            ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-disabled: true
+        arguments: |
+          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
-          path: |
-            ./build/reports/
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
+        path: |
+          ./build/reports/
 
   test-linux:
     name: test
@@ -184,36 +184,36 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
 
-      - name: Checkout security
-        uses: actions/checkout@v4
+    - name: Checkout security
+      uses: actions/checkout@v4
 
-      - name: Restore Maven Local Cache
-        uses: actions/cache@v4.2.2
-        with:
-          path: ~/.m2/repository/org/opensearch/
-          key: maven-local-${{ github.run_id }}
-          restore-keys: |
-            maven-local-
+    - name: Restore Maven Local Cache
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository/org/opensearch/
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
 
-      - name: Run Integration Tests
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-disabled: true
-          arguments: |
-            :integrationTest -Dbuild.snapshot=false
+    - name: Run Integration Tests
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-disabled: true
+        arguments: |
+          :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-          path: |
-            ./build/reports/
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+        path: |
+          ./build/reports/
 
   integration-tests-linux:
     name: integration-tests
@@ -363,29 +363,29 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
 
-      - name: Checkout security
-        uses: actions/checkout@v4
+    - name: Checkout security
+      uses: actions/checkout@v4
 
-      - name: Restore Maven Local Cache
-        uses: actions/cache@v4.2.2
-        with:
-          path: ~/.m2/repository/org/opensearch/
-          key: maven-local-${{ github.run_id }}
-          restore-keys: |
-            maven-local-
+    - name: Restore Maven Local Cache
+      uses: actions/cache@v4.2.2
+      with:
+        path: ~/.m2/repository/org/opensearch/
+        key: maven-local-${{ github.run_id }}
+        restore-keys: |
+          maven-local-
 
-      - name: Run Resource Tests
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-disabled: true
-          arguments: |
-            :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+    - name: Run Resource Tests
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-disabled: true
+        arguments: |
+          :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
   backward-compatibility-build:
     runs-on: ubuntu-latest
@@ -414,36 +414,36 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
 
-      - name: Checkout Security Repo
-        uses: actions/checkout@v4
+    - name: Checkout Security Repo
+      uses: actions/checkout@v4
 
-      - id: build-previous
-        uses: ./.github/actions/run-bwc-suite
-        with:
-          plugin-previous-branch: "2.x"
-          plugin-next-branch: "current_branch"
-          report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
-          username: admin
-          password: admin
+    - id: build-previous
+      uses: ./.github/actions/run-bwc-suite
+      with:
+        plugin-previous-branch: "2.x"
+        plugin-next-branch: "current_branch"
+        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+        username: admin
+        password: admin
 
   code-ql:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 21
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: java
-      - run: ./gradlew clean assemble
-      - uses: github/codeql-action/analyze@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 21
+    - uses: github/codeql-action/init@v3
+      with:
+        languages: java
+    - run: ./gradlew clean assemble
+    - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
     runs-on: ubuntu-latest

@@ -90,8 +90,6 @@ public class SecurityRestApiActions {
             new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
             new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher),
             new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
-            new WhitelistApiAction(clusterService, threadPool, securityApiDependencies),
-            // FIXME change it as soon as WhitelistApiAction will be removed
             new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
             new AuditApiAction(clusterService, threadPool, securityApiDependencies),
             new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),

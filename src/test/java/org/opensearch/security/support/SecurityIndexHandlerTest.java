@@ -122,9 +122,7 @@ public class SecurityIndexHandlerTest {
         CType.ROLESMAPPING,
         () -> ROLES_MAPPING_YAML,
         CType.TENANTS,
-        () -> emptyYamlConfigFor(CType.TENANTS),
-        CType.WHITELIST,
-        () -> emptyYamlConfigFor(CType.WHITELIST)
+        () -> emptyYamlConfigFor(CType.TENANTS)
     );
 
     @Rule
@@ -304,16 +302,15 @@ public class SecurityIndexHandlerTest {
     }
 
     @Test
-    public void testUploadDefaultConfiguration_shouldSkipWhitelist() throws IOException {
+    public void testUploadDefaultConfiguration_includeAuditFileIfPresent() throws IOException {
         final var listener = spy(
             ActionListener.<Set<SecurityConfig>>wrap(
-                configuration -> assertFalse(configuration.stream().anyMatch(sc -> sc.type() == CType.WHITELIST)),
+                configuration -> assertTrue(configuration.stream().anyMatch(sc -> sc.type() == CType.AUDIT)),
                 e -> fail("Unexpected behave")
             )
         );
 
-        for (final var c : CType.requiredConfigTypes()) {
-            if (c == CType.WHITELIST) continue;
+        for (final var c : CType.values()) {
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 final var source = YAML.get(c).get();
                 io.write(source);
