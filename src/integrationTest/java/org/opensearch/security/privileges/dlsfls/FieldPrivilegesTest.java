@@ -22,7 +22,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.RoleBasedPrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -149,8 +149,8 @@ public class FieldPrivilegesTest {
             );
         }
 
-        static PrivilegesEvaluationContext ctx(String... roles) {
-            return new PrivilegesEvaluationContext(
+        static RoleBasedPrivilegesEvaluationContext ctx(String... roles) {
+            return new RoleBasedPrivilegesEvaluationContext(
                 new User("test_user"),
                 ImmutableSet.copyOf(roles),
                 null,

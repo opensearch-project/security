@@ -25,23 +25,14 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
-/**
- * Request-scoped context information for privilege evaluation.
- * <p>
- * This class carries metadata about the request and provides caching facilities for data which might need to be
- * evaluated several times per request.
- * <p>
- * As this class is request-scoped, it is only used by a single thread. Thus, no thread synchronization mechanisms
- * are necessary.
- */
-public class PrivilegesEvaluationContext {
+public abstract class PrivilegesEvaluationContext {
+
     private final User user;
     private final String action;
     private final ActionRequest request;
     private IndexResolverReplacer.Resolved resolvedRequest;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
-    private ImmutableSet<String> mappedRoles;
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
@@ -53,9 +44,8 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
-    public PrivilegesEvaluationContext(
+    PrivilegesEvaluationContext(
         User user,
-        ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
         Task task,
@@ -64,13 +54,12 @@ public class PrivilegesEvaluationContext {
         Supplier<ClusterState> clusterStateSupplier
     ) {
         this.user = user;
-        this.mappedRoles = mappedRoles;
         this.action = action;
         this.request = request;
-        this.clusterStateSupplier = clusterStateSupplier;
+        this.task = task;
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.task = task;
+        this.clusterStateSupplier = clusterStateSupplier;
     }
 
     public User getUser() {
@@ -125,22 +114,6 @@ public class PrivilegesEvaluationContext {
         return task;
     }
 
-    public ImmutableSet<String> getMappedRoles() {
-        return mappedRoles;
-    }
-
-    /**
-     * Note: Ideally, mappedRoles would be an unmodifiable attribute. PrivilegesEvaluator however contains logic
-     * related to OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION which first validates roles and afterwards modifies
-     * them again. Thus, we need to be able to set this attribute.
-     *
-     * However, this method should be only used for this one particular phase. Normally, all roles should be determined
-     * upfront and stay constant during the whole privilege evaluation process.
-     */
-    void setMappedRoles(ImmutableSet<String> mappedRoles) {
-        this.mappedRoles = mappedRoles;
-    }
-
     public Supplier<ClusterState> getClusterStateSupplier() {
         return clusterStateSupplier;
     }
@@ -156,20 +129,7 @@ public class PrivilegesEvaluationContext {
         return indexNameExpressionResolver;
     }
 
-    @Override
-    public String toString() {
-        return "PrivilegesEvaluationContext{"
-            + "user="
-            + user
-            + ", action='"
-            + action
-            + '\''
-            + ", request="
-            + request
-            + ", resolvedRequest="
-            + resolvedRequest
-            + ", mappedRoles="
-            + mappedRoles
-            + '}';
-    }
+    public abstract ImmutableSet<String> getMappedRoles();
+
+    abstract void setMappedRoles(ImmutableSet<String> roles);
 }
