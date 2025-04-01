@@ -33,8 +33,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    compileOnly project(path: ":opensearch-resource-sharing-spi", configuration: "shadow")
+    compileOnly group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    compileOnly group: 'org.opensearch', name: 'opensearch-resource-sharing-spi', version: "${opensearch_build}"
     compileOnly project(":")
 }
 
