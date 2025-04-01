@@ -356,7 +356,6 @@ public class FlsFmIntegrationTests {
                     "source_ip"
                   ]
                 }""");
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             assertThat(
                 response,
@@ -384,7 +383,6 @@ public class FlsFmIntegrationTests {
                     "attr_text_1"
                   ]
                 }""");
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             assertThat(
                 response,
@@ -443,7 +441,15 @@ public class FlsFmIntegrationTests {
                 }""");
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_AGGREGABLE).test("attr_keyword")) {
-                assertThat(response, hasAggregation("keyword_agg", whereBucketsEqual(TEST_DOCUMENTS.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED)).aggregation("attr_keyword"))));
+                assertThat(
+                    response,
+                    hasAggregation(
+                        "keyword_agg",
+                        whereBucketsEqual(
+                            TEST_DOCUMENTS.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED)).aggregation("attr_keyword")
+                        )
+                    )
+                );
             } else {
                 assertThat(response, hasAggregation("keyword_agg", whereBucketsAreEmpty()));
             }
@@ -522,7 +528,6 @@ public class FlsFmIntegrationTests {
                   }
                 }""");
             assertThat(response, isOk());
-            System.out.println(response.getBody());
             if (user.reference(FIELD_IS_AGGREGABLE).test("attr_binary")) {
                 assertThat(response, hasAggregation("binary_agg", whereBucketsEqual(TEST_DOCUMENTS.aggregation("attr_binary", 10))));
             } else {
@@ -574,7 +579,6 @@ public class FlsFmIntegrationTests {
                     }
                   }
                 }""");
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_text_1")) {
                 assertThat(
@@ -622,7 +626,6 @@ public class FlsFmIntegrationTests {
                     }
                   }
                 }""");
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_keyword_doc_values_disabled")) {
                 assertThat(
@@ -681,7 +684,6 @@ public class FlsFmIntegrationTests {
                   }
                 }""");
             assertThat(response, isOk());
-            System.out.println(response.getBody());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_text_doc_values_disabled_nullable")) {
                 assertThat(
                     response,
@@ -747,7 +749,6 @@ public class FlsFmIntegrationTests {
                     ]
                 }""");
 
-            System.out.println(response.getBody());
             // TODO: Assert for case where attr_keyword is hidden by FLS an assertion that no values are exposed in the sort attribute of
             // hits
             assertThat(response, isOk());
@@ -799,7 +800,6 @@ public class FlsFmIntegrationTests {
             TestRestClient.HttpResponse response = client.get(
                 TEST_INDEX.name() + "/_termvectors/" + testDocument.id() + "?term_statistics=true&payloads=true&fields=*"
             );
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             assertThat(
                 response,
