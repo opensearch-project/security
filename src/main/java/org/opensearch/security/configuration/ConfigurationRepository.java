@@ -251,14 +251,6 @@ public class ConfigurationRepository implements ClusterStateListener {
                             );
                             ConfigHelper.uploadFile(
                                 client,
-                                cd + "whitelist.yml",
-                                securityIndex,
-                                CType.WHITELIST,
-                                DEFAULT_CONFIG_VERSION,
-                                populateEmptyIfFileMissing
-                            );
-                            ConfigHelper.uploadFile(
-                                client,
                                 cd + "allowlist.yml",
                                 securityIndex,
                                 CType.ALLOWLIST,

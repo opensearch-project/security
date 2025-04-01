@@ -33,8 +33,7 @@ public class ConfigurationFiles {
                 CType.ROLES.configFileName(),
                 CType.ROLESMAPPING.configFileName(),
                 "security_tenants.yml",
-                CType.TENANTS.configFileName(),
-                CType.WHITELIST.configFileName() };
+                CType.TENANTS.configFileName() };
             for (String fileName : configurationFiles) {
                 copyResourceToFile(fileName, tempDirectory.resolve(fileName));
             }

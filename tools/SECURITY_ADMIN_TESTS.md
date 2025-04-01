@@ -67,8 +67,6 @@ Will update '/tenants' with ../../../config/opensearch-security/tenants.yml
    SUCC: Configuration for 'tenants' created or updated
 Will update '/nodesdn' with ../../../config/opensearch-security/nodes_dn.yml
    SUCC: Configuration for 'nodesdn' created or updated
-Will update '/whitelist' with ../../../config/opensearch-security/whitelist.yml
-   SUCC: Configuration for 'whitelist' created or updated
 Will update '/audit' with ../../../config/opensearch-security/audit.yml
    SUCC: Configuration for 'audit' created or updated
 Will update '/allowlist' with ../../../config/opensearch-security/allowlist.yml
