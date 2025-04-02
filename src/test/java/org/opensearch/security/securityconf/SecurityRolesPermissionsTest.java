@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.securityconf;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
@@ -46,23 +46,21 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.PermissionBuilder;
-import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
+
+import org.mockito.Mockito;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 
-/**
- * Moved from https://github.com/opensearch-project/security/blob/54361468f5c4b3a57f3ecffaf1bbe8dccee562be/src/test/java/org/opensearch/security/securityconf/SecurityRolesPermissionsTest.java
- *
- * See https://github.com/opensearch-project/security/pull/2411
- */
-public class RestEndpointPermissionTests {
+public class SecurityRolesPermissionsTest {
 
     static final Map<String, ObjectNode> NO_REST_ADMIN_PERMISSIONS_ROLES = ImmutableMap.<String, ObjectNode>builder()
         .put("all_access", role("*"))
@@ -113,36 +111,44 @@ public class RestEndpointPermissionTests {
         }).toArray(String[]::new);
     }
 
-    final ActionPrivileges actionPrivileges;
+    final ConfigModel configModel;
 
-    public RestEndpointPermissionTests() throws IOException {
-        this.actionPrivileges = new ActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
+    public SecurityRolesPermissionsTest() throws IOException {
+        this.configModel = new ConfigModelV7(
+            createRolesConfig(),
+            createRoleMappingsConfig(),
+            createActionGroupsConfig(),
+            createTenantsConfig(),
+            Mockito.mock(DynamicConfigModel.class),
+            Settings.EMPTY
+        );
     }
 
     @Test
     public void hasNoExplicitClusterPermissionPermissionForRestAdmin() {
         for (final String role : NO_REST_ADMIN_PERMISSIONS_ROLES.keySet()) {
+            final SecurityRoles securityRolesForRole = configModel.getSecurityRoles().filter(ImmutableSet.of(role));
             for (final Map.Entry<Endpoint, PermissionBuilder> entry : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
                 final Endpoint endpoint = entry.getKey();
                 final PermissionBuilder permissionBuilder = entry.getValue();
                 if (endpoint == Endpoint.SSL) {
                     Assert.assertFalse(
                         endpoint.name(),
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(CERTS_INFO_ACTION)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
                     );
                     Assert.assertFalse(
                         endpoint.name(),
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(RELOAD_CERTS_ACTION)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                     );
                 } else if (endpoint == Endpoint.CONFIG) {
                     Assert.assertFalse(
                         endpoint.name(),
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(SECURITY_CONFIG_UPDATE)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
                     );
                 } else {
                     Assert.assertFalse(
                         endpoint.name(),
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build()).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build())
                     );
                 }
             }
@@ -152,27 +158,28 @@ public class RestEndpointPermissionTests {
     @Test
     public void hasExplicitClusterPermissionPermissionForRestAdminWitFullAccess() {
         for (final String role : REST_ADMIN_PERMISSIONS_FULL_ACCESS_ROLES.keySet()) {
+            final SecurityRoles securityRolesForRole = configModel.getSecurityRoles().filter(ImmutableSet.of(role));
             for (final Map.Entry<Endpoint, PermissionBuilder> entry : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
                 final Endpoint endpoint = entry.getKey();
                 final PermissionBuilder permissionBuilder = entry.getValue();
                 if (endpoint == Endpoint.SSL) {
                     Assert.assertTrue(
                         endpoint.name() + "/" + CERTS_INFO_ACTION,
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(CERTS_INFO_ACTION)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
                     );
                     Assert.assertTrue(
                         endpoint.name() + "/" + CERTS_INFO_ACTION,
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(RELOAD_CERTS_ACTION)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                     );
                 } else if (endpoint == Endpoint.CONFIG) {
                     Assert.assertTrue(
                         endpoint.name() + "/" + SECURITY_CONFIG_UPDATE,
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build(SECURITY_CONFIG_UPDATE)).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
                     );
                 } else {
                     Assert.assertTrue(
                         endpoint.name(),
-                        actionPrivileges.hasExplicitClusterPrivilege(ctx(role), permissionBuilder.build()).isAllowed()
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build())
                     );
                 }
             }
@@ -188,31 +195,33 @@ public class RestEndpointPermissionTests {
             .collect(Collectors.toList());
         for (final Endpoint endpoint : noSslEndpoints) {
             final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build();
-            final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT)));
-            Assert.assertTrue(endpoint.name(), actionPrivileges.hasExplicitClusterPrivilege(ctx, permission).isAllowed());
-            assertHasNoPermissionsForRestApiAdminOnePermissionRole(endpoint, ctx);
+            final SecurityRoles allowOnePermissionRole = configModel.getSecurityRoles()
+                .filter(ImmutableSet.of(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT))));
+            Assert.assertTrue(endpoint.name(), allowOnePermissionRole.hasExplicitClusterPermissionPermission(permission));
+            assertHasNoPermissionsForRestApiAdminOnePermissionRole(endpoint, allowOnePermissionRole);
         }
         // verify SSL endpoint with 2 actions
         for (final String sslAction : ImmutableSet.of(CERTS_INFO_ACTION, RELOAD_CERTS_ACTION)) {
-            final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(sslAction));
+            final SecurityRoles sslAllowRole = configModel.getSecurityRoles().filter(ImmutableSet.of(restAdminApiRoleName(sslAction)));
             final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.SSL);
             Assert.assertTrue(
                 Endpoint.SSL + "/" + sslAction,
-                actionPrivileges.hasExplicitClusterPrivilege(ctx, permissionBuilder.build(sslAction)).isAllowed()
+                sslAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(sslAction))
             );
-            assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, ctx);
+            assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, sslAllowRole);
         }
         // verify CONFIG endpoint with 1 action
-        final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(SECURITY_CONFIG_UPDATE));
+        final SecurityRoles securityConfigAllowRole = configModel.getSecurityRoles()
+            .filter(ImmutableSet.of(restAdminApiRoleName(SECURITY_CONFIG_UPDATE)));
         final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.CONFIG);
         Assert.assertTrue(
             Endpoint.SSL + "/" + SECURITY_CONFIG_UPDATE,
-            actionPrivileges.hasExplicitClusterPrivilege(ctx, permissionBuilder.build(SECURITY_CONFIG_UPDATE)).isAllowed()
+            securityConfigAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
         );
-        assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.CONFIG, ctx);
+        assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.CONFIG, securityConfigAllowRole);
     }
 
-    void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final PrivilegesEvaluationContext ctx) {
+    void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {
         final Collection<Endpoint> noPermissionEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
             .stream()
             .filter(e -> e != allowEndpoint)
@@ -222,17 +231,14 @@ public class RestEndpointPermissionTests {
             if (endpoint == Endpoint.SSL) {
                 Assert.assertFalse(
                     endpoint.name(),
-                    actionPrivileges.hasExplicitClusterPrivilege(ctx, permissionBuilder.build(CERTS_INFO_ACTION)).isAllowed()
+                    allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
                 );
                 Assert.assertFalse(
                     endpoint.name(),
-                    actionPrivileges.hasExplicitClusterPrivilege(ctx, permissionBuilder.build(RELOAD_CERTS_ACTION)).isAllowed()
+                    allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                 );
             } else {
-                Assert.assertFalse(
-                    endpoint.name(),
-                    actionPrivileges.hasExplicitClusterPrivilege(ctx, permissionBuilder.build()).isAllowed()
-                );
+                Assert.assertFalse(endpoint.name(), allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build()));
             }
         }
     }
@@ -250,8 +256,22 @@ public class RestEndpointPermissionTests {
         return SecurityDynamicConfiguration.fromNode(rolesNode, CType.ROLES, 2, 0, 0);
     }
 
-    static PrivilegesEvaluationContext ctx(String... roles) {
-        return new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.copyOf(roles), null, null, null, null, null, null);
+    static SecurityDynamicConfiguration<RoleMappingsV7> createRoleMappingsConfig() throws IOException {
+        final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        metaNode.set("_meta", meta("rolesmapping"));
+        return SecurityDynamicConfiguration.fromNode(metaNode, CType.ROLESMAPPING, 2, 0, 0);
+    }
+
+    static SecurityDynamicConfiguration<ActionGroupsV7> createActionGroupsConfig() throws IOException {
+        final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        metaNode.set("_meta", meta("actiongroups"));
+        return SecurityDynamicConfiguration.fromNode(metaNode, CType.ACTIONGROUPS, 2, 0, 0);
+    }
+
+    static SecurityDynamicConfiguration<TenantV7> createTenantsConfig() throws IOException {
+        final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        metaNode.set("_meta", meta("tenants"));
+        return SecurityDynamicConfiguration.fromNode(metaNode, CType.TENANTS, 2, 0, 0);
     }
 
 }

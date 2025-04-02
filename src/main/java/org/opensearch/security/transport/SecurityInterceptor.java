@@ -57,7 +57,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -151,7 +150,6 @@ public class SecurityInterceptor {
         final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
         final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS);
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
-        final DlsFlsLegacyHeaders dlsFlsLegacyHeaders = getThreadContext().getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
 
@@ -184,10 +182,6 @@ public class SecurityInterceptor {
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER))
                 )
             );
-
-            if (dlsFlsLegacyHeaders != null) {
-                dlsFlsLegacyHeaders.performHeaderDecoration(connection, request, headerMap);
-            }
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                 && clusterInfoHolder.isInitialized()
