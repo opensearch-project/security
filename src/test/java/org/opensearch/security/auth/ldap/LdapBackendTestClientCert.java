@@ -11,6 +11,7 @@
 
 package org.opensearch.security.auth.ldap;
 
+import com.amazon.dlic.auth.ldap.LdapUser;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;

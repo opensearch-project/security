@@ -30,7 +30,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.LdapUser;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
 import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;

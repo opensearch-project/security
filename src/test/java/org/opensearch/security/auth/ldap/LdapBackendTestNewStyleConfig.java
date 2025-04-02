@@ -11,6 +11,7 @@
 
 package org.opensearch.security.auth.ldap;
 
+import com.amazon.dlic.auth.ldap.LdapUser;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;

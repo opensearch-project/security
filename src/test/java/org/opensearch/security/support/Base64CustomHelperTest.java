@@ -25,7 +25,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.LdapUser;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 

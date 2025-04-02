@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.auth.ldap;
+package com.amazon.dlic.auth.ldap;
 
 import java.io.IOException;
 import java.util.Collections;

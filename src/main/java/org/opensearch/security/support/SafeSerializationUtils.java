@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.LdapUser;
 import org.opensearch.security.user.User;
 
 import org.ldaptive.AbstractLdapBean;

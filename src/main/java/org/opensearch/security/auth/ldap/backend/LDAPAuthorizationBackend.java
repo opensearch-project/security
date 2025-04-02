@@ -47,7 +47,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.AuthorizationBackend;
-import org.opensearch.security.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.LdapUser;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
