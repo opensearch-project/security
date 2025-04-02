@@ -8,6 +8,7 @@
 
 package org.opensearch.security.resources;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -17,7 +18,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
-// CS-ENFORCE-SINGLE:
 
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
@@ -30,7 +30,6 @@ public class ResourcePluginInfo {
     private final Map<String, ResourceProvider> resourceProviderMap = new HashMap<>();
     private final Set<String> resourceIndices = new HashSet<>();
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
     public void setResourceProviders(Map<String, ResourceProvider> providerMap) {
@@ -59,7 +58,6 @@ public class ResourcePluginInfo {
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
     }
-    // CS-ENFORCE-SINGLE
 
     // TODO following should be removed once core test framework allows loading extended classes
     public Map<String, ResourceProvider> getResourceProvidersMutable() {
@@ -71,3 +69,4 @@ public class ResourcePluginInfo {
     }
 
 }
+// CS-ENFORCE-SINGLE
