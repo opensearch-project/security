@@ -26,6 +26,17 @@ import org.opensearch.security.user.User;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
+/**
+ * This class intentionally remains in the com.amazon.dlic.auth.ldap package
+ * to maintain compatibility with serialization/deserialization in mixed cluster
+ * environments (nodes running different versions). The class is serialized and
+ * passed between nodes, and changing the package would break backward compatibility.
+ *
+ * Note: This class is planned to be replaced as part of making the User object
+ * immutable in a future release or reconsidering java serialization.
+ *
+ * @see https://github.com/opensearch-project/security/pull/5223
+ */
 public class LdapUser extends User {
 
     private static final long serialVersionUID = 1L;

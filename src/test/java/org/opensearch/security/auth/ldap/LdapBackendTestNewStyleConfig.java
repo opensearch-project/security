@@ -11,7 +11,6 @@
 
 package org.opensearch.security.auth.ldap;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -35,6 +34,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
+import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
