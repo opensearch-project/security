@@ -14,6 +14,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.SampleResourceParser;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
@@ -41,4 +42,7 @@ public class ResourceNonSystemIndexPlugin extends Plugin implements ResourceShar
     public ShareableResourceParser<? extends ShareableResource> getShareableResourceParser() {
         return new SampleResourceParser();
     }
+
+    @Override
+    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {}
 }

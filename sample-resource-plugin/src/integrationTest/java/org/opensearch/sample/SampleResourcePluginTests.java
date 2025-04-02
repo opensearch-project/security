@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
@@ -102,6 +103,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
                 new SampleResourceParser()
             );
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+
+            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
+
+            resourcePluginInfo.getResourceSharingExtensionsMutable().add(new SampleResourcePlugin());
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);

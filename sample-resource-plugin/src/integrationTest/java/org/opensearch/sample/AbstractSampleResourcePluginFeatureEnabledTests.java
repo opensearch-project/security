@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
@@ -108,6 +109,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
                 new SampleResourceParser()
             );
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+
+            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
@@ -337,6 +340,8 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
                 new SampleResourceParser()
             );
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+
+            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Thread.sleep(1000);
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);

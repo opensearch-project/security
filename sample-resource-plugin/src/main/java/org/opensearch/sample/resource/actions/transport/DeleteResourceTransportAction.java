@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
-import org.opensearch.Version;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
@@ -21,7 +20,6 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -29,7 +27,7 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRequest;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.client.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -44,24 +42,16 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
-    private final Settings settings;
 
     @Inject
-    public DeleteResourceTransportAction(
-        Settings settings,
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient
-    ) {
+    public DeleteResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(DeleteResourceAction.NAME, transportService, actionFilters, DeleteResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.settings = settings;
     }
 
     @Override
     protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
-        Version nodeVersion = transportService.getLocalNode().getVersion();
         String resourceId = request.getResourceId();
         if (resourceId == null || resourceId.isEmpty()) {
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
@@ -69,11 +59,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         }
 
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
-            nodeClient,
-            settings,
-            nodeVersion
-        );
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
         resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(

@@ -5,11 +5,9 @@ At present only admin and resource owners can modify/delete the resource
 
 ## PreRequisites
 
-Publish SPI, Common and Client to local maven before proceeding:
+Publish SPI to local maven before proceeding:
 ```shell
 ./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal
-
-./gradlew clean :opensearch-security-client:publishToMavenLocal
 ```
 
 System index feature must be enabled to prevent direct access to resource. Add the following setting in case it has not already been enabled.
@@ -41,26 +39,20 @@ plugins.security.system_indices.enabled: true
 
 
 ## User setup:
-1. **New Security Permission Requirement**
-    - Users need **`cluster:admin/security/resource_access/*`** in their role to **interact with shared resources**.
-    - This applies **in addition to** any plugin-specific cluster permissions.
-
-2. **No Index-Level Permissions Required**
+1. **No Index-Level Permissions Required**
     - **Resource access is controlled at the cluster level**.
     - Users **do not** need explicit index-level permissions to access shared resources.
 
-3. **Sample Role Configurations**
+2. **Sample Role Configurations**
     - Below are **two sample roles** demonstrating how to configure permissions in `roles.yml`:
 
     ```yaml
     sample_full_access:
      cluster_permissions:
-       - 'cluster:admin/security/resource_access/*'
        - 'cluster:admin/sample-resource-plugin/*'
 
     sample_read_access:
      cluster_permissions:
-       - 'cluster:admin/security/resource_access/*'
        - 'cluster:admin/sample-resource-plugin/get'
     ```
 

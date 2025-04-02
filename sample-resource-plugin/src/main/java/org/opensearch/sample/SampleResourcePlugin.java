@@ -53,7 +53,9 @@ import org.opensearch.sample.resource.actions.transport.GetResourceTransportActi
 import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
 import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.threadpool.ThreadPool;
@@ -137,5 +139,10 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     @Override
     public ShareableResourceParser<SampleResource> getShareableResourceParser() {
         return new SampleResourceParser();
+    }
+
+    @Override
+    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
+        ResourceSharingClientAccessor.setResourceSharingClient(resourceSharingClient);
     }
 }

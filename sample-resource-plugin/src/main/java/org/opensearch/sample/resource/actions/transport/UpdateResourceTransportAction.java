@@ -14,13 +14,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
-import org.opensearch.Version;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -30,7 +28,7 @@ import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.client.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -47,19 +45,12 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
-    private final Settings settings;
 
     @Inject
-    public UpdateResourceTransportAction(
-        Settings settings,
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient
-    ) {
+    public UpdateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(UpdateResourceAction.NAME, transportService, actionFilters, UpdateResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.settings = settings;
     }
 
     @Override
@@ -68,13 +59,8 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
             return;
         }
-        Version nodeVersion = transportService.getLocalNode().getVersion();
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
-            nodeClient,
-            settings,
-            nodeVersion
-        );
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
         resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(

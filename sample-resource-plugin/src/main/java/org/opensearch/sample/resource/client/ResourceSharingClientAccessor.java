@@ -8,31 +8,28 @@
 
 package org.opensearch.sample.resource.client;
 
-import org.opensearch.Version;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.client.resources.ResourceSharingNodeClient;
-import org.opensearch.transport.client.node.NodeClient;
+import org.opensearch.security.spi.resources.NoopResourceSharingClient;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 
 /**
- * Accessor for resource sharing node client.
+ * Accessor for resource sharing client supplied by the SPI.
  */
 public class ResourceSharingClientAccessor {
-    private static ResourceSharingNodeClient INSTANCE;
+    private static ResourceSharingClient CLIENT;
 
     private ResourceSharingClientAccessor() {}
 
     /**
-     * Get resource sharing client
-     *
-     * @param nodeClient    node client
-     * @param settings      settings
-     * @param version       version
-     * @return resource sharing client
+     * Set the resource sharing client
      */
-    public static ResourceSharingNodeClient getResourceSharingClient(NodeClient nodeClient, Settings settings, Version version) {
-        if (INSTANCE == null) {
-            INSTANCE = new ResourceSharingNodeClient(nodeClient, settings, version);
-        }
-        return INSTANCE;
+    public static void setResourceSharingClient(ResourceSharingClient client) {
+        CLIENT = client;
+    }
+
+    /**
+     * Get the resource sharing client
+     */
+    public static ResourceSharingClient getResourceSharingClient() {
+        return CLIENT == null ? new NoopResourceSharingClient() : CLIENT;
     }
 }

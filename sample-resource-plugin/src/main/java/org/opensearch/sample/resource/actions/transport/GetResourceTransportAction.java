@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
-import org.opensearch.Version;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -40,7 +39,7 @@ import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.client.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -75,16 +74,12 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     @SuppressWarnings("unchecked")
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        Version nodeVersion = transportService.getLocalNode().getVersion();
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(
-            nodeClient,
-            settings,
-            nodeVersion
-        );
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
         if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
             // get all request
             if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
+                    log.debug("Fetched accessible resources: {}", resources);
                     listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
                 }, failure -> {
                     if (failure instanceof OpenSearchStatusException
@@ -128,7 +123,9 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                         XContentParser parser = XContentType.JSON.xContent()
                             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
                     ) {
-                        listener.onResponse(new GetResourceResponse(Set.of(SampleResource.fromXContent(parser))));
+                        SampleResource resource = SampleResource.fromXContent(parser);
+                        log.debug("Fetched resource: {}", resource);
+                        listener.onResponse(new GetResourceResponse(Set.of(resource)));
                     }
                 }
             }, listener::onFailure));
@@ -161,6 +158,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                             resources.add(SampleResource.fromXContent(parser));
                         }
                     }
+                    log.debug("Fetched resources: {}", resources);
                     listener.onResponse(new GetResourceResponse(resources));
                 } catch (Exception e) {
                     listener.onFailure(

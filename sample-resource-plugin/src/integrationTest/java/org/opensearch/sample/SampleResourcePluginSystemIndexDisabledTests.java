@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -98,6 +99,8 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
                 new SampleResourceParser()
             );
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+
+            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Thread.sleep(1000);
             response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);

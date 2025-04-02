@@ -72,7 +72,6 @@ configurations.all {
 
 dependencies {
     // Main implementation dependencies
-    implementation group: 'org.opensearch', name:'opensearch-security-client', version: "${opensearch_build}"
     compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 

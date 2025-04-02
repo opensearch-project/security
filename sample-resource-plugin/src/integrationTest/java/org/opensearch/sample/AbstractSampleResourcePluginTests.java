@@ -8,7 +8,13 @@
 
 package org.opensearch.sample;
 
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.resources.ResourceAccessControlClient;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.spi.resources.ResourceSharingClient;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
@@ -48,6 +54,13 @@ public abstract class AbstractSampleResourcePluginTests {
     protected static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/share";
     protected static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
     protected static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
+
+    protected static ResourceSharingClient createResourceAccessControlClient(LocalCluster cluster) {
+        ResourceAccessHandler rAH = cluster.nodes().getFirst().getInjectable(ResourceAccessHandler.class);
+        Settings settings = cluster.node().settings();
+        ClusterService clusterService = cluster.nodes().getFirst().getInjectable(ClusterService.class);
+        return new ResourceAccessControlClient(rAH, settings, clusterService);
+    }
 
     protected static String shareWithPayloadSecurityApi(String resourceId, String user) {
         return "{"
