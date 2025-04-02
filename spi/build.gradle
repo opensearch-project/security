@@ -42,6 +42,10 @@ task javadocJar(type: Jar) {
     from tasks.javadoc
 }
 
+jar {
+    enabled = false
+}
+
 publishing {
     publications {
         shadow(MavenPublication) { publication ->

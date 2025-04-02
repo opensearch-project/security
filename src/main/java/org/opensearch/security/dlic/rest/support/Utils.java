@@ -51,12 +51,15 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class Utils {
 
+    @Deprecated
+    public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
+    public static final String PLUGINS_PREFIX = "_plugins/_security";
+
     public final static String PLUGIN_ROUTE_PREFIX = "/" + PLUGINS_PREFIX;
+    public final static String PLUGIN_RESOURCE_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/resources";
 
     @Deprecated
     public final static String LEGACY_PLUGIN_ROUTE_PREFIX = "/" + LEGACY_OPENDISTRO_PREFIX;
