@@ -79,6 +79,11 @@ public class ClusterInfoHolder implements ClusterStateListener {
         return nodes.getMinNodeVersion();
     }
 
+    public boolean isMinNodeVersionLowerThan3() {
+        Version minNodeVersion = getMinNodeVersion();
+        return minNodeVersion != null && minNodeVersion.before(Version.V_3_0_0);
+    }
+
     public Boolean hasNode(DiscoveryNode node) {
         if (nodes == null) {
             if (log.isDebugEnabled()) {

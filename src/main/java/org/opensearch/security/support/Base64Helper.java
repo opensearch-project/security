@@ -30,12 +30,10 @@ import java.io.Serializable;
 
 public class Base64Helper {
 
-    public static String serializeObject(final Serializable object, final boolean useJDKSerialization) {
-        return useJDKSerialization ? Base64JDKHelper.serializeObject(object) : Base64CustomHelper.serializeObject(object);
-    }
-
-    public static String serializeObject(final Serializable object) {
-        return serializeObject(object, true);
+    public static String serializeObject(final Serializable object, final boolean useJDKSerialization, boolean minNodeVersionLowerThan3) {
+        return useJDKSerialization
+            ? Base64JDKHelper.serializeObject(object, minNodeVersionLowerThan3)
+            : Base64CustomHelper.serializeObject(object);
     }
 
     public static Serializable deserializeObject(final String string) {
@@ -48,14 +46,15 @@ public class Base64Helper {
 
     /**
      * Ensures that the returned string is JDK serialized.
-     *
+     * <p>
      * If the supplied string is a custom serialized representation, will deserialize it and further serialize using
      * JDK, otherwise returns the string as is.
      *
-     * @param string original string, can be JDK or custom serialized
+     * @param string                   original string, can be JDK or custom serialized
+     * @param minNodeVersionLowerThan3
      * @return jdk serialized string
      */
-    public static String ensureJDKSerialized(final String string) {
+    public static String ensureJDKSerialized(final String string, boolean minNodeVersionLowerThan3) {
         Serializable serializable;
         try {
             serializable = Base64Helper.deserializeObject(string, false);
@@ -67,7 +66,7 @@ public class Base64Helper {
             return string;
         }
         // If we see an exception now, we want the caller to see it -
-        return Base64Helper.serializeObject(serializable, true);
+        return Base64Helper.serializeObject(serializable, true, minNodeVersionLowerThan3);
     }
 
     /**
@@ -79,7 +78,7 @@ public class Base64Helper {
      * @param string original string, can be JDK or custom serialized
      * @return custom serialized string
      */
-    public static String ensureCustomSerialized(final String string) {
+    public static String ensureCustomSerialized(final String string, boolean minNodeVersionLowerThan3) {
         Serializable serializable;
         try {
             serializable = Base64Helper.deserializeObject(string, true);
@@ -91,6 +90,6 @@ public class Base64Helper {
             return string;
         }
         // If we see an exception now, we want the caller to see it -
-        return Base64Helper.serializeObject(serializable, false);
+        return Base64Helper.serializeObject(serializable, false, minNodeVersionLowerThan3);
     }
 }

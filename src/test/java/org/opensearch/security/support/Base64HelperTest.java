@@ -25,11 +25,11 @@ import static org.opensearch.security.support.Base64Helper.serializeObject;
 public class Base64HelperTest {
 
     private static Serializable dsJDK(Serializable s) {
-        return deserializeObject(serializeObject(s, true), true);
+        return deserializeObject(serializeObject(s, true, false), true);
     }
 
     private static Serializable ds(Serializable s) {
-        return deserializeObject(serializeObject(s));
+        return deserializeObject(serializeObject(s, true, false));
     }
 
     /**
@@ -47,19 +47,19 @@ public class Base64HelperTest {
     @Test
     public void testEnsureJDKSerialized() {
         String test = "string";
-        String jdkSerialized = Base64Helper.serializeObject(test, true);
-        String customSerialized = Base64Helper.serializeObject(test, false);
-        assertThat(Base64Helper.ensureJDKSerialized(jdkSerialized), is(jdkSerialized));
-        assertThat(Base64Helper.ensureJDKSerialized(customSerialized), is(jdkSerialized));
+        String jdkSerialized = Base64Helper.serializeObject(test, true, false);
+        String customSerialized = Base64Helper.serializeObject(test, false, false);
+        assertThat(Base64Helper.ensureJDKSerialized(jdkSerialized, false), is(jdkSerialized));
+        assertThat(Base64Helper.ensureJDKSerialized(customSerialized, false), is(jdkSerialized));
     }
 
     @Test
     public void testEnsureCustomSerialized() {
         String test = "string";
-        String jdkSerialized = Base64Helper.serializeObject(test, true);
-        String customSerialized = Base64Helper.serializeObject(test, false);
-        assertThat(Base64Helper.ensureCustomSerialized(jdkSerialized), is(customSerialized));
-        assertThat(Base64Helper.ensureCustomSerialized(customSerialized), is(customSerialized));
+        String jdkSerialized = Base64Helper.serializeObject(test, true, false);
+        String customSerialized = Base64Helper.serializeObject(test, false, false);
+        assertThat(Base64Helper.ensureCustomSerialized(jdkSerialized, false), is(customSerialized));
+        assertThat(Base64Helper.ensureCustomSerialized(customSerialized, false), is(customSerialized));
     }
 
     @Test
@@ -69,9 +69,9 @@ public class Base64HelperTest {
         IntStream.range(0, 100).forEach(i -> { hm.put("c" + i, "cvalue" + i); });
         IntStream.range(0, 100).forEach(i -> { largeObject.put("b" + i, hm); });
 
-        final var jdkSerialized = Base64Helper.serializeObject(largeObject, true);
-        final var customSerialized = Base64Helper.serializeObject(largeObject, false);
-        final var customSerializedOnlyHashMap = Base64Helper.serializeObject(hm, false);
+        final var jdkSerialized = Base64Helper.serializeObject(largeObject, true, false);
+        final var customSerialized = Base64Helper.serializeObject(largeObject, false, false);
+        final var customSerializedOnlyHashMap = Base64Helper.serializeObject(hm, false, false);
 
         assertThat(jdkSerialized.length(), is(3832));
         // The custom serializer is ~50x larger than the jdk serialized version

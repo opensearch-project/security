@@ -603,7 +603,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             if (!SSLConfig.isSslOnlyMode()) {
                 handlers.add(
-                    new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool))
+                    new SecurityInfoAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(evaluator),
+                        Objects.requireNonNull(threadPool),
+                        new ClusterInfoHolder(this.cs.getClusterName().value())
+                    )
                 );
                 handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(
@@ -1135,12 +1141,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resolver,
                 xContentRegistry,
                 threadPool,
-                dlsFlsBaseContext
+                dlsFlsBaseContext,
+                cih
             );
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
+        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver, cih);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 

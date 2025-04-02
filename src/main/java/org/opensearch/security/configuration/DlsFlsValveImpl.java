@@ -102,6 +102,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
+    private final ClusterInfoHolder clusterInfoHolder;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -110,7 +111,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext
+        DlsFlsBaseContext dlsFlsBaseContext,
+        ClusterInfoHolder cih
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -122,6 +124,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
+        this.clusterInfoHolder = cih;
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -197,7 +200,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if (DlsFlsLegacyHeaders.possiblyRequired(clusterService)) {
-                DlsFlsLegacyHeaders.prepare(threadContext, context, config, clusterService.state().metadata(), doFilterLevelDls);
+                DlsFlsLegacyHeaders.prepare(
+                    threadContext,
+                    context,
+                    config,
+                    clusterService.state().metadata(),
+                    doFilterLevelDls,
+                    clusterInfoHolder
+                );
             }
 
             if (request instanceof RealtimeRequest) {

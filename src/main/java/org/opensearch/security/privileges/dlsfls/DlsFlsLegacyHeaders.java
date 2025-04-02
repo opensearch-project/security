@@ -24,6 +24,7 @@ import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.support.Base64Helper;
@@ -69,10 +70,10 @@ public class DlsFlsLegacyHeaders {
         PrivilegesEvaluationContext context,
         DlsFlsProcessedConfig config,
         Metadata metadata,
-        boolean doFilterLevelDls
+        boolean doFilterLevelDls,
+        ClusterInfoHolder clusterInfoHolder
     ) throws PrivilegesEvaluationException {
-        DlsFlsLegacyHeaders preparedHeaders = new DlsFlsLegacyHeaders(context, config, metadata, doFilterLevelDls);
-
+        DlsFlsLegacyHeaders preparedHeaders = new DlsFlsLegacyHeaders(context, config, metadata, doFilterLevelDls, clusterInfoHolder);
         if (context.getRequest() instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
             // Special case: Another cluster tries to initiate a cross cluster search and will talk directly to
             // the shards on our cluster. In this case, we do send the information as response headers.
@@ -91,17 +92,23 @@ public class DlsFlsLegacyHeaders {
     private final String dlsHeader;
     private final String flsHeader;
     private final String fmHeader;
+    private final ClusterInfoHolder clusterInfoHolder;
 
     public DlsFlsLegacyHeaders(
         PrivilegesEvaluationContext context,
         DlsFlsProcessedConfig config,
         Metadata metadata,
-        boolean doFilterLevelDls
+        boolean doFilterLevelDls,
+        ClusterInfoHolder clusterInfoHolder
     ) throws PrivilegesEvaluationException {
         this.config = config;
-        this.dlsHeader = !doFilterLevelDls ? getDlsHeader(context, config.getDocumentPrivileges(), metadata) : null;
-        this.flsHeader = getFlsHeader(context, config.getFieldPrivileges(), metadata);
-        this.fmHeader = getFieldMaskingHeader(context, config.getFieldMasking(), metadata);
+        this.clusterInfoHolder = clusterInfoHolder;
+        this.dlsHeader = !doFilterLevelDls
+            ? getDlsHeader(context, config.getDocumentPrivileges(), metadata, clusterInfoHolder.isMinNodeVersionLowerThan3())
+            : null;
+        this.flsHeader = getFlsHeader(context, config.getFieldPrivileges(), metadata, clusterInfoHolder.isMinNodeVersionLowerThan3());
+        this.fmHeader = getFieldMaskingHeader(context, config.getFieldMasking(), metadata, clusterInfoHolder.isMinNodeVersionLowerThan3());
+
     }
 
     /**
@@ -165,8 +172,12 @@ public class DlsFlsLegacyHeaders {
         return fmHeader;
     }
 
-    private static String getDlsHeader(PrivilegesEvaluationContext context, DocumentPrivileges documentPrivileges, Metadata metadata)
-        throws PrivilegesEvaluationException {
+    private static String getDlsHeader(
+        PrivilegesEvaluationContext context,
+        DocumentPrivileges documentPrivileges,
+        Metadata metadata,
+        boolean isMinNodeVersionLowerThan3
+    ) throws PrivilegesEvaluationException {
         IndexToRuleMap<DlsRestriction> dlsRestrictionMap = documentPrivileges.getRestrictions(
             context,
             metadata.indices().keySet(),
@@ -190,11 +201,15 @@ public class DlsFlsLegacyHeaders {
             }
         }
 
-        return Base64Helper.serializeObject((Serializable) dlsQueriesByIndex);
+        return Base64Helper.serializeObject((Serializable) dlsQueriesByIndex, true, isMinNodeVersionLowerThan3);
     }
 
-    private static String getFlsHeader(PrivilegesEvaluationContext context, FieldPrivileges fieldPrivileges, Metadata metadata)
-        throws PrivilegesEvaluationException {
+    private static String getFlsHeader(
+        PrivilegesEvaluationContext context,
+        FieldPrivileges fieldPrivileges,
+        Metadata metadata,
+        boolean isMinNodeVersionLowerThan3
+    ) throws PrivilegesEvaluationException {
         IndexToRuleMap<FieldPrivileges.FlsRule> flsRuleMap = fieldPrivileges.getRestrictions(
             context,
             metadata.indices().keySet(),
@@ -216,11 +231,15 @@ public class DlsFlsLegacyHeaders {
 
         }
 
-        return Base64Helper.serializeObject((Serializable) flsFields);
+        return Base64Helper.serializeObject((Serializable) flsFields, true, isMinNodeVersionLowerThan3);
     }
 
-    private static String getFieldMaskingHeader(PrivilegesEvaluationContext context, FieldMasking fieldMasking, Metadata metadata)
-        throws PrivilegesEvaluationException {
+    private static String getFieldMaskingHeader(
+        PrivilegesEvaluationContext context,
+        FieldMasking fieldMasking,
+        Metadata metadata,
+        boolean isMinNodeVersionLowerThan3
+    ) throws PrivilegesEvaluationException {
         IndexToRuleMap<FieldMasking.FieldMaskingRule> fmRuleMap = fieldMasking.getRestrictions(
             context,
             metadata.indices().keySet(),
@@ -241,7 +260,7 @@ public class DlsFlsLegacyHeaders {
             }
         }
 
-        return Base64Helper.serializeObject((Serializable) maskedFieldsMap);
+        return Base64Helper.serializeObject((Serializable) maskedFieldsMap, true, isMinNodeVersionLowerThan3);
     }
 
 }

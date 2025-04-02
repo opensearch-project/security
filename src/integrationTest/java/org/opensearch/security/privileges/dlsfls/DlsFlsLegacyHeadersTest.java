@@ -16,6 +16,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.Version;
@@ -35,6 +36,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -57,6 +59,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DlsFlsLegacyHeadersTest {
+
+    private ClusterInfoHolder clusterInfoHolder;
+
+    @Before
+    public void setup() {
+        clusterInfoHolder = Mockito.mock(ClusterInfoHolder.class);
+        Mockito.when(clusterInfoHolder.isMinNodeVersionLowerThan3()).thenReturn(false);
+    }
+
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
         ImmutableList.of(
             new NamedXContentRegistry.Entry(
@@ -97,7 +108,8 @@ public class DlsFlsLegacyHeadersTest {
             ctx(metadata, "read_where_field_artist_matches_artist_string"),
             dlsFlsProcessedConfig,
             metadata,
-            false
+            false,
+            clusterInfoHolder
         ).getDlsHeader();
 
         // Created with DlsIntegrationTests.testShouldSearchI1_S2I2_S3() on an earlier OpenSearch version
@@ -131,7 +143,8 @@ public class DlsFlsLegacyHeadersTest {
             ctx(metadata, "read_where_field_artist_matches_artist_twins", "read_where_field_stars_greater_than_five"),
             dlsFlsProcessedConfig,
             metadata,
-            false
+            false,
+            clusterInfoHolder
         ).getDlsHeader();
 
         // Created with DlsIntegrationTests.testShouldSearchI1_S3I1_S6I2_S2() on an earlier OpenSearch version
@@ -149,7 +162,8 @@ public class DlsFlsLegacyHeadersTest {
 
         Metadata metadata = MockIndexMetadataBuilder.indices("first-test-index", "second-test-index", "my_index1").build();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(rolesConfig, metadata);
-        String header = new DlsFlsLegacyHeaders(ctx(metadata, "role"), dlsFlsProcessedConfig, metadata, false).getDlsHeader();
+        String header = new DlsFlsLegacyHeaders(ctx(metadata, "role"), dlsFlsProcessedConfig, metadata, false, clusterInfoHolder)
+            .getDlsHeader();
 
         assertNull(header);
     }
@@ -170,8 +184,13 @@ public class DlsFlsLegacyHeadersTest {
 
         Metadata metadata = MockIndexMetadataBuilder.indices("first-test-index", "second-test-index", "fls_index").build();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(rolesConfig, metadata);
-        String header = new DlsFlsLegacyHeaders(ctx(metadata, "fls_exclude_stars_reader"), dlsFlsProcessedConfig, metadata, false)
-            .getFlsHeader();
+        String header = new DlsFlsLegacyHeaders(
+            ctx(metadata, "fls_exclude_stars_reader"),
+            dlsFlsProcessedConfig,
+            metadata,
+            false,
+            clusterInfoHolder
+        ).getFlsHeader();
 
         // Created with FlsAndFieldMaskingTests.flsEnabledFieldsAreHiddenForNormalUsers() on an earlier OpenSearch version
         String expectedHeader =
@@ -205,7 +224,8 @@ public class DlsFlsLegacyHeadersTest {
             ctx(metadata, "example_inclusive_fls", "example_exclusive_fls"),
             dlsFlsProcessedConfig,
             metadata,
-            false
+            false,
+            clusterInfoHolder
         ).getFlsHeader();
 
         // Created with FlsAndFieldMaskingTests.testGetDocumentWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() on an earlier OpenSearch
@@ -240,7 +260,8 @@ public class DlsFlsLegacyHeadersTest {
             ctx(metadata, "masked_title_artist_lyrics_reader", "masked_lyrics_reader"),
             dlsFlsProcessedConfig,
             metadata,
-            false
+            false,
+            clusterInfoHolder
         ).getFmHeader();
 
         // Created with FlsAndFieldMaskingTests.flsEnabledFieldsAreHiddenForNormalUsers() on an earlier OpenSearch version
@@ -263,7 +284,13 @@ public class DlsFlsLegacyHeadersTest {
 
         Map<String, String> headerSink = new HashMap<>();
 
-        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(ctx(metadata, "test_role"), dlsFlsProcessedConfig, metadata, false);
+        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(
+            ctx(metadata, "test_role"),
+            dlsFlsProcessedConfig,
+            metadata,
+            false,
+            clusterInfoHolder
+        );
 
         subject.performHeaderDecoration(connection, request, headerSink);
 
@@ -285,7 +312,13 @@ public class DlsFlsLegacyHeadersTest {
 
         Map<String, String> headerSink = new HashMap<>();
 
-        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(ctx(metadata, "test_role"), dlsFlsProcessedConfig, metadata, false);
+        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(
+            ctx(metadata, "test_role"),
+            dlsFlsProcessedConfig,
+            metadata,
+            false,
+            clusterInfoHolder
+        );
 
         subject.performHeaderDecoration(connection, request, headerSink);
         assertEquals(0, headerSink.size());
@@ -304,7 +337,13 @@ public class DlsFlsLegacyHeadersTest {
 
         Map<String, String> headerSink = new HashMap<>();
 
-        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(ctx(metadata, "test_role"), dlsFlsProcessedConfig, metadata, false);
+        DlsFlsLegacyHeaders subject = new DlsFlsLegacyHeaders(
+            ctx(metadata, "test_role"),
+            dlsFlsProcessedConfig,
+            metadata,
+            false,
+            clusterInfoHolder
+        );
 
         subject.performHeaderDecoration(connection, request, headerSink);
         assertEquals(0, headerSink.size());
@@ -321,7 +360,8 @@ public class DlsFlsLegacyHeadersTest {
             ctx(metadata, "test_role"),
             dlsFlsProcessedConfig(exampleRolesConfig(), metadata),
             metadata,
-            false
+            false,
+            clusterInfoHolder
         );
         DlsFlsLegacyHeaders instance = threadContext.getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
@@ -348,7 +388,14 @@ public class DlsFlsLegacyHeadersTest {
             () -> clusterState
         );
 
-        DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
+        DlsFlsLegacyHeaders.prepare(
+            threadContext,
+            ctx,
+            dlsFlsProcessedConfig(exampleRolesConfig(), metadata),
+            metadata,
+            false,
+            clusterInfoHolder
+        );
         assertTrue(threadContext.getResponseHeaders().containsKey(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
     }
 
