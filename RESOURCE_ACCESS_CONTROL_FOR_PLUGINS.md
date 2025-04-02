@@ -18,7 +18,7 @@ This feature introduces **one primary component** for plugin developers:
 ### **1. `opensearch-resource-sharing-spi`**
 - A **Service Provider Interface (SPI)** that plugins must implement to declare themselves as **Resource Plugins**.
 - The security plugin keeps track of these plugins (similar to how JobScheduler tracks `JobSchedulerExtension`).
-- Allows resource plugins to utilize a service provider client to implement access control.
+- Allows resource plugins to utilize a **service provider client** to implement access control.
 
 ### **Plugin Implementation Requirements:**
 
@@ -52,6 +52,7 @@ opensearchplugin {
       ```
       org.opensearch.sample.SampleResourcePlugin
       ```
+
 ---
 
 ## **3. Feature Flag**
@@ -66,7 +67,114 @@ This feature is controlled by the following flag:
 
 ---
 
-## **4. Declaring a Resource Plugin and Using the Client for Access Control**
+## **4. Resource Sharing API Design**
+
+### **Resource Sharing Index (`.opensearch_resource_sharing`)**
+
+The `.opensearch_resource_sharing` index centrally stores **resource access metadata**, mapping **resources to their access control policies**.
+
+
+|**Field**  |**Type** |Description  |
+|---  |---  |---  |
+|`source_idx` |String |The system index where the resource is stored. |
+|`resource_id`  |String |Unique ID of the resource within `source_idx`. |
+|`created_by` |Object |Information about the user or backend role that created the resource.  |
+|`share_with` |Object |Contains multiple objects with **scopes** as keys and access details as values.  |
+
+* * *
+
+#### **`created_by`**
+
+### This object contains details about the **creator** of the resource.
+
+|**Field**  |**Type** |Description  |
+|---  |---  |---  |
+| user|String |The username of the creator. |
+
+**Example:**
+
+```
+"created_by": {
+   "user": "darshit"
+}
+```
+
+#### **`share_with`**
+
+The `share_with` field **contains multiple objects**, where each **key is an action-group (e.g., `read`, `read_write`)**, and the **value is an object defining access control**.
+
+|Scope Key  |**Type** |Description  |
+|---  |---  |---  |
+|<action-group> |Object |Define access level for its corresponding users, roles, and backend roles  |
+
+**Example:**
+
+```
+"share_with": {
+   "action-group1": {
+      "users": ["user1", "user2"],
+      "roles": ["viewer_role"],
+      "backend_roles": ["data_analyst"]
+   },
+   "action-group2": {
+      "users": ["admin_user"],
+      "roles": ["editor_role"],
+      "backend_roles": ["content_manager"]
+   }
+}
+```
+
+**NOTE**: For v1 of this feature, there is only one action-group named `default` as the infrastructure to support multiple action-groups in Security Plugin is not yet implemented.
+
+#### **Each Action-Group in `share_with`**
+
+Each **action-group** entry contains the following access definitions:
+
+|**Field**  |**Type** |Description  |
+|---  |---  |---  |
+|`users`  |Array  |List of usernames granted access under this action-group. |
+|`roles`  |Array  |List of OpenSearch roles granted access under this action-group.  |
+|`backend_roles`  |Array  |List of backend roles granted access under this action-group. |
+
+**Example:**
+
+```
+"action-group1": {
+   "users": ["user1", "user2"],
+   "roles": ["viewer_role"],
+   "backend_roles": ["data_analyst"]
+}
+```
+
+
+
+### **Full `.opensearch_resource_sharing` Document**
+
+```
+{
+   "source_idx": ".plugins-ml-model-group",
+   "resource_id": "model-group-123",
+   "created_by": {
+      "user": "darshit"
+   },
+   "share_with": {
+      "action-group1": {
+         "users": ["user1", "user2"],
+         "roles": ["viewer_role"],
+         "backend_roles": ["data_analyst"]
+      },
+      "action-group2": {
+         "users": ["admin_user"],
+         "roles": ["editor_role"],
+         "backend_roles": ["content_manager"]
+      }
+   }
+}
+```
+
+---
+
+## **5. Declaring a Resource Plugin and Using the Client for Access Control**
 
 ### **Declaring a Plugin as a Resource Plugin**
 To integrate with the security plugin, your plugin must:
@@ -116,10 +224,41 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
 
 
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
-The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-resource-sharing-spi` README.md](./spi/README.md)
+The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-resource-sharing-spi` README.md](./spi/README.md#available-java-apis)
 
+### **1. `verifyResourceAccess`**
 
-Tip: Refer to the `org.opensearch.sample.resource.client.ResourceSharingClientAccessor` class to understand the client setup in further detail.
+**Checks if the current user has access to a resource.**
+
+```
+void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
+```
+
+### **2. `shareResource`**
+
+**Grants access to a resource for specified users, roles, and backend roles.**
+
+```
+void shareResource(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients recipients, ActionListener<ResourceSharing> listener);
+```
+
+### **3. `revokeResourceAccess`**
+
+**Removes access permissions for specified users, roles, and backend roles.**
+
+```
+void revokeResourceAccess(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
+```
+
+### **4. `listAllAccessibleResources`**
+
+**Retrieves all resources the current user has access to.**
+
+```
+void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener);
+```
+
+> For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
 
 Example usage:
 ```java
@@ -149,10 +288,59 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
 }
 ```
 
+#### **Sample Request Flow:**
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant Plugin as Plugin (Resource Plugin)
+    participant SPI as Security SPI (opensearch-resource-sharing-spi)
+    participant Security as Security Plugin (Resource Sharing)
+
+    %% Step 1: Plugin registers itself as a Resource Plugin
+    Plugin ->> Security: Registers as Resource Plugin via SPI (`ResourceSharingExtension`)
+    Security -->> Plugin: Confirmation of registration
+
+    %% Step 2: User interacts with Plugin API
+    User ->> Plugin: Request to verify/share/revoke access to a resource
+
+    %% Alternative flow based on Security Plugin status
+    alt Security Plugin Disabled
+    %% For verify: access is always granted
+      Plugin ->> SPI: verifyResourceAccess (noop)
+      SPI -->> Plugin: Response: Access Granted
+
+    %% For share, revoke, and list: return 501 Not Implemented
+      Plugin ->> SPI: shareResource (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+
+      Plugin ->> SPI: revokeResourceAccess (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+
+      Plugin ->> SPI: listAccessibleResources (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+    else Security Plugin Enabled
+    %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
+      Plugin ->> SPI: Calls Java API (`verifyResourceAccess`, `shareResource`, `revokeResourceAccess`, `listAccessibleResources`)
+
+    %% Step 4: Request is sent to Security Plugin
+      SPI ->> Security: Sends request to Security Plugin for processing
+
+    %% Step 5: Security Plugin handles request and returns response
+      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resources )
+
+    %% Step 6: Security SPI sends response back to Plugin
+      SPI -->> Plugin: Passes processed response back to Plugin
+    end
+
+    %% Step 7: Plugin processes response and sends final response to User
+    Plugin -->> User: Final response (Success / Error)
+```
+
 
 ---
 
-## **5. What are ActionGroups?**
+## **6. What are ActionGroups?**
 
 This feature uses a **sharing mechanism** called **ActionGroups** to define the **level of access** granted to users for a resource. Currently, only one action group is available: `default`.
 
@@ -225,7 +413,7 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ---
 
-## **6. User Setup**
+## **7. User Setup**
 
 To enable users to interact with the **Resource Sharing and Access Control** feature, they must be assigned the appropriate cluster permissions along with resource-specific access.
 
@@ -268,7 +456,7 @@ sample_read_access:
 
 ---
 
-## **7. Restrictions**
+## **8. Restrictions**
 1. At present, **only resource owners can share/revoke access** to their own resources.
     - **Super admins** can manage access for any resource.
 2. **Resources must be stored in a system index**, and system index protection **must be enabled**.
@@ -276,11 +464,9 @@ sample_read_access:
 
 ---
 
-## **8. REST APIs Introduced by the Security Plugin**
+## **9. REST APIs Introduced by the Security Plugin**
 
 In addition to client methods, the **Security Plugin** introduces new **REST APIs** for managing resource access when the feature is enabled. These APIs allow users to **verify, grant, revoke, and list access** to resources.
-
----
 
 ### **1. Verify Access**
 - **Endpoint:**
@@ -317,7 +503,6 @@ Returns whether the user has permission to access the resource.
 |-----------------|---------|-------------|
 | `has_permission` | Boolean | `true` if the user has access, `false` otherwise. |
 
----
 
 ### **2. Grant Access**
 - **Endpoint:**
@@ -382,7 +567,6 @@ Note: `default` is a place-holder action-group that will eventually be replaced 
 | `created_by`   | Object  | Information about the user who created the sharing entry. |
 | `share_with`   | Object  | Defines users, roles, and backend roles with access to the resource. |
 
----
 
 ### **3. Revoke Access**
 - **Endpoint:**
@@ -442,7 +626,6 @@ Note: `default` is a place-holder action-group that will eventually be replaced 
 | `created_by`   | Object  | Information about the user who created the sharing entry. |
 | `share_with`   | Object  | Defines users, roles, and backend roles that still have access to the resource. |
 
----
 
 ### **4. List Accessible Resources**
 - **Endpoint:**
@@ -471,13 +654,8 @@ Returns an array of accessible resources.
 
 ---
 
-## **Additional Notes**
-- **Feature Flag:** These APIs are available only when `plugins.security.resource_sharing.enabled` is set to `true` in the configuration.
-- **Index Restrictions:** Resources must be stored in **system indices**, and **system index protection** must be enabled to prevent unauthorized access.
+## **10. Best Practices**
 
----
-
-## **9. Best Practices**
 ### **For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
 - **Use the resource sharing client** instead of direct index queries to check access.
@@ -486,6 +664,12 @@ Returns an array of accessible resources.
 ### **For Users & Admins**
 - **Keep system index protection enabled** for better security.
 - **Grant access only when necessary** to limit exposure.
+
+---
+
+### **Additional Notes**
+- **Feature Flag:** These APIs are available only when `plugins.security.resource_sharing.enabled` is set to `true` in the configuration.
+- **Index Restrictions:** Resources must be stored in **system indices**, and **system index protection** must be enabled to prevent unauthorized access.
 
 ---
 

@@ -324,6 +324,55 @@ resourceSharingClient.listAllAccessibleResources(
 ```
 > **Use Case:** Helps a user identify **which shareableResources they can interact with**.
 
+#### **Sample Request Flow:**
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant Plugin as Plugin (Resource Plugin)
+    participant SPI as Security SPI (opensearch-resource-sharing-spi)
+    participant Security as Security Plugin (Resource Sharing)
+
+    %% Step 1: Plugin registers itself as a Resource Plugin
+    Plugin ->> Security: Registers as Resource Plugin via SPI (`ResourceSharingExtension`)
+    Security -->> Plugin: Confirmation of registration
+
+    %% Step 2: User interacts with Plugin API
+    User ->> Plugin: Request to verify/share/revoke access to a resource
+
+    %% Alternative flow based on Security Plugin status
+    alt Security Plugin Disabled
+    %% For verify: access is always granted
+      Plugin ->> SPI: verifyResourceAccess (noop)
+      SPI -->> Plugin: Response: Access Granted
+
+    %% For share, revoke, and list: return 501 Not Implemented
+      Plugin ->> SPI: shareResource (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+
+      Plugin ->> SPI: revokeResourceAccess (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+
+      Plugin ->> SPI: listAccessibleResources (noop)
+      SPI -->> Plugin: Error 501 Not Implemented
+    else Security Plugin Enabled
+    %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
+      Plugin ->> SPI: Calls Java API (`verifyResourceAccess`, `shareResource`, `revokeResourceAccess`, `listAccessibleResources`)
+
+    %% Step 4: Request is sent to Security Plugin
+      SPI ->> Security: Sends request to Security Plugin for processing
+
+    %% Step 5: Security Plugin handles request and returns response
+      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resources )
+
+    %% Step 6: Security SPI sends response back to Plugin
+      SPI -->> Plugin: Passes processed response back to Plugin
+    end
+
+    %% Step 7: Plugin processes response and sends final response to User
+    Plugin -->> User: Final response (Success / Error)
+```
+
 ---
 
 ## **License**

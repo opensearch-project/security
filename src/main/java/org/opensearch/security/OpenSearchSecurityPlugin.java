@@ -1197,6 +1197,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             isResourceSharingEnabled
         );
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
         // Assign resource sharing client to each extension
         // Using the non-gated client (i.e. no additional permissions required)
         ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(
@@ -1207,6 +1208,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
             extension.assignResourceSharingClient(resourceAccessControlClient);
         });
+        // CS-ENFORCE-SINGLE
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
 
@@ -2315,7 +2317,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         });
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
     public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
 
