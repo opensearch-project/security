@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.client.resources;
+package org.opensearch.security.resources;
 
 import java.util.Set;
 
@@ -15,52 +15,46 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.Version;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.resources.rest.list.ListAccessibleResourcesAction;
 import org.opensearch.security.resources.rest.list.ListAccessibleResourcesRequest;
-import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessAction;
-import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessRequest;
 import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessResponse;
-import org.opensearch.security.resources.rest.share.ShareResourceAction;
-import org.opensearch.security.resources.rest.share.ShareResourceRequest;
 import org.opensearch.security.resources.rest.share.ShareResourceResponse;
-import org.opensearch.security.resources.rest.verify.VerifyResourceAccessAction;
-import org.opensearch.security.resources.rest.verify.VerifyResourceAccessRequest;
 import org.opensearch.security.resources.rest.verify.VerifyResourceAccessResponse;
+import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.resources.ResourceSharingConstants.RESOURCE_SHARING_MIN_SUPPORTED_VERSION;
 
 /**
- * Node client responsible for handling resource sharing operations such as verifying,
+ * Access control client responsible for handling resource sharing operations such as verifying,
  * sharing, revoking, and listing access to shareable resources.
  *
  * @opensearch.experimental
  */
-public final class ResourceSharingNodeClient implements ResourceSharingClient {
+public final class ResourceAccessControlClient implements ResourceSharingClient {
 
-    private static final Logger log = LogManager.getLogger(ResourceSharingNodeClient.class);
+    private static final Logger log = LogManager.getLogger(ResourceAccessControlClient.class);
 
-    private final Client client;
+    private final ResourceAccessHandler resourceAccessHandler;
     private final Settings settings;
-    private final Version nodeVersion;
+    private final ClusterService clusterService;
 
     /**
-     * Constructs a new ResourceSharingNodeClient.
+     * Constructs a new ResourceAccessControlTransportClient.
      *
-     * @param client   The transport client to send requests.
-     * @param settings The OpenSearch cluster settings.
      */
-    public ResourceSharingNodeClient(Client client, Settings settings, Version nodeVersion) {
-        this.client = client;
+    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings, ClusterService clusterService) {
+        this.resourceAccessHandler = resourceAccessHandler;
         this.settings = settings;
-        this.nodeVersion = nodeVersion;
+        this.clusterService = clusterService;
     }
 
     /**
@@ -74,11 +68,7 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     public void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
         if (handleIfFeatureDisabled("Access to resource is automatically granted.", listener, true)) return;
 
-        VerifyResourceAccessRequest request = new VerifyResourceAccessRequest.Builder().resourceId(resourceId)
-            .resourceIndex(resourceIndex)
-            .build();
-
-        client.execute(VerifyResourceAccessAction.INSTANCE, request, accessResponseListener(listener));
+        resourceAccessHandler.hasPermission(resourceId, resourceIndex, Set.of(ResourceAccessActionGroups.PLACE_HOLDER), listener);
     }
 
     /**
@@ -98,12 +88,10 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     ) {
         if (handleIfFeatureDisabled("Resource is not shareable.", listener)) return;
 
-        ShareResourceRequest request = new ShareResourceRequest.Builder().resourceId(resourceId)
-            .resourceIndex(resourceIndex)
-            .shareWith(recipients)
-            .build();
+        SharedWithActionGroup sharedWithActionGroup = new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
+        ShareWith shareWith = new ShareWith(Set.of(sharedWithActionGroup));
 
-        client.execute(ShareResourceAction.INSTANCE, request, sharingResponseListener(listener));
+        resourceAccessHandler.shareWith(resourceId, resourceIndex, shareWith, listener);
     }
 
     /**
@@ -123,12 +111,13 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
     ) {
         if (handleIfFeatureDisabled("Resource access is not revoked.", listener)) return;
 
-        RevokeResourceAccessRequest request = new RevokeResourceAccessRequest.Builder().resourceId(resourceId)
-            .resourceIndex(resourceIndex)
-            .revokedEntities(entitiesToRevoke)
-            .build();
-
-        client.execute(RevokeResourceAccessAction.INSTANCE, request, revokeResponseListener(listener));
+        resourceAccessHandler.revokeAccess(
+            resourceId,
+            resourceIndex,
+            entitiesToRevoke,
+            Set.of(ResourceAccessActionGroups.PLACE_HOLDER),
+            listener
+        );
     }
 
     /**
@@ -138,16 +127,12 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
      * @param listener      Callback receiving a set of {@link ShareableResource} instances.
      */
     @Override
-    public void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener) {
+    public <T extends ShareableResource> void listAllAccessibleResources(String resourceIndex, ActionListener<Set<T>> listener) {
         if (handleIfFeatureDisabled("Unable to list all accessible resources.", listener)) return;
 
         ListAccessibleResourcesRequest request = new ListAccessibleResourcesRequest.Builder().resourceIndex(resourceIndex).build();
 
-        client.execute(
-            ListAccessibleResourcesAction.INSTANCE,
-            request,
-            ActionListener.wrap(response -> listener.onResponse(response.getResources()), listener::onFailure)
-        );
+        resourceAccessHandler.getAccessibleResourcesForCurrentUser(resourceIndex, listener);
     }
 
     /**
@@ -199,12 +184,8 @@ public final class ResourceSharingNodeClient implements ResourceSharingClient {
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
 
-        Settings securitySettings = settings.getByPrefix(ConfigConstants.SECURITY_SETTINGS_PREFIX);
-        boolean securityDisabled = securitySettings.isEmpty()
-            || settings.getAsBoolean(ConfigConstants.OPENSEARCH_SECURITY_DISABLED, ConfigConstants.OPENSEARCH_SECURITY_DISABLED_DEFAULT);
-
-        if (securityDisabled) return "Security plugin is disabled.";
         if (!sharingEnabled) return "ShareableResource Access Control feature is disabled.";
+        Version nodeVersion = clusterService.localNode().getVersion();
         if (nodeVersion.before(RESOURCE_SHARING_MIN_SUPPORTED_VERSION)) {
             return "Resource Sharing feature is not supported in version "
                 + nodeVersion

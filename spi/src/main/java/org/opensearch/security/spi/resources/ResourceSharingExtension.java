@@ -8,6 +8,8 @@
 
 package org.opensearch.security.spi.resources;
 
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
+
 /**
  * This interface should be implemented by all the plugins that define one or more resources and need access control over those resources.
  *
@@ -32,4 +34,11 @@ public interface ResourceSharingExtension {
      * @return the parser for the resource
      */
     ShareableResourceParser<? extends ShareableResource> getShareableResourceParser();
+
+    /**
+     * Assigns the ResourceSharingClient to the resource plugin. Plugins can then utilize this to call the methods for access control.
+     * @param client the ResourceSharingClient instance
+     */
+    void assignResourceSharingClient(ResourceSharingClient client);
+
 }

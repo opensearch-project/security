@@ -13,28 +13,21 @@ This feature ensures **secure** and **controlled** access to shareableResources 
 ---
 
 ## **2. What are the Components?**
-This feature introduces **two primary components** for plugin developers:
+This feature introduces **one primary component** for plugin developers:
 
-### **1. `opensearch-security-client`**
-- Provides a client with methods for **resource access control**.
-- Plugins must declare a **dependency** on this client to integrate with security features.
-
-### **2. `opensearch-resource-sharing-spi`**
+### **1. `opensearch-resource-sharing-spi`**
 - A **Service Provider Interface (SPI)** that plugins must implement to declare themselves as **Resource Plugins**.
 - The security plugin keeps track of these plugins (similar to how JobScheduler tracks `JobSchedulerExtension`).
+- Allows resource plugins to utilize a service provider client to implement access control.
 
 ### **Plugin Implementation Requirements:**
 
 - This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **enabled by default**.
 - **Resource indices must be system indices**, and **system index protection must be enabled** (`plugins.security.system_indices.enabled: true`) to prevent unauthorized direct access.
-- Plugins must declare dependencies on **`opensearch-security-client`** and **`opensearch-resource-sharing-spi`** in their `build.gradle`.
+- Plugins must declare dependency on **`opensearch-resource-sharing-spi`** in their `build.gradle`.
 
 ### **Plugin Implementation Requirements**
 Each plugin must:
-- **Declare an `implementation` dependency** on `opensearch-security-client` package:
-```build.gradle
-implementation group: 'org.opensearch', name:'opensearch-security-client', version: "${opensearch_build}"
-```
 - **Declare a `compileOnly` dependency** on `opensearch-resource-sharing-spi` package:
 ```build.gradle
 compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
@@ -74,11 +67,13 @@ This feature is controlled by the following flag:
 ---
 
 ## **4. Declaring a Resource Plugin and Using the Client for Access Control**
+
 ### **Declaring a Plugin as a Resource Plugin**
 To integrate with the security plugin, your plugin must:
 1. Extend `ResourceSharingExtension` and implement required methods.
 2. Implement the `ShareableResource` interface for resource declaration.
 3. Implement a resource parser to extract resource details.
+4. Implement a client accessor to utilize `ResourceSharingClient`.
 
 [`opensearch-resource-sharing-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
@@ -89,7 +84,7 @@ Example usage:
 
 public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, ResourceSharingExtension {
 
-    // override any required methods
+    // Override required methods
 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
@@ -111,13 +106,17 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
     public ShareableResourceParser<SampleResource> getShareableResourceParser() {
         return new SampleResourceParser();
     }
+
+    @Override
+    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
+        ResourceSharingClientAccessor.setResourceSharingClient(resourceSharingClient);
+    }
 }
 ```
 
 
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
-Plugins must **declare a dependency** on `opensearch-security-client` and use it to call access control methods.
-The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-client` README.md](./client/README.md)
+The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-resource-sharing-spi` README.md](./spi/README.md)
 
 
 Tip: Refer to the `org.opensearch.sample.resource.client.ResourceSharingClientAccessor` class to understand the client setup in further detail.
@@ -125,43 +124,31 @@ Tip: Refer to the `org.opensearch.sample.resource.client.ResourceSharingClientAc
 Example usage:
 ```java
 @Inject
-public ShareResourceTransportAction(
-        Settings settings,
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient
-) {
+public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
     super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-    this.nodeClient = nodeClient;
-    this.settings = settings;
-    this.transportService = transportService;
 }
 
 @Override
-void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
+protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
     if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
         listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
         return;
     }
 
-    Version nodeVersion = transportService.getLocalNode().getVersion();
-    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient(nodeClient, settings, nodeVersion);
+    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
     resourceSharingClient.shareResource(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
             request.getShareWith(),
             ActionListener.wrap(sharing -> {
                 ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
+                log.debug("Shared resource: {}", response.toString());
                 listener.onResponse(response);
             }, listener::onFailure)
     );
 }
 ```
 
-
----
-
-Here's a **cleaned-up and clarified version** of your README section, with redundancy removed, grammar improved, and examples aligned for consistency and clarity:
 
 ---
 
@@ -245,23 +232,18 @@ To enable users to interact with the **Resource Sharing and Access Control** fea
 ### **Required Cluster Permissions**
 Users must be assigned the following **cluster permissions** in `roles.yml`:
 
-- **`cluster:admin/security/resource_access/*`** → Required to evaluate resource permissions.
 - **Plugin-specific cluster permissions** → Required to interact with the plugin’s APIs.
 
 #### **Example Role Configurations**
 ```yaml
 sample_full_access:
   cluster_permissions:
-    - 'cluster:admin/security/resource_access/*'
     - 'cluster:admin/sample-resource-plugin/*'
 
 sample_read_access:
   cluster_permissions:
-    - 'cluster:admin/security/resource_access/list'
     - 'cluster:admin/sample-resource-plugin/get'
 ```
-
-> Note: `cluster:admin/security/resource_access/*` encapsulates `cluster:admin/security/resource_access/list`, `cluster:admin/security/resource_access/revoke`, `cluster:admin/security/resource_access/share` and `cluster:admin/security/resource_access/verify` permissions. If a user is only intended to list their own resources then `/*` must be replaced with `/list`.
 
 ### **User Access Rules**
 1. **Users must have the required cluster permissions**
@@ -279,7 +261,6 @@ sample_read_access:
 ### **Summary**
 | **Requirement** | **Description**                                                                       |
 |---------------|---------------------------------------------------------------------------------------|
-| **Cluster Permission** | `cluster:admin/security/resource_access/*` required for resource evaluation.            |
 | **Plugin API Permissions** | Users must also have relevant plugin API cluster permissions.                         |
 | **Resource Sharing** | Access is granted only if the resource is shared with the user or they are the owner. |
 | **No Index Permissions Needed** | The `.opensearch_resource_sharing` index and resource indices are system-protected.   |
@@ -499,7 +480,7 @@ Returns an array of accessible resources.
 ## **9. Best Practices**
 ### **For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
-- **Use the security client** instead of direct index queries to check access.
+- **Use the resource sharing client** instead of direct index queries to check access.
 - **Implement a resource parser** to ensure correct resource extraction.
 
 ### **For Users & Admins**
@@ -511,7 +492,7 @@ Returns an array of accessible resources.
 ## **Conclusion**
 The **Resource Sharing and Access Control** feature enhances OpenSearch security by introducing an **additional layer of fine-grained access management** for plugin-defined shareableResources. While **Fine-Grained Access Control (FGAC)** is already enabled, this feature provides **even more granular control** specifically for **resource-level access** within plugins.
 
-By implementing the **Service Provider Interface (SPI)**, utilizing the **security client**, and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
+By implementing the **Service Provider Interface (SPI)** and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
 
 For detailed implementation and examples, refer to the **[sample plugin](./sample-resource-plugin/README.md)** included in the security plugin repository.
 

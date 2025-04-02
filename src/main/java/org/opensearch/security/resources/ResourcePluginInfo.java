@@ -16,6 +16,8 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
+
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
  * It follows the Singleton pattern to ensure that only one instance of the class exists.
@@ -27,6 +29,7 @@ public class ResourcePluginInfo {
 
     private final Map<String, ResourceProvider> resourceProviderMap = new HashMap<>();
     private final Set<String> resourceIndices = new HashSet<>();
+    private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
     public void setResourceProviders(Map<String, ResourceProvider> providerMap) {
         resourceProviderMap.clear();
@@ -38,12 +41,21 @@ public class ResourcePluginInfo {
         resourceIndices.addAll(indices);
     }
 
+    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
+        resourceSharingExtensions.clear();
+        resourceSharingExtensions.addAll(extensions);
+    }
+
     public Map<String, ResourceProvider> getResourceProviders() {
         return ImmutableMap.copyOf(resourceProviderMap);
     }
 
     public Set<String> getResourceIndices() {
         return ImmutableSet.copyOf(resourceIndices);
+    }
+
+    public Set<ResourceSharingExtension> getResourceSharingExtensions() {
+        return ImmutableSet.copyOf(resourceSharingExtensions);
     }
 
     // TODO following should be removed once core test framework allows loading extended classes
@@ -53,5 +65,9 @@ public class ResourcePluginInfo {
 
     public Set<String> getResourceIndicesMutable() {
         return resourceIndices;
+    }
+
+    public Set<ResourceSharingExtension> getResourceSharingExtensionsMutable() {
+        return resourceSharingExtensions;
     }
 }

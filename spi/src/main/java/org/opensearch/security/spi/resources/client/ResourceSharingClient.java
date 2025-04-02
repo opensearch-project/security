@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.client.resources;
+package org.opensearch.security.spi.resources.client;
 
 import java.util.Set;
 
@@ -59,9 +59,9 @@ public interface ResourceSharingClient {
     );
 
     /**
-     * Lists all resources accessible by the current user.
+     * Lists all shareable resources accessible by the current user.
      * @param resourceIndex The index containing the resources.
      * @param listener The listener to be notified with the set of accessible resources.
      */
-    void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener);
+    <T extends ShareableResource> void listAllAccessibleResources(String resourceIndex, ActionListener<Set<T>> listener);
 }
