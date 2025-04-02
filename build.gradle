@@ -541,6 +541,7 @@ task integrationTest(type: Test) {
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
