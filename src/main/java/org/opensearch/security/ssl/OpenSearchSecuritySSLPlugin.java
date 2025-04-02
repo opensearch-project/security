@@ -698,41 +698,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(
                 Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered)
         );
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_CRL_FILE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_AUX_CRL_VALIDATE, false, Property.NodeScope, Property.Filtered));
-        settings.add(
-                Setting.boolSetting(
-                        SSLConfigConstants.SECURITY_SSL_AUX_CRL_PREFER_CRLFILE_OVER_OCSP,
-                        false,
-                        Property.NodeScope,
-                        Property.Filtered
-                )
-        );
-        settings.add(
-                Setting.boolSetting(
-                        SSLConfigConstants.SECURITY_SSL_AUX_CRL_CHECK_ONLY_END_ENTITIES,
-                        true,
-                        Property.NodeScope,
-                        Property.Filtered
-                )
-        );
-        settings.add(
-                Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_AUX_CRL_DISABLE_CRLDP, false, Property.NodeScope, Property.Filtered)
-        );
-        settings.add(
-                Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_AUX_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered)
-        );
-        settings.add(
-                Setting.longSetting(SSLConfigConstants.SECURITY_SSL_AUX_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered)
-        );
-        settings.add(
-                Setting.boolSetting(
-                        SSLConfigConstants.SECURITY_SSL_AUX_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
-                        true,
-                        Property.NodeScope,
-                        Property.Filtered
-                )
-        );
 
         return settings;
     }

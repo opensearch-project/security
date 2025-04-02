@@ -115,7 +115,6 @@ public final class SSLConfigConstants {
      */
     public static final String AUX_SETTINGS = "aux";
     public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
-    public static final String SSL_AUX_CRL_PREFIX = SSL_AUX_PREFIX + "crl.";
 
     // aux enable settings
     public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
@@ -140,17 +139,7 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_AUX_TRUSTSTORE_TYPE = SSL_AUX_PREFIX + TRUSTSTORE_TYPE;
     public static final String SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = SSL_AUX_PREFIX + TRUSTSTORE_ALIAS;
     public static final String SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = SSL_AUX_PREFIX + TRUSTSTORE_FILEPATH;
-    public static final String SECURITY_SSL_AUX_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_AUX_PREFIX + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = SSL_AUX_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
-
-    // aux cert revocation list settings
-    public static final String SECURITY_SSL_AUX_CRL_FILE = SSL_AUX_CRL_PREFIX + "file_path";
-    public static final String SECURITY_SSL_AUX_CRL_VALIDATE = SSL_AUX_CRL_PREFIX + "validate";
-    public static final String SECURITY_SSL_AUX_CRL_PREFER_CRLFILE_OVER_OCSP = SSL_AUX_CRL_PREFIX + "prefer_crlfile_over_ocsp";
-    public static final String SECURITY_SSL_AUX_CRL_CHECK_ONLY_END_ENTITIES = SSL_AUX_CRL_PREFIX + "check_only_end_entities";
-    public static final String SECURITY_SSL_AUX_CRL_DISABLE_OCSP = SSL_AUX_CRL_PREFIX + "disable_ocsp";
-    public static final String SECURITY_SSL_AUX_CRL_DISABLE_CRLDP = SSL_AUX_CRL_PREFIX + "disable_crldp";
-    public static final String SECURITY_SSL_AUX_CRL_VALIDATION_DATE = SSL_AUX_CRL_PREFIX + "validation_date";
 
     /**
      * Transport layer (node-to-node) settings.
