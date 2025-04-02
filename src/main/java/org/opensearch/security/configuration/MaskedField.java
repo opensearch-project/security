@@ -33,10 +33,12 @@ public class MaskedField {
     private List<RegexReplacement> regexReplacements;
     private final byte[] defaultSalt;
     private final String defaultAlgorithm;
+    private final boolean useLegacyDefaultAlgorithm;
 
-    public MaskedField(final String value, final Salt salt, final String defaultAlgorithm) {
+    public MaskedField(final String value, final Salt salt, final String defaultAlgorithm, boolean useLegacyDefaultAlgorithm) {
         this.defaultSalt = salt.getSalt16();
         this.defaultAlgorithm = defaultAlgorithm;
+        this.useLegacyDefaultAlgorithm = useLegacyDefaultAlgorithm;
         final List<String> tokens = Splitter.on("::").splitToList(Objects.requireNonNull(value));
         final int tokenCount = tokens.size();
         if (tokenCount == 1) {
@@ -150,9 +152,12 @@ public class MaskedField {
     }
 
     private byte[] blake2bHash(byte[] in) {
-        // Salt is passed incorrectly but order of parameters is retained at present to ensure full backwards compatibility
-        // Tracking with https://github.com/opensearch-project/security/issues/4274
-        final Blake2b hash = new Blake2b(null, 32, null, defaultSalt);
+        final Blake2b hash;
+        if (useLegacyDefaultAlgorithm) {
+            hash = new Blake2b(null, 32, null, defaultSalt);
+        } else {
+            hash = new Blake2b(null, 32, defaultSalt, null);
+        }
         hash.update(in, 0, in.length);
         final byte[] out = new byte[hash.getDigestSize()];
         hash.digest(out, 0);

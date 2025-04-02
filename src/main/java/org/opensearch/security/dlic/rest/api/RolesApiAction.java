@@ -108,7 +108,10 @@ public class RolesApiAction extends AbstractApiAction {
                 new MaskedField(
                     maskedFieldNode.asText(),
                     SALT,
-                    validationContext.settings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT)
+                    validationContext.settings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT),
+                    ConfigConstants.BLAKE2B_LEGACY_DEFAULT.equals(
+                        validationContext.settings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT)
+                    )
                 ).isValid();
             } catch (Exception e) {
                 return Pair.of(maskedFieldNode.asText(), e.getMessage());

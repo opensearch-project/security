@@ -88,6 +88,8 @@ import org.opensearch.security.support.MapUtils;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
+import static org.opensearch.security.support.ConfigConstants.BLAKE2B_LEGACY_DEFAULT;
+
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     private static final String KEYWORD = ".keyword";
@@ -109,6 +111,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private final boolean maskFields;
     private final Salt salt;
     private final String maskingAlgorithmDefault;
+    private final boolean useLegacyDefaultAlgorithm;
 
     private DlsGetEvaluator dge = null;
 
@@ -134,7 +137,14 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.auditlog = auditlog;
         this.salt = salt;
         this.maskingAlgorithmDefault = clusterService.getSettings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
-        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt, maskingAlgorithmDefault);
+        this.useLegacyDefaultAlgorithm = BLAKE2B_LEGACY_DEFAULT.equalsIgnoreCase(maskingAlgorithmDefault);
+        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(
+            maskFields,
+            maskedFields,
+            salt,
+            maskingAlgorithmDefault,
+            useLegacyDefaultAlgorithm
+        );
 
         this.shardId = shardId;
         flsEnabled = includesExcludes != null && !includesExcludes.isEmpty();
@@ -300,12 +310,13 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             boolean maskFields,
             Set<String> maskedFields,
             final Salt salt,
-            String algorithmDefault
+            String algorithmDefault,
+            boolean useLegacyDefault
         ) {
             if (maskFields) {
                 return new MaskedFieldsMap(
                     maskedFields.stream()
-                        .map(mf -> new MaskedField(mf, salt, algorithmDefault))
+                        .map(mf -> new MaskedField(mf, salt, algorithmDefault, useLegacyDefault))
                         .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity()))
                 );
             } else {
@@ -1233,7 +1244,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         if (maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);
             if (mf != null && !mf.isEmpty()) {
-                return MaskedFieldsMap.extractMaskedFields(true, mf, salt, maskingAlgorithmDefault);
+                return MaskedFieldsMap.extractMaskedFields(true, mf, salt, maskingAlgorithmDefault, useLegacyDefaultAlgorithm);
             }
 
         }

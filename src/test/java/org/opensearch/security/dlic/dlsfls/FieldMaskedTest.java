@@ -26,7 +26,7 @@ import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
+import static org.opensearch.security.support.ConfigConstants.BLAKE2B_LEGACY_DEFAULT;
 
 public class FieldMaskedTest extends AbstractDlsFlsTest {
 
