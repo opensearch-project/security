@@ -16,7 +16,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 // CS-ENFORCE-SINGLE:
 
