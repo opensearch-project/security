@@ -26,7 +26,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -87,8 +86,7 @@ public class SecurityFilterTests {
             mock(ClusterService.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(XFFResolver.class),
-            mock(ClusterInfoHolder.class)
+            mock(XFFResolver.class)
         );
         assertThat(expected, equalTo(filter.getImmutableIndicesMatcher()));
     }
@@ -111,8 +109,7 @@ public class SecurityFilterTests {
             mock(ClusterService.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(XFFResolver.class),
-            mock(ClusterInfoHolder.class)
+            mock(XFFResolver.class)
         );
 
         // Act

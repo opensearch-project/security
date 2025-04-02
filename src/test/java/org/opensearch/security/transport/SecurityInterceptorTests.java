@@ -235,7 +235,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, false, false)));
+                assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, false)));
                 senderLatch.get().countDown();
             }
         };
@@ -332,8 +332,7 @@ public class SecurityInterceptorTests {
 
     @Test
     public void testSendRequestDecorateRemoteConnectionUsesJDKSerialization() {
-        threadPool.getThreadContext()
-            .putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, false, false));
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, false));
         completableRequestDecorateWithPreviouslyPopulatedHeaders(
             jdkSerializedSender,
             connection3,
@@ -347,8 +346,7 @@ public class SecurityInterceptorTests {
 
     @Test
     public void testSendRequestDecorateRemoteConnectionUsesCustomSerialization() {
-        threadPool.getThreadContext()
-            .putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, true, false));
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, true));
         completableRequestDecorateWithPreviouslyPopulatedHeaders(
             customSerializedSender,
             connection5,

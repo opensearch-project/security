@@ -36,15 +36,11 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
-import org.apache.commons.lang3.SerializationUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
@@ -58,94 +54,9 @@ import static org.opensearch.security.support.SafeSerializationUtils.isSafeClass
  */
 public class Base64JDKHelper {
 
-    private static final Logger logger = LogManager.getLogger(Base64Helper.class);
-    private static final String ODFE_LDAP_USER_CLASS = "com.amazon.dlic.auth.ldap.LdapUser";
-    private static final String OS_LDAP_USER_CLASS = "org.opensearch.security.auth.ldap.LdapUser";
-    private static final ObjectStreamClass OS_LDAP_USER_CLASS_DESC;
-
-    static {
-        try {
-            OS_LDAP_USER_CLASS_DESC = ObjectStreamClass.lookup(Class.forName(OS_LDAP_USER_CLASS));
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static class DescriptorNameSetter {
-        private static final Field NAME = getField();
-
-        private DescriptorNameSetter() {}
-
-        private static Field getField() {
-            try {
-                final Field field = ObjectStreamClass.class.getDeclaredField("name");
-                field.setAccessible(true);
-                return field;
-            } catch (NoSuchFieldException | SecurityException e) {
-                logger.error("Failed to get ObjectStreamClass declared field", e);
-                if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-
-        public static void setName(ObjectStreamClass desc, String name) {
-            try {
-                logger.debug("replacing descriptor name from [{}] to [{}]", desc.getName(), name);
-                NAME.set(desc, name);
-            } catch (IllegalAccessException e) {
-                logger.error("Failed to replace descriptor name from {} to {}", desc.getName(), name, e);
-                throw new OpenSearchException(e);
-            }
-        }
-    }
-
-    /**
-     * Handles the replacement of a specific class descriptor during serialization.
-     * This class is designed to replace the OpenSearch (OS) package name with the
-     * OpenDistro for Elasticsearch (ODFE) package name for a single, specific class.
-     */
-    public static class DescriptorReplacer {
-        private static ObjectStreamClass replacementDescriptor;
-
-        static {
-            try {
-                ObjectStreamClass desc = null;
-                try {
-                    desc = ObjectStreamClass.lookup(Class.forName(OS_LDAP_USER_CLASS));
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
-                ObjectStreamClass clone = SerializationUtils.clone(desc);
-                DescriptorNameSetter.setName(clone, ODFE_LDAP_USER_CLASS);
-                replacementDescriptor = clone;
-            } catch (Exception e) {
-                logger.error("Failed to initialize replacement descriptor", e);
-            }
-        }
-
-        /**
-         * Replaces the class descriptor if it matches the specific OpenSearch class.
-         *
-         * @param desc The original ObjectStreamClass descriptor.
-         * @return The replacement descriptor if the original matches the specific OS class,
-         *         otherwise returns the original descriptor.
-         */
-        public ObjectStreamClass replace(final ObjectStreamClass desc) {
-            if (OS_LDAP_USER_CLASS.equals(desc.getName())) {
-                return replacementDescriptor;
-            }
-            return desc;
-        }
-    }
-
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
-        private static final DescriptorReplacer descriptorReplacer = new DescriptorReplacer();
-        private boolean minNodeVersionLowerThan3;
 
         @SuppressWarnings("removal")
         private static boolean checkSubstitutionPermission() {
@@ -165,9 +76,9 @@ public class Base64JDKHelper {
             return true;
         }
 
-        static ObjectOutputStream create(ByteArrayOutputStream out, boolean minNodeVersionLowerThan3) throws IOException {
+        static ObjectOutputStream create(ByteArrayOutputStream out) throws IOException {
             try {
-                return useSafeObjectOutputStream ? new SafeObjectOutputStream(out, minNodeVersionLowerThan3) : new ObjectOutputStream(out);
+                return useSafeObjectOutputStream ? new SafeObjectOutputStream(out) : new ObjectOutputStream(out);
             } catch (SecurityException e) {
                 // As we try to create SafeObjectOutputStream only when necessary permissions are granted, we should
                 // not reach here, but if we do, we can still return ObjectOutputStream after resetting ByteArrayOutputStream
@@ -177,9 +88,8 @@ public class Base64JDKHelper {
         }
 
         @SuppressWarnings("removal")
-        private SafeObjectOutputStream(OutputStream out, boolean minNodeVersionBefore3) throws IOException {
+        private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
-            this.minNodeVersionLowerThan3 = minNodeVersionBefore3;
 
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -197,26 +107,14 @@ public class Base64JDKHelper {
             }
             throw new IOException("Unauthorized serialization attempt " + clazz.getName());
         }
-
-        @Override
-        protected void writeClassDescriptor(ObjectStreamClass desc) throws IOException {
-            if (this.minNodeVersionLowerThan3) {
-                super.writeClassDescriptor(descriptorReplacer.replace(desc));
-            }
-            super.writeClassDescriptor(desc);
-        }
     }
 
     public static String serializeObject(final Serializable object) {
-        return serializeObject(object, false);
-    }
-
-    public static String serializeObject(final Serializable object, boolean minNodeVersionLowerThan3) {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos, minNodeVersionLowerThan3)) {
+        try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos)) {
             out.writeObject(object);
         } catch (final Exception e) {
             throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
@@ -254,30 +152,5 @@ public class Base64JDKHelper {
 
             throw new InvalidClassException("Unauthorized deserialization attempt ", clazz.getName());
         }
-
-        /**
-         * Overrides the default readClassDescriptor method to handle package name changes.
-         * This method is called during deserialization to read the class descriptor of each
-         * serialized object. It specifically addresses the migration for LDAPUser class from
-         * com.amazon.dlic to org.opensearch.security package
-         *
-         * @return ObjectStreamClass The class descriptor to use for deserialization.
-         *         If the incoming class name matches the old LDAP user class,
-         *         it returns the descriptor for the new OpenSearch LDAP user class.
-         *         Otherwise, it returns the original descriptor.
-         *
-         * Note: This method ensures backwards compatibility with data serialized using
-         * the old 2.x package structure, allowing seamless deserialization into the
-         * new OpenSearch 3.x+ class structure.
-         */
-        @Override
-        protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-            ObjectStreamClass desc = super.readClassDescriptor();
-            if (desc.getName().equals(ODFE_LDAP_USER_CLASS)) {
-                return OS_LDAP_USER_CLASS_DESC;
-            }
-            return desc;
-        }
-
     }
 }

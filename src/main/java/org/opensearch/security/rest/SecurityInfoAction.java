@@ -48,7 +48,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
@@ -81,19 +80,16 @@ public class SecurityInfoAction extends BaseRestHandler {
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
-    private final ClusterInfoHolder clusterInfoHolder;
 
     public SecurityInfoAction(
         final Settings settings,
         final RestController controller,
         final PrivilegesEvaluator evaluator,
-        final ThreadPool threadPool,
-        ClusterInfoHolder clusterInfoHolder
+        final ThreadPool threadPool
     ) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     @Override
@@ -144,28 +140,19 @@ public class SecurityInfoAction extends BaseRestHandler {
                         try {
                             builder.field(
                                 "size_of_user",
-                                RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject(user, true, clusterInfoHolder.isMinNodeVersionLowerThan3()).length()
-                                )
+                                RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user).length())
                             );
                             builder.field(
                                 "size_of_custom_attributes",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject(
-                                        (Serializable) user.getCustomAttributesMap(),
-                                        true,
-                                        clusterInfoHolder.isMinNodeVersionLowerThan3()
-                                    ).getBytes(StandardCharsets.UTF_8).length
+                                    Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap())
+                                        .getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                             builder.field(
                                 "size_of_backendroles",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject(
-                                        (Serializable) user.getRoles(),
-                                        true,
-                                        clusterInfoHolder.isMinNodeVersionLowerThan3()
-                                    ).getBytes(StandardCharsets.UTF_8).length
+                                    Base64Helper.serializeObject((Serializable) user.getRoles()).getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                         } catch (Throwable e) {

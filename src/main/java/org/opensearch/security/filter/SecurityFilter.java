@@ -79,7 +79,6 @@ import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -114,7 +113,6 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
-    private final ClusterInfoHolder clusterInfoHolder;
 
     public SecurityFilter(
         final Settings settings,
@@ -126,8 +124,7 @@ public class SecurityFilter implements ActionFilter {
         ClusterService cs,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
-        final XFFResolver xffResolver,
-        ClusterInfoHolder cih
+        final XFFResolver xffResolver
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -143,7 +140,6 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.clusterInfoHolder = cih;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -492,20 +488,12 @@ public class SecurityFilter implements ActionFilter {
 
         if (request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(
-                    new SourceFieldsContext((SearchRequest) request),
-                    true,
-                    clusterInfoHolder.isMinNodeVersionLowerThan3()
-                );
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(
-                    new SourceFieldsContext((GetRequest) request),
-                    true,
-                    clusterInfoHolder.isMinNodeVersionLowerThan3()
-                );
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
