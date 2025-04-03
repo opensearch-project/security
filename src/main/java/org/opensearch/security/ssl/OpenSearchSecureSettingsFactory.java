@@ -14,23 +14,17 @@ package org.opensearch.security.ssl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.opensearch.common.network.NetworkService;
-import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.indices.breaker.CircuitBreakerService;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
-import org.opensearch.plugins.NetworkPlugin;
-import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureAuxTransportSettingsProvider;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.TransportExceptionHandler;
@@ -39,7 +33,6 @@ import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportAdapterProvider;
@@ -214,15 +207,15 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     @Override
                     public Collection<String> protocols() {
                         return sslSettingsManager.sslConfiguration(CertType.AUX)
-                                .map(config -> config.sslParameters().allowedProtocols())
-                                .orElse(Collections.emptyList());
+                            .map(config -> config.sslParameters().allowedProtocols())
+                            .orElse(Collections.emptyList());
                     }
 
                     @Override
                     public Collection<String> cipherSuites() {
                         return sslSettingsManager.sslConfiguration(CertType.AUX)
-                                .map(config -> config.sslParameters().allowedCiphers())
-                                .orElse(Collections.emptyList());
+                            .map(config -> config.sslParameters().allowedCiphers())
+                            .orElse(Collections.emptyList());
                     }
 
                     @Override

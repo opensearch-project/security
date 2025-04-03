@@ -23,9 +23,9 @@ import java.util.List;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
+import org.opensearch.security.ssl.config.CertType;
 
 import io.netty.handler.ssl.OpenSsl;
-import org.opensearch.security.ssl.config.CertType;
 
 public final class SSLConfigConstants {
     /**
@@ -215,10 +215,13 @@ public final class SSLConfigConstants {
     public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
         List<String> configuredProtocols = null;
 
-        switch (certType){
+        switch (certType) {
             case HTTP -> configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
             case AUX -> configuredProtocols = settings.getAsList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, Collections.emptyList());
-            case TRANSPORT, TRANSPORT_CLIENT -> configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredProtocols = settings.getAsList(
+                SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS,
+                Collections.emptyList()
+            );
             default -> throw new RuntimeException("Unsupported cert type: " + certType);
         }
 
@@ -232,10 +235,13 @@ public final class SSLConfigConstants {
     public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
         List<String> configuredCiphers = null;
 
-        switch (certType){
+        switch (certType) {
             case HTTP -> configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
             case AUX -> configuredCiphers = settings.getAsList(SECURITY_SSL_AUX_ENABLED_CIPHERS, Collections.emptyList());
-            case TRANSPORT, TRANSPORT_CLIENT -> configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
+            case TRANSPORT, TRANSPORT_CLIENT -> configuredCiphers = settings.getAsList(
+                SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS,
+                Collections.emptyList()
+            );
             default -> throw new RuntimeException("Unsupported cert type: " + certType);
         }
 

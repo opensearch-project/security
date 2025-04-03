@@ -160,68 +160,77 @@ public class SslSettingsManagerTest extends RandomizedTest {
      * Pem store and JKS (Java KeyStore) cannot both be used for transport.
      */
     private void configFailsIfBothPemAndJDKSettingsWereSet(
-           String transportEnabledSetting,
-           List<String> transportJKSSettings,
-           List<String> transportPemStoreSettings
-    ){
+        String transportEnabledSetting,
+        List<String> transportJKSSettings,
+        List<String> transportPemStoreSettings
+    ) {
         final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
-                .put(randomFrom(transportJKSSettings), "aaa")
-                .put(randomFrom(transportPemStoreSettings), "bbb")
-                .build();
+            .put(randomFrom(transportJKSSettings), "aaa")
+            .put(randomFrom(transportPemStoreSettings), "bbb")
+            .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
     @Test
     public void configFailsIfBothPemAndJDKSettingsWereSet() throws Exception {
         configFailsIfBothPemAndJDKSettingsWereSet(
-                SECURITY_SSL_HTTP_ENABLED,
-                List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH),
-                List.of(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH));
+            SECURITY_SSL_HTTP_ENABLED,
+            List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH),
+            List.of(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH)
+        );
         configFailsIfBothPemAndJDKSettingsWereSet(
-                SECURITY_SSL_AUX_ENABLED,
-                List.of(SECURITY_SSL_AUX_KEYSTORE_FILEPATH),
-                List.of(SECURITY_SSL_AUX_PEMKEY_FILEPATH, SECURITY_SSL_AUX_PEMCERT_FILEPATH, SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH));
+            SECURITY_SSL_AUX_ENABLED,
+            List.of(SECURITY_SSL_AUX_KEYSTORE_FILEPATH),
+            List.of(SECURITY_SSL_AUX_PEMKEY_FILEPATH, SECURITY_SSL_AUX_PEMCERT_FILEPATH, SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH)
+        );
         configFailsIfBothPemAndJDKSettingsWereSet(
-                SECURITY_SSL_TRANSPORT_ENABLED,
-                List.of(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
-                List.of(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH));
+            SECURITY_SSL_TRANSPORT_ENABLED,
+            List.of(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
+            List.of(
+                SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
+                SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
+                SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH
+            )
+        );
     }
 
     private void configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
-            String transportEnabledSetting,
-            String clientAuthEnabledSetting,
-            String keystorePathSetting
+        String transportEnabledSetting,
+        String clientAuthEnabledSetting,
+        String keystorePathSetting
     ) {
         final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
-                .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-                .put(keystorePathSetting, certificatesRule.configRootFolder().toString())
-                .build();
+            .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .put(keystorePathSetting, certificatesRule.configRootFolder().toString())
+            .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
     @Test
     public void serverTransportConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() {
         configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
-                SECURITY_SSL_HTTP_ENABLED,
-                SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
-                SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
+            SECURITY_SSL_HTTP_ENABLED,
+            SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
+            SECURITY_SSL_HTTP_KEYSTORE_FILEPATH
+        );
         configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
-                SECURITY_SSL_AUX_ENABLED,
-                SECURITY_SSL_AUX_CLIENTAUTH_MODE,
-                SECURITY_SSL_AUX_KEYSTORE_FILEPATH);
+            SECURITY_SSL_AUX_ENABLED,
+            SECURITY_SSL_AUX_CLIENTAUTH_MODE,
+            SECURITY_SSL_AUX_KEYSTORE_FILEPATH
+        );
     }
 
     private void configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
-            String transportEnabledSetting,
-            String clientAuthEnabledSetting,
-            String pemkeyPathSetting,
-            String pemcertPathSetting
+        String transportEnabledSetting,
+        String clientAuthEnabledSetting,
+        String pemkeyPathSetting,
+        String pemcertPathSetting
     ) {
         final var settings = defaultSettingsBuilder().put(transportEnabledSetting, true)
-                .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-                .put(pemkeyPathSetting, "aaa")
-                .put(pemcertPathSetting, "bbb")
-                .build();
+            .put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .put(pemkeyPathSetting, "aaa")
+            .put(pemcertPathSetting, "bbb")
+            .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
@@ -295,8 +304,8 @@ public class SslSettingsManagerTest extends RandomizedTest {
             sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
         );
         assertThat(
-                "Built Server SSL context for AUX",
-                sslSettingsManager.sslContextHandler(CertType.AUX).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+            "Built Server SSL context for AUX",
+            sslSettingsManager.sslContextHandler(CertType.AUX).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
         );
     }
 
@@ -536,10 +545,10 @@ public class SslSettingsManagerTest extends RandomizedTest {
 
     private void withAuxSslSettings(final Settings.Builder settingsBuilder) {
         settingsBuilder.put(SECURITY_SSL_AUX_ENABLED, true)
-                .put(SECURITY_SSL_AUX_ENABLED, true)
-                .put(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, path("ca_aux_certificate.pem"))
-                .put(SECURITY_SSL_AUX_PEMCERT_FILEPATH, path("access_aux_certificate.pem"))
-                .put(SECURITY_SSL_AUX_PEMKEY_FILEPATH, path("access_aux_certificate_pk.pem"));
+            .put(SECURITY_SSL_AUX_ENABLED, true)
+            .put(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, path("ca_aux_certificate.pem"))
+            .put(SECURITY_SSL_AUX_PEMCERT_FILEPATH, path("access_aux_certificate.pem"))
+            .put(SECURITY_SSL_AUX_PEMKEY_FILEPATH, path("access_aux_certificate_pk.pem"));
     }
 
     Settings.Builder defaultSettingsBuilder() {

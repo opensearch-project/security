@@ -73,17 +73,27 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
             final SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
             engine.setSSLParameters(sslParams);
-            engine.setEnabledProtocols(evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, CertType.TRANSPORT)));
+            engine.setEnabledProtocols(
+                evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, CertType.TRANSPORT))
+            );
             engine.setEnabledCipherSuites(
-                evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, CertType.TRANSPORT).toArray(new String[0]))
+                evalSecure(
+                    engine.getEnabledCipherSuites(),
+                    SSLConfigConstants.getSecureSSLCiphers(settings, CertType.TRANSPORT).toArray(new String[0])
+                )
             );
             engine.setUseClientMode(true);
             return engine;
         } else {
             final SSLEngine engine = externalSslContext.createSSLEngine();
-            engine.setEnabledProtocols(evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, CertType.TRANSPORT)));
+            engine.setEnabledProtocols(
+                evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, CertType.TRANSPORT))
+            );
             engine.setEnabledCipherSuites(
-                evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, CertType.TRANSPORT).toArray(new String[0]))
+                evalSecure(
+                    engine.getEnabledCipherSuites(),
+                    SSLConfigConstants.getSecureSSLCiphers(settings, CertType.TRANSPORT).toArray(new String[0])
+                )
             );
             engine.setUseClientMode(true);
             return engine;

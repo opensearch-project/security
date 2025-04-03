@@ -19,7 +19,6 @@ import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -85,12 +84,12 @@ public class SslParametersTest {
     @Test
     public void testCustomSSlParametersForHttpAndTransport() {
         final var settings = Settings.builder()
-                .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-                .putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
-                .putList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
-                .putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1.3", "TLSv1.2"))
-                .putList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"))
-                .build();
+            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
+            .putList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
+            .putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1.3", "TLSv1.2"))
+            .putList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"))
+            .build();
         final var httpSslParameters = SslParameters.loader(settings.getByPrefix(SSL_HTTP_PREFIX)).load(CertType.HTTP);
         final var transportSslParameters = SslParameters.loader(settings.getByPrefix(SSL_TRANSPORT_PREFIX)).load(CertType.TRANSPORT);
 
@@ -108,15 +107,15 @@ public class SslParametersTest {
     @Test
     public void testCustomSSlParametersForHttpAndAuxAndTransport() {
         final var settings = Settings.builder()
-                .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-                .putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
-                .putList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
-                .put(SECURITY_SSL_AUX_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-                .putList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
-                .putList(SECURITY_SSL_AUX_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
-                .putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1.3", "TLSv1.2"))
-                .putList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"))
-                .build();
+            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
+            .putList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
+            .put(SECURITY_SSL_AUX_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .putList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, List.of("TLSv1.2", "TLSv1"))
+            .putList(SECURITY_SSL_AUX_ENABLED_CIPHERS, List.of("TLS_AES_256_GCM_SHA384"))
+            .putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1.3", "TLSv1.2"))
+            .putList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"))
+            .build();
 
         final var httpSslParameters = SslParameters.loader(settings.getByPrefix(SSL_HTTP_PREFIX)).load(CertType.HTTP);
         final var auxSslParameters = SslParameters.loader(settings.getByPrefix(SSL_AUX_PREFIX)).load(CertType.AUX);

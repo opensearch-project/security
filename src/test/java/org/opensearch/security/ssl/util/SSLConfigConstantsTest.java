@@ -10,15 +10,12 @@
  */
 package org.opensearch.security.ssl.util;
 
-import java.util.List;
-
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS;
 import static org.junit.Assert.assertArrayEquals;
@@ -36,25 +33,34 @@ public class SSLConfigConstantsTest {
 
     @Test
     public void testCustomTLSProtocols() {
-        assertArrayEquals(TLSV1_01, SSLConfigConstants.getSecureSSLProtocols(
+        assertArrayEquals(
+            TLSV1_01,
+            SSLConfigConstants.getSecureSSLProtocols(
                 Settings.builder().putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, TLSV1_01).build(),
                 CertType.HTTP
-        ));
-        assertArrayEquals(TLSV1_01, SSLConfigConstants.getSecureSSLProtocols(
+            )
+        );
+        assertArrayEquals(
+            TLSV1_01,
+            SSLConfigConstants.getSecureSSLProtocols(
                 Settings.builder().putList(SECURITY_SSL_AUX_ENABLED_PROTOCOLS, TLSV1_01).build(),
                 CertType.AUX
-        ));
-        assertArrayEquals(TLSV1_01, SSLConfigConstants.getSecureSSLProtocols(
+            )
+        );
+        assertArrayEquals(
+            TLSV1_01,
+            SSLConfigConstants.getSecureSSLProtocols(
                 Settings.builder().putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, TLSV1_01).build(),
                 CertType.TRANSPORT
-        ));
+            )
+        );
     }
 
     @Test
     public void testCustomSSLProtocols() {
         final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(
             Settings.builder().putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, TLSV1_01).build(),
-                CertType.HTTP
+            CertType.HTTP
         );
         assertArrayEquals(TLSV1_01, sslDefaultProtocols);
     }

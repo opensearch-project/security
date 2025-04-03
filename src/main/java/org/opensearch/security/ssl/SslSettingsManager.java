@@ -162,8 +162,8 @@ public class SslSettingsManager {
             final var auxSslParameters = SslParameters.loader(auxTransportSettings).load(CertType.AUX);
             final var auxTrustAndKeyStore = new SslCertificatesLoader(CertType.AUX.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
-                    CertType.AUX,
-                    new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
+                CertType.AUX,
+                new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
             );
             LOGGER.info("TLS auxiliary transport Provider                    : {}", auxSslParameters.provider());
             LOGGER.info("Enabled TLS protocols for auxiliary transport layer : {}", auxSslParameters.allowedProtocols());
@@ -289,7 +289,7 @@ public class SslSettingsManager {
         } else {
             throw new OpenSearchException(
                 "Wrong auxiliary transport SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
-                        + "PKCS#8 keys groups should be set to configure auxiliary transport."
+                    + "PKCS#8 keys groups should be set to configure auxiliary transport."
             );
         }
     }
@@ -304,18 +304,25 @@ public class SslSettingsManager {
      */
     private void validatePemStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
         final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
-        final var clientAuth = ClientAuth.valueOf(transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
+        final var clientAuth = ClientAuth.valueOf(
+            transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
+        );
         if (!transportSettings.hasValue(PEM_CERT_FILEPATH) || !transportSettings.hasValue(PEM_KEY_FILEPATH)) {
             throw new OpenSearchException(
-                "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                        + String.join(", ", transportSettings.get(PEM_CERT_FILEPATH), transportSettings.get(PEM_KEY_FILEPATH))
-                        + " must be set"
+                "Wrong "
+                    + transportType.name().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + String.join(", ", transportSettings.get(PEM_CERT_FILEPATH), transportSettings.get(PEM_KEY_FILEPATH))
+                    + " must be set"
             );
         }
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
             throw new OpenSearchException(
-                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                        + PEM_TRUSTED_CAS_FILEPATH + " must be set if client auth is required"
+                "Wrong "
+                    + transportType.name().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + PEM_TRUSTED_CAS_FILEPATH
+                    + " must be set if client auth is required"
             );
         }
     }
@@ -330,18 +337,25 @@ public class SslSettingsManager {
      */
     private void validateKeyStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
         final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
-        final var clientAuth = ClientAuth.valueOf(transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
+        final var clientAuth = ClientAuth.valueOf(
+            transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
+        );
         if (!transportSettings.hasValue(KEYSTORE_FILEPATH)) {
             throw new OpenSearchException(
-                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                            + transportSettings.get(KEYSTORE_FILEPATH)
-                            + " must be set"
+                "Wrong "
+                    + transportType.name().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + transportSettings.get(KEYSTORE_FILEPATH)
+                    + " must be set"
             );
         }
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
             throw new OpenSearchException(
-                    "Wrong " + transportType.name().toLowerCase(Locale.ROOT) + " SSL configuration. "
-                            + TRUSTSTORE_FILEPATH + " must be set if client auth is required"
+                "Wrong "
+                    + transportType.name().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + TRUSTSTORE_FILEPATH
+                    + " must be set if client auth is required"
             );
         }
     }

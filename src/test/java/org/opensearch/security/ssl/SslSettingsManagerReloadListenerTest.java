@@ -138,16 +138,16 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         reloadSslContextOnFilesChanged(
             certType,
             defaultSettingsBuilder()
-                    // Disable transport layer to test server transports independently.
-                    // If certType is TRANSPORT the following line will re-enable it.
-                    .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
-                    .put(enabledSetting, true)
-                    .put(trustStorePathSetting, path(certTypeFilePrefix + "_truststore.jks"))
-                    .put(trustStoreTypeSetting, "jks")
-                    .put(keyStorePathSetting, path(certTypeFilePrefix + "_keystore.p12"))
-                    .put(keyStoreTypeSetting, "pkcs12")
-                    .setSecureSettings(secureSettings)
-                    .build(),
+                // Disable transport layer to test server transports independently.
+                // If certType is TRANSPORT the following line will re-enable it.
+                .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
+                .put(enabledSetting, true)
+                .put(trustStorePathSetting, path(certTypeFilePrefix + "_truststore.jks"))
+                .put(trustStoreTypeSetting, "jks")
+                .put(keyStorePathSetting, path(certTypeFilePrefix + "_keystore.p12"))
+                .put(keyStoreTypeSetting, "pkcs12")
+                .setSecureSettings(secureSettings)
+                .build(),
             (filePrefix, caCertificate, accessKeyAndCertificate) -> {
                 final var trustStore = KeyStore.getInstance("jks");
                 trustStore.load(null, null);
@@ -156,10 +156,10 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
                 final var keyStore = KeyStore.getInstance("pkcs12");
                 keyStore.load(null, null);
                 keyStore.setKeyEntry(
-                        "pk",
-                        accessKeyAndCertificate.v1(),
-                        certificatesRule.privateKeyPassword().toCharArray(),
-                        new X509Certificate[] { certificatesRule.toX509Certificate(accessKeyAndCertificate.v2()) }
+                    "pk",
+                    accessKeyAndCertificate.v1(),
+                    certificatesRule.privateKeyPassword().toCharArray(),
+                    new X509Certificate[] { certificatesRule.toX509Certificate(accessKeyAndCertificate.v2()) }
                 );
                 writeStore(keyStore, path(String.format("%s_keystore.p12", filePrefix)), keyStorePassword);
             }
@@ -178,27 +178,28 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         reloadSslContextOnFilesChanged(
             certType,
             defaultSettingsBuilder()
-                    // Disable transport layer to test server transports independently.
-                    // If certType is TRANSPORT the following line will re-enable it.
-                    .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
-                    .put(enabledSetting, true)
-                    .put(pemTrustCasPathSetting, path(certTypeFilePrefix + "_ca_certificate.pem"))
-                    .put(pemCertPathSetting, path(certTypeFilePrefix + "_access_certificate.pem"))
-                    .put(pemKeyPathSetting, path(certTypeFilePrefix + "_access_certificate_pk.pem"))
-                    .setSecureSettings(secureSettings)
-                    .build(),
+                // Disable transport layer to test server transports independently.
+                // If certType is TRANSPORT the following line will re-enable it.
+                .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
+                .put(enabledSetting, true)
+                .put(pemTrustCasPathSetting, path(certTypeFilePrefix + "_ca_certificate.pem"))
+                .put(pemCertPathSetting, path(certTypeFilePrefix + "_access_certificate.pem"))
+                .put(pemKeyPathSetting, path(certTypeFilePrefix + "_access_certificate_pk.pem"))
+                .setSecureSettings(secureSettings)
+                .build(),
             (filePrefix, caCertificate, accessKeyAndCertificate) -> {
                 writePemContent(path(String.format("%s_ca_certificate.pem", filePrefix)), caCertificate);
                 writePemContent(path(String.format("%s_access_certificate.pem", filePrefix)), accessKeyAndCertificate.v2());
                 writePemContent(
-                        path(String.format("%s_access_certificate_pk.pem", filePrefix)),
-                        privateKeyToPemObject(accessKeyAndCertificate.v1(), certificatesRule.privateKeyPassword())
+                    path(String.format("%s_access_certificate_pk.pem", filePrefix)),
+                    privateKeyToPemObject(accessKeyAndCertificate.v1(), certificatesRule.privateKeyPassword())
                 );
             }
         );
     }
 
-    private void reloadSslContextOnFilesChanged(CertType certType, final Settings settings, final CertificatesWriter certificatesWriter) throws Exception {
+    private void reloadSslContextOnFilesChanged(CertType certType, final Settings settings, final CertificatesWriter certificatesWriter)
+        throws Exception {
         final String certNamePrefix = certType.name().toLowerCase(Locale.ROOT);
         final var defaultCertificates = generateCertificates();
         var defaultKeyPair = defaultCertificates.v1();
@@ -212,15 +213,15 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
 
         if (randomBoolean()) {
             caCertificate = certificatesRule.generateCaCertificate(
-                    defaultKeyPair,
-                    caCertificate.getNotBefore().toInstant(),
-                    caCertificate.getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
+                defaultKeyPair,
+                caCertificate.getNotBefore().toInstant(),
+                caCertificate.getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
             );
         } else {
             accessKeyAndCertificate = certificatesRule.generateAccessCertificate(
-                    defaultKeyPair,
-                    accessKeyAndCertificate.v2().getNotBefore().toInstant(),
-                    accessKeyAndCertificate.v2().getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
+                defaultKeyPair,
+                accessKeyAndCertificate.v2().getNotBefore().toInstant(),
+                accessKeyAndCertificate.v2().getNotAfter().toInstant().plus(365, ChronoUnit.DAYS)
             );
         }
         certificatesWriter.write(certNamePrefix, caCertificate, accessKeyAndCertificate);
