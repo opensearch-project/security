@@ -492,6 +492,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     public TermVectors termVectors() throws IOException {
         return new TermVectors() {
             @Override
+            public void prefetch(int docID) throws IOException {
+                in.termVectors().prefetch(docID);
+            }
+
+            @Override
             public Fields get(int docID) throws IOException {
                 final Fields fields = in.termVectors().get(docID);
 
@@ -513,7 +518,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                             return null;
                         }
 
-                        return wrapTerms(field, in.terms(field));
+                        return wrapTerms(field, fields.terms(field));
 
                     }
 
