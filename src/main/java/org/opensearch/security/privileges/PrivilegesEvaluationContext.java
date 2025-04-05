@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
@@ -39,7 +38,6 @@ public class PrivilegesEvaluationContext {
     private final String action;
     private final ActionRequest request;
     private IndexResolverReplacer.Resolved resolvedRequest;
-    private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
     private final IndexResolverReplacer indexResolverReplacer;
@@ -53,7 +51,7 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
-    public PrivilegesEvaluationContext(
+    PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
@@ -145,31 +143,7 @@ public class PrivilegesEvaluationContext {
         return clusterStateSupplier;
     }
 
-    public Map<String, IndexAbstraction> getIndicesLookup() {
-        if (this.indicesLookup == null) {
-            this.indicesLookup = clusterStateSupplier.get().metadata().getIndicesLookup();
-        }
-        return this.indicesLookup;
-    }
-
     public IndexNameExpressionResolver getIndexNameExpressionResolver() {
         return indexNameExpressionResolver;
-    }
-
-    @Override
-    public String toString() {
-        return "PrivilegesEvaluationContext{"
-            + "user="
-            + user
-            + ", action='"
-            + action
-            + '\''
-            + ", request="
-            + request
-            + ", resolvedRequest="
-            + resolvedRequest
-            + ", mappedRoles="
-            + mappedRoles
-            + '}';
     }
 }

@@ -359,6 +359,10 @@ public class ConfigConstants {
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
     public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = "plugins.security.masked_fields.algorithm.default";
+    /**
+     * from https://github.com/opensearch-project/security/pull/5089
+     */
+    public static final String BLAKE2B_LEGACY_DEFAULT = "BLAKE2B_LEGACY_DEFAULT";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";

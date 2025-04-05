@@ -144,7 +144,6 @@ public class PrivilegesEvaluator {
     private final boolean checkSnapshotRestoreWritePrivileges;
 
     private final ClusterInfoHolder clusterInfoHolder;
-    private final ConfigurationRepository configurationRepository;
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
@@ -155,8 +154,8 @@ public class PrivilegesEvaluator {
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
-    private final Map<String, Set<String>> pluginToClusterActions;
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
+    private final Map<String, Set<String>> pluginToClusterActions;
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
@@ -179,9 +178,9 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
-        this.pluginToClusterActions = new HashMap<>();
         this.clusterStateSupplier = clusterStateSupplier;
         this.settings = settings;
+        this.pluginToClusterActions = new HashMap<>();
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
@@ -196,7 +195,6 @@ public class PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
-        this.configurationRepository = configurationRepository;
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -237,8 +235,7 @@ public class PrivilegesEvaluator {
                 DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                settings,
-                pluginToClusterActions
+                settings
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
