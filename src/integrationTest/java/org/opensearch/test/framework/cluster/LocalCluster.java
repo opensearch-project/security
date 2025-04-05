@@ -457,6 +457,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         public Builder users(TestSecurityConfig.User... users) {
+            return this.users(Arrays.asList(users));
+        }
+
+        public Builder users(Collection<TestSecurityConfig.User> users) {
             for (TestSecurityConfig.User user : users) {
                 testSecurityConfig.user(user);
             }

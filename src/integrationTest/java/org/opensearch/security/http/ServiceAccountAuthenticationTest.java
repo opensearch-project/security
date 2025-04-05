@@ -78,7 +78,7 @@ public class ServiceAccountAuthenticationTest {
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_admin__all_access"),
                 SECURITY_SYSTEM_INDICES_KEY,
-                List.of(TEST_SYS_INDEX.getName())
+                List.of(TEST_SYS_INDEX.name())
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
@@ -103,13 +103,13 @@ public class ServiceAccountAuthenticationTest {
     public void testReadSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-            TestRestClient.HttpResponse response = client.get(TEST_SYS_INDEX.getName());
+            TestRestClient.HttpResponse response = client.get(TEST_SYS_INDEX.name());
             response.assertStatusCode(HttpStatus.SC_OK);
 
             String responseBody = response.getBody();
 
             assertNotNull("Response body should not be null", responseBody);
-            assertTrue(responseBody.contains(TEST_SYS_INDEX.getName()));
+            assertTrue(responseBody.contains(TEST_SYS_INDEX.name()));
         }
     }
 
@@ -117,7 +117,7 @@ public class ServiceAccountAuthenticationTest {
     public void testReadNonSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-            TestRestClient.HttpResponse response = client.get(TEST_NON_SYS_INDEX.getName());
+            TestRestClient.HttpResponse response = client.get(TEST_NON_SYS_INDEX.name());
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             String responseBody = response.getBody();
@@ -131,7 +131,7 @@ public class ServiceAccountAuthenticationTest {
     public void testReadBothWithServiceAccountCred() {
         TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER);
         client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-        TestRestClient.HttpResponse response = client.get((TEST_SYS_INDEX.getName() + "," + TEST_NON_SYS_INDEX.getName()));
+        TestRestClient.HttpResponse response = client.get((TEST_SYS_INDEX.name() + "," + TEST_NON_SYS_INDEX.name()));
         response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
         String responseBody = response.getBody();
