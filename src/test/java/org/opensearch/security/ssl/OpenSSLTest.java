@@ -37,6 +37,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
@@ -133,7 +134,7 @@ public class OpenSSLTest extends SSLTest {
         // ADH-AES256-SHA256, ADH-CAMELLIA128-SHA
 
         final Set<String> openSSLSecureCiphers = new HashSet<>();
-        for (final String secure : SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, false)) {
+        for (final String secure : SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, CertType.TRANSPORT)) {
             if (OpenSsl.isCipherSuiteAvailable(secure)) {
                 openSSLSecureCiphers.add(secure);
             }
