@@ -46,8 +46,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.transport.client.node.NodeClient;
 
-import io.netty.handler.ssl.OpenSsl;
-
 public class SecuritySSLInfoAction extends BaseRestHandler {
     private static final List<Route> routes = Collections.singletonList(new Route(Method.GET, "/_opendistro/_security/sslinfo"));
 
@@ -118,13 +116,6 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
 
                     builder.field("ssl_protocol", sslInfo == null ? null : sslInfo.getProtocol());
                     builder.field("ssl_cipher", sslInfo == null ? null : sslInfo.getCipher());
-                    builder.field("ssl_openssl_available", OpenSsl.isAvailable());
-                    builder.field("ssl_openssl_version", OpenSsl.version());
-                    builder.field("ssl_openssl_version_string", OpenSsl.versionString());
-                    Throwable openSslUnavailCause = OpenSsl.unavailabilityCause();
-                    builder.field("ssl_openssl_non_available_cause", openSslUnavailCause == null ? "" : openSslUnavailCause.toString());
-                    builder.field("ssl_openssl_supports_key_manager_factory", OpenSsl.supportsKeyManagerFactory());
-                    builder.field("ssl_openssl_supports_hostname_validation", OpenSsl.supportsHostnameValidation());
                     builder.field(
                         "ssl_provider_http",
                         sslSettingsManager.sslConfiguration(CertType.HTTP)

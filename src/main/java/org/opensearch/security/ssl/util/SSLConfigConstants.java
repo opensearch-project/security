@@ -22,16 +22,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
-
-import io.netty.handler.ssl.OpenSsl;
 
 public final class SSLConfigConstants {
     /**
      * Global configurations
      */
-    public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
-    public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
     public static final String DEFAULT_STORE_PASSWORD = "changeit"; // #16
     public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
     public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
@@ -61,7 +56,6 @@ public final class SSLConfigConstants {
     public static final String PEM_TRUSTED_CAS_FILEPATH = "pemtrustedcas_filepath";
     public static final String EXTENDED_KEY_USAGE_ENABLED = "extended_key_usage_enabled";
 
-    public static final String ENABLE_OPENSSL_IF_AVAILABLE = "enable_openssl_if_available";
     public static final String ENABLED_PROTOCOLS = "enabled_protocols";
     public static final String ENABLED_CIPHERS = "enabled_ciphers";
     public static final String PEM_KEY_PASSWORD = "pemkey_password";
@@ -75,14 +69,9 @@ public final class SSLConfigConstants {
 
     // http enable settings
     public static final boolean SECURITY_SSL_HTTP_ENABLED_DEFAULT = false;
-    public static final String SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = SSL_HTTP_PREFIX + ENABLE_OPENSSL_IF_AVAILABLE;
     public static final String SECURITY_SSL_HTTP_ENABLED = SSL_HTTP_PREFIX + ENABLED;
     public static final String SECURITY_SSL_HTTP_ENABLED_CIPHERS = SSL_HTTP_PREFIX + ENABLED_CIPHERS;
     public static final String SECURITY_SSL_HTTP_ENABLED_PROTOCOLS = SSL_HTTP_PREFIX + ENABLED_PROTOCOLS;
-
-    // http allowed settings
-    public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
-    public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1", "TLSv1" };
 
     // http keystore settings
     public static final String SECURITY_SSL_HTTP_KEYSTORE_TYPE = SSL_HTTP_PREFIX + KEYSTORE_TYPE;
@@ -123,14 +112,9 @@ public final class SSLConfigConstants {
 
     // transport enable settings
     public static final boolean SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
-    public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE = SSL_TRANSPORT_PREFIX + ENABLE_OPENSSL_IF_AVAILABLE;
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = SSL_TRANSPORT_PREFIX + ENABLED;
     public static final String SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS = SSL_TRANSPORT_PREFIX + ENABLED_CIPHERS;
     public static final String SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS = SSL_TRANSPORT_PREFIX + ENABLED_PROTOCOLS;
-
-    // transport allowed settings
-    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
-    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1" };
 
     // transport keystore settings
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE = SSL_TRANSPORT_PREFIX + KEYSTORE_TYPE;
