@@ -34,7 +34,7 @@ config:
           type: "basic"
           config: {}
         authentication_backend:
-          type: "com.amazon.dlic.auth.ldap2.LDAPAuthenticationBackend2"
+          type: "org.opensearch.security.auth.ldap2.LDAPAuthenticationBackend2"
           config:
             hosts: "localhost:${ldapsPort}"
             usersearch: "(uid={0})"

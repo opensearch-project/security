@@ -75,7 +75,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
+import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 

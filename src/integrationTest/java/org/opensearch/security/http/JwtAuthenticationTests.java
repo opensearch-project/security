@@ -142,7 +142,7 @@ public class JwtAuthenticationTests {
         .build();
 
     @Rule
-    public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
+    public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator");
 
     @BeforeClass
     public static void createTestData() {
