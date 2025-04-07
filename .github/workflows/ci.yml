@@ -116,7 +116,7 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "spi-tests-linux", "spi-tests-windows"]
+    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "spi-tests-linux", "spi-tests-windows", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
