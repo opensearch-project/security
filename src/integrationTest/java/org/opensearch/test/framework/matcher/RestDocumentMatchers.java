@@ -525,7 +525,10 @@ public class RestDocumentMatchers {
                         result.addAll(textFieldsOfDocument(object, prefix + entry.getKey() + "."));
                     } else if (TestData.TEXT_FIELD_NAMES.contains(prefix + entry.getKey())) {
                         result.add(prefix + entry.getKey());
-                        result.add(prefix + entry.getKey() + ".keyword");
+
+                        if (TestData.TEXT_FIELD_NAMES.contains(prefix + entry.getKey() + ".keyword")) {
+                            result.add(prefix + entry.getKey() + ".keyword");
+                        }
                     }
                 }
 

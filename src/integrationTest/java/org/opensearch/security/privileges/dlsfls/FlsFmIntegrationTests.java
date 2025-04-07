@@ -23,7 +23,6 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableMap;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.bouncycastle.util.encoders.Hex;
@@ -759,41 +758,36 @@ public class FlsFmIntegrationTests {
         }
     }
 
-    @Ignore
     @Test
     public void termVectors() {
-        // Term vectors on FLS/FM protected documents fail with an internal OpenSearch assertion error
-        // java.lang.AssertionError: null
-        // at __randomizedtesting.SeedInfo.seed([36B4FFBCDDE3E188]:0) ~[?:?]
-        // at org.opensearch.action.termvectors.TermVectorsWriter.writeTermWithDocsAndPos(TermVectorsWriter.java:213)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.termvectors.TermVectorsWriter.setFields(TermVectorsWriter.java:139)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.termvectors.TermVectorsResponse.setFields(TermVectorsResponse.java:414)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.index.termvectors.TermVectorsService.getTermVectors(TermVectorsService.java:161)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.index.termvectors.TermVectorsService.getTermVectors(TermVectorsService.java:97)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.termvectors.TransportTermVectorsAction.shardOperation(TransportTermVectorsAction.java:148)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.termvectors.TransportTermVectorsAction.shardOperation(TransportTermVectorsAction.java:62)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at
-        // org.opensearch.action.support.single.shard.TransportSingleShardAction.lambda$asyncShardOperation$0(TransportSingleShardAction.java:131)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.ActionRunnable.lambda$supply$0(ActionRunnable.java:74)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.action.ActionRunnable$2.doRun(ActionRunnable.java:89)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.common.util.concurrent.ThreadContext$ContextPreservingAbstractRunnable.doRun(ThreadContext.java:994)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at org.opensearch.common.util.concurrent.AbstractRunnable.run(AbstractRunnable.java:52)
-        // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-        // at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
-        // at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
-        // at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
-
+        if (user == Users.MASKING_ON_TEXT
+            || user == Users.MASKING_ON_KEYWORD
+            || user == Users.MASKING_ON_BINARY
+            || user == Users.MASKING_ON_IP
+            || user == Users.MASKING_ON_STORED_FIELD) {
+            // Term vectors on field masking protected documents fail with an internal OpenSearch assertion error
+            // java.lang.AssertionError
+            // at __randomizedtesting.SeedInfo.seed([972D41C822130990]:0)
+            // at org.opensearch.action.termvectors.TermVectorsResponse.buildTermStatistics(TermVectorsResponse.java:269)
+            // at org.opensearch.action.termvectors.TermVectorsResponse.buildTerm(TermVectorsResponse.java:252)
+            // at org.opensearch.action.termvectors.TermVectorsResponse.buildField(TermVectorsResponse.java:235)
+            // at org.opensearch.action.termvectors.TermVectorsResponse.toXContent(TermVectorsResponse.java:216)
+            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:62)
+            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:57)
+            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:49)
+            // at org.opensearch.rest.action.RestResponseListener.processResponse(RestResponseListener.java:52)
+            // at org.opensearch.rest.action.RestActionListener.onResponse(RestActionListener.java:64)
+            // at org.opensearch.action.support.TransportAction$1.onResponse(TransportAction.java:115)
+            // at org.opensearch.action.support.TransportAction$1.onResponse(TransportAction.java:109)
+            // at
+            // org.opensearch.action.support.single.shard.TransportSingleShardAction$AsyncSingleAction$2.handleResponse(TransportSingleShardAction.java:298)
+            // at
+            // org.opensearch.action.support.single.shard.TransportSingleShardAction$AsyncSingleAction$2.handleResponse(TransportSingleShardAction.java:284)
+            // at
+            // org.opensearch.security.transport.SecurityInterceptor$RestoringTransportResponseHandler.handleResponse(SecurityInterceptor.java:420)
+            // at org.opensearch.transport.TransportService$ContextRestoreResponseHandler.handleResponse(TransportService.java:1495)
+            return;
+        }
         TestData.TestDocument testDocument = TEST_DATA.anyDocument();
 
         try (TestRestClient client = cluster.getRestClient(user)) {

@@ -70,12 +70,22 @@ public class TestData {
 
     public static final ImmutableSet<String> TEXT_FIELD_NAMES = ImmutableSet.of(
         "attr_text_1",
+        "attr_text_1.keyword",
         "attr_text_2",
+        "attr_text_2.keyword",
         "attr_text_termvectors",
+        "attr_text_termvectors.keyword",
         "attr_text_stored",
+        "attr_keyword",
+        "attr_keyword_doc_values_disabled",
+        "attr_text_doc_values_disabled",
+        "attr_text_doc_values_disabled_nullable",
         "attr_object.obj_attr_text_1",
+        "attr_object.obj_attr_text_1.keyword",
         "attr_object.obj_attr_text_2",
-        "attr_object.obj_attr_object.obj_obj_attr_text"
+        "attr_object.obj_attr_text_2.keyword",
+        "attr_object.obj_attr_object.obj_obj_attr_text",
+        "attr_object.obj_attr_object.obj_obj_attr_text.keyword"
     );
 
     private static final Cache<Key, TestData> cache;
