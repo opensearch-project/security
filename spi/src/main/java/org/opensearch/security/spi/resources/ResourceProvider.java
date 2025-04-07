@@ -6,10 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources;
-
-import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.ShareableResourceParser;
+package org.opensearch.security.spi.resources;
 
 /**
  * This record class represents a resource provider.

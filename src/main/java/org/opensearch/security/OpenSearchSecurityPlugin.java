@@ -178,7 +178,6 @@ import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
-import org.opensearch.security.resources.ResourceProvider;
 import org.opensearch.security.resources.ResourceSharingConstants;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
@@ -204,9 +203,8 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
-import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
@@ -2329,22 +2327,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Map<String, ResourceProvider> resourceProviders = new HashMap<>();
             Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
             for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
-                String resourceType = extension.getResourceType();
-                String resourceIndexName = extension.getResourceIndex();
-                ShareableResourceParser<? extends ShareableResource> shareableResourceParser = extension.getShareableResourceParser();
-
-                resourceIndices.add(resourceIndexName);
-
-                ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, shareableResourceParser);
-                resourceProviders.put(resourceIndexName, resourceProvider);
-
-                resourceSharingExtensions.add(extension);
-                log.info(
-                    "Loaded resource sharing extension: {} of type {}, index: {}",
-                    extension.getClass().getName(),
-                    resourceType,
-                    resourceIndexName
-                );
+                for (ResourceProvider provider : extension.getResourceProviders()) {
+                    resourceProviders.put(provider.resourceIndexName(), provider);
+                    resourceIndices.add(provider.resourceIndexName());
+                }
             }
             resourcePluginInfo.setResourceIndices(resourceIndices);
             resourcePluginInfo.setResourceProviders(resourceProviders);
