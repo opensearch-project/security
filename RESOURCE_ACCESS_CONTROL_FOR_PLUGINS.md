@@ -43,6 +43,7 @@ opensearchplugin {
 ```
 - **Implement** the `ResourceSharingExtension` class.
 - **Ensure** that its declared resources implement the `Resource` interface.
+- **Ensure** that each resource index only contains 1 type of resource.
 - **Provide a resource parser**, which the security plugin uses to extract resource details from the resource index.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
