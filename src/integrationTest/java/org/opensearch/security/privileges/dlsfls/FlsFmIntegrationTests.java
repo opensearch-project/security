@@ -283,6 +283,11 @@ public class FlsFmIntegrationTests {
         .nodeSettings(ImmutableMap.of("plugins.security.compliance.salt", FIELD_MASKING_SALT))
         .build();
 
+    /**
+     * This test has two main objectives. It ensures:
+     * - that the document is only found when the DLS rule allows it. This gives coverage for DlsFlsFilterLeafReader.DlsGetEvaluator
+     * - that the document sources in a search response are properly filtered according to FLS/FM rules. This gives coverage for FlsStoredFieldVisitor.binaryField() and FlsDocumentFilter
+     */
     @Test
     public void get() {
         TestData.TestDocument testDocument = TEST_DATA.anyDocument();
@@ -293,6 +298,11 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test has two main objectives. It ensures:
+     * - that the returned documents only contain allowed documents according to DLS rules. This gives coverage for DlsFlsValveImpl.handleSearchContext() (via a SearchOperationListener)
+     * - that the document sources in a search response are properly filtered according to FLS/FM rules. This gives coverage for FlsStoredFieldVisitor.binaryField() and FlsDocumentFilter
+     */
     @Test
     public void search_source() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -305,6 +315,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test ensures that fields returned in the search response are filtered according to FLS/FM rules.
+     * This gives coverage for DlsFlsFilterLeafReader.getFieldInfos().
+     */
     @Test
     public void search_fields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -343,6 +357,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test ensures that docvalue_fields returned in the search response are filtered according to FLS/FM rules.
+     * This gives coverage for ?
+     */
     @Test
     public void search_docValueFields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -370,6 +388,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test ensures that stored fields returned in the search response are filtered according to FLS/FM rules.
+     * This gives coverage for all *field methods in FlsStoredFieldVisitor (via the different data types of the fields).
+     */
     @Test
     public void search_storedFields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -397,6 +419,12 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test has two main objectives. It ensures for string (keyword) fields:
+     * - that an empty aggregation is returned when the attribute to be aggregated on is not allowed by FLS.
+     * - that the aggregation has properly masked bucket keys when the attribute to be aggregated on is protected by field masking.
+     * This gives coverage for the *SortedSetDocValues methods in DlsFlsFilterLeafReader
+     */
     @Test
     public void search_aggregation_keywordAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -410,6 +438,7 @@ public class FlsFmIntegrationTests {
                     }
                   }
                 }""");
+            System.out.println(response.getBody());
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_AGGREGABLE).test("attr_text_1")) {
                 assertThat(
@@ -425,6 +454,12 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test has two main objectives. It ensures for string (keyword) fields:
+     * - that an empty aggregation is returned when the attribute to be aggregated on is not allowed by FLS.
+     * - that the aggregation has properly masked bucket keys when the attribute to be aggregated on is protected by field masking.
+     * This gives coverage for the *SortedSetDocValues methods in DlsFlsFilterLeafReader
+     */
     @Test
     public void search_aggregation_explicitKeywordAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -455,6 +490,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test replicates the above aggregation tests for fields of type IP.
+     * This gives coverage for the *SortedSetDocValues methods in DlsFlsFilterLeafReader
+     */
     @Test
     public void search_aggregation_ip() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -481,6 +520,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This test replicates the above aggregation tests for fields of type binary.
+     * This gives coverage for the *BinaryDocValues methods in DlsFlsFilterLeafReader
+     */
     @Test
     public void search_aggregation_binary() {
         if (user == Users.MASKING_ON_BINARY) {
@@ -535,6 +578,10 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * This method verifies that search queries are only possible on fields if they are not protected by FLS/FM.
+     * This gives coverage for the terms() method in DlsFlsFilterLeafReader
+     */
     @Test
     public void search_abilityToSearch_textAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
@@ -551,6 +598,9 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    /**
+     * Same test as before, but verfies keyword fields
+     */
     @Test
     public void search_abilityToSearch_keywordAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
