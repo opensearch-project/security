@@ -438,7 +438,6 @@ public class FlsFmIntegrationTests {
                     }
                   }
                 }""");
-            System.out.println(response.getBody());
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_AGGREGABLE).test("attr_text_1")) {
                 assertThat(
