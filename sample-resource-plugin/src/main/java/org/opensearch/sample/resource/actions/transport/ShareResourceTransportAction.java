@@ -19,7 +19,7 @@ import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.spi.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

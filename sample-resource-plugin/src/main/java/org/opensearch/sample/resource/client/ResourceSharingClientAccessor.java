@@ -8,8 +8,8 @@
 
 package org.opensearch.sample.resource.client;
 
-import org.opensearch.security.spi.resources.NoopResourceSharingClient;
-import org.opensearch.security.spi.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.client.NoopResourceSharingClient;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 /**
  * Accessor for resource sharing client supplied by the SPI.

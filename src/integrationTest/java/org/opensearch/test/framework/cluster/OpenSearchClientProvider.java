@@ -128,8 +128,8 @@ public interface OpenSearchClientProvider {
 
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(
-                new AuthScope(null, -1),
-                new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray())
+            new AuthScope(null, -1),
+            new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray())
         );
 
         return getRestHighLevelClient(credentialsProvider, defaultHeaders);
@@ -140,21 +140,21 @@ public interface OpenSearchClientProvider {
     }
 
     default RestHighLevelClient getRestHighLevelClient(
-            BasicCredentialsProvider credentialsProvider,
-            Collection<? extends Header> defaultHeaders
+        BasicCredentialsProvider credentialsProvider,
+        Collection<? extends Header> defaultHeaders
     ) {
         RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
             TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                    .setSslContext(getSSLContext())
-                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                        @Override
-                        public TlsDetails create(final SSLEngine sslEngine) {
-                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                        }
-                    })
-                    .build();
+                .setSslContext(getSSLContext())
+                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                    @Override
+                    public TlsDetails create(final SSLEngine sslEngine) {
+                        return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                    }
+                })
+                .build();
 
             final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 
@@ -169,7 +169,7 @@ public interface OpenSearchClientProvider {
 
         InetSocketAddress httpAddress = getHttpAddress();
         RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
-                .setHttpClientConfigCallback(configCallback);
+            .setHttpClientConfigCallback(configCallback);
 
         return new RestHighLevelClient(builder);
     }
@@ -225,21 +225,21 @@ public interface OpenSearchClientProvider {
     }
 
     default TestRestClient createGenericClientRestClient(
-            List<Header> headers,
-            CertificateData useCertificateData,
-            InetAddress sourceInetAddress
+        List<Header> headers,
+        CertificateData useCertificateData,
+        InetAddress sourceInetAddress
     ) {
         return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress, true, false);
     }
 
     default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
         return new TestRestClient(
-                getHttpAddress(),
-                configuration.getHeaders(),
-                getSSLContext(),
-                configuration.getSourceInetAddress(),
-                true,
-                false
+            getHttpAddress(),
+            configuration.getHeaders(),
+            getSSLContext(),
+            configuration.getSourceInetAddress(),
+            true,
+            false
         );
     }
 

@@ -135,7 +135,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse getAuthInfo(Map<String, String> urlParams, Header... headers) {
         String urlParamsString = "?"
-                + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
+            + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo" + urlParamsString), headers);
     }
 
@@ -317,9 +317,9 @@ public class TestRestClient implements AutoCloseable {
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
             } else {
                 assertThat(
-                        "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
-                        body.charAt(0),
-                        not(equalTo('{'))
+                    "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
+                    body.charAt(0),
+                    not(equalTo('{'))
                 );
             }
 
@@ -355,8 +355,8 @@ public class TestRestClient implements AutoCloseable {
 
         public Optional<Header> findHeader(String name) {
             return Arrays.stream(header)
-                    .filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
-                    .findFirst();
+                .filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
+                .findFirst();
         }
 
         public Header getHeader(String name) {
@@ -385,8 +385,8 @@ public class TestRestClient implements AutoCloseable {
 
         public List<String> getTextArrayFromJsonBody(String jsonPointer) {
             return StreamSupport.stream(getJsonNodeAt(jsonPointer).spliterator(), false)
-                    .map(JsonNode::textValue)
-                    .collect(Collectors.toList());
+                .map(JsonNode::textValue)
+                .collect(Collectors.toList());
         }
 
         public int getIntFromJsonBody(String jsonPointer) {
@@ -420,16 +420,16 @@ public class TestRestClient implements AutoCloseable {
         @Override
         public String toString() {
             return "HttpResponse [inner="
-                    + inner
-                    + ", body="
-                    + body
-                    + ", header="
-                    + Arrays.toString(header)
-                    + ", statusCode="
-                    + statusCode
-                    + ", statusReason="
-                    + statusReason
-                    + "]";
+                + inner
+                + ", body="
+                + body
+                + ", header="
+                + Arrays.toString(header)
+                + ", statusCode="
+                + statusCode
+                + ", statusReason="
+                + statusReason
+                + "]";
         }
 
         public <T> T getBodyAs(Class<T> authInfoClass) {

@@ -10,6 +10,7 @@ package org.opensearch.sample.resource.actions.transport;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,7 +40,7 @@ import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.spi.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -80,7 +81,10 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
                 resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
                     log.debug("Fetched accessible resources: {}", resources);
-                    listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
+                    Set<SampleResource> sampleResources = resources.stream()
+                        .map(resource -> (SampleResource) resource)
+                        .collect(Collectors.toSet());
+                    listener.onResponse(new GetResourceResponse(sampleResources));
                 }, failure -> {
                     if (failure instanceof OpenSearchStatusException
                         && ((OpenSearchStatusException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {

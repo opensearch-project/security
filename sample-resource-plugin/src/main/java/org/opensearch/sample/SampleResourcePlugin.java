@@ -11,6 +11,7 @@ package org.opensearch.sample;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -55,9 +56,9 @@ import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAc
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.spi.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
-import org.opensearch.security.spi.resources.ShareableResourceParser;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -127,18 +128,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     }
 
     @Override
-    public String getResourceType() {
-        return SampleResource.class.getCanonicalName();
-    }
-
-    @Override
-    public String getResourceIndex() {
-        return RESOURCE_INDEX_NAME;
-    }
-
-    @Override
-    public ShareableResourceParser<SampleResource> getShareableResourceParser() {
-        return new SampleResourceParser();
+    public Set<ResourceProvider> getResourceProviders() {
+        return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME, new SampleResourceParser()));
     }
 
     @Override

@@ -19,7 +19,7 @@ import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAc
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRequest;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.spi.resources.ResourceSharingClient;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
