@@ -21,18 +21,14 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
     }
 
     @Override
-    public String getResourceType() {
-      return SampleResource.class.getCanonicalName();
-    }
-
-    @Override
-    public String getResourceIndex() {
-      return RESOURCE_INDEX_NAME;
-    }
-
-    @Override
-    public ShareableResourceParser<SampleResource> getShareableResourceParser() {
-      return new SampleResourceParser();
+    public Set<ResourceProvider> getResourceProviders() {
+      return Set.of(
+              new ResourceProvider(
+                      SampleResource.class.getCanonicalName(), // class-name of the resource
+                      RESOURCE_INDEX_NAME,                     // the index that stores resource, **must only store the type of resource defined in the line above**
+                      new SampleResourceParser()               // parser to parse the resource
+              )
+      );
     }
 
     @Override

@@ -19,6 +19,12 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  */
 public interface ResourceSharingExtension {
 
+    /**
+     * Returns the set of {@link ResourceProvider} instances for the resources defined by the plugin.
+     * Only in the case where plugin defines multiple resources, will there be more than one resource provider
+    *
+     * @return the set of ResourceProvider instances
+     */
     Set<ResourceProvider> getResourceProviders();
 
     /**

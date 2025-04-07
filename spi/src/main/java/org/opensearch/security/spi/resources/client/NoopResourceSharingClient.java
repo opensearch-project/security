@@ -105,7 +105,7 @@ public final class NoopResourceSharingClient implements ResourceSharingClient {
         String reason = getFeatureDisabledReason();
         String exceptionMessage = reason + " " + contextMessage;
         log.debug("{}", exceptionMessage);
-        listener.onFailure(new OpenSearchStatusException(contextMessage, RestStatus.NOT_IMPLEMENTED));
+        listener.onFailure(new OpenSearchStatusException(exceptionMessage, RestStatus.NOT_IMPLEMENTED));
     }
 
     /**
