@@ -16,9 +16,7 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_RESOURCE_ROUTE_PREFIX;
 
 /**
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
@@ -49,11 +47,6 @@ public abstract class AbstractSampleResourcePluginTests {
     protected static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
-    private static final String PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH = PLUGIN_RESOURCE_ROUTE_PREFIX.replaceFirst("/", "");
-    protected static final String SECURITY_RESOURCE_LIST_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/list";
-    protected static final String SECURITY_RESOURCE_SHARE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/share";
-    protected static final String SECURITY_RESOURCE_VERIFY_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/verify_access";
-    protected static final String SECURITY_RESOURCE_REVOKE_ENDPOINT = PLUGIN_RESOURCE_ROUTE_PREFIX_NO_LEADING_SLASH + "/revoke";
 
     protected static ResourceSharingClient createResourceAccessControlClient(LocalCluster cluster) {
         ResourceAccessHandler rAH = cluster.nodes().getFirst().getInjectable(ResourceAccessHandler.class);
@@ -62,47 +55,11 @@ public abstract class AbstractSampleResourcePluginTests {
         return new ResourceAccessControlClient(rAH, settings, clusterService);
     }
 
-    protected static String shareWithPayloadSecurityApi(String resourceId, String user) {
-        return "{"
-            + "\"resource_id\":\""
-            + resourceId
-            + "\","
-            + "\"resource_index\":\""
-            + RESOURCE_INDEX_NAME
-            + "\","
-            + "\"share_with\":{"
-            + "\"users\": [\""
-            + user
-            + "\"]"
-            + "}"
-            + "}";
-    }
-
     protected static String shareWithPayload(String user) {
         return "{" + "\"share_with\":{" + "\"users\": [\"" + user + "\"]" + "}" + "}";
     }
 
-    protected static String revokeAccessPayloadSecurityApi(String resourceId, String user) {
-        return "{"
-            + "\"resource_id\": \""
-            + resourceId
-            + "\","
-            + "\"resource_index\": \""
-            + RESOURCE_INDEX_NAME
-            + "\","
-            + "\"entities_to_revoke\": {"
-            + "\"users\": [\""
-            + user
-            + "\"]"
-            + "}"
-            + "}";
-    }
-
     protected static String revokeAccessPayload(String user) {
         return "{" + "\"entities_to_revoke\": {" + "\"users\": [\"" + user + "\"]" + "}" + "}";
-    }
-
-    protected static String verifyAccessPayload(String resourceId) {
-        return "{" + "\"resource_id\":\"" + resourceId + "\"," + "\"resource_index\":\"" + RESOURCE_INDEX_NAME + "\"}";
     }
 }

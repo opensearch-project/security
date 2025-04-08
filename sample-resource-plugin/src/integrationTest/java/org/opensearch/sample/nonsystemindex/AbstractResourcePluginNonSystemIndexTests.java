@@ -9,7 +9,6 @@
 package org.opensearch.sample.nonsystemindex;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +21,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.nonsystemindex.plugin.ResourceNonSystemIndexPlugin.SAMPLE_NON_SYSTEM_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -65,32 +63,5 @@ public abstract class AbstractResourcePluginNonSystemIndexTests extends Abstract
                 containsString("org.opensearch.sample.nonsystemindex.plugin.ResourceNonSystemIndexPlugin")
             );
         }
-    }
-
-    @Test
-    public void testSecurityResourceAPIs() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + SAMPLE_NON_SYSTEM_INDEX_NAME);
-            assertBadResponse(response);
-
-            String samplePayload = "{ \"resource_index\": \"" + SAMPLE_NON_SYSTEM_INDEX_NAME + "\"}";
-            response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, samplePayload);
-            assertBadResponse(response);
-
-            response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, samplePayload);
-            assertBadResponse(response);
-
-            response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, samplePayload);
-            assertBadResponse(response);
-
-        }
-    }
-
-    private void assertBadResponse(TestRestClient.HttpResponse response) {
-        response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-        assertThat(
-            response.getTextFromJsonBody("/message"),
-            equalTo("Resource index '" + SAMPLE_NON_SYSTEM_INDEX_NAME + "' is not a system index.")
-        );
     }
 }

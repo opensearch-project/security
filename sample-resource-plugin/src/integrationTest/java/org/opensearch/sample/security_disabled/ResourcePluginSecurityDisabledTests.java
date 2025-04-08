@@ -18,7 +18,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.sample.AbstractSampleResourcePluginTests;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -69,7 +68,6 @@ public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourceP
             TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
             String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-            ;
 
             // in sample plugin implementation, get all API is checked against
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
@@ -94,36 +92,8 @@ public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourceP
         }
     }
 
-    @Test
-    public void testSecurityResourceAPIs() {
-        // APIs are not implemented since security plugin is disabled
-        try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
-            assertBadResponse(response, SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME, RestRequest.Method.GET.name());
-
-            String samplePayload = "{ \"resource_index\": \"" + RESOURCE_INDEX_NAME + "\"}";
-            response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, samplePayload);
-            assertBadResponse(response, SECURITY_RESOURCE_VERIFY_ENDPOINT, RestRequest.Method.POST.name());
-
-            response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, samplePayload);
-            assertBadResponse(response, SECURITY_RESOURCE_SHARE_ENDPOINT, RestRequest.Method.POST.name());
-
-            response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, samplePayload);
-            assertBadResponse(response, SECURITY_RESOURCE_REVOKE_ENDPOINT, RestRequest.Method.POST.name());
-
-        }
-    }
-
     private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
         response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
         assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Security plugin is disabled"));
-    }
-
-    private void assertBadResponse(TestRestClient.HttpResponse response, String uri, String method) {
-        response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-        assertThat(
-            response.getTextFromJsonBody("/error"),
-            containsString("no handler found for uri [/" + uri + "] and method [" + method + "]")
-        );
     }
 }

@@ -103,7 +103,7 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
             ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Thread.sleep(1000);
-            response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
+            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
             assertThat(response.getBody(), containsString("sample"));

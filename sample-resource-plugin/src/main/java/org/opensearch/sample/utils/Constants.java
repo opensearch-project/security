@@ -18,5 +18,5 @@ public class Constants {
     public static final String SAMPLE_RESOURCE_PLUGIN_API_PREFIX = "/" + SAMPLE_RESOURCE_PLUGIN_PREFIX;
 
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.resource_sharing.enabled";
-    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = true;
+    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
 }

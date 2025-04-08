@@ -76,26 +76,10 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
         }
 
-        // assert that resource-sharing index doesn't exist and neither do resource-sharing APIs
+        // assert that resource-sharing index doesn't exist
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse response = client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search");
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
-
-            response = client.get(SECURITY_RESOURCE_LIST_ENDPOINT + "/" + RESOURCE_INDEX_NAME);
-            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getBody(), containsString("no handler found for uri"));
-
-            response = client.postJson(SECURITY_RESOURCE_SHARE_ENDPOINT, "{}");
-            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getBody(), containsString("no handler found for uri"));
-
-            response = client.postJson(SECURITY_RESOURCE_REVOKE_ENDPOINT, "{}");
-            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getBody(), containsString("no handler found for uri"));
-
-            response = client.postJson(SECURITY_RESOURCE_VERIFY_ENDPOINT, "{}");
-            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getBody(), containsString("no handler found for uri"));
         }
 
         // resource should be visible to super-admin
