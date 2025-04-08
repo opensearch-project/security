@@ -651,6 +651,54 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             )
         );
 
+        /**
+         * TLS settings for aux transports.
+         */
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_AUX_ENABLE_OPENSSL_IF_AVAILABLE,
+                OPENSSL_SUPPORTED,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_AUX_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_DEFAULT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_CIPHERS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered)
+        );
+
         return settings;
     }
 
