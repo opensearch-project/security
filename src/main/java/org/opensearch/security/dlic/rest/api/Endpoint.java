@@ -27,7 +27,6 @@ public enum Endpoint {
     RATELIMITERS,
     MIGRATE,
     VALIDATE,
-    WHITELIST,
     ALLOWLIST,
     NODESDN,
     SSL;
