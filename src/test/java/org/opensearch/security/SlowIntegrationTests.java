@@ -66,7 +66,6 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
                 "org.opensearch.security.AlwaysFalseInterClusterRequestEvaluator"
             )
-            .put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, false)
             .put("discovery.initial_state_timeout", "8s")
             .build();
         setup(Settings.EMPTY, null, settings, false, ClusterConfiguration.DEFAULT, 5, 1);

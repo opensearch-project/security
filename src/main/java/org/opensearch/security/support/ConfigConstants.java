@@ -387,7 +387,7 @@ public class ConfigConstants {
 
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = SECURITY_SETTINGS_PREFIX + "resource_sharing.enabled";
-    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = true;
+    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

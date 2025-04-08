@@ -48,7 +48,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     private final ClusterService clusterService;
 
     /**
-     * Constructs a new ResourceAccessControlTransportClient.
+     * Constructs a new ResourceAccessControlClient.
      *
      */
     public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings, ClusterService clusterService) {

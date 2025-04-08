@@ -181,18 +181,6 @@ import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingConstants;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
-import org.opensearch.security.resources.rest.list.ListAccessibleResourcesAction;
-import org.opensearch.security.resources.rest.list.ListAccessibleResourcesRestAction;
-import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessAction;
-import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessRestAction;
-import org.opensearch.security.resources.rest.share.ShareResourceAction;
-import org.opensearch.security.resources.rest.share.ShareResourceRestAction;
-import org.opensearch.security.resources.rest.verify.VerifyResourceAccessAction;
-import org.opensearch.security.resources.rest.verify.VerifyResourceAccessRestAction;
-import org.opensearch.security.resources.transport.ListAccessibleResourcesTransportAction;
-import org.opensearch.security.resources.transport.RevokeResourceAccessTransportAction;
-import org.opensearch.security.resources.transport.ShareResourceTransportAction;
-import org.opensearch.security.resources.transport.VerifyResourceAccessTransportAction;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -692,16 +680,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
 
-                // Adds rest handlers for resource-access-control actions
-                if (settings.getAsBoolean(
-                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-                )) {
-                    handlers.add(new ListAccessibleResourcesRestAction());
-                    handlers.add(new ShareResourceRestAction());
-                    handlers.add(new RevokeResourceAccessRestAction());
-                    handlers.add(new VerifyResourceAccessRestAction());
-                }
                 log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
@@ -729,15 +707,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
             }
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
-            if (settings.getAsBoolean(
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            )) {
-                actions.add(new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, ListAccessibleResourcesTransportAction.class));
-                actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
-                actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
-                actions.add(new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class));
-            }
         }
         return actions;
     }
