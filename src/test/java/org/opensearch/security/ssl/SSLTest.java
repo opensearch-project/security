@@ -133,16 +133,8 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsWithTrustStoreContainingValidCertsNotInChain() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
@@ -181,16 +173,8 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsWithTrustStoreContainingInvalidCertsNotInChain() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
