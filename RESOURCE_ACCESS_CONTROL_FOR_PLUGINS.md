@@ -22,7 +22,7 @@ This feature introduces **one primary component** for plugin developers:
 
 ### **Plugin Implementation Requirements:**
 
-- This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **enabled by default**.
+- This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **disabled by default**.
 - **Resource indices must be system indices**, and **system index protection must be enabled** (`plugins.security.system_indices.enabled: true`) to prevent unauthorized direct access.
 - Plugins must declare dependency on **`opensearch-resource-sharing-spi`** in their `build.gradle`.
 
@@ -60,10 +60,10 @@ opensearchplugin {
 This feature is controlled by the following flag:
 
 - **Feature flag:** `plugins.security.resource_sharing.enabled`
-- **Default value:** `true`
-- **How to disable?** Set the flag to `false` in the opensearch configuration:
+- **Default value:** `false`
+- **How to enable?** Set the flag to `true` in the opensearch configuration:
   ```yaml
-  plugins.security.resource_sharing.enabled: false
+  plugins.security.resource_sharing.enabled: true
   ```
 
 ---

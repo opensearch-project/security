@@ -846,16 +846,16 @@ public class IndexIntegrationTests extends SingleClusterTest {
         resc = rh.executeGetRequest("/*,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
-        resc = rh.executeGetRequest("/*,-*security,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/*,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("/*,-*security,-foo*,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/*,-*security,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        resc = rh.executeGetRequest("/_all,-*security,-*resource*/_search", encodeBasicHeader("foo_all", "nagilum"));
+        resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
-        resc = rh.executeGetRequest("/_all,-*security,-*resource*/_search", encodeBasicHeader("nagilum", "nagilum"));
+        resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("nagilum", "nagilum"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
     }

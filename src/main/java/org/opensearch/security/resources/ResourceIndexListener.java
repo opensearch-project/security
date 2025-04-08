@@ -58,8 +58,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         String resourceId = index.id();
 
-        // Only proceed if this was a create operation
-        if (!result.isCreated()) {
+        // Only proceed if this was a create operation and for primary shard
+        if (!result.isCreated() && index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
             log.debug("Skipping resource sharing entry creation as this was an update operation for resource {}", resourceId);
             return;
         }
