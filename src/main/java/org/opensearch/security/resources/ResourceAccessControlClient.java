@@ -23,13 +23,13 @@ import org.opensearch.security.resources.rest.list.ListAccessibleResourcesReques
 import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessResponse;
 import org.opensearch.security.resources.rest.share.ShareResourceResponse;
 import org.opensearch.security.resources.rest.verify.VerifyResourceAccessResponse;
+import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
-import org.opensearch.security.support.ConfigConstants;
 
 import static org.opensearch.security.resources.ResourceSharingConstants.RESOURCE_SHARING_MIN_SUPPORTED_VERSION;
 
@@ -180,8 +180,8 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     private String getFeatureDisabledReason() {
         boolean sharingEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
 
         if (!sharingEnabled) return "ShareableResource Access Control feature is disabled.";

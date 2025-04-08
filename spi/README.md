@@ -302,21 +302,18 @@ void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? exten
 
 #### **Example Usage:**
 ```java
-resourceSharingClient.listAllAccessibleResources(
-        RESOURCE_INDEX_NAME,
-        ActionListener.wrap(
-                resources -> {
-                    listener.onResponse(new GetResourceResponse((Set<SampleResource>) resources));
-                    },
-                failure -> {
-                    if (failure instanceof OpenSearchStatusException && ((OpenSearchStatusException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
-                        getAllResourcesAction(listener);
-                        return;
-                    }
-                    listener.onFailure(failure);
-                }
-        )
-);
+if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
+    resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
+      log.debug("Fetched accessible resources: {}", resources);
+      Set<SampleResource> sampleResources = resources.stream()
+        .map(resource -> (SampleResource) resource)
+        .collect(Collectors.toSet());
+      listener.onResponse(new GetResourceResponse(sampleResources));
+    }, listener::onFailure));
+} else {
+    // if feature is disabled, return all resources
+    getAllResourcesAction(listener);
+}
 ```
 > **Use Case:** Helps a user identify **which shareableResources they can interact with**.
 
