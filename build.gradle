@@ -66,7 +66,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.11.1"
+    id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
@@ -486,13 +486,13 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.36.0"
-            force "org.checkerframework:checker-qual:3.49.1"
+            force "com.google.errorprone:error_prone_annotations:2.37.0"
+            force "org.checkerframework:checker-qual:3.49.2"
             force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.18.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.16.1"
+            force "org.mockito:mockito-core:5.17.0"
             force "net.bytebuddy:byte-buddy:1.15.11"
             force "org.ow2.asm:asm:9.7.1"
         }
@@ -522,7 +522,7 @@ allprojects {
         testImplementation 'org.hamcrest:hamcrest:2.2'
         testImplementation 'junit:junit:4.13.2'
         testImplementation "org.opensearch:opensearch:${opensearch_version}"
-        testImplementation "org.mockito:mockito-core:5.16.1"
+        testImplementation "org.mockito:mockito-core:5.17.0"
 
         //integration test framework:
         integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2') {
@@ -549,7 +549,7 @@ allprojects {
         integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
         integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
         integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-        integrationTestImplementation "org.mockito:mockito-core:5.16.1"
+        integrationTestImplementation "org.mockito:mockito-core:5.17.0"
         integrationTestImplementation "org.passay:passay:1.6.6"
         integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
@@ -688,10 +688,10 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.36.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.37.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.7.1'
+    runtimeOnly 'org.ow2.asm:asm:9.8'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
@@ -738,7 +738,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.49.1'
+    runtimeOnly 'org.checkerframework:checker-qual:3.49.2'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
