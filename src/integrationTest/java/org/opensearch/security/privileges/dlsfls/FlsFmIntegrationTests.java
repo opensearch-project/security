@@ -359,7 +359,7 @@ public class FlsFmIntegrationTests {
 
     /**
      * This test ensures that docvalue_fields returned in the search response are filtered according to FLS/FM rules.
-     * This gives coverage for ?
+     * This gives coverage for the get*DocValues() methods in DlsFlsFilterLeafReader.
      */
     @Test
     public void search_docValueFields() {
@@ -527,32 +527,7 @@ public class FlsFmIntegrationTests {
     public void search_aggregation_binary() {
         if (user == Users.MASKING_ON_BINARY) {
             // Field masking on a binary field produces an error 500. Skip this until it is fixed.
-            // This exception is encountered:
-            // Caused by: java.lang.ArrayIndexOutOfBoundsException: arraycopy: last source index 100 out of bounds for byte[64]
-            // at java.lang.System.arraycopy(Native Method) ~[?:?]
-            // at org.apache.lucene.util.BytesRefBuilder.copyBytes(BytesRefBuilder.java:106) ~[lucene-core-10.1.0.jar:10.1.0
-            // 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.util.BytesRefBuilder.copyBytes(BytesRefBuilder.java:114) ~[lucene-core-10.1.0.jar:10.1.0
-            // 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at
-            // org.opensearch.search.aggregations.bucket.terms.MapStringTermsAggregator$ValuesSourceCollectorSource$1.collect(MapStringTermsAggregator.java:229)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.aggregations.LeafBucketCollector.collect(LeafBucketCollector.java:123)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.apache.lucene.search.MultiCollector$MultiLeafCollector.collect(MultiCollector.java:221)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.MatchAllDocsQuery$1$1$1.score(MatchAllDocsQuery.java:61) ~[lucene-core-10.1.0.jar:10.1.0
-            // 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.opensearch.search.internal.CancellableBulkScorer.score(CancellableBulkScorer.java:71)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.searchLeaf(ContextIndexSearcher.java:356)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.search(ContextIndexSearcher.java:305)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.search(ContextIndexSearcher.java:269)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.query.QueryPhase.searchWithCollector(QueryPhase.java:355)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
+            // Issue: https://github.com/opensearch-project/security/issues/5253
             return;
         }
 
@@ -752,39 +727,7 @@ public class FlsFmIntegrationTests {
     public void search_sortBy_explicitKeywordAttribute() {
         if (user == Users.MASKING_ON_KEYWORD) {
             // Sorting by a masked field produces an error 500. Skip this until this is fixed.
-            // This exception is encountered:
-            // Caused by: java.lang.NullPointerException: Cannot invoke "org.apache.lucene.index.Terms.iterator()" because the return value
-            // of "org.apache.lucene.index.LeafReader.terms(String)" is null
-            // at org.apache.lucene.search.comparators.TermOrdValComparator$CompetitiveIterator.init(TermOrdValComparator.java:573)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.comparators.TermOrdValComparator$CompetitiveIterator.update(TermOrdValComparator.java:546)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at
-            // org.apache.lucene.search.comparators.TermOrdValComparator$TermOrdValLeafComparator.updateCompetitiveIterator(TermOrdValComparator.java:458)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at
-            // org.apache.lucene.search.comparators.TermOrdValComparator$TermOrdValLeafComparator.setHitsThresholdReached(TermOrdValComparator.java:285)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.MultiLeafFieldComparator.setHitsThresholdReached(MultiLeafFieldComparator.java:98)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.TopFieldCollector$TopFieldLeafCollector.countHit(TopFieldCollector.java:83)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.TopFieldCollector$SimpleFieldCollector$1.collect(TopFieldCollector.java:200)
-            // ~[lucene-core-10.1.0.jar:10.1.0 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.Weight$DefaultBulkScorer.scoreRange(Weight.java:324) ~[lucene-core-10.1.0.jar:10.1.0
-            // 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.apache.lucene.search.Weight$DefaultBulkScorer.score(Weight.java:264) ~[lucene-core-10.1.0.jar:10.1.0
-            // 884954006de769dc43b811267230d625886e6515 - 2024-12-17 16:15:44]
-            // at org.opensearch.search.internal.CancellableBulkScorer.score(CancellableBulkScorer.java:71)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.searchLeaf(ContextIndexSearcher.java:356)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.search(ContextIndexSearcher.java:305)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.internal.ContextIndexSearcher.search(ContextIndexSearcher.java:269)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
-            // at org.opensearch.search.query.QueryPhase.searchWithCollector(QueryPhase.java:355)
-            // ~[opensearch-3.0.0-beta1-SNAPSHOT.jar:3.0.0-beta1-SNAPSHOT]
+            // Issue: https://github.com/opensearch-project/security/issues/5254
             return;
         }
 
@@ -815,26 +758,7 @@ public class FlsFmIntegrationTests {
             || user == Users.MASKING_ON_IP
             || user == Users.MASKING_ON_STORED_FIELD) {
             // Term vectors on field masking protected documents fail with an internal OpenSearch assertion error
-            // java.lang.AssertionError
-            // at __randomizedtesting.SeedInfo.seed([972D41C822130990]:0)
-            // at org.opensearch.action.termvectors.TermVectorsResponse.buildTermStatistics(TermVectorsResponse.java:269)
-            // at org.opensearch.action.termvectors.TermVectorsResponse.buildTerm(TermVectorsResponse.java:252)
-            // at org.opensearch.action.termvectors.TermVectorsResponse.buildField(TermVectorsResponse.java:235)
-            // at org.opensearch.action.termvectors.TermVectorsResponse.toXContent(TermVectorsResponse.java:216)
-            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:62)
-            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:57)
-            // at org.opensearch.rest.action.RestToXContentListener.buildResponse(RestToXContentListener.java:49)
-            // at org.opensearch.rest.action.RestResponseListener.processResponse(RestResponseListener.java:52)
-            // at org.opensearch.rest.action.RestActionListener.onResponse(RestActionListener.java:64)
-            // at org.opensearch.action.support.TransportAction$1.onResponse(TransportAction.java:115)
-            // at org.opensearch.action.support.TransportAction$1.onResponse(TransportAction.java:109)
-            // at
-            // org.opensearch.action.support.single.shard.TransportSingleShardAction$AsyncSingleAction$2.handleResponse(TransportSingleShardAction.java:298)
-            // at
-            // org.opensearch.action.support.single.shard.TransportSingleShardAction$AsyncSingleAction$2.handleResponse(TransportSingleShardAction.java:284)
-            // at
-            // org.opensearch.security.transport.SecurityInterceptor$RestoringTransportResponseHandler.handleResponse(SecurityInterceptor.java:420)
-            // at org.opensearch.transport.TransportService$ContextRestoreResponseHandler.handleResponse(TransportService.java:1495)
+            // Issue: https://github.com/opensearch-project/security/issues/5255
             return;
         }
         TestData.TestDocument testDocument = TEST_DATA.anyDocument();
