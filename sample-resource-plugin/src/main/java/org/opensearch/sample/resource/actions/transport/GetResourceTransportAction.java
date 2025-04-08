@@ -45,9 +45,9 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
 
-import static org.opensearch.sample.utils.Constants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.sample.utils.Constants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 
 /**
  * Transport action for getting a resource
@@ -85,14 +85,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                         .map(resource -> (SampleResource) resource)
                         .collect(Collectors.toSet());
                     listener.onResponse(new GetResourceResponse(sampleResources));
-                }, failure -> {
-                    if (failure instanceof OpenSearchStatusException
-                        && ((OpenSearchStatusException) failure).status().equals(RestStatus.NOT_IMPLEMENTED)) {
-                        getAllResourcesAction(listener);
-                        return;
-                    }
-                    listener.onFailure(failure);
-                }));
+                }, listener::onFailure));
             } else {
                 // if feature is disabled, return all resources
                 getAllResourcesAction(listener);
