@@ -221,18 +221,11 @@ def splitTestConfig = [
             ]
         ]
     ],
-    opensslCITest: [
-        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
-        include: '**/OpenSSL*.class'
-    ],
     sslTest: [
         description: "Runs most of the SSL tests.",
         filters: [
             includeTestsMatching: [
                 "org.opensearch.security.ssl.*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.ssl.OpenSSL*"
             ]
         ]
     ]
@@ -336,7 +329,6 @@ task citest(type: Test) {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
         splitTestConfig.each { entry ->
             entry.value.filters.each{ test ->
                 if (test.key == "includeTestsMatching") {
@@ -708,11 +700,6 @@ dependencies {
     testImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
     testImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
 
-    // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
-    if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
-        testImplementation "io.netty:netty-tcnative-classes:2.0.66.Final"
-        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.66.Final:${osdetector.classifier}"
-    }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
