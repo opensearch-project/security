@@ -55,3 +55,5 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 * Bump com.netflix.nebula.ospackage from 11.11.1 to 11.11.2 ([#5246](https://github.com/opensearch-project/security/pull/5246))
 * Bump com.google.errorprone:error_prone_annotations from 2.36.0 to 2.37.0 ([#5245](https://github.com/opensearch-project/security/pull/5245))
 * More tests for FLS and field masking ([#5237](https://github.com/opensearch-project/security/pull/5237))
+* Remove OpenSSL provider ([#5220](https://github.com/opensearch-project/security/pull/5220))
+* Migrate from com.amazon.dlic to org.opensearch.security package ([#5223](https://github.com/opensearch-project/security/pull/5223))
