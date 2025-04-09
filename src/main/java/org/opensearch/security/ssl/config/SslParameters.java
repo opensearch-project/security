@@ -27,22 +27,14 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 
 import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslProvider;
 
-import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_HTTP_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_SSL_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_SSL_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENFORCE_CERT_RELOAD_DN_VERIFICATION;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.OPENSSL_1_1_1_BETA_9;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.OPENSSL_AVAILABLE;
 
 public class SslParameters {
 
@@ -118,12 +110,7 @@ public class SslParameters {
         }
 
         private SslProvider provider(final Settings settings) {
-            final var useOpenSslIfAvailable = settings.getAsBoolean(ENABLE_OPENSSL_IF_AVAILABLE, true);
-            if (OPENSSL_AVAILABLE && useOpenSslIfAvailable) {
-                return SslProvider.OPENSSL;
-            } else {
-                return SslProvider.JDK;
-            }
+            return SslProvider.JDK;
         }
 
         private boolean validateCertDNsOnReload(final Settings settings) {
@@ -132,24 +119,7 @@ public class SslParameters {
 
         private List<String> protocols(final SslProvider provider, final Settings settings, boolean http) {
             final var allowedProtocols = settings.getAsList(ENABLED_PROTOCOLS, List.of(ALLOWED_SSL_PROTOCOLS));
-            if (provider == SslProvider.OPENSSL) {
-                final String[] supportedProtocols;
-                if (OpenSsl.version() > OPENSSL_1_1_1_BETA_9) {
-                    supportedProtocols = http ? ALLOWED_OPENSSL_HTTP_PROTOCOLS : ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS;
-                } else {
-                    supportedProtocols = http
-                        ? ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9
-                        : ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9;
-                }
-                return openSslProtocols(allowedProtocols, supportedProtocols);
-            } else {
-                return jdkProtocols(allowedProtocols);
-            }
-        }
-
-        private List<String> openSslProtocols(final List<String> allowedSslProtocols, final String... supportedProtocols) {
-            LOGGER.debug("OpenSSL supports the following {} protocols {}", supportedProtocols.length, supportedProtocols);
-            return Stream.of(supportedProtocols).filter(allowedSslProtocols::contains).collect(Collectors.toList());
+            return jdkProtocols(allowedProtocols);
         }
 
         private List<String> jdkProtocols(final List<String> allowedSslProtocols) {
@@ -165,26 +135,12 @@ public class SslParameters {
         private List<String> ciphers(final SslProvider provider, final Settings settings) {
             final var allowed = settings.getAsList(ENABLED_CIPHERS, List.of(ALLOWED_SSL_CIPHERS));
             final Stream<String> allowedCiphers;
-            if (provider == SslProvider.OPENSSL) {
-                LOGGER.debug(
-                    "OpenSSL {} supports the following ciphers (java-style) {}",
-                    OpenSsl.versionString(),
-                    OpenSsl.availableJavaCipherSuites()
-                );
-                LOGGER.debug(
-                    "OpenSSL {} supports the following ciphers (openssl-style) {}",
-                    OpenSsl.versionString(),
-                    OpenSsl.availableOpenSslCipherSuites()
-                );
-                allowedCiphers = allowed.stream().filter(OpenSsl::isCipherSuiteAvailable);
-            } else {
-                try {
-                    final var supportedCiphers = SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites();
-                    LOGGER.debug("JVM supports the following {} ciphers {}", supportedCiphers.length, supportedCiphers);
-                    allowedCiphers = Stream.of(supportedCiphers).filter(allowed::contains);
-                } catch (final NoSuchAlgorithmException e) {
-                    throw new OpenSearchException("Unable to determine ciphers protocols", e);
-                }
+            try {
+                final var supportedCiphers = SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites();
+                LOGGER.debug("JVM supports the following {} ciphers {}", supportedCiphers.length, supportedCiphers);
+                allowedCiphers = Stream.of(supportedCiphers).filter(allowed::contains);
+            } catch (final NoSuchAlgorithmException e) {
+                throw new OpenSearchException("Unable to determine ciphers protocols", e);
             }
             return allowedCiphers.sorted(String::compareTo).collect(Collectors.toList());
         }
