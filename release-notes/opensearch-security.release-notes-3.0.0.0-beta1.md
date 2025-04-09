@@ -4,6 +4,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 
 #### Breaking Changes
 * Fix Blake2b hash implementation ([#5089](https://github.com/opensearch-project/security/pull/5089))
+* Remove OpenSSL provider ([#5220](https://github.com/opensearch-project/security/pull/5220))
+* Remove whitelist settings in favor of allowlist ([#5224](https://github.com/opensearch-project/security/pull/5224))
 
 #### Enhancements
 * Optimized Privilege Evaluation ([#4380](https://github.com/opensearch-project/security/pull/4380))
@@ -50,10 +52,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 * Bump open_saml_shib_version from 9.1.3 to 9.1.4 ([#5230](https://github.com/opensearch-project/security/pull/5230))
 * Bump com.carrotsearch.randomizedtesting:randomizedtesting-runner from 2.8.2 to 2.8.3 ([#5229](https://github.com/opensearch-project/security/pull/5229))
 * Bump open_saml_version from 5.1.3 to 5.1.4 ([#5227](https://github.com/opensearch-project/security/pull/5227))
-* Remove whitelist settings in favor of allowlist ([#5224](https://github.com/opensearch-project/security/pull/5224))
 * Bump org.ow2.asm:asm from 9.7.1 to 9.8 ([#5244](https://github.com/opensearch-project/security/pull/5244))
 * Bump com.netflix.nebula.ospackage from 11.11.1 to 11.11.2 ([#5246](https://github.com/opensearch-project/security/pull/5246))
 * Bump com.google.errorprone:error_prone_annotations from 2.36.0 to 2.37.0 ([#5245](https://github.com/opensearch-project/security/pull/5245))
 * More tests for FLS and field masking ([#5237](https://github.com/opensearch-project/security/pull/5237))
-* Remove OpenSSL provider ([#5220](https://github.com/opensearch-project/security/pull/5220))
 * Migrate from com.amazon.dlic to org.opensearch.security package ([#5223](https://github.com/opensearch-project/security/pull/5223))
