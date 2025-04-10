@@ -49,7 +49,7 @@ import com.unboundid.ldif.LDIFReader;
 import com.unboundid.util.ssl.SSLUtil;
 
 /**
-* Based on class com.amazon.dlic.auth.ldap.srv.LdapServer from older tests
+* Based on class org.opensearch.security.auth.ldap.srv.LdapServer from older tests
 */
 final class LdapServer {
     private static final Logger log = LogManager.getLogger(LdapServer.class);
