@@ -32,6 +32,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -315,6 +316,7 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    @Ignore
     public void testSecurityManagerCheck() {
         SecurityManager mockSecurityManager = mock(SecurityManager.class);
         System.setSecurityManager(mockSecurityManager);

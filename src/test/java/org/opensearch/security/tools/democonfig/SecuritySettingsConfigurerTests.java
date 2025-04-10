@@ -11,7 +11,7 @@
 
 package org.opensearch.security.tools.democonfig;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline extension key-word is used in file ext variable
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to file extensions, keeping this rule disable for the whole file
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +38,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.Hasher;
-import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -53,10 +53,11 @@ import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigure
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 @SuppressWarnings("removal")
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@RunWith(RandomizedRunner.class)
 public class SecuritySettingsConfigurerTests {
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
@@ -70,8 +71,21 @@ public class SecuritySettingsConfigurerTests {
         "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn";
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
-
     private static Installer installer;
+
+    // Custom exception thrown by the test exit handler
+    public static class TestExitException extends RuntimeException {
+        private final int status;
+
+        public TestExitException(int status) {
+            super("Exit code " + status);
+            this.status = status;
+        }
+
+        public int getStatus() {
+            return status;
+        }
+    }
 
     @Before
     public void setUp() throws IOException {
@@ -102,22 +116,17 @@ public class SecuritySettingsConfigurerTests {
 
         securitySettingsConfigurer.updateAdminPassword();
 
-        assertThat(customPassword, is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
-
+        assertThat(customPassword, equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD));
         verifyStdOutContainsString("Admin password set successfully.");
     }
 
     @Test
-    public void testUpdateAdminPassword_noPasswordSupplied() {
-        SecuritySettingsConfigurer.ADMIN_PASSWORD = ""; // to ensure 0 flaky-ness
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException | IOException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+    public void testUpdateAdminPassword_noPasswordSupplied() throws IOException {
+        // Ensure ADMIN_PASSWORD is empty so that no custom password is supplied
+        SecuritySettingsConfigurer.ADMIN_PASSWORD = "";
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
+        assertThat(ex.getStatus(), equalTo(-1));
 
         verifyStdOutContainsString(
             String.format(
@@ -129,16 +138,10 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testUpdateAdminPasswordWithWeakPassword() throws NoSuchFieldException, IllegalAccessException {
-
         setEnv(adminPasswordKey, "weakpassword");
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException | IOException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
+        assertThat(ex.getStatus(), equalTo(-1));
 
         verifyStdOutContainsString(
             String.format(
@@ -152,17 +155,10 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testUpdateAdminPasswordWithShortPassword() throws NoSuchFieldException, IllegalAccessException {
-
         setEnv(adminPasswordKey, "short");
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException | IOException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
-
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
+        assertThat(ex.getStatus(), equalTo(-1));
         verifyStdOutContainsString(
             String.format(PASSWORD_VALIDATION_FAILURE_MESSAGE, "short", INVALID_PASSWORD_TOO_SHORT.message(), DEFAULT_PASSWORD_MIN_LENGTH)
         );
@@ -173,10 +169,10 @@ public class SecuritySettingsConfigurerTests {
         IOException {
         setEnv(adminPasswordKey, "weakpassword");
         installer.environment = ExecutionEnvironment.TEST;
+        // In test environment, password validation is skipped.
         securitySettingsConfigurer.updateAdminPassword();
 
-        assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
-
+        assertThat("weakpassword", equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD));
         verifyStdOutContainsString("Admin password set successfully.");
     }
 
@@ -194,26 +190,19 @@ public class SecuritySettingsConfigurerTests {
             "  backend_roles:",
             "  - \"admin\""
         );
-        // overwriting existing content
+        // Overwrite existing content
         Files.write(internalUsersFilePath, newContent, StandardCharsets.UTF_8);
 
         securitySettingsConfigurer.updateAdminPassword();
-
         verifyStdOutContainsString("Admin password seems to be custom configured. Skipping update to admin password.");
     }
 
     @Test
     public void testUpdateAdminPasswordWithDefaultInternalUsersYml() {
-
-        SecuritySettingsConfigurer.ADMIN_PASSWORD = ""; // to ensure 0 flaky-ness
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException | IOException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        SecuritySettingsConfigurer.ADMIN_PASSWORD = "";
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
+        assertThat(ex.getStatus(), equalTo(-1));
 
         verifyStdOutContainsString(
             String.format(
@@ -227,19 +216,19 @@ public class SecuritySettingsConfigurerTests {
     public void testSecurityPluginAlreadyConfigured() {
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
         String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(
+            TestExitException.class,
+            () -> securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured()
+        );
+        // Expecting exit code -1
+        assertThat(ex.getStatus(), equalTo(-1));
         verifyStdOutContainsString(expectedMessage);
     }
 
     @Test
     public void testSecurityPluginNotConfigured() {
+        // In case no security settings are in the configuration file the check method should complete without exiting.
         try {
             securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
         } catch (Exception e) {
@@ -251,18 +240,14 @@ public class SecuritySettingsConfigurerTests {
     public void testConfigFileDoesNotExist() {
         installer.OPENSEARCH_CONF_FILE = "path/to/nonexistentfile";
         String expectedMessage = "OpenSearch configuration file does not exist. Quit.";
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
-
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(
+            TestExitException.class,
+            () -> securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured()
+        );
+        assertThat(ex.getStatus(), equalTo(-1));
         verifyStdOutContainsString(expectedMessage);
-
-        // reset the file pointer
+        // Reset the file pointer
         installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
     }
 
@@ -271,33 +256,33 @@ public class SecuritySettingsConfigurerTests {
         Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
 
         assertThat(actual.size(), is(17));
-        assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), is(equalTo(Certificates.NODE_CERT.getFileName())));
-        assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), is(equalTo(Certificates.NODE_KEY.getFileName())));
-        assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), is(equalTo(Certificates.ROOT_CA.getFileName())));
-        assertThat(actual.get("plugins.security.ssl.transport.enforce_hostname_verification"), is(equalTo(false)));
-        assertThat(actual.get("plugins.security.ssl.http.enabled"), is(equalTo(true)));
-        assertThat(actual.get("plugins.security.ssl.http.pemcert_filepath"), is(equalTo(Certificates.NODE_CERT.getFileName())));
-        assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), is(equalTo(Certificates.NODE_KEY.getFileName())));
-        assertThat(actual.get("plugins.security.ssl.http.pemtrustedcas_filepath"), is(equalTo(Certificates.ROOT_CA.getFileName())));
-        assertThat(actual.get("plugins.security.allow_unsafe_democertificates"), is(equalTo(true)));
-        assertThat(actual.get("plugins.security.authcz.admin_dn"), is(equalTo(List.of("CN=kirk,OU=client,O=client,L=test,C=de"))));
-        assertThat(actual.get("plugins.security.audit.type"), is(equalTo("internal_opensearch")));
-        assertThat(actual.get("plugins.security.enable_snapshot_restore_privilege"), is(equalTo(true)));
-        assertThat(actual.get("plugins.security.check_snapshot_restore_write_privileges"), is(equalTo(true)));
-        assertThat(actual.get("plugins.security.restapi.roles_enabled"), is(equalTo(REST_ENABLED_ROLES)));
-        assertThat(actual.get("plugins.security.system_indices.enabled"), is(equalTo(true)));
-        assertThat(actual.get("plugins.security.system_indices.indices"), is(equalTo(SYSTEM_INDICES)));
-        assertThat(actual.get("node.max_local_storage_nodes"), is(equalTo(3)));
+        assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
+        assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
+        assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
+        assertThat(actual.get("plugins.security.ssl.transport.enforce_hostname_verification"), equalTo(false));
+        assertThat(actual.get("plugins.security.ssl.http.enabled"), equalTo(true));
+        assertThat(actual.get("plugins.security.ssl.http.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
+        assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
+        assertThat(actual.get("plugins.security.ssl.http.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
+        assertThat(actual.get("plugins.security.allow_unsafe_democertificates"), equalTo(true));
+        assertThat(actual.get("plugins.security.authcz.admin_dn"), equalTo(List.of("CN=kirk,OU=client,O=client,L=test,C=de")));
+        assertThat(actual.get("plugins.security.audit.type"), equalTo("internal_opensearch"));
+        assertThat(actual.get("plugins.security.enable_snapshot_restore_privilege"), equalTo(true));
+        assertThat(actual.get("plugins.security.check_snapshot_restore_write_privileges"), equalTo(true));
+        assertThat(actual.get("plugins.security.restapi.roles_enabled"), equalTo(REST_ENABLED_ROLES));
+        assertThat(actual.get("plugins.security.system_indices.enabled"), equalTo(true));
+        assertThat(actual.get("plugins.security.system_indices.indices"), equalTo(SYSTEM_INDICES));
+        assertThat(actual.get("node.max_local_storage_nodes"), equalTo(3));
 
         installer.initsecurity = true;
         actual = securitySettingsConfigurer.buildSecurityConfigMap();
-        assertThat(actual.get("plugins.security.allow_default_init_securityindex"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.allow_default_init_securityindex"), equalTo(true));
 
         installer.cluster_mode = true;
         actual = securitySettingsConfigurer.buildSecurityConfigMap();
-        assertThat(actual.get("network.host"), is(equalTo("0.0.0.0")));
-        assertThat(actual.get("node.name"), is(equalTo("smoketestnode")));
-        assertThat(actual.get("cluster.initial_cluster_manager_nodes"), is(equalTo("smoketestnode")));
+        assertThat(actual.get("network.host"), equalTo("0.0.0.0"));
+        assertThat(actual.get("node.name"), equalTo("smoketestnode"));
+        assertThat(actual.get("cluster.initial_cluster_manager_nodes"), equalTo("smoketestnode"));
     }
 
     @Test
@@ -308,8 +293,8 @@ public class SecuritySettingsConfigurerTests {
         installer.initsecurity = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), equalTo(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), equalTo(false));
     }
 
     @Test
@@ -321,8 +306,8 @@ public class SecuritySettingsConfigurerTests {
         installer.cluster_mode = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), equalTo(true));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), equalTo(false));
     }
 
     @Test
@@ -333,8 +318,8 @@ public class SecuritySettingsConfigurerTests {
         installer.assumeyes = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), is(false));
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), equalTo(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), equalTo(false));
     }
 
     @Test
@@ -342,13 +327,13 @@ public class SecuritySettingsConfigurerTests {
         String demoPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
         securitySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
 
-        assertThat(new File(demoPath).exists(), is(equalTo(true)));
+        assertThat(new File(demoPath).exists(), equalTo(true));
 
         String[] commands = securitySettingsConfigurer.getSecurityAdminCommands("scriptPath");
 
         try (BufferedReader reader = new BufferedReader(new FileReader(demoPath, StandardCharsets.UTF_8))) {
-            assertThat(reader.readLine(), is(commands[0]));
-            assertThat(reader.readLine(), is(equalTo(commands[1])));
+            assertThat(reader.readLine(), equalTo(commands[0]));
+            assertThat(reader.readLine(), equalTo(commands[1]));
         }
     }
 
@@ -367,17 +352,15 @@ public class SecuritySettingsConfigurerTests {
     public void testReadNonFlatYamlAlreadyConfigured() throws IOException {
         installer.OPENSEARCH_CONF_FILE = Paths.get("src/test/resources/opensearch-config-non-flat.yaml").toFile().getAbsolutePath();
         String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows(
+            TestExitException.class,
+            () -> securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured()
+        );
+        assertThat(ex.getStatus(), equalTo(-1));
         verifyStdOutContainsString(expectedMessage);
 
-        // reset the file pointer
+        // Reset the configuration file pointer
         installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
     }
 
@@ -434,7 +417,7 @@ public class SecuritySettingsConfigurerTests {
             "  config_version: 2",
             "admin:",
             "  hash: " + Hasher.hash(DEFAULT_ADMIN_PASSWORD.toCharArray()),
-            "  reserved: " + true,
+            "  reserved: true",
             "  backend_roles:",
             "  - \"admin\"",
             "  description: Demo admin user"
@@ -442,3 +425,4 @@ public class SecuritySettingsConfigurerTests {
         Files.write(internalUsersFilePath, defaultContent, StandardCharsets.UTF_8);
     }
 }
+// CS-ENFORCE-SINGLE
