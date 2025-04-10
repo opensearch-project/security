@@ -45,6 +45,9 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
     public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
 
+    public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
+    public static final boolean OPENSEARCH_SECURITY_DISABLED_DEFAULT = false;
+
     public static final String OPENDISTRO_SECURITY_CHANNEL_TYPE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "channel_type";
 
     public static final String OPENDISTRO_SECURITY_ORIGIN = OPENDISTRO_SECURITY_CONFIG_PREFIX + "origin";
