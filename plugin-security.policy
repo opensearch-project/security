@@ -78,6 +78,7 @@ grant {
   //Enable this permission to debug unauthorized de-serialization attempt
   //permission java.io.SerializablePermission "enableSubstitution";
 
+  permission java.net.NetPermission "accessUnixDomainSocket";
 };
 
 grant codeBase "${codebase.netty-common}" {
