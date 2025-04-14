@@ -17,11 +17,13 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,7 +76,10 @@ public class SslConfiguration {
     }
 
     public TrustManagerFactory trustStoreFactory() {
-        return trustStoreConfiguration.createTrustManagerFactory(sslParameters.shouldValidateNewCertDNs());
+        return trustStoreConfiguration.createTrustManagerFactory(
+            sslParameters.shouldValidateNewCertDNs(),
+            keyStoreConfiguration.getIssuerDns()
+        );
     }
 
     public SslParameters sslParameters() {
@@ -84,10 +89,10 @@ public class SslConfiguration {
     @SuppressWarnings("removal")
     SslContext buildServerSslContext(final boolean validateCertificates) {
         try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<SslContext>) () -> SslContextBuilder.forServer(
-                    keyStoreConfiguration.createKeyManagerFactory(validateCertificates)
-                )
+            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
+                KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
+                Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
+                return SslContextBuilder.forServer(kmFactory)
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
                     .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
@@ -112,9 +117,9 @@ public class SslConfiguration {
                             ApplicationProtocolNames.HTTP_1_1
                         )
                     )
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates))
-                    .build()
-            );
+                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
+                    .build();
+            });
         } catch (PrivilegedActionException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
         }
@@ -123,8 +128,10 @@ public class SslConfiguration {
     @SuppressWarnings("removal")
     SslContext buildClientSslContext(final boolean validateCertificates) {
         try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<SslContext>) () -> SslContextBuilder.forClient()
+            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
+                KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
+                Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
+                return SslContextBuilder.forClient()
                     .sslProvider(sslParameters.provider())
                     .protocols(sslParameters.allowedProtocols())
                     .ciphers(sslParameters.allowedCiphers())
@@ -132,10 +139,10 @@ public class SslConfiguration {
                     .sessionCacheSize(0)
                     .sessionTimeout(0)
                     .sslProvider(sslParameters.provider())
-                    .keyManager(keyStoreConfiguration.createKeyManagerFactory(validateCertificates))
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates))
-                    .build()
-            );
+                    .keyManager(kmFactory)
+                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
+                    .build();
+            });
         } catch (PrivilegedActionException e) {
             throw new OpenSearchException("Failed to build client SSL context", e);
         }

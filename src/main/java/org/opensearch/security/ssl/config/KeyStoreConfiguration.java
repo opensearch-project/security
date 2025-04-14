@@ -20,7 +20,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.net.ssl.KeyManagerFactory;
+import javax.security.auth.x500.X500Principal;
 
 import com.google.common.collect.ImmutableList;
 
@@ -39,6 +42,13 @@ public interface KeyStoreConfiguration {
             KeyStoreUtils.validateKeyStoreCertificates(keyStore.v1());
         }
         return buildKeyManagerFactory(keyStore.v1(), keyStore.v2());
+    }
+
+    default Set<X500Principal> getIssuerDns() {
+        return loadCertificates().stream()
+            .map(Certificate::x509Certificate)
+            .map(X509Certificate::getIssuerX500Principal)
+            .collect(Collectors.toSet());
     }
 
     default KeyManagerFactory buildKeyManagerFactory(final KeyStore keyStore, final char[] password) {
