@@ -489,7 +489,7 @@ configurations {
             force "com.google.errorprone:error_prone_annotations:2.37.0"
             force "org.checkerframework:checker-qual:3.49.2"
             force "ch.qos.logback:logback-classic:1.5.18"
-            force "commons-io:commons-io:2.18.0"
+            force "commons-io:commons-io:2.19.0"
         }
     }
 
@@ -729,7 +729,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.18.0'
+    integrationTestImplementation 'commons-io:commons-io:2.19.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
