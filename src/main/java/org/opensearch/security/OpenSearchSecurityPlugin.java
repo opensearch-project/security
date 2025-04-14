@@ -2297,6 +2297,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     resourceProviders.put(provider.resourceIndexName(), provider);
                     resourceIndices.add(provider.resourceIndexName());
                 }
+                resourceSharingExtensions.add(extension);
             }
             resourcePluginInfo.setResourceIndices(resourceIndices);
             resourcePluginInfo.setResourceProviders(resourceProviders);

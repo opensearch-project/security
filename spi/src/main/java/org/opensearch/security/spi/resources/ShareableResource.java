@@ -23,5 +23,5 @@ public interface ShareableResource extends NamedWriteable, ToXContentFragment {
      *
      * @return the resource name
      */
-    String getName();
+    String getShareableResourceName();
 }
