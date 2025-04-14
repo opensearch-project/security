@@ -52,8 +52,8 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.RoleBasedPrivilegesEvaluationContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -121,7 +121,7 @@ public class DocumentPrivilegesTest {
         final User user;
         final IndexSpec indexSpec;
         final IndexAbstraction.Index index;
-        final PrivilegesEvaluationContext context;
+        final RoleBasedPrivilegesEvaluationContext context;
         final boolean dfmEmptyOverridesAll;
 
         @Test
@@ -518,7 +518,7 @@ public class DocumentPrivilegesTest {
             this.indexSpec = indexSpec;
             this.user = userSpec.buildUser();
             this.index = (IndexAbstraction.Index) INDEX_METADATA.getIndicesLookup().get(indexSpec.index);
-            this.context = new PrivilegesEvaluationContext(
+            this.context = new RoleBasedPrivilegesEvaluationContext(
                 this.user,
                 ImmutableSet.copyOf(userSpec.roles),
                 null,
@@ -566,7 +566,7 @@ public class DocumentPrivilegesTest {
         final User user;
         final IndicesSpec indicesSpec;
         final IndexResolverReplacer.Resolved resolvedIndices;
-        final PrivilegesEvaluationContext context;
+        final RoleBasedPrivilegesEvaluationContext context;
         final boolean dfmEmptyOverridesAll;
 
         @Test
@@ -833,7 +833,7 @@ public class DocumentPrivilegesTest {
                     return this;
                 }
             });
-            this.context = new PrivilegesEvaluationContext(
+            this.context = new RoleBasedPrivilegesEvaluationContext(
                 this.user,
                 ImmutableSet.copyOf(userSpec.roles),
                 null,
@@ -874,7 +874,7 @@ public class DocumentPrivilegesTest {
         final User user;
         final IndexSpec indexSpec;
         final IndexAbstraction.Index index;
-        final PrivilegesEvaluationContext context;
+        final RoleBasedPrivilegesEvaluationContext context;
         final boolean dfmEmptyOverridesAll;
 
         @Test
@@ -1118,7 +1118,7 @@ public class DocumentPrivilegesTest {
             this.indexSpec = indexSpec;
             this.user = userSpec.buildUser();
             this.index = (IndexAbstraction.Index) INDEX_METADATA.getIndicesLookup().get(indexSpec.index);
-            this.context = new PrivilegesEvaluationContext(
+            this.context = new RoleBasedPrivilegesEvaluationContext(
                 this.user,
                 ImmutableSet.copyOf(userSpec.roles),
                 null,
@@ -1146,7 +1146,9 @@ public class DocumentPrivilegesTest {
         @Test(expected = PrivilegesEvaluationException.class)
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
-                .evaluate(new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null));
+                .evaluate(
+                    new RoleBasedPrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null)
+                );
         }
 
         @Test

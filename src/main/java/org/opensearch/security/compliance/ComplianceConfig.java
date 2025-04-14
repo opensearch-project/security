@@ -107,6 +107,7 @@ public class ComplianceConfig {
     private final String auditLogIndex;
     private final boolean enabled;
     private final Supplier<DateTime> dateProvider;
+    private final WildcardMatcher securityIndicesMatcher;
 
     private ComplianceConfig(
         final boolean enabled,
@@ -174,6 +175,7 @@ public class ComplianceConfig {
         });
 
         this.dateProvider = Optional.ofNullable(dateProvider).orElse(() -> DateTime.now(DateTimeZone.UTC));
+        this.securityIndicesMatcher = WildcardMatcher.from(securityIndex, ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
     }
 
     @VisibleForTesting
@@ -508,7 +510,8 @@ public class ComplianceConfig {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
-        if (securityIndex.equals(index)) {
+        // TODO: Add support for custom api token index?
+        if (this.securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
         // if the index is used for audit logging, return false
@@ -536,7 +539,7 @@ public class ComplianceConfig {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
-        if (securityIndex.equals(index)) {
+        if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
         try {
@@ -558,7 +561,7 @@ public class ComplianceConfig {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
-        if (securityIndex.equals(index)) {
+        if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
         WildcardMatcher matcher;
