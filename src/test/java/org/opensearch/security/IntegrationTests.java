@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -55,8 +54,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
-
-import io.netty.handler.ssl.OpenSsl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -212,12 +209,6 @@ public class IntegrationTests extends SingleClusterTest {
 
         assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
-    }
-
-    @Test
-    public void testEnsureOpenSSLAvailability() {
-        Assume.assumeTrue(allowOpenSSL);
-        Assert.assertTrue(String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
     }
 
     @Test

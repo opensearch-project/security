@@ -32,8 +32,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -42,10 +40,26 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
-@SuppressWarnings("removal")
+/**
+ * Tests for the CertificateGenerator.
+ */
 public class CertificateGeneratorTests {
 
     private static Installer installer;
+
+    // Custom exception to simulate an exit via the exit handler.
+    public static class TestExitException extends RuntimeException {
+        private final int status;
+
+        public TestExitException(int status) {
+            super("Exit code " + status);
+            this.status = status;
+        }
+
+        public int getStatus() {
+            return status;
+        }
+    }
 
     @Before
     public void setUp() {
@@ -68,9 +82,8 @@ public class CertificateGeneratorTests {
 
         certificateGenerator.createDemoCertificates();
 
-        // root-ca.pem, esnode.pem, esnode-key.pem, kirk.pem, kirk-key.pem
+        // Expect five certificate files: root-ca.pem, esnode.pem, esnode-key.pem, kirk.pem, kirk-key.pem
         int expectedNumberOfCertificateFiles = 5;
-
         int certsFound = 0;
 
         for (Certificates cert : certificatesArray) {
@@ -84,9 +97,7 @@ public class CertificateGeneratorTests {
             } else {
                 checkCertificateValidity(certFilePath);
             }
-
-            // increment a count since a valid certificate was found
-            certsFound++;
+            certsFound++;  // count valid file
         }
 
         assertThat(certsFound, equalTo(expectedNumberOfCertificateFiles));
@@ -94,15 +105,15 @@ public class CertificateGeneratorTests {
 
     @Test
     public void testCreateDemoCertificates_invalidPath() {
+        // Use an invalid directory path so that certificate creation fails
         installer.OPENSEARCH_CONF_DIR = "invalidPath";
         CertificateGenerator certificateGenerator = new CertificateGenerator(installer);
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
         try {
-            System.setSecurityManager(new NoExitSecurityManager());
             certificateGenerator.createDemoCertificates();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
+            fail("Expected exit handler to be invoked");
+        } catch (TestExitException e) {
+            assertThat(e.getStatus(), equalTo(-1));
         }
     }
 
@@ -118,11 +129,11 @@ public class CertificateGeneratorTests {
 
                 Period duration = getPeriodBetween(x509Certificate.getNotBefore().toInstant(), expiry);
 
-                // we check that cert is valid for total of ~10 yrs
-                // we don't check days as leaps years may cause flaky-ness
+                // Check that certificate lifetime is roughly 10 years (9 years and 11 months)
                 assertThat(duration.getYears(), equalTo(9));
                 assertThat(duration.getMonths(), equalTo(11));
 
+                // Ensure certificate is currently valid and will remain valid at least one year from now
                 x509Certificate.checkValidity();
                 verifyExpiryAtLeastAYearFromNow(expiry);
 
@@ -139,16 +150,14 @@ public class CertificateGeneratorTests {
     private static Period getPeriodBetween(Instant start, Instant end) {
         LocalDate startDate = LocalDate.ofInstant(start, TimeZone.getTimeZone("EDT").toZoneId());
         LocalDate endDate = LocalDate.ofInstant(end, TimeZone.getTimeZone("EDT").toZoneId());
-
         return Period.between(startDate, endDate);
     }
 
     private void checkPrivateKeyValidity(String keyPath) {
         try {
             String pemContent = readPEMFile(keyPath);
-
+            // Remove the BEGIN/END markers and whitespace
             String base64Data = pemContent.replaceAll("-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
-
             byte[] keyBytes = Base64.getDecoder().decode(base64Data);
             KeyFactory kf = KeyFactory.getInstance("RSA");
             PrivateKey key = kf.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
