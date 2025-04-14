@@ -89,7 +89,7 @@ public class UntrustedLdapServerCertificateTest {
     public static RuleChain ruleChain = RuleChain.outerRule(embeddedLDAPServer).around(cluster);
 
     @Rule
-    public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
+    public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend");
 
     @Test
     public void shouldNotAuthenticateUserWithLdap() {
