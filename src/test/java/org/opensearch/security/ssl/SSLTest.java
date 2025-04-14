@@ -123,6 +123,81 @@ public class SSLTest extends SingleClusterTest {
     }
 
     @Test
+    public void testHttpsWithTrustStoreContainingValidCertsNotInChain() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_valid.jks")
+            )
+            .build();
+
+        setupSslOnlyMode(settings);
+
+        RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "node-untspec5-keystore.p12";
+
+        String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
+        Assert.assertTrue(res.contains("EMAILADDRESS=unt@tst.com"));
+        Assert.assertTrue(res.contains("local_certificates_list"));
+        Assert.assertFalse(
+            rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=false").contains("local_certificates_list")
+        );
+        Assert.assertFalse(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("local_certificates_list"));
+        res = rh.executeSimpleRequest("_nodes/settings?pretty");
+        Assert.assertTrue(res.contains(clusterInfo.clustername));
+        Assert.assertFalse(res.contains("\"opendistro_security\""));
+        Assert.assertFalse(res.contains("keystore_filepath"));
+    }
+
+    @Test
+    public void testHttpsWithTrustStoreContainingInvalidCertsNotInChain() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_invalid.jks")
+            )
+            .build();
+
+        setupSslOnlyMode(settings);
+
+        RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "node-untspec5-keystore.p12";
+
+        String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
+        Assert.assertTrue(res.contains("EMAILADDRESS=unt@tst.com"));
+        Assert.assertTrue(res.contains("local_certificates_list"));
+        Assert.assertFalse(
+            rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=false").contains("local_certificates_list")
+        );
+        Assert.assertFalse(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("local_certificates_list"));
+
+        res = rh.executeSimpleRequest("_nodes/settings?pretty");
+        Assert.assertTrue(res.contains(clusterInfo.clustername));
+        Assert.assertFalse(res.contains("\"opendistro_security\""));
+        Assert.assertFalse(res.contains("keystore_filepath"));
+    }
+
+    @Test
     public void testCipherAndProtocols() throws Exception {
 
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
