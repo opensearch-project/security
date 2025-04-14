@@ -489,7 +489,7 @@ configurations {
             force "com.google.errorprone:error_prone_annotations:2.37.0"
             force "org.checkerframework:checker-qual:3.49.2"
             force "ch.qos.logback:logback-classic:1.5.18"
-            force "commons-io:commons-io:2.18.0"
+            force "commons-io:commons-io:2.19.0"
         }
     }
 
@@ -645,8 +645,8 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.13.0'
+    runtimeOnly 'com.google.guava:failureaccess:1.0.3'
+    runtimeOnly 'org.apache.commons:commons-text:1.13.1'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -692,8 +692,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.4'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.2'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -729,7 +729,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.18.0'
+    integrationTestImplementation 'commons-io:commons-io:2.19.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
