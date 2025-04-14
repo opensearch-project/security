@@ -14,8 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
-import org.opensearch.Version;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -31,8 +29,6 @@ import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
-import static org.opensearch.security.resources.ResourceSharingConstants.RESOURCE_SHARING_MIN_SUPPORTED_VERSION;
-
 /**
  * Access control client responsible for handling resource sharing operations such as verifying,
  * sharing, revoking, and listing access to shareable resources.
@@ -45,16 +41,14 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
 
     private final ResourceAccessHandler resourceAccessHandler;
     private final Settings settings;
-    private final ClusterService clusterService;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings, ClusterService clusterService) {
+    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings) {
         this.resourceAccessHandler = resourceAccessHandler;
         this.settings = settings;
-        this.clusterService = clusterService;
     }
 
     /**
@@ -185,15 +179,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
         );
 
         if (!sharingEnabled) return "ShareableResource Access Control feature is disabled.";
-        Version nodeVersion = clusterService.localNode().getVersion();
-        if (nodeVersion.before(RESOURCE_SHARING_MIN_SUPPORTED_VERSION)) {
-            return "Resource Sharing feature is not supported in version "
-                + nodeVersion
-                + ". Minimum supported version is "
-                + RESOURCE_SHARING_MIN_SUPPORTED_VERSION
-                + ".";
-        }
-
         return "";
     }
 
