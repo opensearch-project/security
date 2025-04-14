@@ -165,7 +165,7 @@ final class KeyStoreUtils {
         }
     }
 
-    // If dnsToCheck is present, this method will only validate the validate for certificates that match the dns in this list or
+    // If dnsToCheck is present, this method will only validate the certificates that match the dns in this list or
     // up the chain
     public static void validateKeyStoreCertificates(final KeyStore keyStore, Set<X500Principal> dnsToCheck) {
         try {
@@ -186,10 +186,6 @@ final class KeyStoreUtils {
                         log.info("Skipping validation for " + c.getSubjectX500Principal().getName());
                     }
                 } else {
-                    if (keyStore.isCertificateEntry(a)) {
-                        final var c = (X509Certificate) keyStore.getCertificate(a);
-                        c.checkValidity();
-                    }
                     final var cc = keyStore.getCertificateChain(a);
                     if (cc != null) {
                         if (Arrays.stream(cc).anyMatch(c -> dnsToCheck.contains(((X509Certificate) c).getSubjectX500Principal()))) {

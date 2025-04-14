@@ -153,13 +153,10 @@ public class SSLTest extends SingleClusterTest {
             rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=false").contains("local_certificates_list")
         );
         Assert.assertFalse(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("local_certificates_list"));
-
         res = rh.executeSimpleRequest("_nodes/settings?pretty");
         Assert.assertTrue(res.contains(clusterInfo.clustername));
         Assert.assertFalse(res.contains("\"opendistro_security\""));
         Assert.assertFalse(res.contains("keystore_filepath"));
-        // Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
-
     }
 
     @Test
@@ -198,8 +195,6 @@ public class SSLTest extends SingleClusterTest {
         Assert.assertTrue(res.contains(clusterInfo.clustername));
         Assert.assertFalse(res.contains("\"opendistro_security\""));
         Assert.assertFalse(res.contains("keystore_filepath"));
-        // Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
-
     }
 
     @Test
