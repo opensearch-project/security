@@ -37,7 +37,7 @@ public interface ResourceSharingClient {
      * @param recipients     The users, roles, and backend roles to share the resource with.
      * @param listener       The listener to be notified with the updated ResourceSharing document.
      */
-    void shareResource(
+    void share(
         String resourceId,
         String resourceIndex,
         SharedWithActionGroup.ActionGroupRecipients recipients,
@@ -51,7 +51,7 @@ public interface ResourceSharingClient {
      * @param entitiesToRevoke The entities to revoke access for.
      * @param listener       The listener to be notified with the updated ResourceSharing document.
      */
-    void revokeResourceAccess(
+    void revoke(
         String resourceId,
         String resourceIndex,
         SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,

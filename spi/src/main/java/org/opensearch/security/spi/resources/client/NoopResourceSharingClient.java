@@ -57,7 +57,7 @@ public final class NoopResourceSharingClient implements ResourceSharingClient {
      * @param listener      Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void shareResource(
+    public void share(
         String resourceId,
         String resourceIndex,
         SharedWithActionGroup.ActionGroupRecipients recipients,
@@ -75,7 +75,7 @@ public final class NoopResourceSharingClient implements ResourceSharingClient {
      * @param listener          Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void revokeResourceAccess(
+    public void revoke(
         String resourceId,
         String resourceIndex,
         SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,

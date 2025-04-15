@@ -537,7 +537,8 @@ public class ResourceAccessHandler {
                 Map<Recipient, Set<String>> recipients = aGs.getRecipients();
 
                 return switch (recipient) {
-                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.getOrDefault(recipient, Set.of()).contains(entity);
+                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.getOrDefault(recipient, Set.of())
+                        .contains(entity);
                 };
             })
             .orElse(false); // Return false if no matching action-group is found
