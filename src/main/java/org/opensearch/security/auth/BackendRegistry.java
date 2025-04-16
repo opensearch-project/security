@@ -367,6 +367,7 @@ public class BackendRegistry {
                     );
                 }
                 
+
                 if ( request.header(OPENSEARCH_PRODUCT_ORIGIN_HTTP_HEADER)!= null && request.header(OPENSEARCH_PRODUCT_ORIGIN_HTTP_HEADER).equals(OPENSEARCH_PRODUCT_DASHBOARD_ORIGIN) && authDomain.getBackend().getClass().getName().equals(InternalAuthenticationBackend.class.getName())   ) {
                 	log.error("Cannot authenticate rest user because  user authentication failed from browser.");
                     auditLog.logFailedLogin(ac.getUsername(), true, null, request);
