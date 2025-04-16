@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
@@ -88,10 +87,10 @@ public final class NoopResourceSharingClient implements ResourceSharingClient {
      * Throws 501 exception as a no-op implementation.
      *
      * @param resourceIndex The index to search for accessible resources.
-     * @param listener      Callback receiving a set of {@link ShareableResource} instances.
+     * @param listener      Callback receiving a set of resource ids.
      */
     @Override
-    public <T extends ShareableResource> void listAllAccessibleResources(String resourceIndex, ActionListener<Set<T>> listener) {
+    public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
         handleSecurityDisabled("Unable to list all accessible resources.", listener);
     }
 

@@ -26,8 +26,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -154,59 +152,6 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Returns a set of accessible resources for the current user within the specified resource index.
-     *
-     * @param resourceIndex The resource index to check for accessible resources.
-     * @param listener      The listener to be notified with the set of accessible resources.
-     */
-    @SuppressWarnings("unchecked")
-    public <T extends ShareableResource> void getAccessibleResourcesForCurrentUser(String resourceIndex, ActionListener<Set<T>> listener) {
-        try {
-            validateArguments(resourceIndex);
-
-            ShareableResourceParser<T> parser = (ShareableResourceParser<T>) resourcePluginInfo.getResourceProviders()
-                .get(resourceIndex)
-                .shareableResourceParser();
-
-            StepListener<Set<String>> resourceIdsListener = new StepListener<>();
-            StepListener<Set<T>> resourcesListener = new StepListener<>();
-
-            // Fetch resource IDs
-            getAccessibleResourceIdsForCurrentUser(resourceIndex, resourceIdsListener);
-
-            // Fetch docs
-            resourceIdsListener.whenComplete(resourceIds -> {
-                if (resourceIds.isEmpty()) {
-                    // No accessible resources => immediately respond with empty set
-                    listener.onResponse(Collections.emptySet());
-                } else {
-                    // Fetch the resource documents asynchronously
-                    this.resourceSharingIndexHandler.getResourceDocumentsFromIds(resourceIds, resourceIndex, parser, resourcesListener);
-                }
-            }, listener::onFailure);
-
-            // Send final response
-            resourcesListener.whenComplete(
-                listener::onResponse,
-                ex -> listener.onFailure(
-                    new OpenSearchStatusException(
-                        "Failed to get accessible resources: " + ex.getMessage(),
-                        RestStatus.INTERNAL_SERVER_ERROR
-                    )
-                )
-            );
-        } catch (Exception e) {
-            LOGGER.warn("Failed to process accessible resources request: {}", e.getMessage());
-            listener.onFailure(
-                new OpenSearchStatusException(
-                    "Failed to process accessible resources request: " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR
-                )
-            );
-        }
-    }
-
-    /**
      * Checks whether current user has permission to access given resource.
      *
      * @param resourceId    The resource ID to check access for.
@@ -239,12 +184,12 @@ public class ResourceAccessHandler {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
-        this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId, ActionListener.wrap(document -> {
+        this.resourceSharingIndexHandler.fetchResourceSharingDocument(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
-                LOGGER.warn("ShareableResource '{}' not found in index '{}'", resourceId, resourceIndex);
+                LOGGER.warn("ResourceSharing entry not found for '{}' and index '{}'", resourceId, resourceIndex);
                 listener.onFailure(
                     new OpenSearchStatusException(
-                        "ShareableResource " + resourceId + " not found in index " + resourceIndex,
+                        "ResourceSharing entry not found for " + resourceId + " and index " + resourceIndex,
                         RestStatus.NOT_FOUND
                     )
                 );
@@ -268,7 +213,7 @@ public class ResourceAccessHandler {
             }
         }, exception -> {
             LOGGER.error(
-                "Failed to fetch resource sharing document for resource '{}' in index '{}': {}",
+                "Failed to fetch resource sharing document for resource '{}' and index '{}': {}",
                 resourceId,
                 resourceIndex,
                 exception.getMessage()

@@ -17,13 +17,8 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.resources.rest.list.ListAccessibleResourcesRequest;
-import org.opensearch.security.resources.rest.revoke.RevokeResourceAccessResponse;
-import org.opensearch.security.resources.rest.share.ShareResourceResponse;
-import org.opensearch.security.resources.rest.verify.VerifyResourceAccessResponse;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
-import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -118,15 +113,13 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * Lists all resources the current user has access to within the given index.
      *
      * @param resourceIndex The index to search for accessible resources.
-     * @param listener      Callback receiving a set of {@link ShareableResource} instances.
+     * @param listener      Callback receiving a set of resource ids.
      */
     @Override
-    public <T extends ShareableResource> void listAllAccessibleResources(String resourceIndex, ActionListener<Set<T>> listener) {
+    public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
         if (handleIfFeatureDisabled("Unable to list all accessible resources.", listener)) return;
 
-        ListAccessibleResourcesRequest request = new ListAccessibleResourcesRequest.Builder().resourceIndex(resourceIndex).build();
-
-        resourceAccessHandler.getAccessibleResourcesForCurrentUser(resourceIndex, listener);
+        resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(resourceIndex, listener);
     }
 
     /**
@@ -193,33 +186,4 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
         listener.onFailure(new OpenSearchStatusException(message, RestStatus.NOT_IMPLEMENTED));
     }
 
-    /**
-     * Wraps a listener to extract permission result from a {@link VerifyResourceAccessResponse}.
-     *
-     * @param listener The listener to notify with a Boolean.
-     * @return An action listener for the access response.
-     */
-    private ActionListener<VerifyResourceAccessResponse> accessResponseListener(ActionListener<Boolean> listener) {
-        return ActionListener.wrap(response -> listener.onResponse(response.getHasPermission()), listener::onFailure);
-    }
-
-    /**
-     * Wraps a listener to extract sharing info from a {@link ShareResourceResponse}.
-     *
-     * @param listener The listener to notify with a {@link ResourceSharing} document.
-     * @return An action listener for the sharing response.
-     */
-    private ActionListener<ShareResourceResponse> sharingResponseListener(ActionListener<ResourceSharing> listener) {
-        return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
-    }
-
-    /**
-     * Wraps a listener to extract sharing info from a {@link RevokeResourceAccessResponse}.
-     *
-     * @param listener The listener to notify with a {@link ResourceSharing} document.
-     * @return An action listener for the sharing response.
-     */
-    private ActionListener<RevokeResourceAccessResponse> revokeResponseListener(ActionListener<ResourceSharing> listener) {
-        return ActionListener.wrap(response -> listener.onResponse(response.getResourceSharing()), listener::onFailure);
-    }
 }

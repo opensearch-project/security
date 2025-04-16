@@ -558,7 +558,7 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
-        integrationTestImplementation group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
+        integrationTestImplementation group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
 
     }
 }
@@ -641,7 +641,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation project(path: ":opensearch-resource-sharing-spi", configuration: 'shadow')
+    implementation project(path: ":opensearch-security-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"

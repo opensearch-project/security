@@ -78,7 +78,7 @@ mkdir -p $OUTPUT/plugins
 cp ${distributions}/*.zip ./$OUTPUT/plugins
 
 # Publish jars
-./gradlew :opensearch-resource-sharing-spi:publishToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+./gradlew :opensearch-security-spi:publishToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
 ./gradlew publishAllPublicationsToStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
 
 ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER

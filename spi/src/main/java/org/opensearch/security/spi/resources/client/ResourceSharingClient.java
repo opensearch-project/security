@@ -11,7 +11,6 @@ package org.opensearch.security.spi.resources.client;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
@@ -59,9 +58,9 @@ public interface ResourceSharingClient {
     );
 
     /**
-     * Lists all shareable resources accessible by the current user.
+     * Lists resourceIds of all shareable resources accessible by the current user.
      * @param resourceIndex The index containing the resources.
      * @param listener The listener to be notified with the set of accessible resources.
      */
-    <T extends ShareableResource> void listAllAccessibleResources(String resourceIndex, ActionListener<Set<T>> listener);
+    void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 }

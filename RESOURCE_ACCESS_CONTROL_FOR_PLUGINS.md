@@ -15,7 +15,7 @@ This feature ensures **secure** and **controlled** access to shareableResources 
 ## **2. What are the Components?**
 This feature introduces **one primary component** for plugin developers:
 
-### **1. `opensearch-resource-sharing-spi`**
+### **1. `opensearch-security-spi`**
 - A **Service Provider Interface (SPI)** that plugins must implement to declare themselves as **Resource Plugins**.
 - The security plugin keeps track of these plugins (similar to how JobScheduler tracks `JobSchedulerExtension`).
 - Allows resource plugins to utilize a **service provider client** to implement access control.
@@ -24,13 +24,13 @@ This feature introduces **one primary component** for plugin developers:
 
 - This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **disabled by default**.
 - **Resource indices must be system indices**, and **system index protection must be enabled** (`plugins.security.system_indices.enabled: true`) to prevent unauthorized direct access.
-- Plugins must declare dependency on **`opensearch-resource-sharing-spi`** in their `build.gradle`.
+- Plugins must declare dependency on **`opensearch-security-spi`** in their `build.gradle`.
 
 ### **Plugin Implementation Requirements**
 Each plugin must:
-- **Declare a `compileOnly` dependency** on `opensearch-resource-sharing-spi` package:
+- **Declare a `compileOnly` dependency** on `opensearch-security-spi` package:
 ```build.gradle
-compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build}"
+compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
 ```
 - **Extend** `opensearch-security` plugin with optional flag:
 ```build.gradle
@@ -184,7 +184,7 @@ To integrate with the security plugin, your plugin must:
 3. Implement a resource parser to extract resource details.
 4. Implement a client accessor to utilize `ResourceSharingClient`.
 
-[`opensearch-resource-sharing-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
+[`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
 Tip: Refer to the `org.opensearch.sample.SampleResourcePlugin` class to understand the setup in further detail.
 
@@ -220,7 +220,7 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
 
 
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
-The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-resource-sharing-spi` README.md](./spi/README.md#available-java-apis)
+The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](./spi/README.md#available-java-apis)
 
 ### **1. `verifyResourceAccess`**
 
@@ -246,12 +246,12 @@ void shareResource(String resourceId, String resourceIndex, SharedWithActionGrou
 void revokeResourceAccess(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
 ```
 
-### **4. `listAllAccessibleResources`**
+### **4. `getAccessibleResourceIds`**
 
-**Retrieves all resources the current user has access to.**
+**Retrieves ids of all resources the current user has access to.**
 
 ```
-void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener);
+void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
 > For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
@@ -290,7 +290,7 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
 sequenceDiagram
     participant User as User
     participant Plugin as Plugin (Resource Plugin)
-    participant SPI as Security SPI (opensearch-resource-sharing-spi)
+    participant SPI as Security SPI (opensearch-security-spi)
     participant Security as Security Plugin (Resource Sharing)
 
     %% Step 1: Plugin registers itself as a Resource Plugin

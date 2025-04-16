@@ -29,8 +29,6 @@ import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.get.MultiGetItemResponse;
-import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -42,16 +40,13 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
@@ -68,8 +63,6 @@ import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.spi.resources.ShareableResource;
-import org.opensearch.security.spi.resources.ShareableResourceParser;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -536,7 +529,7 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Fetches a specific resource sharing document by its resource ID and system index.
+     * Fetches a specific resource sharing document by its resource ID and system resourceIndex.
      * This method performs an exact match search and parses the result into a ResourceSharing object.
      *
      * <p>The method executes the following steps:
@@ -563,7 +556,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
-     * @param pluginIndex The source index to match against the source_idx field
+     * @param resourceIndex       The source resourceIndex to match against the source_idx field
      * @param resourceId  The resource ID to fetch. Must exactly match the resource_id field
      * @param listener    The listener to be notified when the operation completes.
      *                    The listener receives the parsed ResourceSharing object or null if not found
@@ -587,16 +580,21 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    public void fetchDocumentById(String pluginIndex, String resourceId, ActionListener<ResourceSharing> listener) {
-        if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(resourceId)) {
-            listener.onFailure(new IllegalArgumentException("pluginIndex and resourceId must not be null or empty"));
+    public void fetchResourceSharingDocument(String resourceIndex, String resourceId, ActionListener<ResourceSharing> listener) {
+        if (StringUtils.isBlank(resourceIndex) || StringUtils.isBlank(resourceId)) {
+            listener.onFailure(new IllegalArgumentException("resourceIndex and resourceId must not be null or empty"));
             return;
         }
-        LOGGER.debug("Fetching document from index: {}, resourceId: {}", pluginIndex, resourceId);
+        LOGGER.debug(
+            "Fetching document from {}, matching source_idx: {}, resource_id: {}",
+            resourceSharingIndex,
+            resourceIndex,
+            resourceId
+        );
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
+                .must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex))
                 .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
 
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // There is only one document for
@@ -610,7 +608,12 @@ public class ResourceSharingIndexHandler {
                     try {
                         SearchHit[] hits = searchResponse.getHits().getHits();
                         if (hits.length == 0) {
-                            LOGGER.debug("No document found for resourceId: {} in index: {}", resourceId, pluginIndex);
+                            LOGGER.debug(
+                                "No document found in {} matching resource_id: {} and source_idx: {}",
+                                resourceSharingIndex,
+                                resourceId,
+                                resourceIndex
+                            );
                             listener.onResponse(null);
                             return;
                         }
@@ -623,15 +626,31 @@ public class ResourceSharingIndexHandler {
                             parser.nextToken();
                             ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
 
-                            LOGGER.debug("Successfully fetched document for resourceId: {} from index: {}", resourceId, pluginIndex);
+                            LOGGER.debug(
+                                "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
+                                resourceSharingIndex,
+                                resourceId,
+                                resourceIndex
+                            );
 
                             listener.onResponse(resourceSharing);
                         }
                     } catch (Exception e) {
-                        LOGGER.error("Failed to parse document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
+                        LOGGER.error(
+                            "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                            resourceId,
+                            resourceIndex,
+                            resourceSharingIndex,
+                            e
+                        );
                         listener.onFailure(
                             new OpenSearchStatusException(
-                                "Failed to parse document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                                "Failed to parse document matching resource_id: "
+                                    + resourceId
+                                    + " and source_idx: "
+                                    + resourceIndex
+                                    + " from "
+                                    + resourceSharingIndex,
                                 RestStatus.INTERNAL_SERVER_ERROR
                             )
                         );
@@ -640,22 +659,42 @@ public class ResourceSharingIndexHandler {
 
                 @Override
                 public void onFailure(Exception e) {
-
-                    LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
+                    LOGGER.error(
+                        "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                        resourceId,
+                        resourceIndex,
+                        resourceSharingIndex,
+                        e
+                    );
                     listener.onFailure(
                         new OpenSearchStatusException(
-                            "Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                            "Failed to parse document matching resource_id: "
+                                + resourceId
+                                + " and source_idx: "
+                                + resourceIndex
+                                + " from "
+                                + resourceSharingIndex,
                             RestStatus.INTERNAL_SERVER_ERROR
                         )
                     );
-
                 }
             });
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
+            LOGGER.error(
+                "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                resourceId,
+                resourceIndex,
+                resourceSharingIndex,
+                e
+            );
             listener.onFailure(
                 new OpenSearchStatusException(
-                    "Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex,
+                    "Failed to parse document matching resource_id: "
+                        + resourceId
+                        + " and source_idx: "
+                        + resourceIndex
+                        + " from "
+                        + resourceSharingIndex,
                     RestStatus.INTERNAL_SERVER_ERROR
                 )
             );
@@ -710,7 +749,7 @@ public class ResourceSharingIndexHandler {
         StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
         // Fetch resource sharing doc
-        fetchDocumentById(sourceIdx, resourceId, fetchDocListener);
+        fetchResourceSharingDocument(sourceIdx, resourceId, fetchDocListener);
 
         // build update script
         fetchDocListener.whenComplete(currentSharingInfo -> {
@@ -779,7 +818,7 @@ public class ResourceSharingIndexHandler {
             }
             // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
             // intensive to do it in java)
-            fetchDocumentById(sourceIdx, resourceId, updatedSharingListener);
+            fetchResourceSharingDocument(sourceIdx, resourceId, updatedSharingListener);
         }, listener::onFailure);
 
         updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
@@ -857,7 +896,7 @@ public class ResourceSharingIndexHandler {
             StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
             // Fetch the current ResourceSharing document
-            fetchDocumentById(sourceIdx, resourceId, currentSharingListener);
+            fetchResourceSharingDocument(sourceIdx, resourceId, currentSharingListener);
 
             // Check permissions & build revoke script
             currentSharingListener.whenComplete(currentSharingInfo -> {
@@ -927,7 +966,7 @@ public class ResourceSharingIndexHandler {
                 }
                 // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
                 // intensive to do it in java)
-                fetchDocumentById(sourceIdx, resourceId, updatedSharingListener);
+                fetchResourceSharingDocument(sourceIdx, resourceId, updatedSharingListener);
             }, listener::onFailure);
 
             updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
@@ -1105,68 +1144,6 @@ public class ResourceSharingIndexHandler {
         } catch (Exception e) {
             LOGGER.error("Failed to delete documents for user {} before request submission", name, e);
             listener.onFailure(e);
-        }
-    }
-
-    /**
-     * Fetches all documents from the specified resource index and deserializes them into the specified class.
-     *
-     * @param resourceIndex The resource index to fetch documents from.
-     * @param parser        The class to deserialize the documents into a specified type defined by the parser.
-     * @param listener      The listener to be notified with the set of deserialized documents.
-     * @param <T>           The type of the deserialized documents.
-     */
-    public <T extends ShareableResource> void getResourceDocumentsFromIds(
-        Set<String> resourceIds,
-        String resourceIndex,
-        ShareableResourceParser<T> parser,
-        ActionListener<Set<T>> listener
-    ) {
-        if (resourceIds.isEmpty()) {
-            listener.onResponse(new HashSet<>());
-            return;
-        }
-
-        // stashing Context to avoid permission issues in-case resourceIndex is a system index
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            MultiGetRequest request = new MultiGetRequest();
-            for (String id : resourceIds) {
-                request.add(new MultiGetRequest.Item(resourceIndex, id));
-            }
-
-            client.multiGet(request, ActionListener.wrap(response -> {
-                Set<T> result = new HashSet<>();
-                try {
-                    for (MultiGetItemResponse itemResponse : response.getResponses()) {
-                        if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
-                            BytesReference sourceAsString = itemResponse.getResponse().getSourceAsBytesRef();
-                            XContentParser xContentParser = XContentHelper.createParser(
-                                NamedXContentRegistry.EMPTY,
-                                LoggingDeprecationHandler.INSTANCE,
-                                sourceAsString,
-                                XContentType.JSON
-                            );
-                            T resource = parser.parseXContent(xContentParser);
-                            result.add(resource);
-                        }
-                    }
-                    listener.onResponse(result);
-                } catch (Exception e) {
-                    listener.onFailure(
-                        new OpenSearchStatusException("Failed to parse resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
-                    );
-                }
-            }, e -> {
-                if (e instanceof IndexNotFoundException) {
-                    LOGGER.error("Index {} does not exist", resourceIndex, e);
-                    listener.onFailure(e);
-                } else {
-                    LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
-                    listener.onFailure(
-                        new OpenSearchStatusException("Failed to fetch resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
-                    );
-                }
-            }));
         }
     }
 

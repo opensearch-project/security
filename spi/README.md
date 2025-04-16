@@ -1,14 +1,19 @@
-# **Resource Sharing and Access Control SPI**
 
-This **Service Provider Interface (SPI)** provides the necessary **interfaces and mechanisms** to implement **Resource Sharing and Access Control** in OpenSearch.
+# Security SPI
+
+This **Service Provider Interface (SPI)** provides the necessary **interfaces and mechanisms** to make security plugin extensible in OpenSearch.
+
+### **Resource Sharing and Access Control Extension**
+
+This **Service Provider Interface (SPI)** provides an extension point to implement **Resource Sharing and Access Control** in OpenSearch.
 
 ---
 
-## **Usage**
+### **Usage**
 
 A plugin that **defines a resource** and aims to implement **access control** over that resource must **extend** the `ResourceSharingExtension` class to register itself as a **Resource Plugin**.
 
-### **Example: Implementing a Resource Plugin**
+#### **Example: Implementing a Resource Plugin**
 ```java
 public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, ResourceSharingExtension {
 
@@ -40,22 +45,22 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
 
 ---
 
-## **Checklist for Implementing a Resource Plugin**
+### **Checklist for Implementing a Resource Plugin**
 
 To properly integrate with the **Resource Sharing and Access Control SPI**, follow these steps:
 
-### **1. Add Required Dependencies**
-Include **`opensearch-resource-sharing-spi`** in your **`build.gradle`** file.
+#### **1. Add Required Dependencies**
+Include **`opensearch-security-spi`** in your **`build.gradle`** file.
 Example:
 ```gradle
 dependencies {
-    compileOnly group: 'org.opensearch', name:'opensearch-resource-sharing-spi', version:"${opensearch_build_version}"
+    compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build_version}"
 }
 ```
 
 ---
 
-### **2. Register the Plugin Using the Java SPI Mechanism**
+#### **2. Register the Plugin Using the Java SPI Mechanism**
 - Navigate to your plugin's `src/main/resources` folder.
 - Locate or create the `META-INF/services` directory.
 - Inside `META-INF/services`, create a file named:
@@ -71,7 +76,7 @@ dependencies {
 
 ---
 
-### **3. Declare a Resource Class**
+#### **3. Declare a Resource Class**
 Each plugin must define a **resource class** that implements the `Resource` interface.
 Example:
 ```java
@@ -90,7 +95,7 @@ public class SampleResource implements ShareableResource {
 
 ---
 
-### **4. Implement a Resource Parser**
+#### **4. Implement a Resource Parser**
 A **`ResourceParser`** is required to convert **resource data** from OpenSearch indices.
 Example:
 ```java
@@ -104,14 +109,14 @@ public class SampleResourceParser implements ShareableResourceParser<SampleResou
 
 ---
 
-### **5. Implement the `ResourceSharingExtension` Interface**
+#### **5. Implement the `ResourceSharingExtension` Interface**
 Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
 
 **Important:** Mark the resource **index as a system index** to enforce security protections.
 
 ---
 
-### **6. Creating a Client Accessor **
+#### **6. Creating a Client Accessor **
 To ensure a single instance of the `ResourceSharingClient`. CLIENT will be set by security plugin if enabled via `assignResourceSharingClient`. Default to `NoopResourceSharingClient` when CLIENT is null:
 
 ```java
@@ -141,7 +146,7 @@ public class ResourceSharingClientAccessor {
 
 ---
 
-### **7. Using the Client in a Transport Action**
+#### **7. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
@@ -201,7 +206,7 @@ private void deleteResource(String resourceId, ActionListener<DeleteResponse> li
 
 ---
 
-## **Available Java APIs**
+### **Available Java APIs**
 
 The **`ResourceSharingClient`** provides **four Java APIs** for **resource access control**, enabling plugins to **verify, share, revoke, and list** shareableResources.
 
@@ -210,20 +215,20 @@ The **`ResourceSharingClient`** provides **four Java APIs** for **resource acces
 
 ---
 
-### **API Usage Examples**
+#### **API Usage Examples**
 Below are examples demonstrating how to use each API effectively.
 
 ---
 
-### **1. `verifyResourceAccess`**
+#### **1. `verifyResourceAccess`**
 **Checks if the current user has access to a resource**.
 
-#### **Method Signature:**
+##### **Method Signature:**
 ```java
 void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
 ```
 
-#### **Example Usage:**
+##### **Example Usage:**
 ```java
 resourceSharingClient.verifyResourceAccess(
     request.getResourceId(),
@@ -243,18 +248,18 @@ resourceSharingClient.verifyResourceAccess(
 
 ---
 
-### **2. `shareResource`**
+#### **2. `share`**
 **Grants access to a resource** for specific users, roles, or backend roles.
 
-#### **Method Signature:**
+##### **Method Signature:**
 ```java
 void shareResource(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients recipients, ActionListener<ResourceSharing> listener);
 ```
 
-#### **Example Usage:**
+##### **Example Usage:**
 ```java
 
-resourceSharingClient.shareResource(
+resourceSharingClient.share(
     request.getResourceId(),
     RESOURCE_INDEX_NAME,
     request.getShareWith(),
@@ -268,15 +273,15 @@ resourceSharingClient.shareResource(
 
 ---
 
-### **3. `revokeResourceAccess`**
+#### **3. `revoke`**
 **Removes access permissions** for specified users, roles, or backend roles.
 
-#### **Method Signature:**
+##### **Method Signature:**
 ```java
-void revokeResourceAccess(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
+void revoke(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
 ```
 
-#### **Example Usage:**
+##### **Example Usage:**
 ```java
 resourceSharingClient.revokeResourceAccess(
     request.getResourceId(),
@@ -292,38 +297,30 @@ resourceSharingClient.revokeResourceAccess(
 
 ---
 
-### **4. `listAllAccessibleResources`**
-**Retrieves all shareableResources the current user has access to.**
+#### **4. `getAccessibleResourceIds`**
+**Retrieves ids of all shareableResources the current user has access to.**
 
-#### **Method Signature:**
+##### **Method Signature:**
 ```java
-void listAllAccessibleResources(String resourceIndex, ActionListener<Set<? extends ShareableResource>> listener);
+void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
-#### **Example Usage:**
+##### **Example Usage:**
 ```java
-if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
-    resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
-      log.debug("Fetched accessible resources: {}", resources);
-      Set<SampleResource> sampleResources = resources.stream()
-        .map(resource -> (SampleResource) resource)
-        .collect(Collectors.toSet());
-      listener.onResponse(new GetResourceResponse(sampleResources));
-    }, listener::onFailure));
-} else {
-    // if feature is disabled, return all resources
-    getAllResourcesAction(listener);
-}
+resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(resourceIds -> {
+  log.debug("Fetched accessible resources ids: {}", resourceIds);
+  getResourcesFromIds(resourceIds, listener);
+}, listener::onFailure));
 ```
 > **Use Case:** Helps a user identify **which shareableResources they can interact with**.
 
-#### **Sample Request Flow:**
+##### **Sample Request Flow:**
 
 ```mermaid
 sequenceDiagram
     participant User as User
     participant Plugin as Plugin (Resource Plugin)
-    participant SPI as Security SPI (opensearch-resource-sharing-spi)
+    participant SPI as Security SPI (opensearch-security-spi)
     participant Security as Security Plugin (Resource Sharing)
 
     %% Step 1: Plugin registers itself as a Resource Plugin
@@ -340,23 +337,23 @@ sequenceDiagram
       SPI -->> Plugin: Response: Access Granted
 
     %% For share, revoke, and list: return 501 Not Implemented
-      Plugin ->> SPI: shareResource (noop)
+      Plugin ->> SPI: share (noop)
       SPI -->> Plugin: Error 501 Not Implemented
 
-      Plugin ->> SPI: revokeResourceAccess (noop)
+      Plugin ->> SPI: revoke (noop)
       SPI -->> Plugin: Error 501 Not Implemented
 
-      Plugin ->> SPI: listAccessibleResources (noop)
+      Plugin ->> SPI: getAccessibleResourceIds (noop)
       SPI -->> Plugin: Error 501 Not Implemented
     else Security Plugin Enabled
     %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
-      Plugin ->> SPI: Calls Java API (`verifyResourceAccess`, `shareResource`, `revokeResourceAccess`, `listAccessibleResources`)
+      Plugin ->> SPI: Calls Java API (`verifyResourceAccess`, `share`, `revoke`, `getAccessibleResourceIds`)
 
     %% Step 4: Request is sent to Security Plugin
       SPI ->> Security: Sends request to Security Plugin for processing
 
     %% Step 5: Security Plugin handles request and returns response
-      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resources )
+      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs )
 
     %% Step 6: Security SPI sends response back to Plugin
       SPI -->> Plugin: Passes processed response back to Plugin
