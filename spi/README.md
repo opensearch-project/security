@@ -5,7 +5,7 @@ This **Service Provider Interface (SPI)** provides the necessary **interfaces an
 
 ### **Resource Sharing and Access Control Extension**
 
-This **Service Provider Interface (SPI)** provides an extension point to implement **Resource Sharing and Access Control** in OpenSearch.
+This extension point provides extending plugins with interfaces necessary to implement **Resource Sharing and Access Control** in OpenSearch.
 
 ---
 
@@ -13,25 +13,68 @@ This **Service Provider Interface (SPI)** provides an extension point to impleme
 
 A plugin that **defines a resource** and aims to implement **access control** over that resource must **extend** the `ResourceSharingExtension` class to register itself as a **Resource Plugin**.
 
-#### **Example: Implementing a Resource Plugin**
+---
+
+### **Checklist for plugins aiming to implement Resource Access Control**
+
+To properly integrate with the **Resource Sharing and Access Control Extension**, follow these steps:
+
+#### **1. Add Required Dependencies**
+Include **`opensearch-security-spi`** in your **`build.gradle`** file.
+Example:
+```gradle
+dependencies {
+    compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build_version}"
+}
+```
+---
+
+#### **2. Declare a Resource Class**
+Each plugin must define a **resource class** .
+Example:
 ```java
-public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, ResourceSharingExtension {
+public class SampleResource {
+    private String id;
+    private String owner;
+
+    // Constructor, getters, setters, etc.
+}
+```
+
+---
+
+#### **3. Declare Resource Index as System index**
+**Important:** Mark the resource **index as a system index** to enforce security protections.
+
+Example:
+```java
+public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin {
 
     // Override required methods
 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
-      final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
-      return Collections.singletonList(systemIndexDescriptor);
+        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
+        return Collections.singletonList(systemIndexDescriptor);
     }
+}
+```
+
+---
+
+#### **4. Implement the `ResourceSharingExtension` Interface**
+Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
+
+```java
+// Create a new extension point to register itself of a resource access control plugin
+public class SampleResourceSharingExtension implements ResourceSharingExtension {
 
     @Override
     public Set<ResourceProvider> getResourceProviders() {
       return Set.of(
               new ResourceProvider(
                       SampleResource.class.getCanonicalName(), // class-name of the resource
-                      RESOURCE_INDEX_NAME,                     // the index that stores resource, **must only store the type of resource defined in the line above**
-                      new SampleResourceParser()               // parser to parse the resource
+                      RESOURCE_INDEX_NAME                     // the index that stores resource, **must only store the type of resource defined in the line above**
               )
       );
     }
@@ -45,74 +88,19 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, R
 
 ---
 
-### **Checklist for Implementing a Resource Plugin**
-
-To properly integrate with the **Resource Sharing and Access Control SPI**, follow these steps:
-
-#### **1. Add Required Dependencies**
-Include **`opensearch-security-spi`** in your **`build.gradle`** file.
-Example:
-```gradle
-dependencies {
-    compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build_version}"
-}
-```
-
----
-
-#### **2. Register the Plugin Using the Java SPI Mechanism**
+#### **5. Register the Plugin Using the Java SPI Mechanism**
 - Navigate to your plugin's `src/main/resources` folder.
 - Locate or create the `META-INF/services` directory.
 - Inside `META-INF/services`, create a file named:
   ```
   org.opensearch.security.spi.resources.ResourceSharingExtension
   ```
-- Edit the file and add a **single line** containing the **fully qualified class name** of your plugin implementation.
+- Edit the file and add a **single line** containing the **fully qualified class name** of your resource sharing extension implementation class.
   Example:
   ```
-  org.opensearch.sample.SampleResourcePlugin
+  org.opensearch.sample.SampleResourceSharingExtension
   ```
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
-
----
-
-#### **3. Declare a Resource Class**
-Each plugin must define a **resource class** that implements the `Resource` interface.
-Example:
-```java
-public class SampleResource implements ShareableResource {
-    private String id;
-    private String owner;
-
-    // Constructor, getters, setters, etc.
-
-    @Override
-    public String getName() {
-      return name;
-    }
-}
-```
-
----
-
-#### **4. Implement a Resource Parser**
-A **`ResourceParser`** is required to convert **resource data** from OpenSearch indices.
-Example:
-```java
-public class SampleResourceParser implements ShareableResourceParser<SampleResource> {
-    @Override
-    public SampleResource parseXContent(XContentParser parser) throws IOException {
-      return SampleResource.fromXContent(parser);
-    }
-}
-```
-
----
-
-#### **5. Implement the `ResourceSharingExtension` Interface**
-Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
-
-**Important:** Mark the resource **index as a system index** to enforce security protections.
 
 ---
 
@@ -168,31 +156,31 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
   // Check permission to resource
   ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
   resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-    if (!isAuthorized) {
-      listener.onFailure(
-              new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)
-      );
-      return;
-    }
+      if (!isAuthorized) {
+        listener.onFailure(
+                new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)
+        );
+        return;
+      }
 
-    // Authorization successful, proceed with deletion
-    ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-    try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-      deleteResource(resourceId, ActionListener.wrap(deleteResponse -> {
-        if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-          listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
-        } else {
-          listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
-        }
-      }, exception -> {
-        log.error("Failed to delete resource: " + resourceId, exception);
-        listener.onFailure(exception);
-      }));
-    }
-  }, exception -> {
-    log.error("Failed to verify resource access: " + resourceId, exception);
-    listener.onFailure(exception);
-  }));
+      // Authorization successful, proceed with deletion
+      ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+      try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+        deleteResource(resourceId, ActionListener.wrap(deleteResponse -> {
+          if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
+            listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
+          } else {
+            listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
+          }
+        }, exception -> {
+          log.error("Failed to delete resource: " + resourceId, exception);
+          listener.onFailure(exception);
+        }));
+      }
+    }, exception -> {
+      log.error("Failed to verify resource access: " + resourceId, exception);
+      listener.onFailure(exception);
+    }));
 }
 
 private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {
