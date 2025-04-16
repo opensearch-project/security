@@ -103,6 +103,8 @@ public class BackendRegistry {
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
     private Cache<User, Set<String>> restRoleCache; //
+    private static final String OPENSEARCH_PRODUCT_ORIGIN_HTTP_HEADER = "X-opensearch-product-origin";
+    private static final String OPENSEARCH_PRODUCT_DASHBOARD_ORIGIN = "opensearch-dashboards";
 
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -362,6 +364,16 @@ public class BackendRegistry {
                         ac,
                         request
                     );
+                }
+                
+                if ( request.header(OPENSEARCH_PRODUCT_ORIGIN_HTTP_HEADER)!= null && request.header(OPENSEARCH_PRODUCT_ORIGIN_HTTP_HEADER).equals(OPENSEARCH_PRODUCT_DASHBOARD_ORIGIN) && authDomain.getBackend().getClass().getName().equals(InternalAuthenticationBackend.class.getName())   ) {
+                	log.error("Cannot authenticate rest user because  user authentication failed from browser.");
+                    auditLog.logFailedLogin(ac.getUsername(), true, null, request);
+                    request.queueForSending(
+                        new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because authentication failed from browser login via HTTP")
+                    );
+                    return false;
+                	
                 }
                 continue;
             }
