@@ -16,9 +16,9 @@ This feature ensures **secure** and **controlled** access to shareableResources 
 This feature introduces **one primary component** for plugin developers:
 
 ### **1. `opensearch-security-spi`**
-- A **Service Provider Interface (SPI)** that plugins must implement to declare themselves as **Resource Plugins**.
+- A **Service Provider Interface (SPI)** that provides `ResourceSharingExtension` interface that plugins must implement to declare themselves as **Resource Plugins**.
 - The security plugin keeps track of these plugins (similar to how JobScheduler tracks `JobSchedulerExtension`).
-- Allows resource plugins to utilize a **service provider client** to implement access control.
+- Provides resource plugins with a **client** to implement access control.
 
 ### **Plugin Implementation Requirements:**
 
@@ -51,7 +51,7 @@ opensearchplugin {
   ```
     - This file must contain a **single line** specifying the **fully qualified class name** of the plugin’s `ResourceSharingExtension` implementation, e.g.:
       ```
-      org.opensearch.sample.SampleResourcePlugin
+      org.opensearch.sample.SampleResourceSharingExtension
       ```
 
 ---
@@ -186,39 +186,6 @@ To integrate with the security plugin, your plugin must:
 
 [`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
-Tip: Refer to the `org.opensearch.sample.SampleResourcePlugin` class to understand the setup in further detail.
-
-Example usage:
-```java
-public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin, ResourceSharingExtension {
-
-    // Override required methods
-
-    @Override
-    public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
-        return Collections.singletonList(systemIndexDescriptor);
-    }
-
-    @Override
-    public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(
-                new ResourceProvider(
-                        SampleResource.class.getCanonicalName(), // class-name of the resource
-                        RESOURCE_INDEX_NAME,                     // the index that stores resource, **must only store the type of resource defined in the line above**
-                        new SampleResourceParser()               // parser to parse the resource
-                )
-        );
-    }
-
-    @Override
-    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-        ResourceSharingClientAccessor.setResourceSharingClient(resourceSharingClient);
-    }
-}
-```
-
-
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
 The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](./spi/README.md#available-java-apis)
 
@@ -230,20 +197,20 @@ The client provides **four access control methods** for plugins. For detailed us
 void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
 ```
 
-### **2. `shareResource`**
+### **2. `share`**
 
 **Grants access to a resource for specified users, roles, and backend roles.**
 
 ```
-void shareResource(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients recipients, ActionListener<ResourceSharing> listener);
+void share(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients recipients, ActionListener<ResourceSharing> listener);
 ```
 
-### **3. `revokeResourceAccess`**
+### **3. `revoke`**
 
 **Removes access permissions for specified users, roles, and backend roles.**
 
 ```
-void revokeResourceAccess(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
+void revoke(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
 ```
 
 ### **4. `getAccessibleResourceIds`**
@@ -271,7 +238,7 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
     }
 
     ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
-    resourceSharingClient.shareResource(
+    resourceSharingClient.share(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
             request.getShareWith(),
