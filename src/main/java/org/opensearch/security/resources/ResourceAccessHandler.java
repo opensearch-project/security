@@ -186,13 +186,13 @@ public class ResourceAccessHandler {
 
         this.resourceSharingIndexHandler.fetchResourceSharingDocument(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
-                LOGGER.warn("ResourceSharing entry not found for '{}' and index '{}'", resourceId, resourceIndex);
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "ResourceSharing entry not found for " + resourceId + " and index " + resourceIndex,
-                        RestStatus.NOT_FOUND
-                    )
+                LOGGER.warn(
+                    "ResourceSharing entry not found for '{}' and index '{}'. Access to this resource will be allowed.",
+                    resourceId,
+                    resourceIndex
                 );
+                // Since no sharing entry exists, requests is allowed to implement a non-breaking behaviour
+                listener.onResponse(true);
                 return;
             }
 
