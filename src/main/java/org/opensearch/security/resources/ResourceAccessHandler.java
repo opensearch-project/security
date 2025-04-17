@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
-import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -287,53 +286,16 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Deletes a resource sharing record by its ID and the resource index it belongs to.
-     *
-     * @param resourceId    The resource ID to delete.
-     * @param resourceIndex The resource index containing the resource.
-     * @param listener      The listener to be notified with the deletion result.
-     */
-    public void deleteResourceSharingRecord(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        try {
-            validateArguments(resourceId, resourceIndex);
-
-            LOGGER.debug("Deleting resource sharing record for resource {} in {}", resourceId, resourceIndex);
-
-            StepListener<Boolean> deleteDocListener = new StepListener<>();
-            resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex, deleteDocListener);
-            deleteDocListener.whenComplete(listener::onResponse, listener::onFailure);
-
-        } catch (Exception e) {
-            LOGGER.error("Failed to delete resource sharing record for resource {}", resourceId, e);
-            listener.onFailure(e);
-        }
-    }
-
-    /**
      * Deletes all resource sharing records for the current user.
      *
      * @param listener The listener to be notified with the deletion result.
      */
-    public void deleteAllResourceSharingRecordsForCurrentUser(ActionListener<Boolean> listener) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+    public void deleteAllResourceSharingRecordsForUser(String name, ActionListener<Boolean> listener) {
 
-        if (user == null) {
-            listener.onFailure(new OpenSearchStatusException("No authenticated user available.", RestStatus.UNAUTHORIZED));
-            return;
-        }
+        LOGGER.debug("Deleting all resource sharing records for user {}", name);
 
-        LOGGER.debug("Deleting all resource sharing records for user {}", user.getName());
-
-        resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName(), ActionListener.wrap(listener::onResponse, exception -> {
-            LOGGER.error(
-                "Failed to delete all resource sharing records for user {}: {}",
-                user.getName(),
-                exception.getMessage(),
-                exception
-            );
+        resourceSharingIndexHandler.deleteAllResourceSharingRecordsForUser(name, ActionListener.wrap(listener::onResponse, exception -> {
+            LOGGER.error("Failed to delete all resource sharing records for user {}: {}", name, exception.getMessage(), exception);
             listener.onFailure(exception);
         }));
     }
@@ -345,7 +307,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource IDs.
      */
     private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
-        this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, listener);
+        this.resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, listener);
     }
 
     /**

@@ -49,7 +49,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
-import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.reindex.BulkByScrollResponse;
@@ -234,7 +233,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Returns an empty get instead of throwing exceptions</li>
      * </ul>
      */
-    public void fetchAllDocuments(String pluginIndex, ActionListener<Set<String>> listener) {
+    public void fetchAccessibleResourceIds(String pluginIndex, ActionListener<Set<String>> listener) {
         LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
@@ -256,131 +255,6 @@ public class ResourceSharingIndexHandler {
         } catch (Exception e) {
             listener.onFailure(e);
         }
-    }
-
-    /**
-     * Fetches documents withing specified resource index available to given entities.
-     *
-     * <p>Example query structure:
-     * <pre>
-     * {
-     *   "query": {
-     *     "bool": {
-     *       "must": [
-     *         { "term": { "source_idx": "resource_index_name" } },
-     *         {
-     *           "bool": {
-     *             "should": [
-     *               {
-     *                 "nested": {
-     *                   "path": "share_with.*.Recipient",
-     *                   "query": {
-     *                     "term": { "share_with.*.Recipient": "entity_value" }
-     *                   }
-     *                 }
-     *               }
-     *             ],
-     *             "minimum_should_match": 1
-     *           }
-     *         }
-     *       ]
-     *     }
-     *   },
-     *   "_source": ["resource_id"],
-     *   "size": 1000
-     * }
-     * </pre>
-     *
-     * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified Recipient field
-     * @param recipient     The type recipient {@link Recipient}
-     * @param listener      The listener to be notified when the operation completes.
-     *                      The listener receives a set of resource IDs as a result.
-     * @throws RuntimeException if the search operation fails
-     */
-    public void fetchDocumentsForAllActionGroups(
-        String pluginIndex,
-        Set<String> entities,
-        String recipient,
-        ActionListener<Set<String>> listener
-    ) {
-        LOGGER.debug(
-            "Fetching all documents asynchronously from index: {} accessible by entities {} of type {}",
-            pluginIndex,
-            entities,
-            recipient
-        );
-        BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
-        for (String entity : entities) {
-            shouldQuery.should(
-                QueryBuilders.multiMatchQuery(entity, "share_with.*." + recipient + ".keyword")
-                    .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
-            );
-        }
-        shouldQuery.minimumShouldMatch(1);
-        fetchSharedDocuments(pluginIndex, entities, shouldQuery, listener);
-    }
-
-    /**
-     * Fetches documents that match the specified system index and have specific access type values.
-     * <p>Example query structure:
-     * <pre>
-     * {
-     *   "query": {
-     *     "bool": {
-     *       "must": [
-     *         { "term": { "source_idx": "resource_index_name" } },
-     *         {
-     *           "bool": {
-     *             "should": [
-     *               {
-     *                 "nested": {
-     *                   "path": "share_with.action-group.Recipient",
-     *                   "query": {
-     *                     "term": { "share_with.action-group.Recipient": "entity_value" }
-     *                   }
-     *                 }
-     *               }
-     *             ],
-     *             "minimum_should_match": 1
-     *           }
-     *         }
-     *       ]
-     *     }
-     *   },
-     *   "_source": ["resource_id"],
-     *   "size": 1000
-     * }
-     * </pre>
-     *
-     * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified Recipient field
-     * @param recipient     The type of recipient {@link Recipient}
-     * @param actionGroup   The action group to match against the action-group field
-     * @param listener      The listener to be notified when the operation completes.
-     *                      The listener receives a set of resource IDs as a result.
-     */
-    public void fetchDocumentsForAGivenActionGroup(
-        String pluginIndex,
-        Set<String> entities,
-        String recipient,
-        String actionGroup,
-        ActionListener<Set<String>> listener
-    ) {
-        LOGGER.debug(
-            "Fetching documents asynchronously from index: {} by action-group {} accessible by entities {} of type {}",
-            pluginIndex,
-            actionGroup,
-            entities,
-            recipient
-        );
-        BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
-        for (String entity : entities) {
-            shouldQuery.should(QueryBuilders.termQuery("share_with." + actionGroup + "." + recipient + ".keyword", entity));
-        }
-        shouldQuery.minimumShouldMatch(1);
-
-        fetchSharedDocuments(pluginIndex, entities, shouldQuery, listener);
     }
 
     /**
@@ -438,85 +312,6 @@ public class ResourceSharingIndexHandler {
             );
             listener.onFailure(new RuntimeException("Failed to fetch documents: " + e.getMessage(), e));
         }
-    }
-
-    /**
-     * Fetches documents from the resource sharing index that match a specific field value.
-     * This method uses scroll API to efficiently handle large result sets and performs exact
-     * matching on both system index and the specified field.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Validates input parameters for null/empty values</li>
-     *   <li>Creates a scrolling search request with a bool query</li>
-     *   <li>Processes results in batches using scroll API</li>
-     *   <li>Extracts resource IDs from matching documents</li>
-     *   <li>Cleans up scroll context after completion</li>
-     * </ol>
-     *
-     * <p>Example query structure:
-     * <pre>
-     * {
-     *   "query": {
-     *     "bool": {
-     *       "must": [
-     *         { "term": { "source_idx": "system_index_value" } },
-     *         { "term": { "field_name": "field_value" } }
-     *       ]
-     *     }
-     *   },
-     *   "_source": ["resource_id"],
-     *   "size": 1000
-     * }
-     * </pre>
-     *
-     * @param pluginIndex The source index to match against the source_idx field
-     * @param field       The field name to search in. Must be a valid field in the index mapping
-     * @param value       The value to match for the specified field. Performs exact term matching
-     * @param listener    The listener to be notified when the operation completes.
-     *                    The listener receives a set of resource IDs as a result.
-     * @throws IllegalArgumentException if any parameter is null or empty
-     * @throws RuntimeException         if the search operation fails, wrapping the underlying exception
-     * @apiNote This method:
-     * <ul>
-     *   <li>Uses scroll API with 1-minute timeout for handling large result sets</li>
-     *   <li>Performs exact term matching (not analyzed) on field values</li>
-     *   <li>Processes results in batches of 1000 documents</li>
-     *   <li>Uses source filtering to only fetch resource_id field</li>
-     *   <li>Automatically cleans up scroll context after use</li>
-     * </ul>
-     */
-    public void fetchDocumentsByField(String pluginIndex, String field, String value, ActionListener<Set<String>> listener) {
-        if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
-            listener.onFailure(new IllegalArgumentException("pluginIndex, field, and value must not be null or empty"));
-            return;
-        }
-
-        LOGGER.debug("Fetching documents from index: {}, where {} = {}", pluginIndex, field, value);
-
-        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
-            searchRequest.scroll(scroll);
-
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
-                .must(QueryBuilders.termQuery(field + ".keyword", value));
-
-            executeSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
-                LOGGER.debug("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
-                listener.onResponse(resourceIds);
-            }, exception -> {
-                LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, exception);
-                listener.onFailure(new RuntimeException("Failed to fetch documents: " + exception.getMessage(), exception));
-            }));
-        } catch (Exception e) {
-            LOGGER.error("Failed to initiate fetch from {} where {} = {}", resourceSharingIndex, field, value, e);
-            listener.onFailure(new RuntimeException("Failed to initiate fetch: " + e.getMessage(), e));
-        }
-
     }
 
     /**
@@ -1099,7 +894,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    public void deleteAllRecordsForUser(String name, ActionListener<Boolean> listener) {
+    public void deleteAllResourceSharingRecordsForUser(String name, ActionListener<Boolean> listener) {
         if (StringUtils.isBlank(name)) {
             listener.onFailure(new IllegalArgumentException("Username must not be null or empty"));
             return;
