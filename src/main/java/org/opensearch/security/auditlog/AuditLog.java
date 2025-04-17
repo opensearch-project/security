@@ -29,12 +29,12 @@ package org.opensearch.security.auditlog;
 import java.io.Closeable;
 import java.util.Map;
 
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine.Delete;
 import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
-import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.filter.SecurityRequest;
@@ -73,7 +73,7 @@ public interface AuditLog extends Closeable {
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
 
-    void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
+    void logDocumentWritten(ShardId shardId, GetResponse originalIndex, Index currentIndex, IndexResult result);
 
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
 

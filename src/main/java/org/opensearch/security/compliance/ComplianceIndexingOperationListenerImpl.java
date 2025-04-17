@@ -11,31 +11,48 @@
 
 package org.opensearch.security.compliance;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine.Delete;
 import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
-import org.opensearch.index.get.GetResult;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.shard.IndexShard;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
+
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
     private static final Logger log = LogManager.getLogger(ComplianceIndexingOperationListenerImpl.class);
     private final AuditLog auditlog;
+    private final ThreadPool threadPool;
+    private final Client client;
     private volatile IndexService is;
 
-    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog) {
+    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog, final ThreadPool threadPool, final Client client) {
         super();
         this.auditlog = auditlog;
+        this.threadPool = threadPool;
+        this.client = client;
     }
 
     @Override
@@ -47,15 +64,15 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     }
 
     private static final class Context {
-        private final GetResult getResult;
+        private final GetResponse getResponse;
 
-        public Context(GetResult getResult) {
+        public Context(GetResponse getResponse) {
             super();
-            this.getResult = getResult;
+            this.getResponse = getResponse;
         }
 
-        public GetResult getGetResult() {
-            return getResult;
+        public GetResponse getGetResponse() {
+            return getResponse;
         }
     }
 
@@ -90,15 +107,50 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             }
 
             if (shard.isReadAllowed()) {
-                try {
+                try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                    threadPool.getThreadContext().putTransient(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, true);
+                    System.out.println("index.id(): " + index.id());
+                    System.out.println("index.getIfSeqNo(): " + index.getIfSeqNo());
+                    System.out.println("index.getIfPrimaryTerm(): " + index.getIfPrimaryTerm());
 
-                    final GetResult getResult = shard.getService().getForUpdate(index.id(), index.getIfSeqNo(), index.getIfPrimaryTerm());
-
-                    if (getResult.isExists()) {
-                        threadContext.set(new Context(getResult));
-                    } else {
+                    System.out.println("doc stats: " + shard.docStats().getCount());
+//                    GetRequest getRequest = new GetRequest(shardId.getIndexName());
+//                    getRequest.id(index.id());
+//                    getRequest.refresh(true);
+//                    getRequest.realtime(true);
+//                    client.get(getRequest, ActionListener.wrap(r -> {
+//                        System.out.println("index name: " + shardId.getIndexName());
+//                        System.out.println("doc id: " + index.id());
+//                        System.out.println("r.isExists(): " + r.isExists());
+//                        System.out.println("r: " + r.getSourceAsString());
+//                        if (r.isExists()) {
+//                            threadContext.set(new Context(r));
+//                        } else {
+//                            threadContext.set(new Context(null));
+//                        }
+//                    }, fr -> {
+//                        if (log.isDebugEnabled()) {
+//                            log.debug("Cannot retrieve original document due to {}", fr.getMessage());
+//                            log.debug("Cannot read from shard {}", shardId);
+//                        }
+//                    }));
+                    SearchRequest searchRequest = new SearchRequest(".opendistro_security");
+                    // TODO make this a match all request
+                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                    sourceBuilder.query(QueryBuilders.matchAllQuery());
+                    searchRequest.source(sourceBuilder);
+                    searchRequest.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_HIDDEN);
+                    client.search(searchRequest, ActionListener.wrap(r -> {
+                        System.out.println("index name: " + shardId.getIndexName());
+                        System.out.println("doc id: " + index.id());
+                        System.out.println("hits: " + Arrays.toString(r.getHits().getHits()));
                         threadContext.set(new Context(null));
-                    }
+                    }, fr -> {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Cannot retrieve original document due to {}", fr.getMessage());
+                            log.debug("Cannot read from shard {}", shardId);
+                        }
+                    }));
                 } catch (Exception e) {
                     if (log.isDebugEnabled()) {
                         log.debug("Cannot retrieve original document due to {}", e.toString());
@@ -130,7 +182,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
         if (complianceConfig.shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
-            final GetResult previousContent = context == null ? null : context.getGetResult();
+            final GetResponse previousContent = context == null ? null : context.getGetResponse();
             threadContext.remove();
             Objects.requireNonNull(is);
 

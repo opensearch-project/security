@@ -119,6 +119,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
+        System.out.println("isAdminAuthenticatedOrInternalRequest(): " + isAdminAuthenticatedOrInternalRequest());
         if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
             log.warn("search action for {} is not allowed for a non adminDN user", index.getName());
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);

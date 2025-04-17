@@ -18,6 +18,7 @@ import java.security.PrivilegedAction;
 import java.util.Map;
 
 import org.opensearch.SpecialPermission;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -27,7 +28,6 @@ import org.opensearch.index.engine.Engine.Delete;
 import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
-import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
@@ -222,7 +222,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
+    public void logDocumentWritten(ShardId shardId, GetResponse originalResult, Index currentIndex, IndexResult result) {
         if (enabled) {
             super.logDocumentWritten(shardId, originalResult, currentIndex, result);
         }

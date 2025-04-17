@@ -126,6 +126,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 this.flsFieldInfos = delegate.getFieldInfos();
             }
 
+            // System.out.println("applyDlsHere: " + applyDlsHere());
             dge = new DlsGetEvaluator(dlsQuery, in, applyDlsHere());
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
@@ -987,6 +988,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         assert action != null;
         // we need to apply here if it is not a search request
         // (a get for example)
+        System.out.println("action: " + action);
         return !action.startsWith("indices:data/read/search");
     }
 
