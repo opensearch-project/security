@@ -41,7 +41,6 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -63,6 +62,7 @@ import org.opensearch.index.engine.Engine.Delete;
 import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
+import org.opensearch.index.get.GetResult;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -538,7 +538,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentWritten(ShardId shardId, GetResponse originalResult, Index currentIndex, IndexResult result) {
+    public void logDocumentWritten(ShardId shardId, GetResult originalResult, Index currentIndex, IndexResult result) {
         final ComplianceConfig complianceConfig = getComplianceConfig();
         if (complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(shardId.getIndexName())) {
             return;
@@ -570,7 +570,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             try {
                 String originalSource = null;
                 String currentSource = null;
-                if (!(originalResult != null && originalResult.isExists() && originalResult.getSourceAsBytesRef() != null)) {
+                if (!(originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null)) {
                     // originalSource is empty
                     originalSource = "{}";
                 }
@@ -580,7 +580,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             XContentParser parser = XContentHelper.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 THROW_UNSUPPORTED_OPERATION,
-                                originalResult.getSourceAsBytesRef(),
+                                originalResult.internalSourceRef(),
                                 XContentType.JSON
                             )
                         ) {
@@ -588,11 +588,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             if (base64 instanceof String) {
                                 originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
                             } else {
-                                originalSource = XContentHelper.convertToJson(
-                                    originalResult.getSourceAsBytesRef(),
-                                    false,
-                                    XContentType.JSON
-                                );
+                                originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                             }
                         } catch (Exception e) {
                             log.error(e.toString());
@@ -616,8 +612,6 @@ public abstract class AbstractAuditLog implements AuditLog {
                     } catch (Exception e) {
                         log.error(e.toString());
                     }
-                    System.out.println("originalSource: " + originalSource);
-                    System.out.println("currentSource: " + currentSource);
                     final JsonNode diffnode = JsonDiff.asJson(
                         DefaultObjectMapper.objectMapper.readTree(originalSource),
                         DefaultObjectMapper.objectMapper.readTree(currentSource)
@@ -625,7 +619,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
                     if (originalSource == null) {
-                        originalSource = XContentHelper.convertToJson(originalResult.getSourceAsBytesRef(), false, XContentType.JSON);
+                        originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     }
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                     final JsonNode diffnode = JsonDiff.asJson(
