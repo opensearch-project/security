@@ -318,7 +318,7 @@ public class ResourceSharingIndexHandler {
             );
         }
         shouldQuery.minimumShouldMatch(1);
-        fetchSharedDocuments(pluginIndex, entities, recipient, shouldQuery, listener);
+        fetchSharedDocuments(pluginIndex, entities, shouldQuery, listener);
     }
 
     /**
@@ -380,7 +380,7 @@ public class ResourceSharingIndexHandler {
         }
         shouldQuery.minimumShouldMatch(1);
 
-        fetchSharedDocuments(pluginIndex, entities, recipient, shouldQuery, listener);
+        fetchSharedDocuments(pluginIndex, entities, shouldQuery, listener);
     }
 
     /**
@@ -389,8 +389,7 @@ public class ResourceSharingIndexHandler {
      *
      *
      * @param pluginIndex   The source index to match against the source_idx field
-     * @param entities      Set of values to match in the specified Recipient field
-     * @param recipient     The type of recipient {@link Recipient}
+     * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
      * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
@@ -407,11 +406,9 @@ public class ResourceSharingIndexHandler {
     public void fetchSharedDocuments(
         String pluginIndex,
         Set<String> entities,
-        String recipient,
         BoolQueryBuilder actionGroupQuery,
         ActionListener<Set<String>> listener
     ) {
-
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
@@ -427,16 +424,15 @@ public class ResourceSharingIndexHandler {
                 listener.onResponse(resourceIds);
 
             }, exception -> {
-                LOGGER.error("Search failed for pluginIndex={}, recipient={}, entities={}", pluginIndex, recipient, entities, exception);
+                LOGGER.error("Search failed for pluginIndex={}, entities={}", pluginIndex, entities, exception);
                 listener.onFailure(exception);
 
             }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, recipient: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
-                recipient,
                 entities,
                 e
             );
@@ -489,11 +485,6 @@ public class ResourceSharingIndexHandler {
      *   <li>Uses source filtering to only fetch resource_id field</li>
      *   <li>Automatically cleans up scroll context after use</li>
      * </ul>
-     * <p>
-     * Example usage:
-     * <pre>
-     * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
-     * </pre>
      */
     public void fetchDocumentsByField(String pluginIndex, String field, String value, ActionListener<Set<String>> listener) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {

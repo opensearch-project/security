@@ -1154,7 +1154,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
 
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
         // Resource Sharing index is enabled by default
         boolean isResourceSharingEnabled = settings.getAsBoolean(
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,

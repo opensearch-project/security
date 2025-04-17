@@ -24,6 +24,8 @@ import org.opensearch.action.StepListener;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.sharing.Recipient;
@@ -47,18 +49,15 @@ public class ResourceAccessHandler {
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
-    private final ResourcePluginInfo resourcePluginInfo;
 
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
-        AdminDNs adminDns,
-        ResourcePluginInfo resourcePluginInfo
+        AdminDNs adminDns
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
-        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     /**
@@ -68,87 +67,53 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
     public void getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        User user = userSub == null ? null : userSub.getUser();
 
-        // If no user is authenticated, return an empty set
         if (user == null) {
-            LOGGER.warn("Unable to fetch user details. User is null.");
+            LOGGER.warn("No authenticated user; returning empty set");
             listener.onResponse(Collections.emptySet());
             return;
         }
 
-        LOGGER.debug("Listing accessible resources within the resource index {} for user: {}", resourceIndex, user.getName());
-
-        // 2. If the user is admin, simply fetch all resources
         if (adminDNs.isAdmin(user)) {
             loadAllResources(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
 
-        // StepListener for the user’s "own" resources
-        StepListener<Set<String>> ownResourcesListener = new StepListener<>();
+        // 1) collect all entities we’ll match against share_with arrays
+        // for users:
+        Set<String> userQueryEntities = new HashSet<>();
+        userQueryEntities.add(user.getName());
+        userQueryEntities.add("*"); // for matching against publicly shared resource
 
-        // StepListener for resources shared with the user’s name
-        StepListener<Set<String>> userNameResourcesListener = new StepListener<>();
+        // for roles:
+        Set<String> roleQueryEntities = new HashSet<>(user.getSecurityRoles());
+        roleQueryEntities.add("*"); // for matching against publicly shared resource
 
-        // StepListener for resources shared with the user’s roles
-        StepListener<Set<String>> rolesResourcesListener = new StepListener<>();
+        // for backend_roles:
+        Set<String> backendQueryEntities = new HashSet<>(user.getRoles());
+        backendQueryEntities.add("*"); // for matching against publicly shared resource
 
-        // StepListener for resources shared with the user’s backend roles
-        StepListener<Set<String>> backendRolesResourcesListener = new StepListener<>();
+        // 2) build one BoolQuery:
+        BoolQueryBuilder query = QueryBuilders.boolQuery()
+            // match owner
+            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
+            // match any share_with.*.users
+            .should(QueryBuilders.termsQuery("share_with.*.users.keyword", userQueryEntities))
+            // match any share_with.*.roles
+            .should(QueryBuilders.termsQuery("share_with.*.roles.keyword", roleQueryEntities))
+            // match any share_with.*.backend_roles
+            .should(QueryBuilders.termsQuery("share_with.*.backend_roles.keyword", backendQueryEntities))
+            .minimumShouldMatch(1);
 
-        // Load own resources for the user.
-        loadOwnResources(resourceIndex, user.getName(), ownResourcesListener);
+        Set<String> entitiesForLogging = new HashSet<>();
+        entitiesForLogging.addAll(userQueryEntities);
+        entitiesForLogging.addAll(roleQueryEntities);
+        entitiesForLogging.addAll(backendQueryEntities);
 
-        // Load resources shared with the user by its name.
-        ownResourcesListener.whenComplete(
-            ownResources -> loadSharedWithResources(
-                resourceIndex,
-                Set.of(user.getName()),
-                Recipient.USERS.getName(),
-                userNameResourcesListener
-            ),
-            listener::onFailure
-        );
-
-        // Load resources shared with the user’s roles.
-        userNameResourcesListener.whenComplete(
-            userNameResources -> loadSharedWithResources(
-                resourceIndex,
-                user.getSecurityRoles(),
-                Recipient.ROLES.getName(),
-                rolesResourcesListener
-            ),
-            listener::onFailure
-        );
-
-        // Load resources shared with the user’s backend roles.
-        rolesResourcesListener.whenComplete(
-            rolesResources -> loadSharedWithResources(
-                resourceIndex,
-                user.getRoles(),
-                Recipient.BACKEND_ROLES.getName(),
-                backendRolesResourcesListener
-            ),
-            listener::onFailure
-        );
-
-        // Combine all results and pass them back to the original listener.
-        backendRolesResourcesListener.whenComplete(backendRolesResources -> {
-            Set<String> allResources = new HashSet<>();
-
-            // Retrieve results from each StepListener
-            allResources.addAll(ownResourcesListener.result());
-            allResources.addAll(userNameResourcesListener.result());
-            allResources.addAll(rolesResourcesListener.result());
-            allResources.addAll(backendRolesResourcesListener.result());
-
-            LOGGER.debug("Found {} accessible resources for user {}", allResources.size(), user.getName());
-            listener.onResponse(allResources);
-        }, listener::onFailure);
+        // 3) Fetch all accessible resource IDs
+        resourceSharingIndexHandler.fetchSharedDocuments(resourceIndex, entitiesForLogging, query, listener);
     }
 
     /**
@@ -381,37 +346,6 @@ public class ResourceAccessHandler {
      */
     private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
         this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, listener);
-    }
-
-    /**
-     * Loads resources owned by the specified user within the given resource index.
-     *
-     * @param resourceIndex The resource index to load resources from.
-     * @param userName      The username of the owner.
-     * @param listener      The listener to be notified with the set of resource IDs.
-     */
-    private void loadOwnResources(String resourceIndex, String userName, ActionListener<Set<String>> listener) {
-        this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName, listener);
-    }
-
-    /**
-     * Loads resources shared with the specified entities within the given resource index, including public resources.
-     *
-     * @param resourceIndex The resource index to load resources from.
-     * @param entities      The set of entities to check for shared resources.
-     * @param recipient     The type of entity (e.g., users, roles, backend_roles).
-     * @param listener      The listener to be notified with the set of resource IDs.
-     */
-    private void loadSharedWithResources(
-        String resourceIndex,
-        Set<String> entities,
-        String recipient,
-        ActionListener<Set<String>> listener
-    ) {
-        Set<String> entitiesCopy = new HashSet<>(entities);
-        // To allow "public" resources to be matched for any user, role, backend_role
-        entitiesCopy.add("*");
-        this.resourceSharingIndexHandler.fetchDocumentsForAllActionGroups(resourceIndex, entitiesCopy, recipient, listener);
     }
 
     /**
