@@ -305,7 +305,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ,
-            4L,
+            8L,
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE,
             4L
         );

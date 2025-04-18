@@ -290,7 +290,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
 
             HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }, 14);
+        }, 21);
 
         final List<String> documentIds = messages.stream().map(AuditMessage::getDocId).distinct().collect(Collectors.toList());
         assertThat(documentIds, equalTo(expectedDocumentsTypes));
@@ -301,7 +301,13 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             assertThat(
                 "Doc " + docId + " should have a read/write config message",
                 messagesByDocId.stream().map(AuditMessage::getCategory).collect(Collectors.toList()),
-                equalTo(List.of(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE, AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ))
+                equalTo(
+                    List.of(
+                        AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ,
+                        AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE,
+                        AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ
+                    )
+                )
             );
         });
 

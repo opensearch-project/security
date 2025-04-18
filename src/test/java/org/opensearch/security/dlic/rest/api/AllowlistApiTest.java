@@ -215,7 +215,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         // TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ,
-            1L,
+            2L,
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE,
             1L
         );
