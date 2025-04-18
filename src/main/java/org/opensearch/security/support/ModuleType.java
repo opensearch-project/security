@@ -49,20 +49,32 @@ public enum ModuleType implements Serializable {
     DLSFLS("Document- and Field-Level Security", "org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
     AUDITLOG("Audit Logging", "org.opensearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
     MULTITENANCY("OpenSearch Dashboards Multi-tenancy", "org.opensearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
-    LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),
-    LDAP_AUTHORIZATION_BACKEND("LDAP authorization backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend", Boolean.TRUE),
+    LDAP_AUTHENTICATION_BACKEND(
+        "LDAP authentication backend",
+        "org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend",
+        Boolean.TRUE
+    ),
+    LDAP_AUTHORIZATION_BACKEND(
+        "LDAP authorization backend",
+        "org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend",
+        Boolean.TRUE
+    ),
     KERBEROS_AUTHENTICATION_BACKEND(
         "Kerberos authentication backend",
-        "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator",
+        "org.opensearch.security.auth.http.kerberos.HTTPSpnegoAuthenticator",
         Boolean.TRUE
     ),
-    JWT_AUTHENTICATION_BACKEND("JWT authentication backend", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
+    JWT_AUTHENTICATION_BACKEND("JWT authentication backend", "org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
     OPENID_AUTHENTICATION_BACKEND(
         "OpenID authentication backend",
-        "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator",
+        "org.opensearch.security.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator",
         Boolean.TRUE
     ),
-    SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
+    SAML_AUTHENTICATION_BACKEND(
+        "SAML authentication backend",
+        "org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator",
+        Boolean.TRUE
+    ),
     INTERNAL_USERS_AUTHENTICATION_BACKEND(
         "Internal users authentication backend",
         InternalAuthenticationBackend.class.getName(),

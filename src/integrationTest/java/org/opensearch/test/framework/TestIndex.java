@@ -36,18 +36,23 @@ public class TestIndex {
 
     private final String name;
     private final Settings settings;
+    private final TestData testData;
 
-    public TestIndex(String name, Settings settings) {
+    public TestIndex(String name, Settings settings, TestData testData) {
         this.name = name;
         this.settings = settings;
-
+        this.testData = testData;
     }
 
     public void create(Client client) {
-        client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
+        if (testData != null) {
+            testData.createIndex(client, name, settings);
+        } else {
+            client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
+        }
     }
 
-    public String getName() {
+    public String name() {
         return name;
     }
 
@@ -58,6 +63,7 @@ public class TestIndex {
     public static class Builder {
         private String name;
         private Settings.Builder settings = Settings.builder();
+        private TestData testData;
 
         public Builder name(String name) {
             this.name = name;
@@ -74,8 +80,13 @@ public class TestIndex {
             return this;
         }
 
+        public Builder data(TestData testData) {
+            this.testData = testData;
+            return this;
+        }
+
         public TestIndex build() {
-            return new TestIndex(name, settings.build());
+            return new TestIndex(name, settings.build(), testData);
         }
 
     }

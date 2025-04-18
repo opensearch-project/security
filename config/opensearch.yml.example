@@ -17,11 +17,11 @@ plugins.security.nodes_dn:
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
 
 # The nodes_dn_dynamic_config_enabled settings is geared towards cross_cluster usecases where there is a need to
-# manage the whitelisted nodes_dn without having to restart the nodes everytime a new cross_cluster remote is configured
+# manage the allowlisted nodes_dn without having to restart the nodes everytime a new cross_cluster remote is configured
 # Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_opendistro/_security/api/nodesdn APIs
 # which provide means to update/retrieve nodesdn dynamically.
 #
-# NOTE: The overall whitelisted nodes_dn evaluated comes from both the plugins.security.nodes_dn and the ones stored
+# NOTE: The overall allowlisted nodes_dn evaluated comes from both the plugins.security.nodes_dn and the ones stored
 # in security index.
 # (default: false)
 # NOTE2: This setting only has effect if 'plugins.security.cert.intercluster_request_evaluator_class' is not set.

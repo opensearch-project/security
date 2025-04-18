@@ -11,6 +11,7 @@
 
 package org.opensearch.security.tools.democonfig;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to file extensions, keeping this rule disable for the whole file
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -40,7 +41,6 @@ public class Installer {
     private static Installer instance;
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
-
     private static CertificateGenerator certificateGenerator;
 
     boolean assumeyes = false;
@@ -71,19 +71,37 @@ public class Installer {
     // To print help information for this script
     private final HelpFormatter formatter = new HelpFormatter();
 
+    private ExitHandler exitHandler;
+
     /**
      * We do not want this class to be instantiated more than once,
-     * as we are following Singleton Factory pattern
+     * as we are following the Singleton pattern.
      */
     private Installer() {
         this.OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
         FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
         options = new Options();
+        // Use the default exit handler (simply calls System.exit)
+        this.exitHandler = new DefaultExitHandler();
     }
 
     /**
-     * Returns a singleton instance of this class
-     * @return an existing instance OR a new instance if there was no existing instance
+     * Allows dependency injection of an ExitHandler.
+     */
+    public void setExitHandler(ExitHandler exitHandler) {
+        this.exitHandler = exitHandler;
+    }
+
+    /**
+     * Returns current exit handler
+     */
+    public ExitHandler getExitHandler() {
+        return this.exitHandler;
+    }
+
+    /**
+     * Returns a singleton instance of this class.
+     * @return an existing instance OR a new instance if there was no existing instance.
      */
     public static Installer getInstance() {
         if (instance == null) {
@@ -95,8 +113,8 @@ public class Installer {
     }
 
     /**
-     * Installs the demo security configuration
-     * @param options the options passed to the script
+     * Installs the demo security configuration.
+     * @param options the options passed to the script.
      */
     public void installDemoConfiguration(String[] options) throws IOException {
         readOptions(options);
@@ -116,7 +134,7 @@ public class Installer {
     }
 
     /**
-     * Builds options supported by this tool
+     * Builds options supported by this tool.
      */
     void buildOptions() {
         options.addOption("h", "show-help", false, "Shows help for this tool.");
@@ -148,7 +166,7 @@ public class Installer {
     }
 
     /**
-     * Prints headers that indicate the start of script execution
+     * Prints headers that indicate the start of script execution.
      */
     static void printScriptHeaders() {
         System.out.println("### OpenSearch Security Demo Installer");
@@ -156,8 +174,8 @@ public class Installer {
     }
 
     /**
-     * Reads the options passed to the script
-     * @param args an array of strings containing options passed to the script
+     * Reads the options passed to the script.
+     * @param args an array of strings containing options passed to the script.
      */
     void readOptions(String[] args) {
         // set script execution dir
@@ -179,28 +197,28 @@ public class Installer {
 
         } catch (ParseException exp) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
-            System.exit(-1);
+            exitHandler.exit(-1);
         }
     }
 
     /**
-     * Prints the help menu when -h option is passed
+     * Prints the help menu when -h option is passed.
      */
     void showHelp() {
         formatter.printHelp("install_demo_configuration" + FILE_EXTENSION, options, true);
-        System.exit(0);
+        exitHandler.exit(0);
     }
 
     /**
-     * Prompt the user and collect user inputs
-     * Input collection will be skipped if -y option was passed
+     * Prompt the user and collect user inputs.
+     * Input collection will be skipped if -y option was passed.
      */
     void gatherUserInputs() {
         if (!assumeyes) {
             try (Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8)) {
 
                 if (!confirmAction(scanner, "Install demo certificates?")) {
-                    System.exit(0);
+                    exitHandler.exit(0);
                 }
 
                 if (!initsecurity) {
@@ -218,9 +236,9 @@ public class Installer {
 
     /**
      * Helper method to scan user inputs.
-     * @param scanner object to be used for scanning user input
-     * @param message prompt question
-     * @return true or false based on user input
+     * @param scanner object to be used for scanning user input.
+     * @param message prompt question.
+     * @return true or false based on user input.
      */
     boolean confirmAction(Scanner scanner, String message) {
         System.out.print(message + " [y/N] ");
@@ -229,7 +247,7 @@ public class Installer {
     }
 
     /**
-     * Initialize all class level variables required
+     * Initialize all class level variables required.
      */
     void initializeVariables() {
         setBaseDir();
@@ -238,7 +256,7 @@ public class Installer {
     }
 
     /**
-     * Sets the base directory to be used by the script
+     * Sets the base directory to be used by the script.
      */
     void setBaseDir() {
         File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
@@ -246,14 +264,14 @@ public class Installer {
 
         if (BASE_DIR == null || !new File(BASE_DIR).isDirectory()) {
             System.out.println("DEBUG: basedir does not exist");
-            System.exit(-1);
+            exitHandler.exit(-1);
         }
 
         BASE_DIR += File.separator;
     }
 
     /**
-     * Sets the variables for items at OpenSearch level
+     * Sets the variables for items at OpenSearch level.
      */
     void setOpenSearchVariables() {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
@@ -266,7 +284,7 @@ public class Installer {
 
         if (!errorMessages.isEmpty()) {
             errorMessages.forEach(System.out::println);
-            System.exit(-1);
+            exitHandler.exit(-1);
         }
 
         OPENSEARCH_CONF_DIR = new File(OPENSEARCH_CONF_FILE).getParent();
@@ -274,9 +292,9 @@ public class Installer {
     }
 
     /**
-     * Helper method
-     * Returns a set of error messages for the paths that didn't contain files/directories
-     * @return a set containing error messages if any, empty otherwise
+     * Helper method.
+     * Returns a set of error messages for the paths that didn't contain files/directories.
+     * @return a set containing error messages if any, empty otherwise.
      */
     private Set<String> validatePaths() {
         Set<String> errorMessages = new HashSet<>();
@@ -299,8 +317,8 @@ public class Installer {
     }
 
     /**
-     * Returns the installation type based on the underlying operating system
-     * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`
+     * Returns the installation type based on the underlying operating system.
+     * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`.
      */
     String determineInstallType() {
         // windows (.bat execution)
@@ -320,12 +338,12 @@ public class Installer {
     }
 
     /**
-     * Sets the path variables for items at OpenSearch security plugin level
+     * Sets the path variables for items at OpenSearch security plugin level.
      */
     void setSecurityVariables() {
         if (!(new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").exists())) {
             System.out.println("OpenSearch Security plugin not installed. Quit.");
-            System.exit(-1);
+            exitHandler.exit(-1);
         }
 
         // Extract OpenSearch version and Security version
@@ -349,7 +367,7 @@ public class Installer {
     }
 
     /**
-     * Prints the initialized variables
+     * Prints the initialized variables.
      */
     void printVariables() {
         System.out.println("OpenSearch install type: " + OPENSEARCH_INSTALL_TYPE + " on " + OS);
@@ -439,9 +457,11 @@ public class Installer {
 
     /**
      * FOR TESTS ONLY
-     * resets the installer state to allow testing with fresh instance for the next test.
+     * Resets the installer state to allow testing with a fresh instance for the next test.
      */
     static void resetInstance() {
         instance = null;
     }
+
 }
+// CS-ENFORCE-SINGLE

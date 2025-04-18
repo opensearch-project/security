@@ -75,7 +75,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
+import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 
@@ -197,7 +197,7 @@ public class BackendRegistry {
      * @param request
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
-    */
+     */
     public boolean authenticate(final SecurityRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
@@ -392,6 +392,7 @@ public class BackendRegistry {
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
+
             UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
         } else {

@@ -1,30 +1,30 @@
 /*
- * Copyright 2021 floragunn GmbH
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+* Copyright 2021 floragunn GmbH
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 
 /*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
+* SPDX-License-Identifier: Apache-2.0
+*
+* The OpenSearch Contributors require contributions made to
+* this file be licensed under the Apache-2.0 license or a
+* compatible open source license.
+*
+* Modifications Copyright OpenSearch Contributors. See
+* GitHub history for details.
+*/
 
 package org.opensearch.test.framework.cluster;
 
@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
@@ -79,12 +80,12 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
- * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
- * obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
- *
- * Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
- * instance from OpenSearchClientProvider.
- */
+* A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
+* obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
+*
+* Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
+* instance from OpenSearchClientProvider.
+*/
 public class TestRestClient implements AutoCloseable {
 
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
@@ -100,12 +101,12 @@ public class TestRestClient implements AutoCloseable {
     private final InetAddress sourceInetAddress;
 
     public TestRestClient(
-            InetSocketAddress nodeHttpAddress,
-            List<Header> headers,
-            SSLContext sslContext,
-            InetAddress sourceInetAddress,
-            boolean enableHTTPClientSSL,
-            boolean sendHTTPClientCertificate
+        InetSocketAddress nodeHttpAddress,
+        List<Header> headers,
+        SSLContext sslContext,
+        InetAddress sourceInetAddress,
+        boolean enableHTTPClientSSL,
+        boolean sendHTTPClientCertificate
     ) {
         this.nodeHttpAddress = nodeHttpAddress;
         this.headers.addAll(headers);
@@ -443,6 +444,20 @@ public class TestRestClient implements AutoCloseable {
         public JsonNode bodyAsJsonNode() {
             try {
                 return DefaultObjectMapper.readTree(getBody());
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot parse response body", e);
+            }
+        }
+
+        /**
+         * Parses the body as JSON and returns it as a simple Java Map.
+         * JSON objects become Map<String, Object>, JSON arrays become List<>.
+         * Other values are converted to the corresponding Java base types.
+         */
+        public Map<String, Object> bodyAsMap() {
+            try {
+                return DefaultObjectMapper.readValue(getBody(), new TypeReference<Map<String, Object>>() {
+                });
             } catch (IOException e) {
                 throw new RuntimeException("Cannot parse response body", e);
             }
