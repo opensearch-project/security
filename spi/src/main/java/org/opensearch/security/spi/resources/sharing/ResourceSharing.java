@@ -111,7 +111,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String toString() {
-        return "ShareableResource {"
+        return "ResourceSharing {"
             + "sourceIdx='"
             + sourceIdx
             + '\''

@@ -42,6 +42,10 @@ task javadocJar(type: Jar) {
     from tasks.javadoc
 }
 
+jar {
+    enabled = false
+}
+
 publishing {
     publications {
         shadow(MavenPublication) { publication ->
@@ -49,9 +53,9 @@ publishing {
             artifact sourcesJar
             artifact javadocJar
             pom {
-                name.set("OpenSearch Resource Sharing SPI")
+                name.set("OpenSearch Security SPI")
                 packaging = "jar"
-                description.set("OpenSearch Security Resource Sharing")
+                description.set("OpenSearch Security SPI declares multiple extension points to make security plugin extensible.")
                 url.set("https://github.com/opensearch-project/security")
                 licenses {
                     license {

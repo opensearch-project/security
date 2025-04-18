@@ -8,6 +8,10 @@
 
 package org.opensearch.security.spi.resources;
 
+import java.util.Set;
+
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
+
 /**
  * This interface should be implemented by all the plugins that define one or more resources and need access control over those resources.
  *
@@ -16,20 +20,17 @@ package org.opensearch.security.spi.resources;
 public interface ResourceSharingExtension {
 
     /**
-     * Type of the resource
-     * @return a string containing the type of the resource. A qualified class name can be supplied here.
+     * Returns the set of {@link ResourceProvider} instances for the resources defined by the plugin.
+     * Only in the case where plugin defines multiple resources, will there be more than one resource provider
+    *
+     * @return the set of ResourceProvider instances
      */
-    String getResourceType();
+    Set<ResourceProvider> getResourceProviders();
 
     /**
-     * The index where resource is stored
-     * @return the name of the parent index where resource is stored
+     * Assigns the ResourceSharingClient to the resource plugin. Plugins can then utilize this to call the methods for access control.
+     * @param client the ResourceSharingClient instance
      */
-    String getResourceIndex();
+    void assignResourceSharingClient(ResourceSharingClient client);
 
-    /**
-     * The parser for the resource, which will be used by security plugin to parse the resource
-     * @return the parser for the resource
-     */
-    ShareableResourceParser<? extends ShareableResource> getShareableResourceParser();
 }

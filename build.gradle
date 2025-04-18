@@ -432,14 +432,6 @@ publishing {
     }
 }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
-    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
-}
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 
@@ -503,6 +495,15 @@ configurations {
 }
 
 allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
+        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
+    }
+
     configurations {
         integrationTestImplementation.extendsFrom implementation
         compile.extendsFrom compileOnly
@@ -557,7 +558,8 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
-        integrationTestImplementation project(path:":opensearch-resource-sharing-spi", configuration: 'shadow')
+        integrationTestImplementation group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
+
     }
 }
 
@@ -581,6 +583,9 @@ sourceSets {
 
 //add new task that runs integration tests
 task integrationTest(type: Test) {
+    filter {
+        excludeTestsMatching 'org.opensearch.sample.*ResourcePlugin*'
+    }
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
         if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
@@ -636,7 +641,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation project(path:":opensearch-resource-sharing-spi", configuration: 'shadow')
+    implementation project(path: ":opensearch-security-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"

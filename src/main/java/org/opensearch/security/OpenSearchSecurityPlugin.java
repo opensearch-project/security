@@ -174,6 +174,12 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceAccessControlClient;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceIndexListener;
+import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.resources.ResourceSharingConstants;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -184,6 +190,10 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.resources.FeatureConfigConstants;
+import org.opensearch.security.spi.resources.ResourceProvider;
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
@@ -277,6 +287,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
+    private ResourceSharingIndexHandler rsIndexHandler;
+    private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
     public static boolean isActionTraceEnabled() {
 
@@ -667,6 +679,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         passwordHasher
                     )
                 );
+
                 log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
@@ -721,6 +734,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
+
+            // Listening on POST and DELETE operations in resource indices
+            ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
+
+            if (settings.getAsBoolean(
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            ) && resourcePluginInfo.getResourceIndices().contains(indexModule.getIndex().getName())) {
+                indexModule.addIndexOperationListener(resourceIndexListener);
+                log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
+            }
+
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
                 @Override
@@ -1125,6 +1150,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             namedXContentRegistry.get()
         );
 
+        final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+        rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
+
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
+        // Assign resource sharing client to each extension
+        // Using the non-gated client (i.e. no additional permissions required)
+        ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler, settings);
+        resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
+            extension.assignResourceSharingClient(resourceAccessControlClient);
+        });
+        // CS-ENFORCE-SINGLE
+
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
 
         if (SSLConfig.isSslOnlyMode()) {
@@ -1214,6 +1253,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
+        components.add(resourcePluginInfo);
+        components.add(resourceAccessHandler);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -2076,6 +2117,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Privileges evaluation
             settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+
+            // Resource Sharing
+            settings.add(
+                Setting.boolSetting(
+                    FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;
@@ -2099,6 +2150,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
         }
+
+        // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be
+        // instantiated
+        if (settings != null
+            && settings.getAsBoolean(
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+            // create resource sharing index if absent
+            // TODO check if this should be wrapped in an atomic completable future
+            log.debug("Attempting to create Resource Sharing index");
+            rsIndexHandler.createResourceSharingIndexIfAbsent();
+
+        }
+
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2144,7 +2210,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        return List.of(securityIndexDescriptor);
+        final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
+            ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+            "Resource Sharing index"
+        );
+        return List.of(securityIndexDescriptor, resourceSharingIndexDescriptor);
     }
 
     @Override
@@ -2203,10 +2273,28 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         });
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
     public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
-        // Resource Sharing extensions will be loaded here
+
+        if (settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        )) {
+            Set<String> resourceIndices = new HashSet<>();
+            Map<String, ResourceProvider> resourceProviders = new HashMap<>();
+            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
+            for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
+                for (ResourceProvider provider : extension.getResourceProviders()) {
+                    resourceProviders.put(provider.resourceIndexName(), provider);
+                    resourceIndices.add(provider.resourceIndexName());
+                }
+                resourceSharingExtensions.add(extension);
+            }
+            resourcePluginInfo.setResourceIndices(resourceIndices);
+            resourcePluginInfo.setResourceProviders(resourceProviders);
+            resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
+        }
     }
     // CS-ENFORCE-SINGLE
 
