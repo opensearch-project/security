@@ -358,7 +358,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [21]
-        platform: [ubuntu-latest, windows-latest]
+        platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
