@@ -15,6 +15,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,37 +84,34 @@ public class ResourceAccessHandler {
 
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
-        Set<String> userQueryEntities = new HashSet<>();
-        userQueryEntities.add(user.getName());
-        userQueryEntities.add("*"); // for matching against publicly shared resource
+        Set<String> users = new HashSet<>();
+        users.add(user.getName());
+        users.add("*"); // for matching against publicly shared resource
 
         // for roles:
-        Set<String> roleQueryEntities = new HashSet<>(user.getSecurityRoles());
-        roleQueryEntities.add("*"); // for matching against publicly shared resource
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        roles.add("*"); // for matching against publicly shared resource
 
         // for backend_roles:
-        Set<String> backendQueryEntities = new HashSet<>(user.getRoles());
-        backendQueryEntities.add("*"); // for matching against publicly shared resource
+        Set<String> backendRoles = new HashSet<>(user.getRoles());
+        backendRoles.add("*"); // for matching against publicly shared resource
 
-        // 2) build one BoolQuery:
+        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
+        // BEST_FIELDS)
+        Set<String> flatPrincipals = Stream.concat(
+            // users
+            users.stream().map(u -> "user:" + u),
+            // then roles and backend_roles
+            Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
+        ).collect(Collectors.toSet());
+
         BoolQueryBuilder query = QueryBuilders.boolQuery()
-            // match owner
             .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
-            // match any share_with.*.users
-            .should(QueryBuilders.termsQuery("share_with.*.users.keyword", userQueryEntities))
-            // match any share_with.*.roles
-            .should(QueryBuilders.termsQuery("share_with.*.roles.keyword", roleQueryEntities))
-            // match any share_with.*.backend_roles
-            .should(QueryBuilders.termsQuery("share_with.*.backend_roles.keyword", backendQueryEntities))
+            .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
             .minimumShouldMatch(1);
 
-        Set<String> entitiesForLogging = new HashSet<>();
-        entitiesForLogging.addAll(userQueryEntities);
-        entitiesForLogging.addAll(roleQueryEntities);
-        entitiesForLogging.addAll(backendQueryEntities);
-
         // 3) Fetch all accessible resource IDs
-        resourceSharingIndexHandler.fetchSharedDocuments(resourceIndex, entitiesForLogging, query, listener);
+        resourceSharingIndexHandler.fetchSharedDocuments(resourceIndex, flatPrincipals, query, listener);
     }
 
     /**
