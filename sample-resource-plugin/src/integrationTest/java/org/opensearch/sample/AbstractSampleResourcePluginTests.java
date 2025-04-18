@@ -8,7 +8,6 @@
 
 package org.opensearch.sample;
 
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
@@ -51,8 +50,7 @@ public abstract class AbstractSampleResourcePluginTests {
     protected static ResourceSharingClient createResourceAccessControlClient(LocalCluster cluster) {
         ResourceAccessHandler rAH = cluster.nodes().getFirst().getInjectable(ResourceAccessHandler.class);
         Settings settings = cluster.node().settings();
-        ClusterService clusterService = cluster.nodes().getFirst().getInjectable(ClusterService.class);
-        return new ResourceAccessControlClient(rAH, settings, clusterService);
+        return new ResourceAccessControlClient(rAH, settings);
     }
 
     protected static String shareWithPayload(String user) {

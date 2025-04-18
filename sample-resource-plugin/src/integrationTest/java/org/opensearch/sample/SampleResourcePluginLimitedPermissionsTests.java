@@ -96,11 +96,7 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
 
             // Also update the in-memory map and get
             resourcePluginInfo.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
-            ResourceProvider provider = new ResourceProvider(
-                SampleResource.class.getCanonicalName(),
-                RESOURCE_INDEX_NAME,
-                new SampleResourceParser()
-            );
+            ResourceProvider provider = new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME);
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
             ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
