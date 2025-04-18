@@ -180,7 +180,6 @@ import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingConstants;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
-import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -288,7 +287,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
-    private ResourceSharingIndexManagementRepository resourceSharingIndexManagementRepository;
+    private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
     public static boolean isActionTraceEnabled() {
@@ -1152,18 +1151,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
 
         final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+        rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
 
         ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
-        // Resource Sharing index is enabled by default
-        boolean isResourceSharingEnabled = settings.getAsBoolean(
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        resourceSharingIndexManagementRepository = ResourceSharingIndexManagementRepository.create(
-            rsIndexHandler,
-            isResourceSharingEnabled
-        );
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
         // Assign resource sharing client to each extension
@@ -2167,10 +2157,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             && settings.getAsBoolean(
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            )
-            && resourceSharingIndexManagementRepository != null) {
+            )) {
             // create resource sharing index if absent
-            resourceSharingIndexManagementRepository.createResourceSharingIndexIfAbsent();
+            // TODO check if this should be wrapped in an atomic completable future
+            log.debug("Attempting to create Resource Sharing index");
+            rsIndexHandler.createResourceSharingIndexIfAbsent();
+
         }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();

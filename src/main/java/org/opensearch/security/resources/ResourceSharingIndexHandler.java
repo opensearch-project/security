@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
@@ -122,26 +121,16 @@ public class ResourceSharingIndexHandler {
      *                          or communicating with the cluster
      */
 
-    public void createResourceSharingIndexIfAbsent(Callable<Boolean> callable) {
+    public void createResourceSharingIndexIfAbsent() {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
             ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
                 LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
-                if (callable != null) {
-                    callable.call();
-                }
             }, (failResponse) -> {
                 /* Index already exists, ignore and continue */
                 LOGGER.info("Index {} already exists.", resourceSharingIndex);
-                try {
-                    if (callable != null) {
-                        callable.call();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
             });
             this.client.admin().indices().create(cir, cirListener);
         }
