@@ -39,7 +39,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
-        resourceSharingClient.revokeResourceAccess(
+        resourceSharingClient.revoke(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
             request.getEntitiesToRevoke(),

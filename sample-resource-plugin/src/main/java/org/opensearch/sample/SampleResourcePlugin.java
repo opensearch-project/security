@@ -11,7 +11,6 @@ package org.opensearch.sample;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -54,11 +53,7 @@ import org.opensearch.sample.resource.actions.transport.GetResourceTransportActi
 import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
 import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.spi.resources.ResourceProvider;
-import org.opensearch.security.spi.resources.ResourceSharingExtension;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -70,7 +65,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  * It uses ".sample_resource_sharing_plugin" index to manage its resources, and exposes few REST APIs that manage CRUD operations on sample resources.
  *
  */
-public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourceSharingExtension {
+public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
     @Override
@@ -125,15 +120,5 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
         return Collections.singletonList(systemIndexDescriptor);
-    }
-
-    @Override
-    public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME, new SampleResourceParser()));
-    }
-
-    @Override
-    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-        ResourceSharingClientAccessor.setResourceSharingClient(resourceSharingClient);
     }
 }

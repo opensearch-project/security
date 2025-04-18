@@ -14,7 +14,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.sample.SampleResource;
 
 /**
  * Request object for UpdateResource transport action
@@ -22,19 +22,19 @@ import org.opensearch.security.spi.resources.ShareableResource;
 public class UpdateResourceRequest extends ActionRequest {
 
     private final String resourceId;
-    private final ShareableResource resource;
+    private final SampleResource resource;
 
     /**
      * Default constructor
      */
-    public UpdateResourceRequest(String resourceId, ShareableResource resource) {
+    public UpdateResourceRequest(String resourceId, SampleResource resource) {
         this.resourceId = resourceId;
         this.resource = resource;
     }
 
     public UpdateResourceRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
-        this.resource = in.readNamedWriteable(ShareableResource.class);
+        this.resource = in.readNamedWriteable(SampleResource.class);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class UpdateResourceRequest extends ActionRequest {
         return null;
     }
 
-    public ShareableResource getResource() {
+    public SampleResource getResource() {
         return this.resource;
     }
 

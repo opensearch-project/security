@@ -15,13 +15,14 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.opensearch.core.ParseField;
+import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ConstructingObjectParser;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.ShareableResource;
 
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
@@ -29,7 +30,7 @@ import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalCons
 /**
  * Sample resource declared by this plugin.
  */
-public class SampleResource implements ShareableResource {
+public class SampleResource implements NamedWriteable, ToXContentObject {
 
     private String name;
     private String description;
@@ -73,21 +74,14 @@ public class SampleResource implements ShareableResource {
         return PARSER.parse(parser, null);
     }
 
-    @Override
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
         return builder.startObject().field("name", name).field("description", description).field("attributes", attributes).endObject();
     }
 
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(description);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-    }
-
-    @Override
-    public String getWriteableName() {
-        return "sample_resource";
     }
 
     public void setName(String name) {
@@ -102,8 +96,12 @@ public class SampleResource implements ShareableResource {
         this.attributes = attributes;
     }
 
-    @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public String getWriteableName() {
+        return "sample_resource";
     }
 }

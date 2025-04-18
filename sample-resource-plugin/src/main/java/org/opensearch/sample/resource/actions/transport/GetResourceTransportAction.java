@@ -8,8 +8,11 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.util.HashSet;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,17 +21,17 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -75,105 +78,95 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     @SuppressWarnings("unchecked")
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
-        if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
-            // get all request
-            if (this.settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
-                resourceSharingClient.listAllAccessibleResources(RESOURCE_INDEX_NAME, ActionListener.wrap(resources -> {
-                    log.debug("Fetched accessible resources: {}", resources);
-                    Set<SampleResource> sampleResources = resources.stream()
-                        .map(resource -> (SampleResource) resource)
-                        .collect(Collectors.toSet());
-                    listener.onResponse(new GetResourceResponse(sampleResources));
-                }, listener::onFailure));
-            } else {
-                // if feature is disabled, return all resources
-                getAllResourcesAction(listener);
-            }
-            return;
+        ResourceSharingClient client = ResourceSharingClientAccessor.getResourceSharingClient();
+        String resourceId = request.getResourceId();
+
+        if (Strings.isNullOrEmpty(resourceId)) {
+            fetchAllResources(listener, client);
+        } else {
+            verifyAndFetchSingle(resourceId, listener, client);
         }
+    }
 
-        // Check permission to resource
-        resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-            if (!isAuthorized) {
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "Current user is not authorized to access resource: " + request.getResourceId(),
-                        RestStatus.FORBIDDEN
-                    )
-                );
-                return;
+    private void fetchAllResources(ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
+        boolean sharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
+
+        if (sharingEnabled) {
+            client.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
+                if (ids.isEmpty()) {
+                    listener.onResponse(new GetResourceResponse(Collections.emptySet()));
+                } else {
+                    fetchResourcesByIds(ids, listener);
+                }
+            }, listener::onFailure));
+        } else {
+            // feature disabled → return everything
+            fetchResourcesByIds(null, listener);
+        }
+    }
+
+    private void verifyAndFetchSingle(String resourceId, ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
+        client.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
+            if (!authorized) {
+                listener.onFailure(new OpenSearchStatusException("Not authorized to access resource: " + resourceId, RestStatus.FORBIDDEN));
+            } else {
+                fetchResourceById(resourceId, listener);
             }
-
-            getResourceAction(request, listener);
         }, listener::onFailure));
     }
 
-    private void getResourceAction(GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-            getResource(request, ActionListener.wrap(getResponse -> {
-                if (getResponse.isSourceEmpty()) {
-                    listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
+    private void fetchResourceById(String resourceId, ActionListener<GetResourceResponse> listener) {
+        withThreadContext(stashed -> {
+            GetRequest req = new GetRequest(RESOURCE_INDEX_NAME, resourceId);
+            nodeClient.get(req, ActionListener.wrap(resp -> {
+                if (resp.isSourceEmpty()) {
+                    listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
                 } else {
-                    try (
-                        XContentParser parser = XContentType.JSON.xContent()
-                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
-                    ) {
-                        SampleResource resource = SampleResource.fromXContent(parser);
-                        log.debug("Fetched resource: {}", resource);
-                        listener.onResponse(new GetResourceResponse(Set.of(resource)));
-                    }
+                    SampleResource resource = parseResource(resp.getSourceAsString());
+                    listener.onResponse(new GetResourceResponse(Set.of(resource)));
                 }
             }, listener::onFailure));
-        }
+        });
     }
 
-    private void getResource(GetResourceRequest request, ActionListener<GetResponse> listener) {
-        GetRequest getRequest = new GetRequest(RESOURCE_INDEX_NAME, request.getResourceId());
+    private void fetchResourcesByIds(@Nullable Set<String> ids, ActionListener<GetResourceResponse> listener) {
+        withThreadContext(stashed -> {
+            SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000)
+                .query(ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.termsQuery("resource_id.keyword", ids));
 
-        nodeClient.get(getRequest, listener);
-    }
-
-    private void getAllResourcesAction(ActionListener<GetResourceResponse> listener) {
-        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-            getAllResources(ActionListener.wrap(searchResponse -> {
+            SearchRequest req = new SearchRequest(RESOURCE_INDEX_NAME).source(ssb);
+            nodeClient.search(req, ActionListener.wrap(searchResponse -> {
                 SearchHit[] hits = searchResponse.getHits().getHits();
                 if (hits.length == 0) {
                     listener.onFailure(new ResourceNotFoundException("No resources found in index: " + RESOURCE_INDEX_NAME));
-                    return;
-                }
-
-                Set<SampleResource> resources = new HashSet<>();
-                try {
-                    for (SearchHit hit : hits) {
-                        try (
-                            XContentParser parser = XContentType.JSON.xContent()
-                                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hit.getSourceAsString())
-                        ) {
-                            resources.add(SampleResource.fromXContent(parser));
+                } else {
+                    Set<SampleResource> resources = Arrays.stream(hits).map(hit -> {
+                        try {
+                            return parseResource(hit.getSourceAsString());
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                    }
-                    log.debug("Fetched resources: {}", resources);
+                    }).collect(Collectors.toSet());
                     listener.onResponse(new GetResourceResponse(resources));
-                } catch (Exception e) {
-                    listener.onFailure(
-                        new OpenSearchStatusException("Failed to parse resources: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR)
-                    );
                 }
             }, listener::onFailure));
+        });
+    }
+
+    private SampleResource parseResource(String json) throws IOException {
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json)
+        ) {
+            return SampleResource.fromXContent(parser);
         }
     }
 
-    private void getAllResources(ActionListener<SearchResponse> listener) {
-        SearchRequest searchRequest = new SearchRequest(RESOURCE_INDEX_NAME);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchSourceBuilder.size(1000);
-
-        searchRequest.source(searchSourceBuilder);
-        nodeClient.search(searchRequest, listener);
+    private void withThreadContext(Consumer<ThreadContext.StoredContext> action) {
+        ThreadContext tc = transportService.getThreadPool().getThreadContext();
+        try (ThreadContext.StoredContext st = tc.stashContext()) {
+            action.accept(st);
+        }
     }
 
 }

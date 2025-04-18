@@ -24,11 +24,11 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.spi.resources.ShareableResource;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -80,7 +80,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         ThreadContext threadContext = this.transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             String resourceId = request.getResourceId();
-            ShareableResource sample = request.getResource();
+            SampleResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
                 UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));

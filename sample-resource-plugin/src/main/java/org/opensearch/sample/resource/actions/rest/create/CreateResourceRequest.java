@@ -14,24 +14,24 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.spi.resources.ShareableResource;
+import org.opensearch.sample.SampleResource;
 
 /**
  * Request object for CreateSampleResource transport action
  */
 public class CreateResourceRequest extends ActionRequest {
 
-    private final ShareableResource resource;
+    private final SampleResource resource;
 
     /**
      * Default constructor
      */
-    public CreateResourceRequest(ShareableResource resource) {
+    public CreateResourceRequest(SampleResource resource) {
         this.resource = resource;
     }
 
     public CreateResourceRequest(StreamInput in) throws IOException {
-        this.resource = in.readNamedWriteable(ShareableResource.class);
+        this.resource = in.readNamedWriteable(SampleResource.class);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class CreateResourceRequest extends ActionRequest {
         return null;
     }
 
-    public ShareableResource getResource() {
+    public SampleResource getResource() {
         return this.resource;
     }
 }

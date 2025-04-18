@@ -7,7 +7,7 @@ At present only admin and resource owners can modify/delete the resource
 
 Publish SPI to local maven before proceeding:
 ```shell
-./gradlew clean :opensearch-resource-sharing-spi:publishToMavenLocal
+./gradlew clean :opensearch-security-spi:publishToMavenLocal
 ```
 
 System index feature must be enabled to prevent direct access to resource. Add the following setting in case it has not already been enabled.
