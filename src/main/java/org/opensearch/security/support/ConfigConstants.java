@@ -43,6 +43,10 @@ import com.password4j.types.Hmac;
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
+    public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
+
+    public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
+    public static final boolean OPENSEARCH_SECURITY_DISABLED_DEFAULT = false;
 
     public static final String OPENDISTRO_SECURITY_CHANNEL_TYPE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "channel_type";
 
@@ -131,11 +135,11 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = ".opendistro_security";
 
-    public static final String SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "plugins.security.enable_snapshot_restore_privilege";
+    public static final String SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = SECURITY_SETTINGS_PREFIX + "enable_snapshot_restore_privilege";
     public static final boolean SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = true;
 
-    public static final String SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES =
-        "plugins.security.check_snapshot_restore_write_privileges";
+    public static final String SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = SECURITY_SETTINGS_PREFIX
+        + "check_snapshot_restore_write_privileges";
     public static final boolean SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES = true;
     public static final Set<String> SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES = Collections.unmodifiableSet(
         new HashSet<String>(Arrays.asList("indices:admin/create", "indices:data/write/index"
@@ -143,37 +147,39 @@ public class ConfigConstants {
         ))
     );
 
-    public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "plugins.security.cert.intercluster_request_evaluator_class";
+    public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = SECURITY_SETTINGS_PREFIX
+        + "cert.intercluster_request_evaluator_class";
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX + "action_name";
 
-    public static final String SECURITY_AUTHCZ_ADMIN_DN = "plugins.security.authcz.admin_dn";
-    public static final String SECURITY_CONFIG_INDEX_NAME = "plugins.security.config_index_name";
-    public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = "plugins.security.authcz.impersonation_dn";
-    public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = "plugins.security.authcz.rest_impersonation_user";
+    public static final String SECURITY_AUTHCZ_ADMIN_DN = SECURITY_SETTINGS_PREFIX + "authcz.admin_dn";
+    public static final String SECURITY_CONFIG_INDEX_NAME = SECURITY_SETTINGS_PREFIX + "config_index_name";
+    public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = SECURITY_SETTINGS_PREFIX + "authcz.impersonation_dn";
+    public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = SECURITY_SETTINGS_PREFIX + "authcz.rest_impersonation_user";
 
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
 
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = "plugins.security.password.hashing.bcrypt.rounds";
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = SECURITY_SETTINGS_PREFIX + "password.hashing.bcrypt.rounds";
     public static final int SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT = 12;
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR = "plugins.security.password.hashing.bcrypt.minor";
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR = SECURITY_SETTINGS_PREFIX + "password.hashing.bcrypt.minor";
     public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT = "Y";
 
-    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = "plugins.security.password.hashing.algorithm";
+    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = SECURITY_SETTINGS_PREFIX + "password.hashing.algorithm";
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = "plugins.security.password.hashing.pbkdf2.iterations";
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = SECURITY_SETTINGS_PREFIX
+        + "password.hashing.pbkdf2.iterations";
     public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600_000;
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH = "plugins.security.password.hashing.pbkdf2.length";
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH = SECURITY_SETTINGS_PREFIX + "password.hashing.pbkdf2.length";
     public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 256;
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = "plugins.security.password.hashing.pbkdf2.function";
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = SECURITY_SETTINGS_PREFIX + "password.hashing.pbkdf2.function";
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
 
-    public static final String SECURITY_AUDIT_TYPE_DEFAULT = "plugins.security.audit.type";
-    public static final String SECURITY_AUDIT_CONFIG_DEFAULT = "plugins.security.audit.config";
-    public static final String SECURITY_AUDIT_CONFIG_ROUTES = "plugins.security.audit.routes";
-    public static final String SECURITY_AUDIT_CONFIG_ENDPOINTS = "plugins.security.audit.endpoints";
-    public static final String SECURITY_AUDIT_THREADPOOL_SIZE = "plugins.security.audit.threadpool.size";
-    public static final String SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "plugins.security.audit.threadpool.max_queue_len";
+    public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
+    public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";
+    public static final String SECURITY_AUDIT_CONFIG_ROUTES = SECURITY_SETTINGS_PREFIX + "audit.routes";
+    public static final String SECURITY_AUDIT_CONFIG_ENDPOINTS = SECURITY_SETTINGS_PREFIX + "audit.endpoints";
+    public static final String SECURITY_AUDIT_THREADPOOL_SIZE = SECURITY_SETTINGS_PREFIX + "audit.threadpool.size";
+    public static final String SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN = SECURITY_SETTINGS_PREFIX + "audit.threadpool.max_queue_len";
     public static final String OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY = "opendistro_security.audit.log_request_body";
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "opendistro_security.audit.resolve_indices";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "opendistro_security.audit.enable_rest";
@@ -188,13 +194,13 @@ public class ConfigConstants {
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
-    public static final String SECURITY_AUDIT_IGNORE_HEADERS = "plugins.security.audit.ignore_headers";
+    public static final String SECURITY_AUDIT_IGNORE_HEADERS = SECURITY_SETTINGS_PREFIX + "audit.ignore_headers";
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "opendistro_security.audit.resolve_bulk_requests";
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
 
-    public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
+    public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = SECURITY_SETTINGS_PREFIX + "audit.config.";
 
     // Internal Opensearch data_stream
     public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME = "data_stream.name";
@@ -237,31 +243,31 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
 
     // retry
-    public static final String SECURITY_AUDIT_RETRY_COUNT = "plugins.security.audit.config.retry_count";
-    public static final String SECURITY_AUDIT_RETRY_DELAY_MS = "plugins.security.audit.config.retry_delay_ms";
+    public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
+    public static final String SECURITY_AUDIT_RETRY_DELAY_MS = SECURITY_SETTINGS_PREFIX + "audit.config.retry_delay_ms";
 
-    public static final String SECURITY_KERBEROS_KRB5_FILEPATH = "plugins.security.kerberos.krb5_filepath";
-    public static final String SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "plugins.security.kerberos.acceptor_keytab_filepath";
-    public static final String SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = "plugins.security.kerberos.acceptor_principal";
-    public static final String SECURITY_CERT_OID = "plugins.security.cert.oid";
-    public static final String SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS =
-        "plugins.security.cert.intercluster_request_evaluator_class";
-    public static final String SECURITY_ADVANCED_MODULES_ENABLED = "plugins.security.advanced_modules_enabled";
-    public static final String SECURITY_NODES_DN = "plugins.security.nodes_dn";
-    public static final String SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED = "plugins.security.nodes_dn_dynamic_config_enabled";
-    public static final String SECURITY_DISABLED = "plugins.security.disabled";
+    public static final String SECURITY_KERBEROS_KRB5_FILEPATH = SECURITY_SETTINGS_PREFIX + "kerberos.krb5_filepath";
+    public static final String SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = SECURITY_SETTINGS_PREFIX + "kerberos.acceptor_keytab_filepath";
+    public static final String SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = SECURITY_SETTINGS_PREFIX + "kerberos.acceptor_principal";
+    public static final String SECURITY_CERT_OID = SECURITY_SETTINGS_PREFIX + "cert.oid";
+    public static final String SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = SECURITY_SETTINGS_PREFIX
+        + "cert.intercluster_request_evaluator_class";
+    public static final String SECURITY_ADVANCED_MODULES_ENABLED = SECURITY_SETTINGS_PREFIX + "advanced_modules_enabled";
+    public static final String SECURITY_NODES_DN = SECURITY_SETTINGS_PREFIX + "nodes_dn";
+    public static final String SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED = SECURITY_SETTINGS_PREFIX + "nodes_dn_dynamic_config_enabled";
+    public static final String SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
 
-    public static final String SECURITY_CACHE_TTL_MINUTES = "plugins.security.cache.ttl_minutes";
-    public static final String SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = "plugins.security.allow_unsafe_democertificates";
-    public static final String SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = "plugins.security.allow_default_init_securityindex";
+    public static final String SECURITY_CACHE_TTL_MINUTES = SECURITY_SETTINGS_PREFIX + "cache.ttl_minutes";
+    public static final String SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = SECURITY_SETTINGS_PREFIX + "allow_unsafe_democertificates";
+    public static final String SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = SECURITY_SETTINGS_PREFIX + "allow_default_init_securityindex";
 
-    public static final String SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE =
-        "plugins.security.allow_default_init_securityindex.use_cluster_state";
+    public static final String SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE = SECURITY_SETTINGS_PREFIX
+        + "allow_default_init_securityindex.use_cluster_state";
 
-    public static final String SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST =
-        "plugins.security.background_init_if_securityindex_not_exist";
+    public static final String SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST = SECURITY_SETTINGS_PREFIX
+        + "background_init_if_securityindex_not_exist";
 
-    public static final String SECURITY_ROLES_MAPPING_RESOLUTION = "plugins.security.roles_mapping_resolution";
+    public static final String SECURITY_ROLES_MAPPING_RESOLUTION = SECURITY_SETTINGS_PREFIX + "roles_mapping_resolution";
 
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY =
         "opendistro_security.compliance.history.write.metadata_only";
@@ -280,21 +286,22 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED =
         "opendistro_security.compliance.history.external_config_enabled";
     public static final String OPENDISTRO_SECURITY_SOURCE_FIELD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "source_field_context";
-    public static final String SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION =
-        "plugins.security.compliance.disable_anonymous_authentication";
-    public static final String SECURITY_COMPLIANCE_IMMUTABLE_INDICES = "plugins.security.compliance.immutable_indices";
-    public static final String SECURITY_COMPLIANCE_SALT = "plugins.security.compliance.salt";
+    public static final String SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION = SECURITY_SETTINGS_PREFIX
+        + "compliance.disable_anonymous_authentication";
+    public static final String SECURITY_COMPLIANCE_IMMUTABLE_INDICES = SECURITY_SETTINGS_PREFIX + "compliance.immutable_indices";
+    public static final String SECURITY_COMPLIANCE_SALT = SECURITY_SETTINGS_PREFIX + "compliance.salt";
     public static final String SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";// 16 chars
     public static final String SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED =
         "opendistro_security.compliance.history.internal_config_enabled";
-    public static final String SECURITY_SSL_ONLY = "plugins.security.ssl_only";
+    public static final String SECURITY_SSL_ONLY = SECURITY_SETTINGS_PREFIX + "ssl_only";
     public static final String SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "plugins.security_config.ssl_dual_mode_enabled";
     public static final String SECURITY_SSL_DUAL_MODE_SKIP_SECURITY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "passive_security";
     public static final String LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "opendistro_security_config.ssl_dual_mode_enabled";
-    public static final String SECURITY_SSL_CERT_RELOAD_ENABLED = "plugins.security.ssl_cert_reload_enabled";
-    public static final String SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED = "plugins.security.ssl.certificates_hot_reload.enabled";
-    public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = "plugins.security.disable_envvar_replacement";
-    public static final String SECURITY_DFM_EMPTY_OVERRIDES_ALL = "plugins.security.dfm_empty_overrides_all";
+    public static final String SECURITY_SSL_CERT_RELOAD_ENABLED = SECURITY_SETTINGS_PREFIX + "ssl_cert_reload_enabled";
+    public static final String SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED = SECURITY_SETTINGS_PREFIX
+        + "ssl.certificates_hot_reload.enabled";
+    public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = SECURITY_SETTINGS_PREFIX + "disable_envvar_replacement";
+    public static final String SECURITY_DFM_EMPTY_OVERRIDES_ALL = SECURITY_SETTINGS_PREFIX + "dfm_empty_overrides_all";
 
     public enum RolesMappingResolution {
         MAPPING_ONLY,
@@ -302,43 +309,45 @@ public class ConfigConstants {
         BOTH
     }
 
-    public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = "plugins.security.filter_securityindex_from_all_requests";
-    public static final String SECURITY_DLS_MODE = "plugins.security.dls.mode";
+    public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = SECURITY_SETTINGS_PREFIX
+        + "filter_securityindex_from_all_requests";
+    public static final String SECURITY_DLS_MODE = SECURITY_SETTINGS_PREFIX + "dls.mode";
     // REST API
-    public static final String SECURITY_RESTAPI_ROLES_ENABLED = "plugins.security.restapi.roles_enabled";
-    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "plugins.security.restapi.admin.enabled";
-    public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
-    public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
-    public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE =
-        "plugins.security.restapi.password_validation_error_message";
-    public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = "plugins.security.restapi.password_min_length";
-    public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH =
-        "plugins.security.restapi.password_score_based_validation_strength";
+    public static final String SECURITY_RESTAPI_ROLES_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.roles_enabled";
+    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.admin.enabled";
+    public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = SECURITY_SETTINGS_PREFIX + "restapi.endpoints_disabled";
+    public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = SECURITY_SETTINGS_PREFIX + "restapi.password_validation_regex";
+    public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = SECURITY_SETTINGS_PREFIX
+        + "restapi.password_validation_error_message";
+    public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.password_min_length";
+    public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH = SECURITY_SETTINGS_PREFIX
+        + "restapi.password_score_based_validation_strength";
     // Illegal Opcodes from here on
-    public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY =
-        "plugins.security.unsupported.disable_rest_auth_initially";
-    public static final String SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS =
-        "plugins.security.unsupported.delay_initialization_seconds";
-    public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY =
-        "plugins.security.unsupported.disable_intertransport_auth_initially";
-    public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY =
-        "plugins.security.unsupported.passive_intertransport_auth_initially";
-    public static final String SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED =
-        "plugins.security.unsupported.restore.securityindex.enabled";
-    public static final String SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "plugins.security.unsupported.inject_user.enabled";
-    public static final String SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "plugins.security.unsupported.inject_user.admin.enabled";
-    public static final String SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "plugins.security.unsupported.allow_now_in_dls";
+    public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
+        + "unsupported.disable_rest_auth_initially";
+    public static final String SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS = SECURITY_SETTINGS_PREFIX
+        + "unsupported.delay_initialization_seconds";
+    public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
+        + "unsupported.disable_intertransport_auth_initially";
+    public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
+        + "unsupported.passive_intertransport_auth_initially";
+    public static final String SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED = SECURITY_SETTINGS_PREFIX
+        + "unsupported.restore.securityindex.enabled";
+    public static final String SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = SECURITY_SETTINGS_PREFIX + "unsupported.inject_user.enabled";
+    public static final String SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = SECURITY_SETTINGS_PREFIX
+        + "unsupported.inject_user.admin.enabled";
+    public static final String SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = SECURITY_SETTINGS_PREFIX + "unsupported.allow_now_in_dls";
 
-    public static final String SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION =
-        "plugins.security.unsupported.restapi.allow_securityconfig_modification";
-    public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = "plugins.security.unsupported.load_static_resources";
-    public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = "plugins.security.unsupported.accept_invalid_config";
+    public static final String SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = SECURITY_SETTINGS_PREFIX
+        + "unsupported.restapi.allow_securityconfig_modification";
+    public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = SECURITY_SETTINGS_PREFIX + "unsupported.load_static_resources";
+    public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = SECURITY_SETTINGS_PREFIX + "unsupported.accept_invalid_config";
 
-    public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = "plugins.security.protected_indices.enabled";
+    public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
-    public static final String SECURITY_PROTECTED_INDICES_KEY = "plugins.security.protected_indices.indices";
+    public static final String SECURITY_PROTECTED_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.indices";
     public static final List<String> SECURITY_PROTECTED_INDICES_DEFAULT = Collections.emptyList();
-    public static final String SECURITY_PROTECTED_INDICES_ROLES_KEY = "plugins.security.protected_indices.roles";
+    public static final String SECURITY_PROTECTED_INDICES_ROLES_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.roles";
     public static final List<String> SECURITY_PROTECTED_INDICES_ROLES_DEFAULT = Collections.emptyList();
 
     // Roles injection for plugins
@@ -352,19 +361,20 @@ public class ConfigConstants {
 
     // System indices settings
     public static final String SYSTEM_INDEX_PERMISSION = "system:admin/system_index";
-    public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
+    public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
-    public static final String SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY = "plugins.security.system_indices.permission.enabled";
+    public static final String SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY = SECURITY_SETTINGS_PREFIX
+        + "system_indices.permission.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
-    public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
+    public static final String SECURITY_SYSTEM_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
-    public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = "plugins.security.masked_fields.algorithm.default";
+    public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = SECURITY_SETTINGS_PREFIX + "masked_fields.algorithm.default";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
-    public static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
+    public static final String USE_JDK_SERIALIZATION = SECURITY_SETTINGS_PREFIX + "use_jdk_serialization";
 
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
