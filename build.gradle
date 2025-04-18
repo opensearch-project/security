@@ -487,6 +487,7 @@ configurations {
             force "org.mockito:mockito-core:5.17.0"
             force "net.bytebuddy:byte-buddy:1.15.11"
             force "org.ow2.asm:asm:9.7.1"
+            force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
     }
 
@@ -584,7 +585,7 @@ sourceSets {
 //add new task that runs integration tests
 task integrationTest(type: Test) {
     filter {
-        excludeTestsMatching 'org.opensearch.sample.*ResourcePlugin*'
+        excludeTestsMatching 'org.opensearch.sample.*Resource*'
     }
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
