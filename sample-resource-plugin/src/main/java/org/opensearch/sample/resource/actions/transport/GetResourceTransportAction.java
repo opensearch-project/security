@@ -75,7 +75,6 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         this.settings = settings;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
         ResourceSharingClient client = ResourceSharingClientAccessor.getResourceSharingClient();

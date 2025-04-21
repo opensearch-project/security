@@ -45,6 +45,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
         return "share_sample_resource";
     }
 
+    // NOTE: Suppressing warnings should be avoided as it may lead to loosing important information for while root-causing an issue
     @SuppressWarnings("unchecked")
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
@@ -56,8 +57,6 @@ public class ShareResourceRestAction extends BaseRestHandler {
         Map<String, Object> source;
         try (XContentParser parser = request.contentParser()) {
             source = parser.map();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         Map<String, Object> shareWith = (Map<String, Object>) source.get("share_with");

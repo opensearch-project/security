@@ -46,7 +46,6 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
     }
 
-    @SuppressWarnings("unchecked")
     private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(
         "sample_resource",
         true,

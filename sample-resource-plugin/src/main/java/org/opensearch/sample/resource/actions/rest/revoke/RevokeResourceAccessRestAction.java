@@ -45,7 +45,6 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         return "revoke_sample_resource";
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         String resourceId = request.param("resource_id");

@@ -60,11 +60,10 @@ public class CreateResourceRestAction extends BaseRestHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
-        Map<String, String> attributes = source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
+        Map<String, String> attributes = getAttributes(source);
         SampleResource resource = new SampleResource();
         resource.setName(name);
         resource.setDescription(description);
@@ -77,11 +76,10 @@ public class CreateResourceRestAction extends BaseRestHandler {
         );
     }
 
-    @SuppressWarnings("unchecked")
     private RestChannelConsumer createResource(Map<String, Object> source, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
-        Map<String, String> attributes = source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
+        Map<String, String> attributes = getAttributes(source);
         SampleResource resource = new SampleResource();
         resource.setName(name);
         resource.setDescription(description);
@@ -92,5 +90,11 @@ public class CreateResourceRestAction extends BaseRestHandler {
             createSampleResourceRequest,
             new RestToXContentListener<>(channel)
         );
+    }
+
+    // NOTE: Suppressing warnings should be avoided as it may lead to loosing important information for while root-causing an issue
+    @SuppressWarnings("unchecked")
+    private Map<String, String> getAttributes(Map<String, Object> source) {
+        return source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
     }
 }
