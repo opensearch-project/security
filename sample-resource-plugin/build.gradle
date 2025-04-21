@@ -1,0 +1,120 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id "org.gradle.test-retry"
+}
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.testclusters'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+opensearchplugin {
+    name 'opensearch-sample-resource-plugin'
+    description 'Sample plugin that extends OpenSearch Resource Plugin'
+    classname 'org.opensearch.sample.SampleResourcePlugin'
+    extendedPlugins = ['opensearch-security;optional=true']
+}
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+loggerUsageCheck.enabled = false
+validateNebulaPom.enabled = false
+testingConventions.enabled = false
+tasks.configureEach { task ->
+    if(task.name.contains("forbiddenApisIntegrationTest")) {
+        task.enabled = false
+    }
+}
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "beta1")
+
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2',
+                'org.hamcrest:hamcrest:2.2',
+                'org.apache.httpcomponents:httpclient:4.5.14',
+                'org.apache.httpcomponents:httpcore:4.4.16',
+                'org.mockito:mockito-core:5.15.2',
+                'net.bytebuddy:byte-buddy:1.15.11',
+                'commons-codec:commons-codec:1.16.1',
+                'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    }
+}
+
+dependencies {
+    // Main implementation dependencies
+    compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
+    compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+
+    // Integration test dependencies
+    integrationTestImplementation rootProject.sourceSets.integrationTest.output
+    integrationTestImplementation rootProject.sourceSets.main.output
+}
+
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+    }
+}
+
+tasks.register("integrationTest", Test) {
+    doFirst {
+        retry {
+            failOnPassedAfterRetry = false
+            maxRetries = 5
+            maxFailures = 5
+        }
+    }
+    description = 'Run integration tests for the subproject.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+}
+
+// Ensure integrationTest task depends on the root project's compile task
+tasks.named("integrationTest").configure {
+    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
+}
+
+tasks.named("integrationTest") {
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
+}
