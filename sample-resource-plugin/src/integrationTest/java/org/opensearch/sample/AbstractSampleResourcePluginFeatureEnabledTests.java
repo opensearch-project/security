@@ -9,6 +9,7 @@
 package org.opensearch.sample;
 
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -105,10 +106,19 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
             ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource data is populated")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sample"));
+            // Wait until resource-sharing entry is successfully created
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
         }
 
         // Update sample resource (admin should be able to update resource)
@@ -123,7 +133,12 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // resource should be visible to super-admin
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
@@ -154,10 +169,17 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             );
         }
 
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
+        }
+
         // share resource with shared_with user
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
-
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
                 shareWithPayload(sharedUser.getName())
@@ -189,7 +211,6 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
                 revokeAccessPayload(sharedUser.getName())
@@ -226,10 +247,12 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
             TestRestClient.HttpResponse response = client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc/" + resourceSharingDocId);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            Thread.sleep(2000);
-            response = client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search");
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is updated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(0)
+                );
         }
 
         // get sample resource with sharedUser

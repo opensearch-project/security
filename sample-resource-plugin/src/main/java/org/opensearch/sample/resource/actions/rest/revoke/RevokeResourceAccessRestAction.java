@@ -47,7 +47,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         String resourceId = request.param("resource_id");
         if (Strings.isNullOrEmpty(resourceId)) {
             throw new IllegalArgumentException("resource_id parameter is required");
@@ -55,8 +55,6 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         Map<String, Object> source;
         try (XContentParser parser = request.contentParser()) {
             source = parser.map();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(

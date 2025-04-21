@@ -12,6 +12,7 @@ import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,7 +72,6 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-            Thread.sleep(1000);
         }
 
         // Create an entry in resource-sharing index
@@ -98,7 +98,12 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
 
             ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
@@ -136,7 +141,12 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
 
         // share resource with shared_with user
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
 
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
@@ -161,7 +171,12 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
 
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
                 revokeAccessPayload(SHARED_WITH_USER.getName())
@@ -184,7 +199,5 @@ public class SampleResourcePluginSystemIndexDisabledTests extends AbstractSample
             HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
-
     }
-
 }

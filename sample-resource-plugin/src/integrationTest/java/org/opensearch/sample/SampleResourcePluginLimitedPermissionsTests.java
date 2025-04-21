@@ -12,6 +12,7 @@ import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,7 +72,6 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-            Thread.sleep(1000);
         }
 
         // Create an entry in resource-sharing index
@@ -101,7 +101,12 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
 
             ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
 
-            Thread.sleep(1000);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(
+                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    equalTo(1)
+                );
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));

@@ -144,6 +144,5 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
-
     }
 }

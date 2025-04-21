@@ -59,7 +59,6 @@ public class Utils {
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     public final static String PLUGIN_ROUTE_PREFIX = "/" + PLUGINS_PREFIX;
-    public final static String PLUGIN_RESOURCE_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/resources";
 
     @Deprecated
     public final static String LEGACY_PLUGIN_ROUTE_PREFIX = "/" + LEGACY_OPENDISTRO_PREFIX;
