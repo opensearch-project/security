@@ -71,7 +71,6 @@ import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.privileges.dlsfls.FlsStoredFieldVisitor;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
@@ -127,7 +126,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 this.flsFieldInfos = delegate.getFieldInfos();
             }
 
-            dge = new DlsGetEvaluator(dlsQuery, in, applyDlsHere());
+            dge = new DlsGetEvaluator(dlsQuery, in, dlsQuery != null && applyDlsHere());
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
@@ -985,9 +984,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         }
 
         final String action = getRuntimeActionName();
-        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER))) {
-            return false;
-        }
         assert action != null;
         // we need to apply here if it is not a search request
         // (a get for example)

@@ -116,7 +116,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), privilegesEvaluationContext);
         }
 
-        if (isAdmin || privilegesEvaluationContext == null) {
+        if (isAdmin || privilegesEvaluationContext == null || this.dlsFlsBaseContext.isPrivilegedConfigRequest()) {
             return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
                 reader,
                 FieldPrivileges.FlsRule.ALLOW_ALL,
