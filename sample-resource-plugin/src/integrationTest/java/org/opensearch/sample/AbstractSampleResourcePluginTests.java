@@ -19,7 +19,7 @@ import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFI
 
 /**
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
- * instantiated directly. It is extended by {@link AbstractSampleResourcePluginFeatureEnabledTests}, {@link SampleResourcePluginFeatureDisabledTests}, {@link org.opensearch.sample.nonsystemindex.AbstractResourcePluginNonSystemIndexTests}
+ * instantiated directly. It is extended by {@link AbstractSampleResourcePluginFeatureEnabledTests}, {@link SampleResourcePluginFeatureDisabledTests}
  */
 public abstract class AbstractSampleResourcePluginTests {
 
@@ -54,10 +54,23 @@ public abstract class AbstractSampleResourcePluginTests {
     }
 
     protected static String shareWithPayload(String user) {
-        return "{" + "\"share_with\":{" + "\"users\": [\"" + user + "\"]" + "}" + "}";
+        return """
+            {
+              "share_with": {
+                "users": ["%s"]
+              }
+            }
+            """.formatted(user);
     }
 
     protected static String revokeAccessPayload(String user) {
-        return "{" + "\"entities_to_revoke\": {" + "\"users\": [\"" + user + "\"]" + "}" + "}";
+        return """
+            {
+              "entities_to_revoke": {
+                "users": ["%s"]
+              }
+            }
+            """.formatted(user);
+
     }
 }

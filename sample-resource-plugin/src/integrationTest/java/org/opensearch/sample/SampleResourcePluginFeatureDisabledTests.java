@@ -69,7 +69,10 @@ public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleReso
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResource = "{\"name\":\"sample\"}";
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
             HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 

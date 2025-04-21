@@ -71,7 +71,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResource = "{\"name\":\"sample\"}";
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
             HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 
@@ -81,18 +84,15 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
         // Create an entry in resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
-            String json = String.format(
-                "{"
-                    + "  \"source_idx\": \""
-                    + RESOURCE_INDEX_NAME
-                    + "\","
-                    + "  \"resource_id\": \"%s\","
-                    + "  \"created_by\": {"
-                    + "    \"user\": \"admin\""
-                    + "  }"
-                    + "}",
-                resourceId
-            );
+            String json = """
+                {
+                  "source_idx": "%s",
+                  "resource_id": "%s",
+                  "created_by": {
+                    "user": "admin"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, resourceId);
             HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
             // Also update the in-memory map and get
@@ -141,7 +141,10 @@ public class SampleResourcePluginTests extends AbstractSampleResourcePluginFeatu
 
         // Update sample resource (shared_with_user cannot update admin's resource) because system index protection is enabled
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             TestRestClient.HttpResponse updateResponse = client.postJson(
                 RESOURCE_INDEX_NAME + "/_doc/" + resourceId,
                 sampleResourceUpdated

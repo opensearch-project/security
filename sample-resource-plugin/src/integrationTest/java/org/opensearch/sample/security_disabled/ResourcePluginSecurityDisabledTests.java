@@ -64,7 +64,10 @@ public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourceP
     @Test
     public void testSamplePluginAPIs() {
         try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            String sampleResource = "{\"name\":\"sample\"}";
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
             TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
             String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
@@ -76,7 +79,10 @@ public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourceP
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             response = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             response.assertStatusCode(HttpStatus.SC_OK);
 

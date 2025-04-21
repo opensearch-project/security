@@ -67,7 +67,10 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            String sampleResource = "{\"name\":\"sample\"}";
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
             HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 
@@ -78,19 +81,16 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
 
-            String json = String.format(
-                "{"
-                    + "  \"source_idx\": \""
-                    + RESOURCE_INDEX_NAME
-                    + "\","
-                    + "  \"resource_id\": \"%s\","
-                    + "  \"created_by\": {"
-                    + "    \"user\": \"%s\""
-                    + "  }"
-                    + "}",
-                resourceId,
-                SHARED_WITH_USER_LIMITED_PERMISSIONS.getName()
-            );
+            String json = """
+                {
+                  "source_idx": "%s",
+                  "resource_id": "%s",
+                  "created_by": {
+                    "user": "%s"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, resourceId, SHARED_WITH_USER_LIMITED_PERMISSIONS.getName());
+
             HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
 
@@ -121,7 +121,10 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
 
         // Update user's sample resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             // cannot update because this user doesnt have access to update API
             updateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -135,7 +138,10 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
 
         // User admin should not be able to update, since resource is not shared with it
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             // cannot update because this user doesnt have access to the resource
             updateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -143,7 +149,10 @@ public class SampleResourcePluginLimitedPermissionsTests extends AbstractSampleR
 
         // Super admin can update the resource
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             // cannot update because this user doesnt have access to update API
             updateResponse.assertStatusCode(HttpStatus.SC_OK);

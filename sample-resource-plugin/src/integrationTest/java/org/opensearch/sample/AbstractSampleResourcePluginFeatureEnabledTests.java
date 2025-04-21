@@ -76,7 +76,10 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         String resourceSharingDocId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResource = "{\"name\":\"sample\"}";
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
             TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 
@@ -86,16 +89,16 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
         // Create an entry in resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
-            String json = String.format(
-                "{"
-                    + "  \"source_idx\": \".sample_resource_sharing_plugin\","
-                    + "  \"resource_id\": \"%s\","
-                    + "  \"created_by\": {"
-                    + "    \"user\": \"admin\""
-                    + "  }"
-                    + "}",
-                resourceId
-            );
+            String json = """
+                {
+                  "source_idx": ".sample_resource_sharing_plugin",
+                  "resource_id": "%s",
+                  "created_by": {
+                    "user": "admin"
+                  }
+                }
+                """.formatted(resourceId);
+
             TestRestClient.HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
             resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
@@ -123,7 +126,10 @@ public abstract class AbstractSampleResourcePluginFeatureEnabledTests extends Ab
 
         // Update sample resource (admin should be able to update resource)
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResourceUpdated = "{\"name\":\"sampleUpdated\"}";
+            String sampleResourceUpdated = """
+                {"name":"sampleUpdated"}
+                """;
+
             TestRestClient.HttpResponse updateResponse = client.postJson(
                 SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId,
                 sampleResourceUpdated
