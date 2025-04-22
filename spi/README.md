@@ -137,9 +137,7 @@ public class ResourceSharingClientAccessor {
      * Get the resource sharing client
      */
     public ResourceSharingClient getResourceSharingClient() {
-      return resourceSharingClientAccessor.CLIENT == null
-              ? new NoopResourceSharingClient()
-              : resourceSharingClientAccessor.CLIENT;
+      return resourceSharingClientAccessor.CLIENT;
     }
 }
 ```
@@ -164,35 +162,40 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
     listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
     return;
   }
+  ActionListener<DeleteResponse> deleteResponseListener = ActionListener.wrap(deleteResponse -> {
+    if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
+      listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
+    } else {
+      listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
+    }
+  }, exception -> {
+    log.error("Failed to delete resource: " + resourceId, exception);
+    listener.onFailure(exception);
+  });
 
   // Check permission to resource
   ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+  if (resourceSharingClient == null) {
+    deleteResource(resourceId, deleteResponseListener);
+    return;
+  }
   resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-      if (!isAuthorized) {
-        listener.onFailure(
-                new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)
-        );
-        return;
-      }
+    if (!isAuthorized) {
+      listener.onFailure(
+              new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)
+      );
+      return;
+    }
 
-      // Authorization successful, proceed with deletion
-      ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-      try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-        deleteResource(resourceId, ActionListener.wrap(deleteResponse -> {
-          if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-            listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
-          } else {
-            listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
-          }
-        }, exception -> {
-          log.error("Failed to delete resource: " + resourceId, exception);
-          listener.onFailure(exception);
-        }));
-      }
-    }, exception -> {
-      log.error("Failed to verify resource access: " + resourceId, exception);
-      listener.onFailure(exception);
-    }));
+    // Authorization successful, proceed with deletion
+    ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+    try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+      deleteResource(resourceId, deleteResponseListener);
+    }
+  }, exception -> {
+    log.error("Failed to verify resource access: " + resourceId, exception);
+    listener.onFailure(exception);
+  }));
 }
 
 private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {
