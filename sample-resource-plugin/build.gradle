@@ -4,6 +4,7 @@
  */
 
 plugins {
+    id 'jacoco'
     id "org.gradle.test-retry"
 }
 apply plugin: 'opensearch.opensearchplugin'
@@ -109,12 +110,53 @@ tasks.register("integrationTest", Test) {
 
 }
 
-// Ensure integrationTest task depends on the root project's compile task
-tasks.named("integrationTest").configure {
-    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
-}
 
 tasks.named("integrationTest") {
     minHeapSize = "512m"
     maxHeapSize = "2g"
 }
+
+jacoco {
+    reportsDirectory = file("$buildDir/reports/jacoco")
+}
+
+// Ensure integrationTest task depends on the root project's compile task
+tasks.named("integrationTest").configure {
+    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
+}
+
+// report covering both sample & root plugin classes
+tasks.register('jacocoSamplePluginReport', JacocoReport) {
+    dependsOn integrationTest
+
+    executionData = fileTree(dir: buildDir, include: 'jacoco/*.exec')
+    def sampleClasses = sourceSets.main.output.classesDirs
+    def rootClasses   = project(':').sourceSets.main.output.classesDirs
+    def filteredRootClasses = rootClasses.collect { outDir ->
+        fileTree(dir: outDir, include: [
+                'org/opensearch/security/spi/resources/**/*.class',
+                'org/opensearch/security/resources/**/*.class',
+                'org/opensearch/security/OpenSearchSecurityPlugin.class'
+        ])
+    }
+    def spiClasses = project(':opensearch-security-spi').sourceSets.main.output.classesDirs
+    classDirectories  = files(sampleClasses, filteredRootClasses, spiClasses)
+
+    def sampleSrc = sourceSets.main.allSource.srcDirs
+    def rootSrc   = project(':').sourceSets.main.allSource.srcDirs
+    def filteredRootSrc = rootSrc.collect { srcDir ->
+        fileTree(dir: srcDir, include: [
+                'org/opensearch/security/spi/resources/**/*.java',
+                'org/opensearch/security/resources/**/*.java',
+                'org/opensearch/security/OpenSearchSecurityPlugin.java'
+        ])
+    }
+    def spiSrc = project(':opensearch-security-spi').sourceSets.main.allSource.srcDirs
+    sourceDirectories = files(sampleSrc, filteredRootSrc, spiSrc)
+
+    reports {
+        xml.required  = true
+    }
+}
+
+integrationTest.finalizedBy 'jacocoSamplePluginReport'
