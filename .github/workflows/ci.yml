@@ -350,7 +350,7 @@ jobs:
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
           path: |
-            ./build/reports/
+            ./sample-resource-plugin/build/reports/
 
   sample-plugin-integration-tests-windows:
     name: sample-plugin-integration-tests
@@ -389,7 +389,7 @@ jobs:
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
           path: |
-            ./build/reports/
+            ./sample-resource-plugin/build/reports/
 
   resource-tests:
     env:

@@ -120,14 +120,9 @@ jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
 }
 
-// Ensure integrationTest task depends on the root project's compile task
-tasks.named("integrationTest").configure {
-    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
-}
-
 // report covering both sample & root plugin classes
 tasks.register('jacocoSamplePluginReport', JacocoReport) {
-    dependsOn integrationTest
+    dependsOn tasks.named("integrationTest")
 
     executionData = fileTree(dir: buildDir, include: 'jacoco/*.exec')
     def sampleClasses = sourceSets.main.output.classesDirs
@@ -159,4 +154,8 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
     }
 }
 
-integrationTest.finalizedBy 'jacocoSamplePluginReport'
+// Ensure integrationTest task depends on the root project's compile task
+tasks.named("integrationTest").configure {
+    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
+    finalizedBy jacocoSamplePluginReport
+}
