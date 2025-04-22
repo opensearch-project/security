@@ -15,21 +15,31 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  * Accessor for resource sharing client supplied by the SPI.
  */
 public class ResourceSharingClientAccessor {
-    private static ResourceSharingClient CLIENT;
+    private ResourceSharingClient CLIENT;
+
+    private static ResourceSharingClientAccessor resourceSharingClientAccessor;
 
     private ResourceSharingClientAccessor() {}
+
+    public static ResourceSharingClientAccessor getInstance() {
+        if (resourceSharingClientAccessor == null) {
+            resourceSharingClientAccessor = new ResourceSharingClientAccessor();
+        }
+
+        return resourceSharingClientAccessor;
+    }
 
     /**
      * Set the resource sharing client
      */
-    public static void setResourceSharingClient(ResourceSharingClient client) {
-        CLIENT = client;
+    public void setResourceSharingClient(ResourceSharingClient client) {
+        resourceSharingClientAccessor.CLIENT = client;
     }
 
     /**
      * Get the resource sharing client
      */
-    public static ResourceSharingClient getResourceSharingClient() {
-        return CLIENT == null ? new NoopResourceSharingClient() : CLIENT;
+    public ResourceSharingClient getResourceSharingClient() {
+        return resourceSharingClientAccessor.CLIENT == null ? new NoopResourceSharingClient() : resourceSharingClientAccessor.CLIENT;
     }
 }

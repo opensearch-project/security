@@ -43,7 +43,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
+        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, request.getShareWith(), ActionListener.wrap(sharing -> {
             ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
             log.debug("Shared resource: {}", response.toString());

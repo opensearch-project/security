@@ -128,7 +128,7 @@ public class SampleResourcePluginTests {
             ResourceProvider provider = new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME);
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
-            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
+            ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Awaitility.await()
                 .alias("Wait until resource data is populated")
@@ -331,7 +331,7 @@ public class SampleResourcePluginTests {
             ResourceProvider provider = new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME);
             resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
 
-            ResourceSharingClientAccessor.setResourceSharingClient(createResourceAccessControlClient(cluster));
+            ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")

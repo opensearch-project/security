@@ -81,7 +81,7 @@ public class SampleResourceSharingExtension implements ResourceSharingExtension 
 
     @Override
     public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-      ResourceSharingClientAccessor.setResourceSharingClient(resourceSharingClient);
+      ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
     }
 }
 ```
@@ -112,23 +112,35 @@ To ensure a single instance of the `ResourceSharingClient`. CLIENT will be set b
  * Accessor for resource sharing client supplied by the SPI.
  */
 public class ResourceSharingClientAccessor {
-  private static ResourceSharingClient CLIENT;
+    private ResourceSharingClient CLIENT;
 
-  private ResourceSharingClientAccessor() {}
+    private static ResourceSharingClientAccessor resourceSharingClientAccessor;
 
-  /**
-   * Set the resource sharing client
-   */
-  public static void setResourceSharingClient(ResourceSharingClient client) {
-    CLIENT = client;
-  }
+    private ResourceSharingClientAccessor() {}
 
-  /**
-   * Get the resource sharing client
-   */
-  public static ResourceSharingClient getResourceSharingClient() {
-    return CLIENT == null ? new NoopResourceSharingClient() : CLIENT;
-  }
+    public static ResourceSharingClientAccessor getInstance() {
+      if (resourceSharingClientAccessor == null) {
+        resourceSharingClientAccessor = new ResourceSharingClientAccessor();
+      }
+
+      return resourceSharingClientAccessor;
+    }
+
+    /**
+     * Set the resource sharing client
+     */
+    public void setResourceSharingClient(ResourceSharingClient client) {
+      resourceSharingClientAccessor.CLIENT = client;
+    }
+
+    /**
+     * Get the resource sharing client
+     */
+    public ResourceSharingClient getResourceSharingClient() {
+      return resourceSharingClientAccessor.CLIENT == null
+              ? new NoopResourceSharingClient()
+              : resourceSharingClientAccessor.CLIENT;
+    }
 }
 ```
 
@@ -154,7 +166,7 @@ protected void doExecute(Task task, DeleteResourceRequest request, ActionListene
   }
 
   // Check permission to resource
-  ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
+  ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
   resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
       if (!isAuthorized) {
         listener.onFailure(

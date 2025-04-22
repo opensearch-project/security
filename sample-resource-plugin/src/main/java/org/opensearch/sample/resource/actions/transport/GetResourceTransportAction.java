@@ -77,7 +77,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient client = ResourceSharingClientAccessor.getResourceSharingClient();
+        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {

@@ -233,7 +233,7 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
         return;
     }
 
-    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getResourceSharingClient();
+    ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
     resourceSharingClient.share(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
