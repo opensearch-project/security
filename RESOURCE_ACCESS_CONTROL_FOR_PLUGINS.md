@@ -234,6 +234,13 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
     }
 
     ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+    if (resourceSharingClient == null) {
+        log.debug("Resource Access Control feature is not available");
+        listener.onFailure(
+                new OpenSearchStatusException("Resource Access Control feature is not available", RestStatus.NOT_IMPLEMENTED)
+        );
+        return;
+    }
     resourceSharingClient.share(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,

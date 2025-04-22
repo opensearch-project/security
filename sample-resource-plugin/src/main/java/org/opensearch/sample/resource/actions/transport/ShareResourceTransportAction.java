@@ -11,10 +11,12 @@ package org.opensearch.sample.resource.actions.transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceResponse;
@@ -44,6 +46,13 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
         }
 
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+        if (resourceSharingClient == null) {
+            log.debug("Resource Access Control feature is not available");
+            listener.onFailure(
+                new OpenSearchStatusException("Resource Access Control feature is not available", RestStatus.NOT_IMPLEMENTED)
+            );
+            return;
+        }
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, request.getShareWith(), ActionListener.wrap(sharing -> {
             ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
             log.debug("Shared resource: {}", response.toString());

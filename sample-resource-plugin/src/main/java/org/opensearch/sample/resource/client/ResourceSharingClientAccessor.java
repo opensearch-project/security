@@ -8,7 +8,6 @@
 
 package org.opensearch.sample.resource.client;
 
-import org.opensearch.security.spi.resources.client.NoopResourceSharingClient;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 /**
@@ -40,6 +39,6 @@ public class ResourceSharingClientAccessor {
      * Get the resource sharing client
      */
     public ResourceSharingClient getResourceSharingClient() {
-        return resourceSharingClientAccessor.CLIENT == null ? new NoopResourceSharingClient() : resourceSharingClientAccessor.CLIENT;
+        return resourceSharingClientAccessor.CLIENT;
     }
 }

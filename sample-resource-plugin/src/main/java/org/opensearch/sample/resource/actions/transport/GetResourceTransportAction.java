@@ -49,8 +49,6 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 
 /**
  * Transport action for getting a resource
@@ -88,23 +86,25 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     }
 
     private void fetchAllResources(ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
-        boolean sharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
-
-        if (sharingEnabled) {
-            client.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
-                if (ids.isEmpty()) {
-                    listener.onResponse(new GetResourceResponse(Collections.emptySet()));
-                } else {
-                    fetchResourcesByIds(ids, listener);
-                }
-            }, listener::onFailure));
-        } else {
-            // feature disabled → return everything
+        if (client == null) {
             fetchResourcesByIds(null, listener);
+            return;
         }
+
+        client.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
+            if (ids.isEmpty()) {
+                listener.onResponse(new GetResourceResponse(Collections.emptySet()));
+            } else {
+                fetchResourcesByIds(ids, listener);
+            }
+        }, listener::onFailure));
     }
 
     private void verifyAndFetchSingle(String resourceId, ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
+        if (client == null) {
+            fetchResourceById(resourceId, listener);
+            return;
+        }
         client.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
             if (!authorized) {
                 listener.onFailure(new OpenSearchStatusException("Not authorized to access resource: " + resourceId, RestStatus.FORBIDDEN));

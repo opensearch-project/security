@@ -11,10 +11,12 @@ package org.opensearch.sample.resource.actions.transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRequest;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessResponse;
@@ -39,6 +41,14 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+        if (resourceSharingClient == null) {
+            log.debug("Resource Access Control feature is not available");
+            listener.onFailure(
+                new OpenSearchStatusException("Resource Access Control feature is not available", RestStatus.NOT_IMPLEMENTED)
+            );
+            return;
+        }
+
         resourceSharingClient.revoke(
             request.getResourceId(),
             RESOURCE_INDEX_NAME,
@@ -49,6 +59,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
                 listener.onResponse(response);
             }, listener::onFailure)
         );
+
     }
 
 }

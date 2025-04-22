@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.security_disabled;
+package org.opensearch.sample;
 
 import java.util.Map;
 
@@ -18,8 +18,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.sample.SampleResourcePlugin;
-import org.opensearch.sample.SampleResourcePluginTestHelper;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -35,7 +33,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class ResourcePluginSecurityDisabledTests extends SampleResourcePluginTestHelper {
+public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePluginTestHelper {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -100,6 +98,6 @@ public class ResourcePluginSecurityDisabledTests extends SampleResourcePluginTes
 
     private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
         response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
-        assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Security plugin is disabled"));
+        assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Resource Access Control feature is not available"));
     }
 }

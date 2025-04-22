@@ -61,6 +61,10 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
         }
         // Check permission to resource
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+        if (resourceSharingClient == null) {
+            updateResource(request, listener);
+            return;
+        }
         resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(
