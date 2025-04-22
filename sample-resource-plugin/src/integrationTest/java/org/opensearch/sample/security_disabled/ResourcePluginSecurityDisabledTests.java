@@ -18,8 +18,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.sample.AbstractSampleResourcePluginTests;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.SampleResourcePluginTestHelper;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -35,7 +35,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class ResourcePluginSecurityDisabledTests extends AbstractSampleResourcePluginTests {
+public class ResourcePluginSecurityDisabledTests extends SampleResourcePluginTestHelper {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

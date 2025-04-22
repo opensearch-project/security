@@ -19,9 +19,9 @@ import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFI
 
 /**
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
- * instantiated directly. It is extended by {@link AbstractSampleResourcePluginFeatureEnabledTests}, {@link SampleResourcePluginFeatureDisabledTests}
+ * instantiated directly. It is extended by {@link SampleResourcePluginLimitedPermissionsTests}, {@link SampleResourcePluginSystemIndexDisabledTests}, {@link SampleResourcePluginTests}, {@link SampleResourcePluginFeatureDisabledTests}
  */
-public abstract class AbstractSampleResourcePluginTests {
+public abstract class SampleResourcePluginTestHelper {
 
     protected final static TestSecurityConfig.User SHARED_WITH_USER = new TestSecurityConfig.User("resource_sharing_test_user").roles(
         new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*")

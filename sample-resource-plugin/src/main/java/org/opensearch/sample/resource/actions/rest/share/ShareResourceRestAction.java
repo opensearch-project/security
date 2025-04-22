@@ -45,7 +45,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
         return "share_sample_resource";
     }
 
-    // NOTE: Suppressing warnings should be avoided as it may lead to loosing important information for while root-causing an issue
+    // NOTE: Do NOT use @SuppressWarnings("unchecked") on untrusted data in production code. This is used here only to keep the code simple
     @SuppressWarnings("unchecked")
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {

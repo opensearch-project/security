@@ -26,6 +26,15 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
@@ -37,7 +46,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginFeatureDisabledTests extends AbstractSampleResourcePluginTests {
+public class SampleResourcePluginFeatureDisabledTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
