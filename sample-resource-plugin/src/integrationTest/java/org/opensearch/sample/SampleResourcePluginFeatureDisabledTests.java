@@ -133,7 +133,7 @@ public class SampleResourcePluginFeatureDisabledTests {
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
                 shareWithPayload(SHARED_WITH_USER.getName())
             );
-            updateResponse.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
+            updateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
         }
 
         // shared_with_user is able to call sample revoke api
@@ -142,7 +142,7 @@ public class SampleResourcePluginFeatureDisabledTests {
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
                 revokeAccessPayload(SHARED_WITH_USER.getName())
             );
-            updateResponse.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
+            updateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
         }
 
         // delete sample resource - share_with user delete admin user's resource

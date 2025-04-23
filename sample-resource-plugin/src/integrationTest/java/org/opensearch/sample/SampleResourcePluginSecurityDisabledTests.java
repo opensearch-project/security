@@ -97,7 +97,7 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
     }
 
     private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
-        response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
-        assertThat(response.getTextFromJsonBody("/error/reason"), containsString("Resource Access Control feature is not available"));
+        response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+        assertThat(response.getTextFromJsonBody("/error"), containsString("no handler found for uri"));
     }
 }

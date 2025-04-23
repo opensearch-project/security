@@ -8,6 +8,7 @@
  */
 package org.opensearch.sample;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +60,8 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 
 /**
  * Sample Resource plugin.
@@ -67,6 +70,11 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
+    private boolean isResourceSharingEnabled = false;
+
+    public SampleResourcePlugin(final Settings settings) {
+        isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
+    }
 
     @Override
     public Collection<Object> createComponents(
@@ -95,25 +103,30 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(
-            new CreateResourceRestAction(),
-            new GetResourceRestAction(),
-            new DeleteResourceRestAction(),
-            new ShareResourceRestAction(),
-            new RevokeResourceAccessRestAction()
-        );
+        List<RestHandler> handlers = new ArrayList<>();
+        handlers.add(new CreateResourceRestAction());
+        handlers.add(new GetResourceRestAction());
+        handlers.add(new DeleteResourceRestAction());
+
+        if (isResourceSharingEnabled) {
+            handlers.add(new ShareResourceRestAction());
+            handlers.add(new RevokeResourceAccessRestAction());
+        }
+        return handlers;
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-        return List.of(
-            new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
-            new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class),
-            new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class),
-            new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class),
-            new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
-            new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class)
-        );
+        List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>();
+        actions.add(new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class));
+        actions.add(new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class));
+        actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
+        actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
+        if (isResourceSharingEnabled) {
+            actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
+            actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
+        }
+        return actions;
     }
 
     @Override
