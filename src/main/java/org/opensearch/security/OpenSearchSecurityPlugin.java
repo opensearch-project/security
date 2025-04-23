@@ -58,6 +58,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -738,10 +739,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Listening on POST and DELETE operations in resource indices
             ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
 
+            Set<String> resourceIndices = resourcePluginInfo.getResourceSharingExtensions()
+                .stream()
+                .flatMap(ext -> ext.getResourceProviders().stream().map(ResourceProvider::resourceIndexName))
+                .collect(Collectors.toSet());
+
             if (settings.getAsBoolean(
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            ) && resourcePluginInfo.getResourceIndices().contains(indexModule.getIndex().getName())) {
+            ) && resourceIndices.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceIndexListener);
                 log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
@@ -2205,16 +2211,27 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+        List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
+
         final String indexPattern = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
-            ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
-            "Resource Sharing index"
-        );
-        return List.of(securityIndexDescriptor, resourceSharingIndexDescriptor);
+        systemIndexDescriptors.add(securityIndexDescriptor);
+        if (settings != null
+            && settings.getAsBoolean(
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+            final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
+                ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+                "Resource Sharing index"
+            );
+            systemIndexDescriptors.add(resourceSharingIndexDescriptor);
+        }
+
+        return ImmutableList.copyOf(systemIndexDescriptors);
     }
 
     @Override
@@ -2281,18 +2298,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         )) {
-            Set<String> resourceIndices = new HashSet<>();
-            Map<String, ResourceProvider> resourceProviders = new HashMap<>();
-            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
-            for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
-                for (ResourceProvider provider : extension.getResourceProviders()) {
-                    resourceProviders.put(provider.resourceIndexName(), provider);
-                    resourceIndices.add(provider.resourceIndexName());
-                }
-                resourceSharingExtensions.add(extension);
-            }
-            resourcePluginInfo.setResourceIndices(resourceIndices);
-            resourcePluginInfo.setResourceProviders(resourceProviders);
+            // load all resource-sharing extensions
+            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
             resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
         }
     }

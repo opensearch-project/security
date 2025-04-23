@@ -222,7 +222,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Returns an empty get instead of throwing exceptions</li>
      * </ul>
      */
-    public void fetchAccessibleResourceIds(String pluginIndex, ActionListener<Set<String>> listener) {
+    public void fetchAllResourceIds(String pluginIndex, ActionListener<Set<String>> listener) {
         LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 

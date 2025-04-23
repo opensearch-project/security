@@ -9,15 +9,11 @@
 package org.opensearch.security.resources;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 
 /**
@@ -28,32 +24,10 @@ import org.opensearch.security.spi.resources.ResourceSharingExtension;
  */
 public class ResourcePluginInfo {
 
-    private final Map<String, ResourceProvider> resourceProviderMap = new HashMap<>();
-    private final Set<String> resourceIndices = new HashSet<>();
-
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
-    public void setResourceProviders(Map<String, ResourceProvider> providerMap) {
-        resourceProviderMap.clear();
-        resourceProviderMap.putAll(providerMap);
-    }
-
-    public void setResourceIndices(Set<String> indices) {
-        resourceIndices.clear();
-        resourceIndices.addAll(indices);
-    }
-
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
-        resourceSharingExtensions.clear();
         resourceSharingExtensions.addAll(extensions);
-    }
-
-    public Map<String, ResourceProvider> getResourceProviders() {
-        return ImmutableMap.copyOf(resourceProviderMap);
-    }
-
-    public Set<String> getResourceIndices() {
-        return ImmutableSet.copyOf(resourceIndices);
     }
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
@@ -61,12 +35,8 @@ public class ResourcePluginInfo {
     }
 
     // TODO following should be removed once core test framework allows loading extended classes
-    public Map<String, ResourceProvider> getResourceProvidersMutable() {
-        return resourceProviderMap;
-    }
-
-    public Set<String> getResourceIndicesMutable() {
-        return resourceIndices;
+    public Set<ResourceSharingExtension> getResourceSharingExtensionsMutable() {
+        return resourceSharingExtensions;
     }
 
 }

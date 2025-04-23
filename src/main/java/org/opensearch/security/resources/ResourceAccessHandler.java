@@ -37,6 +37,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import reactor.util.annotation.NonNull;
+
 /**
  * This class handles resource access permissions for users, roles and backend-roles.
  * It provides methods to check if a user has permission to access a resource
@@ -67,7 +69,7 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to check for accessible resources.
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
-    public void getAccessibleResourceIdsForCurrentUser(String resourceIndex, ActionListener<Set<String>> listener) {
+    public void getAccessibleResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
         UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         User user = userSub == null ? null : userSub.getUser();
 
@@ -122,9 +124,12 @@ public class ResourceAccessHandler {
      * @param actionGroups  The set of action groups to check permission for.
      * @param listener      The listener to be notified with the permission check result.
      */
-    public void hasPermission(String resourceId, String resourceIndex, Set<String> actionGroups, ActionListener<Boolean> listener) {
-        validateArguments(resourceId, resourceIndex, actionGroups);
-
+    public void hasPermission(
+        @NonNull String resourceId,
+        @NonNull String resourceIndex,
+        @NonNull Set<String> actionGroups,
+        ActionListener<Boolean> listener
+    ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -193,9 +198,12 @@ public class ResourceAccessHandler {
      * @param shareWith     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void shareWith(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
-        validateArguments(resourceId, resourceIndex, shareWith);
-
+    public void shareWith(
+        @NonNull String resourceId,
+        @NonNull String resourceIndex,
+        @NonNull ShareWith shareWith,
+        ActionListener<ResourceSharing> listener
+    ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -242,14 +250,12 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void revokeAccess(
-        String resourceId,
-        String resourceIndex,
-        SharedWithActionGroup.ActionGroupRecipients revokeAccess,
-        Set<String> actionGroups,
+        @NonNull String resourceId,
+        @NonNull String resourceIndex,
+        @NonNull SharedWithActionGroup.ActionGroupRecipients revokeAccess,
+        @NonNull Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {
-        validateArguments(resourceId, resourceIndex, revokeAccess, actionGroups);
-
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -306,7 +312,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource IDs.
      */
     private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
-        this.resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, listener);
+        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
     /**
@@ -376,26 +382,8 @@ public class ResourceAccessHandler {
                 SharedWithActionGroup.ActionGroupRecipients aGs = sharedWithActionGroup.getSharedWithPerActionGroup();
                 Map<Recipient, Set<String>> recipients = aGs.getRecipients();
 
-                return switch (recipient) {
-                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.getOrDefault(recipient, Set.of())
-                        .contains(entity);
-                };
+                return recipients.getOrDefault(recipient, Set.of()).contains(entity);
             })
             .orElse(false); // Return false if no matching action-group is found
-    }
-
-    private void validateArguments(Object... args) {
-        if (args == null) {
-            throw new IllegalArgumentException("Arguments cannot be null");
-        }
-        for (Object arg : args) {
-            if (arg == null) {
-                throw new IllegalArgumentException("Argument cannot be null");
-            }
-            // Additional check for String type arguments
-            if (arg instanceof String && ((String) arg).trim().isEmpty()) {
-                throw new IllegalArgumentException("Arguments cannot be empty");
-            }
-        }
     }
 }

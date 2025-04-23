@@ -23,7 +23,7 @@ import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
-import org.opensearch.security.spi.resources.ResourceProvider;
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -56,6 +56,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 public class SampleResourcePluginSystemIndexDisabledTests {
 
     ResourcePluginInfo resourcePluginInfo;
+    ResourceSharingExtension resourceSharingExtension;
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -69,6 +70,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
     @Before
     public void setup() {
         resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
+        resourceSharingExtension = new SampleResourceExtension();
     }
 
     @After
@@ -76,8 +78,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            resourcePluginInfo.getResourceIndicesMutable().remove(RESOURCE_INDEX_NAME);
-            resourcePluginInfo.getResourceProvidersMutable().remove(RESOURCE_INDEX_NAME);
+            resourcePluginInfo.getResourceSharingExtensionsMutable().remove(resourceSharingExtension);
         }
     }
 
@@ -122,10 +123,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
             TestRestClient.HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
             resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
-            // Also update the in-memory map and get
-            resourcePluginInfo.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
-            ResourceProvider provider = new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME);
-            resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            resourcePluginInfo.getResourceSharingExtensionsMutable().add(resourceSharingExtension);
 
             ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
 
@@ -324,10 +322,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
 
             HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
             assertThat(response.getStatusReason(), containsString("Created"));
-            // Also update the in-memory map and get
-            resourcePluginInfo.getResourceIndicesMutable().add(RESOURCE_INDEX_NAME);
-            ResourceProvider provider = new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME);
-            resourcePluginInfo.getResourceProvidersMutable().put(RESOURCE_INDEX_NAME, provider);
+            resourcePluginInfo.getResourceSharingExtensionsMutable().add(resourceSharingExtension);
 
             ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
 

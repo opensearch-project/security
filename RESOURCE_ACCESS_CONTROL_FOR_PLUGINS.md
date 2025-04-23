@@ -22,7 +22,7 @@ This feature introduces **one primary component** for plugin developers:
 
 ### **Plugin Implementation Requirements:**
 
-- This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **disabled by default**.
+- This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.experimental.resource_sharing.enabled`**, which is **disabled by default**.
 - **Resource indices must be system indices**, and **system index protection must be enabled** (`plugins.security.system_indices.enabled: true`) to prevent unauthorized direct access.
 - Plugins must declare dependency on **`opensearch-security-spi`** in their `build.gradle`.
 
@@ -57,11 +57,11 @@ opensearchplugin {
 ## **3. Feature Flag**
 This feature is controlled by the following flag:
 
-- **Feature flag:** `plugins.security.resource_sharing.enabled`
+- **Feature flag:** `plugins.security.experimental.resource_sharing.enabled`
 - **Default value:** `false`
 - **How to enable?** Set the flag to `true` in the opensearch configuration:
   ```yaml
-  plugins.security.resource_sharing.enabled: true
+  plugins.security.experimental.resource_sharing.enabled: true
   ```
 
 ---
@@ -443,7 +443,7 @@ sample_read_access:
 ---
 
 ### **Additional Notes**
-- **Feature Flag:** These APIs are available only when `plugins.security.resource_sharing.enabled` is set to `true` in the configuration.
+- **Feature Flag:** These APIs are available only when `plugins.security.experimental.resource_sharing.enabled` is set to `true` in the configuration.
 - **Index Restrictions:** Resources must be stored in **system indices**, and **system index protection** must be enabled to prevent unauthorized access.
 
 ---
