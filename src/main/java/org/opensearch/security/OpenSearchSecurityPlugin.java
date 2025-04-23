@@ -739,10 +739,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Listening on POST and DELETE operations in resource indices
             ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
 
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             Set<String> resourceIndices = resourcePluginInfo.getResourceSharingExtensions()
                 .stream()
                 .flatMap(ext -> ext.getResourceProviders().stream().map(ResourceProvider::resourceIndexName))
                 .collect(Collectors.toSet());
+            // CS-ENFORCE-SINGLE
 
             if (settings.getAsBoolean(
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
