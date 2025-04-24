@@ -90,8 +90,8 @@ public class TestRestClient implements AutoCloseable {
 
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
-    private boolean enableHTTPClientSSL = true;
-    private boolean sendHTTPClientCertificate = false;
+    private boolean enableHTTPClientSSL;
+    private boolean sendHTTPClientCertificate;
     private InetSocketAddress nodeHttpAddress;
     private RequestConfig requestConfig;
     private List<Header> headers = new ArrayList<>();
@@ -100,11 +100,20 @@ public class TestRestClient implements AutoCloseable {
 
     private final InetAddress sourceInetAddress;
 
-    public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext, InetAddress sourceInetAddress) {
+    public TestRestClient(
+        InetSocketAddress nodeHttpAddress,
+        List<Header> headers,
+        SSLContext sslContext,
+        InetAddress sourceInetAddress,
+        boolean enableHTTPClientSSL,
+        boolean sendHTTPClientCertificate
+    ) {
         this.nodeHttpAddress = nodeHttpAddress;
         this.headers.addAll(headers);
         this.sslContext = sslContext;
         this.sourceInetAddress = sourceInetAddress;
+        this.enableHTTPClientSSL = enableHTTPClientSSL;
+        this.sendHTTPClientCertificate = sendHTTPClientCertificate;
     }
 
     public HttpResponse get(String path, Header... headers) {
