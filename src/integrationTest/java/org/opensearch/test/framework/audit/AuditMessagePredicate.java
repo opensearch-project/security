@@ -44,6 +44,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
     private final String effectiveUser;
     private final String index;
     private final String privilege;
+    private final String requestBody;
 
     private AuditMessagePredicate(
         AuditCategory category,
@@ -55,7 +56,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         String transportRequestType,
         String effectiveUser,
         String index,
-        String privilege
+        String privilege,
+        String requestBody
     ) {
         this.category = category;
         this.requestLayer = requestLayer;
@@ -67,10 +69,11 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         this.effectiveUser = effectiveUser;
         this.index = index;
         this.privilege = privilege;
+        this.requestBody = requestBody;
     }
 
     private AuditMessagePredicate(AuditCategory category) {
-        this(category, null, null, null, null, null, null, null, null, null);
+        this(category, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static AuditMessagePredicate auditPredicate(AuditCategory category) {
@@ -120,7 +123,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -135,7 +139,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -150,7 +155,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -165,7 +171,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -184,7 +191,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -199,7 +207,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             type,
             effectiveUser,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -214,7 +223,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             user,
             index,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -237,7 +247,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             indexName,
-            privilege
+            privilege,
+            requestBody
         );
     }
 
@@ -252,7 +263,24 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             transportRequestType,
             effectiveUser,
             index,
-            privilegeAction
+            privilegeAction,
+            requestBody
+        );
+    }
+
+    public Predicate<AuditMessage> withRequestBody(String body) {
+        return new AuditMessagePredicate(
+            category,
+            requestLayer,
+            restRequestPath,
+            restParams,
+            initiatingUser,
+            requestMethod,
+            transportRequestType,
+            effectiveUser,
+            index,
+            privilege,
+            body
         );
     }
 
@@ -269,6 +297,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         predicates.add(audit -> Objects.isNull(effectiveUser) || effectiveUser.equals(audit.getEffectiveUser()));
         predicates.add(audit -> Objects.isNull(index) || containIndex(audit, index));
         predicates.add(audit -> Objects.isNull(privilege) || privilege.equals(audit.getPrivilege()));
+        predicates.add(audit -> Objects.isNull(requestBody) || requestBody.equals(audit.getRequestBody()));
         return predicates.stream().reduce(Predicate::and).orElseThrow().test(auditMessage);
     }
 
@@ -303,4 +332,5 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             + '\''
             + '}';
     }
+
 }

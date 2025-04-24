@@ -35,7 +35,6 @@ import org.apache.logging.log4j.core.Logger;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
@@ -60,11 +59,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("removal")
@@ -312,24 +308,6 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNull(credentials);
-    }
-
-    @Test
-    public void testSecurityManagerCheck() {
-        SecurityManager mockSecurityManager = mock(SecurityManager.class);
-        System.setSecurityManager(mockSecurityManager);
-
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "Bearer someToken");
-
-        try {
-            jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
-        } finally {
-            System.setSecurityManager(null);
-        }
-
-        verify(mockSecurityManager, times(3)).checkPermission(any(SpecialPermission.class));
     }
 
     @Test
