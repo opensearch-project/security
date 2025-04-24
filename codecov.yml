@@ -37,6 +37,7 @@ coverage:
         paths:
           - "src/integrationTest"
           - "src/test"
+          - "sample-resource-plugin/src/integrationTest"
         target: 100%
 
 comment:

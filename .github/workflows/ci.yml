@@ -23,23 +23,23 @@ jobs:
     outputs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 21
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 21
 
-    - name: Checkout security
-      uses: actions/checkout@v4
+      - name: Checkout security
+        uses: actions/checkout@v4
 
-    - name: Generate list of tasks
-      id: set-matrix
-      run: |
-        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
+      - name: Generate list of tasks
+        id: set-matrix
+        run: |
+          echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
   test-windows:
     name: test
-    needs: generate-test-list
+    needs: [generate-test-list]
     strategy:
       fail-fast: false
       matrix:
@@ -49,28 +49,28 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
 
-    - name: Checkout security
-      uses: actions/checkout@v4
+      - name: Checkout security
+        uses: actions/checkout@v4
 
-    - name: Build and Test
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: |
-          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+      - name: Build and Test
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
-        path: |
-          ./build/reports/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
+          path: |
+            ./build/reports/
 
   test-linux:
     name: test
@@ -116,7 +116,7 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux"]
+    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "spi-tests-linux", "spi-tests-windows", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,7 +139,6 @@ jobs:
             fail_ci_if_error: true
             verbose: true
 
-
   integration-tests-windows:
     name: integration-tests
     strategy:
@@ -150,28 +149,35 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
 
-    - name: Checkout security
-      uses: actions/checkout@v4
+      - name: Checkout security
+        uses: actions/checkout@v4
 
-    - name: Build and Test
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: |
-          integrationTest -Dbuild.snapshot=false
+      - name: Publish components to Maven Local
+        run: |
+          gradlew.bat clean ^
+            :opensearch-security-spi:publishToMavenLocal ^
+            -Dbuild.snapshot=false
+        shell: cmd
 
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-        path: |
-          ./build/reports/
+      - name: Run Integration Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :integrationTest -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./build/reports/
 
   integration-tests-linux:
     name: integration-tests
@@ -192,6 +198,7 @@ jobs:
     steps:
       - name: Run start commands
         run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
       - name: Set up JDK for build and test
         uses: actions/setup-java@v4
         with:
@@ -201,12 +208,18 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@v4
 
+      - name: Publish components to Maven Local
+        run: |
+          ./gradlew clean \
+            :opensearch-security-spi:publishToMavenLocal \
+            -Dbuild.snapshot=false
+
       - name: Build and Test
         uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: |
-            integrationTest -Dbuild.snapshot=false
+            :integrationTest -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -214,6 +227,169 @@ jobs:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
           path: |
             ./build/reports/
+
+  spi-tests-linux:
+    name: spi-tests
+    needs: ["Get-CI-Image-Tag"]
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [21]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    container:
+      # using the same image which is used by opensearch-build to build the OpenSearch Distribution
+      # this image tag is subject to change as more dependencies and updates will arrive over time
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Run SPI Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :opensearch-security-spi:test -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spi-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./build/reports/
+
+  spi-tests-windows:
+    name: spi-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [21]
+        platform: [windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Run SPI Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :opensearch-security-spi:test -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spi-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./build/reports/
+
+  sample-plugin-integration-tests-linux:
+    name: sample-plugin-integration-tests
+    needs: [ "Get-CI-Image-Tag" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [ 21 ]
+        platform: [ ubuntu-latest ]
+    runs-on: ubuntu-latest
+    container:
+      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
+      # this image tag is subject to change as more dependencies and updates will arrive over time
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Publish components to Maven Local
+        run: |
+          ./gradlew clean \
+            :opensearch-security-spi:publishToMavenLocal \
+            -Dbuild.snapshot=false
+
+      - name: Run SampleResourcePlugin Integration Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: |
+            :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./sample-resource-plugin/build/reports/
+
+  sample-plugin-integration-tests-windows:
+    name: sample-plugin-integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [21]
+        platform: [windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout security
+        uses: actions/checkout@v4
+
+      - name: Publish components to Maven Local
+        run: |
+          gradlew.bat clean ^
+            :opensearch-security-spi:publishToMavenLocal ^
+            -Dbuild.snapshot=false
+        shell: cmd
+
+      - name: Run SampleResourcePlugin Integration Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: |
+            :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+          path: |
+            ./sample-resource-plugin/build/reports/
 
   resource-tests:
     env:
@@ -226,21 +402,27 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
+      - name: Set up JDK for build and test
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
 
-    - name: Checkout security
-      uses: actions/checkout@v4
+      - name: Checkout security
+        uses: actions/checkout@v4
 
-    - name: Build and Test
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-disabled: true
-        arguments: |
-            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+      - name: Publish components to Maven Local
+        run: |
+          ./gradlew clean \
+            :opensearch-security-spi:publishToMavenLocal \
+            -Dbuild.snapshot=false
+
+      - name: Run Resource Tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-disabled: true
+          arguments: |
+            :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
   backward-compatibility-build:
     runs-on: ubuntu-latest
@@ -269,74 +451,95 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
 
-    - name: Checkout Security Repo
-      uses: actions/checkout@v4
+      - name: Checkout Security Repo
+        uses: actions/checkout@v4
 
-    - id: build-previous
-      uses: ./.github/actions/run-bwc-suite
-      with:
-        plugin-previous-branch: "2.x"
-        plugin-next-branch: "current_branch"
-        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
-        username: admin
-        password: admin
+      - id: build-previous
+        uses: ./.github/actions/run-bwc-suite
+        with:
+          plugin-previous-branch: "2.x"
+          plugin-next-branch: "current_branch"
+          report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+          username: admin
+          password: admin
 
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 21
-    - uses: github/codeql-action/init@v3
-      with:
-        languages: java
-    - run: ./gradlew clean assemble
-    - uses: github/codeql-action/analyze@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 21
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java
+      - run: ./gradlew clean assemble
+      - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - name: Setup Environment
+        uses: actions/checkout@v4
 
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 21
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
 
-    - run: |
-        security_plugin_version=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')
-        security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
-        security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
-        test_qualifier=alpha2
+      - name: Build and Test Artifacts
+        run: |
+          # Set version variables
+          security_plugin_version=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')
+          security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
+          security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
+          test_qualifier=alpha2
 
-        echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
-        echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
-        echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV
-        echo "TEST_QUALIFIER=$test_qualifier" >> $GITHUB_ENV
+          # Debug print versions
+          echo "Versions:"
+          echo $security_plugin_version
+          echo $security_plugin_version_no_snapshot
+          echo $security_plugin_version_only_number
+          echo $test_qualifier
 
-    - run: |
-        echo ${{ env.SECURITY_PLUGIN_VERSION }}
-        echo ${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}
-        echo ${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}
-        echo ${{ env.TEST_QUALIFIER }}
+          # Publish SPI
+          ./gradlew clean :opensearch-security-spi:publishToMavenLocal && test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version.jar
+          ./gradlew clean :opensearch-security-spi:publishToMavenLocal -Dbuild.snapshot=false && test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_no_snapshot.jar
+          ./gradlew clean :opensearch-security-spi:publishToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_only_number-$test_qualifier.jar
+          ./gradlew clean :opensearch-security-spi:publishToMavenLocal -Dbuild.version_qualifier=$test_qualifier && test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
 
-    - run: ./gradlew clean assemble && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip
+          # Build artifacts
+          ./gradlew clean assemble && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version.jar
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.zip
+          ./gradlew clean assemble -Dbuild.snapshot=false && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version_no_snapshot.zip && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_no_snapshot.jar
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
+          ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=$test_qualifier && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier.zip && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_only_number-$test_qualifier.jar
 
-    - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
+          ./gradlew clean assemble -Dbuild.version_qualifier=$test_qualifier && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.zip && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version_only_number-$test_qualifier-SNAPSHOT.jar
 
-    - run: ./gradlew clean publishPluginZipPublicationToZipStagingRepository && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.pom
+          ./gradlew clean publishPluginZipPublicationToZipStagingRepository && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version.zip && \
+          test -s ./build/distributions/opensearch-security-$security_plugin_version.pom && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version.jar
 
-    - name: List files in the build directory if there was an error
-      run: ls -al ./build/distributions/
-      if: failure()
+          ./gradlew clean publishShadowPublicationToMavenLocal && \
+          test -s ./spi/build/libs/opensearch-security-spi-$security_plugin_version.jar
+
+      - name: List files in build directory on failure
+        if: failure()
+        run: ls -al ./*/build/libs/ ./build/distributions/
