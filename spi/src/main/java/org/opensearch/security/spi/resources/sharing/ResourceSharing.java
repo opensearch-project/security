@@ -9,7 +9,9 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamOutput;
@@ -198,5 +200,55 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         if (value == null) {
             throw new IllegalArgumentException(field + " is required");
         }
+    }
+
+    /**
+     * Checks if the given resource is owned by the specified user.
+     *
+     * @param userName The username to check ownership against.
+     * @return True if the resource is owned by the user, false otherwise.
+     */
+    public boolean isCreatedBy(String userName) {
+        return this.createdBy != null && this.createdBy.getCreator().equals(userName);
+    }
+
+    /**
+     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
+     *
+     * @return True if the resource is shared with everyone, false otherwise.
+     */
+    public boolean isSharedWithEveryone() {
+        return this.shareWith != null
+            && this.shareWith.getSharedWithActionGroups()
+                .stream()
+                .anyMatch(sharedWithActionGroup -> sharedWithActionGroup.getActionGroup().equals("*"));
+    }
+
+    /**
+     * Checks if the given resource is shared with the specified entities.
+     *
+     * @param recipient The recipient entity
+     * @param entities  The set of entities to check for sharing.
+     * @param actionGroups The set of action groups to check for sharing.
+     *
+     * @return True if the resource is shared with the entities, false otherwise.
+     */
+    public boolean isSharedWithEntity(Recipient recipient, Set<String> entities, Set<String> actionGroups) {
+        if (shareWith == null) {
+            return false;
+        }
+
+        return shareWith.getSharedWithActionGroups()
+            .stream()
+            // only keep the action-groups we care about
+            .filter(sWAG -> actionGroups.contains(sWAG.getActionGroup()))
+            // for each matching action-group, grab the recipients’ entities for YOUR recipient
+            .map(sWAG -> sWAG.getSharedWithPerActionGroup().getRecipients().getOrDefault(recipient, Set.of()))
+            // check intersection with input entities
+            .anyMatch(sharedEntities -> {
+                Set<String> intersection = new HashSet<>(sharedEntities);
+                intersection.retainAll(entities);
+                return !intersection.isEmpty();
+            });
     }
 }

@@ -13,7 +13,6 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -167,11 +166,11 @@ public class ResourceAccessHandler {
             // All public entities are designated with "*"
             userRoles.add("*");
             userBackendRoles.add("*");
-            if (isOwnerOfResource(document, user.getName())
-                || isSharedWithEveryone(document)
-                || isSharedWithEntity(document, Recipient.USERS, Set.of(user.getName(), "*"), actionGroups)
-                || isSharedWithEntity(document, Recipient.ROLES, userRoles, actionGroups)
-                || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, actionGroups)) {
+            if (document.isCreatedBy(user.getName())
+                || document.isSharedWithEveryone()
+                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), actionGroups)
+                || document.isSharedWithEntity(Recipient.ROLES, userRoles, actionGroups)
+                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, actionGroups)) {
 
                 LOGGER.debug("User '{}' has permission to resource '{}'", user.getName(), resourceId);
                 listener.onResponse(true);
@@ -313,77 +312,5 @@ public class ResourceAccessHandler {
      */
     private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
-    }
-
-    /**
-     * Checks if the given resource is owned by the specified user.
-     *
-     * @param document The ResourceSharing document to check.
-     * @param userName The username to check ownership against.
-     * @return True if the resource is owned by the user, false otherwise.
-     */
-    private boolean isOwnerOfResource(ResourceSharing document, String userName) {
-        return document.getCreatedBy() != null && document.getCreatedBy().getCreator().equals(userName);
-    }
-
-    /**
-     * Checks if the given resource is shared with the specified entities.
-     *
-     * @param document  The ResourceSharing document to check.
-     * @param recipient The recipient entity
-     * @param entities  The set of entities to check for sharing.
-     * @param actionGroups The set of action groups to check for sharing.
-     *
-     * @return True if the resource is shared with the entities, false otherwise.
-     */
-    private boolean isSharedWithEntity(ResourceSharing document, Recipient recipient, Set<String> entities, Set<String> actionGroups) {
-        for (String entity : entities) {
-            if (checkSharing(document, recipient, entity, actionGroups)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
-     *
-     * @param document The ResourceSharing document to check.
-     * @return True if the resource is shared with everyone, false otherwise.
-     */
-    private boolean isSharedWithEveryone(ResourceSharing document) {
-        return document.getShareWith() != null
-            && document.getShareWith()
-                .getSharedWithActionGroups()
-                .stream()
-                .anyMatch(sharedWithActionGroup -> sharedWithActionGroup.getActionGroup().equals("*"));
-    }
-
-    /**
-     * Checks if the given resource is shared with the specified entity.
-     *
-     * @param document   The ResourceSharing document to check.
-     * @param recipient  The recipient entity
-     * @param entity     The entity to check for sharing.
-     * @return True if the resource is shared with the entity, false otherwise.
-     */
-    private boolean checkSharing(ResourceSharing document, Recipient recipient, String entity, Set<String> actionGroups) {
-        // Check if document is private (only visible to owner and super-admins)
-        if (document.getShareWith() == null) {
-            return false;
-        }
-
-        return document.getShareWith()
-            .getSharedWithActionGroups()
-            .stream()
-            .filter(sharedWithActionGroup -> actionGroups.contains(sharedWithActionGroup.getActionGroup()))
-            .findFirst()
-            .map(sharedWithActionGroup -> {
-                SharedWithActionGroup.ActionGroupRecipients aGs = sharedWithActionGroup.getSharedWithPerActionGroup();
-                Map<Recipient, Set<String>> recipients = aGs.getRecipients();
-
-                return recipients.getOrDefault(recipient, Set.of()).contains(entity);
-            })
-            .orElse(false); // Return false if no matching action-group is found
     }
 }

@@ -1261,8 +1261,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
-        components.add(resourcePluginInfo);
-        components.add(resourceAccessHandler);
+        if (settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        )) {
+            components.add(resourcePluginInfo);
+            components.add(resourceAccessHandler);
+        }
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
