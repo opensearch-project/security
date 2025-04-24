@@ -736,22 +736,22 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            // Listening on POST and DELETE operations in resource indices
-            ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
-
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-            Set<String> resourceIndices = resourcePluginInfo.getResourceSharingExtensions()
-                .stream()
-                .flatMap(ext -> ext.getResourceProviders().stream().map(ResourceProvider::resourceIndexName))
-                .collect(Collectors.toSet());
-            // CS-ENFORCE-SINGLE
-
             if (settings.getAsBoolean(
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            ) && resourceIndices.contains(indexModule.getIndex().getName())) {
-                indexModule.addIndexOperationListener(resourceIndexListener);
-                log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
+            )) {
+                // Listening on POST and DELETE operations in resource indices
+                ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
+                // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
+                Set<String> resourceIndices = resourcePluginInfo.getResourceSharingExtensions()
+                    .stream()
+                    .flatMap(ext -> ext.getResourceProviders().stream().map(ResourceProvider::resourceIndexName))
+                    .collect(Collectors.toSet());
+                // CS-ENFORCE-SINGLE
+                if (resourceIndices.contains(indexModule.getIndex().getName())) {
+                    indexModule.addIndexOperationListener(resourceIndexListener);
+                    log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
+                }
             }
 
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
@@ -1158,20 +1158,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             namedXContentRegistry.get()
         );
 
-        final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-        rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
-
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
-
-        // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-        // Assign resource sharing client to each extension
-        // Using the non-gated client (i.e. no additional permissions required)
-        ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler, settings);
-        resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
-            extension.assignResourceSharingClient(resourceAccessControlClient);
-        });
-        // CS-ENFORCE-SINGLE
-
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
 
         if (SSLConfig.isSslOnlyMode()) {
@@ -1265,6 +1251,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         )) {
+            final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+            rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+
+            ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
+
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
+            // Assign resource sharing client to each extension
+            // Using the non-gated client (i.e. no additional permissions required)
+            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler, settings);
+            resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
+                extension.assignResourceSharingClient(resourceAccessControlClient);
+            });
+            // CS-ENFORCE-SINGLE
             components.add(resourcePluginInfo);
             components.add(resourceAccessHandler);
         }
