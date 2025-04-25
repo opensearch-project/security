@@ -100,7 +100,7 @@ public class HTTPJwtAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null, 
+            null,
             true
         );
 

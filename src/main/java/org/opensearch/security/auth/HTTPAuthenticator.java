@@ -73,7 +73,8 @@ public interface HTTPAuthenticator {
      * If the authentication flow needs another roundtrip with the request originator do not mark it as complete.
      * @throws OpenSearchSecurityException
      */
-    AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context, final boolean isChallenge) throws OpenSearchSecurityException;
+    AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context, final boolean isChallenge)
+        throws OpenSearchSecurityException;
 
     /**
      * If the {@code extractCredentials()} call was not successful or the authentication flow needs another roundtrip this method

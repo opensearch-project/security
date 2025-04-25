@@ -123,9 +123,8 @@ public class IntegrationTests extends SingleClusterTest {
         );
         Assert.assertArrayEquals(
             new String[] { "bleh", "ert" },
-            new TreeSet<>(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,L=bleh,st=zui,c=qwe"), false).getBackendRoles()).toArray(
-                new String[0]
-            )
+            new TreeSet<>(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,L=bleh,st=zui,c=qwe"), false).getBackendRoles())
+                .toArray(new String[0])
         );
 
         settings = Settings.builder().build();
