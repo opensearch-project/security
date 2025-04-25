@@ -38,13 +38,17 @@ import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPHelper {
 
-    public static AuthCredentials extractCredentials(String authorizationHeader, Logger log) {
+    public static AuthCredentials extractCredentials(String authorizationHeader, Logger log, boolean isChallenge) {
 
-        final boolean isTraceEnabled = log.isTraceEnabled();
+        boolean isTraceEnabled = log.isTraceEnabled();
 
         if (authorizationHeader != null) {
-            if (!authorizationHeader.trim().toLowerCase().startsWith("basic ") && isTraceEnabled) {
-                log.trace("No 'Basic Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+            if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
+                if (isChallenge) {
+                    log.warn("No 'Basic Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                } else if (isTraceEnabled) {
+                    log.trace("No 'Basic Authorization' header");
+                }
                 return null;
             } else {
 

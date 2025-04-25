@@ -34,7 +34,7 @@ public class DummyHTTPAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context, final boolean isChallenge)
         throws OpenSearchSecurityException {
         count++;
         return new AuthCredentials("dummy").markComplete();

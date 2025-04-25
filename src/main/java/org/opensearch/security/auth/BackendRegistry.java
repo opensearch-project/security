@@ -279,7 +279,7 @@ public class BackendRegistry {
             }
             final AuthCredentials ac;
             try {
-                ac = httpAuthenticator.extractCredentials(request, threadPool.getThreadContext());
+                ac = httpAuthenticator.extractCredentials(request, threadPool.getThreadContext(), authDomain.isChallenge());
             } catch (Exception e1) {
                 if (isDebugEnabled) {
                     log.debug("'{}' extracting credentials from {} http authenticator", e1.toString(), httpAuthenticator.getType(), e1);

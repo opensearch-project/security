@@ -57,7 +57,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext, final boolean isChallenge) {
 
         final String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 

@@ -163,7 +163,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -180,7 +181,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
         assertNull(credentials);
     }
@@ -200,7 +202,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
         assertNull(credentials);
     }
@@ -225,7 +228,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -253,7 +257,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
         assertNotNull(credentials);
     }
@@ -278,7 +283,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNotNull(credentials);
@@ -304,7 +310,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -324,7 +331,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
-            null
+            null,
+            false
         );
         assertNull(credentials);
     }
@@ -347,7 +355,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -375,7 +384,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -572,7 +582,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
+            null,
+            false
         );
 
         assertNull(credentials);
@@ -588,7 +599,7 @@ public class OnBehalfOfAuthenticatorTest {
         when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
         when(mockedRequest1.method()).thenReturn(POST);
         assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
-        assertNull(oboAuth.extractCredentials(mockedRequest1, null));
+        assertNull(oboAuth.extractCredentials(mockedRequest1, null, false));
 
         // Test PUT on password changing endpoint
         SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
@@ -596,7 +607,7 @@ public class OnBehalfOfAuthenticatorTest {
         when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
         when(mockedRequest2.method()).thenReturn(PUT);
         assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
-        assertNull(oboAuth.extractCredentials(mockedRequest2, null));
+        assertNull(oboAuth.extractCredentials(mockedRequest2, null, false));
     }
 
     /** extracts a default user credential from a request header */
@@ -620,7 +631,7 @@ public class OnBehalfOfAuthenticatorTest {
             SignatureAlgorithm.HS512
         ).compact();
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
-        return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
+        return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null, false);
     }
 
     private Settings defaultSettings() {

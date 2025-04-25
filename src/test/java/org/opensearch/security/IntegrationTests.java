@@ -108,21 +108,22 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDnParsingCertAuth() throws Exception {
         Settings settings = Settings.builder().put("username_attribute", "cn").put("roles_attribute", "l").build();
         HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings, null);
-        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe")).getUsername(), is("abc"));
-        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername(), is("abc"));
-        assertThat(auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername(), is("abc"));
-        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername(), is("abc"));
-        Assert.assertNull(auth.extractCredentials(null, newThreadContext("L=ert,CN=abc,c,st=zui,c=qwe")));
-        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc")).getUsername(), is("abc"));
-        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername(), is("abc"));
-        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername(), is("L=ert,st=zui,c=qwe"));
+        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe"), false).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe"), true).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe"), false).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe"), false).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe"), false).getUsername(), is("abc"));
+        Assert.assertNull(auth.extractCredentials(null, newThreadContext("L=ert,CN=abc,c,st=zui,c=qwe"), false));
+        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc"), false).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc"), false).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe"), false).getUsername(), is("L=ert,st=zui,c=qwe"));
         Assert.assertArrayEquals(
             new String[] { "ert" },
-            auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getBackendRoles().toArray(new String[0])
+            auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe"), false).getBackendRoles().toArray(new String[0])
         );
         Assert.assertArrayEquals(
             new String[] { "bleh", "ert" },
-            new TreeSet<>(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,L=bleh,st=zui,c=qwe")).getBackendRoles()).toArray(
+            new TreeSet<>(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,L=bleh,st=zui,c=qwe"), false).getBackendRoles()).toArray(
                 new String[0]
             )
         );
@@ -131,7 +132,7 @@ public class IntegrationTests extends SingleClusterTest {
         auth = new HTTPClientCertAuthenticator(settings, null);
         assertThat(
             "cn=abc,l=ert,st=zui,c=qwe",
-            is(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername())
+            is(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe"), false).getUsername())
         );
     }
 

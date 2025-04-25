@@ -80,19 +80,19 @@ public class HTTPExtendedProxyAuthenticatorTest {
     @Test(expected = OpenSearchSecurityException.class)
     public void testThrowsExceptionWhenMissingXFFDone() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
-        authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), new ThreadContext(Settings.EMPTY));
+        authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), new ThreadContext(Settings.EMPTY), false);
     }
 
     @Test
     public void testReturnsNullWhenUserHeaderIsUnconfigured() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
-        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context));
+        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context, false));
     }
 
     @Test
     public void testReturnsNullWhenUserHeaderIsMissing() {
 
-        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context));
+        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context, false));
     }
 
     @Test
@@ -108,7 +108,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
         settings = Settings.builder().put(settings).put("attr_header_prefix", "proxy_").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
-        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context, false);
         assertNotNull(creds);
         assertThat(creds.getUsername(), is("aValidUser"));
         assertThat(creds.getAttributes().get("attr.proxy.uid"), is("123,456"));
@@ -125,7 +125,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
         settings = Settings.builder().put(settings).put("roles_header", "roles").put("roles_separator", ",").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
-        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context, false);
         assertNotNull(creds);
         assertThat(creds.getUsername(), is("aValidUser"));
         assertThat(creds.getBackendRoles(), is(ImmutableSet.of("role1", "role2")));
