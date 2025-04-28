@@ -60,7 +60,7 @@ repositories {
 
 configurations.all {
     resolutionStrategy {
-        force 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2',
+        force 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3',
                 'org.hamcrest:hamcrest:2.2',
                 'org.apache.httpcomponents:httpclient:4.5.14',
                 'org.apache.httpcomponents:httpcore:4.4.16',

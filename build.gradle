@@ -482,7 +482,7 @@ configurations {
             force "org.checkerframework:checker-qual:3.49.2"
             force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.19.0"
-            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2"
+            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.17.0"
             force "net.bytebuddy:byte-buddy:1.15.11"
@@ -518,7 +518,7 @@ allprojects {
         testImplementation "org.mockito:mockito-core:5.17.0"
 
         //integration test framework:
-        integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.2') {
+        integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
             exclude(group: 'junit', module: 'junit')
         }
         integrationTestImplementation 'junit:junit:4.13.2'
