@@ -174,6 +174,8 @@ public class TestData {
                   "attr_int": {"type": "integer"},
                   "attr_double": {"type": "double"},
                   "attr_binary": {"type": "binary", "doc_values": true},
+                  "attr_geo_point_string": {"type": "geo_point"},
+                  "attr_geo_point_string_stored": {"type": "geo_point", "store": true, "doc_values": false},
                   "attr_text_termvectors": {
                     "type": "text",
                     "term_vector": "with_positions_offsets_payloads",
@@ -348,6 +350,8 @@ public class TestData {
         builder.put("attr_int", random.nextInt(10000));
         builder.put("attr_double", random.nextDouble());
         builder.put("attr_binary", randomBinaryValue(random));
+        builder.put("attr_geo_point_string", randomGeoPointString(random));
+        builder.put("attr_geo_point_string_stored", randomGeoPointString(random));
         builder.put(
             "attr_object",
             ImmutableMap.of(
@@ -392,6 +396,10 @@ public class TestData {
             random.nextBytes(binary);
             return Base64.getEncoder().encodeToString(binary);
         }
+    }
+
+    private String randomGeoPointString(Random random) {
+        return random.nextDouble(-90, 90) + "," + random.nextDouble(-180, 180);
     }
 
     private static String randomId(Random random) {
@@ -629,6 +637,10 @@ public class TestData {
                 return null;
             }
         }
+
+        public Set<String> allIds() {
+            return this.documents.keySet();
+        }
     }
 
     public static class TestDocument {
@@ -652,6 +664,14 @@ public class TestData {
             return (String) this.content.get("attr_text_1");
         }
 
+        public String attrText2() {
+            return (String) this.content.get("attr_text_2");
+        }
+
+        public String attrKeyword() {
+            return (String) this.content.get("attr_keyword");
+        }
+
         public String attrKeywordDocValuesDisabled() {
             return (String) this.content.get("attr_keyword_doc_values_disabled");
         }
@@ -662,6 +682,10 @@ public class TestData {
 
         public String sourceIp() {
             return (String) this.content.get("source_ip");
+        }
+
+        public String attrGeoPointString() {
+            return (String) this.content.get("attr_geo_point_string");
         }
 
         public Object getAttributeByPath(String... attributes) {

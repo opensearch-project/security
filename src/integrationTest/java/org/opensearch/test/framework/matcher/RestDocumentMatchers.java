@@ -18,12 +18,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
+import org.opensearch.common.geo.GeoPoint;
 import org.opensearch.test.framework.TestData;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
@@ -113,11 +116,14 @@ public class RestDocumentMatchers {
                 }
 
                 int errors = 0;
+                Set<String> uncheckedDocuments = new HashSet<>(testDocuments.allIds());
 
                 for (SearchResponseDocument document : responseDocumentSet.documents) {
                     if (errors >= 10) {
                         break;
                     }
+
+                    uncheckedDocuments.remove(document.id());
 
                     TestData.TestDocument referenceDocument = testDocuments.get(document.id());
                     if (referenceDocument == null) {
@@ -133,6 +139,13 @@ public class RestDocumentMatchers {
                         mismatchDescription.appendText(testResult).appendText("\n");
                         mismatchDescription.appendValue(document.source()).appendText("\n");
                         mismatchDescription.appendValue(referenceDocument.content()).appendText("\n");
+                        errors++;
+                    }
+                }
+
+                if (errors == 0) {
+                    if (!uncheckedDocuments.isEmpty()) {
+                        mismatchDescription.appendText("Search response is missing the documents " + uncheckedDocuments + "\n");
                         errors++;
                     }
                 }
@@ -159,11 +172,14 @@ public class RestDocumentMatchers {
                 }
 
                 int errors = 0;
+                Set<String> uncheckedDocuments = new HashSet<>(testDocuments.allIds());
 
                 for (SearchResponseDocument document : responseDocumentSet.documents) {
                     if (errors >= 10) {
                         break;
                     }
+
+                    uncheckedDocuments.remove(document.id());
 
                     TestData.TestDocument referenceDocument = testDocuments.get(document.id());
                     if (referenceDocument == null) {
@@ -202,6 +218,13 @@ public class RestDocumentMatchers {
                                 errors++;
                             }
                         }
+                    }
+                }
+
+                if (errors == 0) {
+                    if (!uncheckedDocuments.isEmpty()) {
+                        mismatchDescription.appendText("Search response is missing the documents " + uncheckedDocuments + "\n");
+                        errors++;
                     }
                 }
 
@@ -719,6 +742,24 @@ public class RestDocumentMatchers {
                 return attributePath + ": expected an array; is: " + actual + "\n";
             }
         } else {
+            if (actual instanceof Map<?, ?> actualObject
+                && "Point".equals(actualObject.get("type"))
+                && actualObject.get("coordinates") instanceof List<?> coordinates) {
+                // We got a field value for a geo point. Compare values accordingly
+
+                if (expected instanceof String expectedString) {
+                    GeoPoint expectedGeoPoint = new GeoPoint(expectedString);
+
+                    if (Math.abs(expectedGeoPoint.lat() - ((Number) coordinates.get(1)).doubleValue()) < 0.001
+                        && Math.abs(expectedGeoPoint.lon() - ((Number) coordinates.get(0)).doubleValue()) < 0.001) {
+                        // match
+                        return null;
+                    } else {
+                        return attributePath + ": expected: " + expected + "; is: " + actual;
+                    }
+                }
+            }
+
             if (Objects.equals(normalizeValue(expected), normalizeValue(actual))) {
                 return null;
             } else {
@@ -730,9 +771,24 @@ public class RestDocumentMatchers {
     private static Object normalizeValue(Object value) {
         if (value instanceof byte[] bytes) {
             return Base64.getEncoder().encodeToString(bytes);
+        } else if (value instanceof String string) {
+            Matcher geoCoordMatcher = GEO_COORD_PATTERN.matcher(string);
+            if (geoCoordMatcher.matches()) {
+                return geoCoordMatcher.group(1)
+                    + "."
+                    + geoCoordMatcher.group(2).substring(0, Math.min(geoCoordMatcher.group(2).length(), 2))
+                    + ","
+                    + geoCoordMatcher.group(3)
+                    + "."
+                    + geoCoordMatcher.group(4).substring(0, Math.min(geoCoordMatcher.group(4).length(), 2));
+            } else {
+                return value;
+            }
         } else {
             return value;
         }
     }
+
+    private static final Pattern GEO_COORD_PATTERN = Pattern.compile("([0-9-]+)\\.(\\d+),\\s*([0-9-]+)\\.(\\d+)");
 
 }
