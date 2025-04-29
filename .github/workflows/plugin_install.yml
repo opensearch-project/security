@@ -29,6 +29,13 @@ jobs:
       - name: Checkout Branch
         uses: actions/checkout@v4
 
+      - name: Publish components to Maven Local
+        run: |
+          gradlew.bat clean ^
+            :opensearch-security-spi:publishToMavenLocal ^
+            -Dbuild.snapshot=false
+        shell: cmd
+
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v3
         with:

@@ -435,6 +435,13 @@ jobs:
       - name: Checkout Security Repo
         uses: actions/checkout@v4
 
+      - name: Publish components to Maven Local
+        run: |
+          gradlew.bat clean ^
+            :opensearch-security-spi:publishToMavenLocal ^
+            -Dbuild.snapshot=false
+        shell: cmd
+
       - name: Build BWC tests
         uses: gradle/gradle-build-action@v3
         with:
