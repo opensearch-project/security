@@ -362,9 +362,10 @@ jobs:
       # To be removed once integration test framework supports extended plugins
       - name: Publish components to Maven Local
         run: |
-          ./gradlew clean \
+          gradlew.bat clean \
             :opensearch-security-spi:publishToMavenLocal \
             -Dbuild.snapshot=false
+        shell: cmd
 
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
