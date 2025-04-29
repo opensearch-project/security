@@ -320,6 +320,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@v4
 
+      # To be removed once integration test framework supports extended plugins
+      - name: Publish components to Maven Local
+        run: |
+          ./gradlew clean \
+            :opensearch-security-spi:publishToMavenLocal \
+            -Dbuild.snapshot=false
+
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
         with:
@@ -351,6 +358,13 @@ jobs:
 
       - name: Checkout security
         uses: actions/checkout@v4
+
+      # To be removed once integration test framework supports extended plugins
+      - name: Publish components to Maven Local
+        run: |
+          ./gradlew clean \
+            :opensearch-security-spi:publishToMavenLocal \
+            -Dbuild.snapshot=false
 
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
