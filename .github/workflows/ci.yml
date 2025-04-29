@@ -158,13 +158,6 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@v4
 
-      - name: Publish components to Maven Local
-        run: |
-          gradlew.bat clean ^
-            :opensearch-security-spi:publishToMavenLocal ^
-            -Dbuild.snapshot=false
-        shell: cmd
-
       - name: Run Integration Tests
         uses: gradle/gradle-build-action@v3
         with:
@@ -207,12 +200,6 @@ jobs:
 
       - name: Checkout security
         uses: actions/checkout@v4
-
-      - name: Publish components to Maven Local
-        run: |
-          ./gradlew clean \
-            :opensearch-security-spi:publishToMavenLocal \
-            -Dbuild.snapshot=false
 
       - name: Build and Test
         uses: gradle/gradle-build-action@v3
@@ -333,12 +320,6 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@v4
 
-      - name: Publish components to Maven Local
-        run: |
-          ./gradlew clean \
-            :opensearch-security-spi:publishToMavenLocal \
-            -Dbuild.snapshot=false
-
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
         with:
@@ -370,13 +351,6 @@ jobs:
 
       - name: Checkout security
         uses: actions/checkout@v4
-
-      - name: Publish components to Maven Local
-        run: |
-          gradlew.bat clean ^
-            :opensearch-security-spi:publishToMavenLocal ^
-            -Dbuild.snapshot=false
-        shell: cmd
 
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/gradle-build-action@v3
@@ -411,12 +385,6 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@v4
 
-      - name: Publish components to Maven Local
-        run: |
-          ./gradlew clean \
-            :opensearch-security-spi:publishToMavenLocal \
-            -Dbuild.snapshot=false
-
       - name: Run Resource Tests
         uses: gradle/gradle-build-action@v3
         with:
@@ -434,13 +402,6 @@ jobs:
 
       - name: Checkout Security Repo
         uses: actions/checkout@v4
-
-      - name: Publish components to Maven Local
-        run: |
-          gradlew.bat clean ^
-            :opensearch-security-spi:publishToMavenLocal ^
-            -Dbuild.snapshot=false
-        shell: cmd
 
       - name: Build BWC tests
         uses: gradle/gradle-build-action@v3
