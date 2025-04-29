@@ -75,9 +75,13 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.index.Index;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
+import org.opensearch.index.shard.IndexEventListener;
+import org.opensearch.index.shard.IndexShard;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -93,8 +97,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
+import static org.opensearch.security.support.SnapshotRestoreHelper.isSecurityIndexRestoredFromSnapshot;
 
-public class ConfigurationRepository implements ClusterStateListener {
+public class ConfigurationRepository implements ClusterStateListener, IndexEventListener {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
 
     private final String securityIndex;
@@ -666,6 +671,25 @@ public class ConfigurationRepository implements ClusterStateListener {
                     return null;
                 }
             });
+        }
+    }
+
+    @Override
+    public void afterIndexShardStarted(IndexShard indexShard) {
+        final ShardId shardId = indexShard.shardId();
+        final Index index = shardId.getIndex();
+
+        // Check if this is a security index shard
+        if (securityIndex.equals(index.getName())) {
+            // Only trigger on primary shard to avoid multiple reloads
+            if (indexShard.routingEntry() != null && indexShard.routingEntry().primary()) {
+                threadPool.generic().execute(() -> {
+                    if (isSecurityIndexRestoredFromSnapshot(clusterService, index, securityIndex)) {
+                        LOGGER.info("Security index primary shard {} started - config reloading for snapshot restore", shardId);
+                        reloadConfiguration(CType.values());
+                    }
+                });
+            }
         }
     }
 }
