@@ -29,7 +29,10 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.FilterBinaryDocValues;
 import org.apache.lucene.index.FilterDirectoryReader;
+import org.apache.lucene.index.FilterSortedDocValues;
+import org.apache.lucene.index.FilterSortedSetDocValues;
 import org.apache.lucene.index.ImpactsEnum;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
@@ -64,6 +67,7 @@ import org.opensearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
+import org.opensearch.index.mapper.FieldNamesFieldMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.compliance.FieldReadCallback;
@@ -116,7 +120,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 List<FieldInfo> restrictedFieldInfos = new ArrayList<>(originalFieldInfos.size());
 
                 for (FieldInfo fieldInfo : originalFieldInfos) {
-                    if (metaFields.contains(fieldInfo.name) || flsRule.isAllowed(fieldInfo.name)) {
+                    if (metaFields.contains(fieldInfo.name) || flsRule.isAllowedRecursive(fieldInfo.name)) {
                         restrictedFieldInfos.add(fieldInfo);
                     }
                 }
@@ -396,12 +400,21 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         }
     }
 
-    private boolean isAllowed(BytesRef term) {
-        return isAllowed(term.utf8ToString());
+    /**
+     * Returns true if field shall be fully visible to a user; that is if it is neither protected by FLS nor if it is masked.
+     * Exceptions are meta fields, which are always fully visible to a user, regardless of any configuration.
+     */
+    private boolean isAllowed(String fieldName) {
+        return this.metaFields.contains(fieldName) || (this.flsRule.isAllowedRecursive(fieldName) && !this.fmRule.isMasked(fieldName));
     }
 
-    private boolean isAllowed(String fieldName) {
-        return this.metaFields.contains(fieldName) || flsRule.isAllowed(fieldName);
+    /**
+     * Returns true if field shall be visible to a user; that is if it is not protected by FLS.
+     * However, it might be covered by field masking.
+     * Exceptions are meta fields, which are always fully visible to a user, regardless of any configuration.
+     */
+    private boolean isAllowedButPossiblyMasked(String fieldName) {
+        return this.metaFields.contains(fieldName) || this.flsRule.isAllowedRecursive(fieldName);
     }
 
     @Override
@@ -508,18 +521,16 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public Iterator<String> iterator() {
-                        return Iterators.<String>filter(fields.iterator(), input -> isAllowed(input));
+                        return Iterators.<String>filter(fields.iterator(), input -> isAllowedButPossiblyMasked(input));
                     }
 
                     @Override
                     public Terms terms(final String field) throws IOException {
-
-                        if (!isAllowed(field)) {
-                            return null;
+                        if (FieldNamesFieldMapper.NAME.equals(field)) {
+                            return filteredFieldNameTerms(fields.terms(field));
                         }
 
-                        return wrapTerms(field, fields.terms(field));
-
+                        return isAllowed(field) ? fields.terms(field) : null;
                     }
 
                     @Override
@@ -539,121 +550,83 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public BinaryDocValues getBinaryDocValues(final String field) throws IOException {
-        return isAllowed(field) ? wrapBinaryDocValues(field, in.getBinaryDocValues(field)) : null;
-    }
-
-    private BinaryDocValues wrapBinaryDocValues(final String field, final BinaryDocValues binaryDocValues) {
-        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
-
-        if (binaryDocValues == null || fmRuleField == null) {
-            return binaryDocValues;
+        if (this.metaFields.contains(field)) {
+            // meta fields are always allowed
+            return in.getBinaryDocValues(field);
         }
 
-        return new BinaryDocValues() {
+        if (!this.flsRule.isAllowedRecursive(field)) {
+            // Forbidden by FLS
+            return null;
+        }
 
-            @Override
-            public int nextDoc() throws IOException {
-                return binaryDocValues.nextDoc();
-            }
+        BinaryDocValues originalBinaryDocValues = in.getBinaryDocValues(field);
+        if (originalBinaryDocValues == null) {
+            // Unknown field
+            return null;
+        }
 
-            @Override
-            public int docID() {
-                return binaryDocValues.docID();
-            }
+        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
+        if (fmRuleField != null) {
+            // FM protection present
+            return new FilterBinaryDocValues(originalBinaryDocValues) {
+                @Override
+                public BytesRef binaryValue() throws IOException {
+                    return fmRuleField.apply(originalBinaryDocValues.binaryValue());
+                }
+            };
+        }
 
-            @Override
-            public long cost() {
-                return binaryDocValues.cost();
-            }
-
-            @Override
-            public int advance(int target) throws IOException {
-                return binaryDocValues.advance(target);
-            }
-
-            @Override
-            public boolean advanceExact(int target) throws IOException {
-                return binaryDocValues.advanceExact(target);
-            }
-
-            @Override
-            public BytesRef binaryValue() throws IOException {
-                return fmRuleField.apply(binaryDocValues.binaryValue());
-            }
-        };
-
+        // No protection active; return original value
+        return originalBinaryDocValues;
     }
 
     @Override
     public SortedDocValues getSortedDocValues(final String field) throws IOException {
-        return isAllowed(field) ? wrapSortedDocValues(field, in.getSortedDocValues(field)) : null;
-    }
-
-    private SortedDocValues wrapSortedDocValues(final String field, final SortedDocValues sortedDocValues) {
-        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
-
-        if (sortedDocValues == null || fmRuleField == null) {
-            return sortedDocValues;
+        if (this.metaFields.contains(field)) {
+            // meta fields are always allowed
+            return in.getSortedDocValues(field);
         }
 
-        return new SortedDocValues() {
+        if (!this.flsRule.isAllowedRecursive(field)) {
+            // Forbidden by FLS
+            return null;
+        }
 
-            @Override
-            public int lookupTerm(BytesRef key) throws IOException {
-                return sortedDocValues.lookupTerm(key);
-            }
+        SortedDocValues originalDocValues = in.getSortedDocValues(field);
+        if (originalDocValues == null) {
+            // Unknown field
+            return null;
+        }
 
-            @Override
-            public TermsEnum termsEnum() throws IOException {
-                return new MaskedTermsEnum(sortedDocValues.termsEnum(), fmRuleField);
-            }
+        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
+        if (fmRuleField != null) {
+            // FM protection present
+            return new FilterSortedDocValues(originalDocValues) {
+                @Override
+                public TermsEnum termsEnum() throws IOException {
+                    return new MaskedTermsEnum(originalDocValues.termsEnum(), fmRuleField);
+                }
 
-            @Override
-            public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                return new MaskedTermsEnum(sortedDocValues.intersect(automaton), fmRuleField);
-            }
+                @Override
+                public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
+                    return new MaskedTermsEnum(originalDocValues.intersect(automaton), fmRuleField);
+                }
 
-            @Override
-            public int nextDoc() throws IOException {
-                return sortedDocValues.nextDoc();
-            }
+                @Override
+                public BytesRef lookupOrd(int ord) throws IOException {
+                    return fmRuleField.apply(originalDocValues.lookupOrd(ord));
+                }
 
-            @Override
-            public int docID() {
-                return sortedDocValues.docID();
-            }
+                @Override
+                public int getValueCount() {
+                    return originalDocValues.getValueCount();
+                }
+            };
+        }
 
-            @Override
-            public long cost() {
-                return sortedDocValues.cost();
-            }
-
-            @Override
-            public int advance(int target) throws IOException {
-                return sortedDocValues.advance(target);
-            }
-
-            @Override
-            public boolean advanceExact(int target) throws IOException {
-                return sortedDocValues.advanceExact(target);
-            }
-
-            @Override
-            public int ordValue() throws IOException {
-                return sortedDocValues.ordValue();
-            }
-
-            @Override
-            public BytesRef lookupOrd(int ord) throws IOException {
-                return fmRuleField.apply(sortedDocValues.lookupOrd(ord));
-            }
-
-            @Override
-            public int getValueCount() {
-                return sortedDocValues.getValueCount();
-            }
-        };
-
+        // No protection active; return original value
+        return originalDocValues;
     }
 
     @Override
@@ -663,79 +636,46 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public SortedSetDocValues getSortedSetDocValues(final String field) throws IOException {
-        return isAllowed(field) ? wrapSortedSetDocValues(field, in.getSortedSetDocValues(field)) : null;
-    }
-
-    private SortedSetDocValues wrapSortedSetDocValues(final String field, final SortedSetDocValues sortedSetDocValues) {
-        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
-
-        if (sortedSetDocValues == null || fmRuleField == null) {
-            return sortedSetDocValues;
+        if (this.metaFields.contains(field)) {
+            // meta fields are always allowed
+            return in.getSortedSetDocValues(field);
         }
 
-        return new SortedSetDocValues() {
+        if (!this.flsRule.isAllowedRecursive(field)) {
+            // Forbidden by FLS
+            return null;
+        }
 
-            @Override
-            public long lookupTerm(BytesRef key) throws IOException {
-                return sortedSetDocValues.lookupTerm(key);
-            }
+        SortedSetDocValues originalDocValues = in.getSortedSetDocValues(field);
+        if (originalDocValues == null) {
+            // Unknown field
+            return null;
+        }
 
-            @Override
-            public TermsEnum termsEnum() throws IOException {
-                return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), fmRuleField);
-            }
+        FieldMasking.FieldMaskingRule.Field fmRuleField = fmRule.get(field);
+        if (fmRuleField != null) {
+            // FM protection present
+            return new FilterSortedSetDocValues(originalDocValues) {
 
-            @Override
-            public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), fmRuleField);
-            }
+                @Override
+                public TermsEnum termsEnum() throws IOException {
+                    return new MaskedTermsEnum(originalDocValues.termsEnum(), fmRuleField);
+                }
 
-            @Override
-            public int nextDoc() throws IOException {
-                return sortedSetDocValues.nextDoc();
-            }
+                @Override
+                public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
+                    return new MaskedTermsEnum(originalDocValues.intersect(automaton), fmRuleField);
+                }
 
-            @Override
-            public int docID() {
-                return sortedSetDocValues.docID();
-            }
+                @Override
+                public BytesRef lookupOrd(long ord) throws IOException {
+                    return fmRuleField.apply(originalDocValues.lookupOrd(ord));
+                }
+            };
+        }
 
-            @Override
-            public long cost() {
-                return sortedSetDocValues.cost();
-            }
-
-            @Override
-            public int advance(int target) throws IOException {
-                return sortedSetDocValues.advance(target);
-            }
-
-            @Override
-            public boolean advanceExact(int target) throws IOException {
-                return sortedSetDocValues.advanceExact(target);
-            }
-
-            @Override
-            public long nextOrd() throws IOException {
-                return sortedSetDocValues.nextOrd();
-            }
-
-            @Override
-            public int docValueCount() {
-                return sortedSetDocValues.docValueCount();
-            }
-
-            @Override
-            public BytesRef lookupOrd(long ord) throws IOException {
-                return fmRuleField.apply(sortedSetDocValues.lookupOrd(ord));
-            }
-
-            @Override
-            public long getValueCount() {
-                return sortedSetDocValues.getValueCount();
-            }
-        };
-
+        // No protection active; return original value
+        return originalDocValues;
     }
 
     @Override
@@ -745,114 +685,99 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public PointValues getPointValues(String field) throws IOException {
+        // PointValues maps to OpenSearch types IP and geospatial types
         return isAllowed(field) ? in.getPointValues(field) : null;
     }
 
     @Override
     public Terms terms(String field) throws IOException {
-        return isAllowed(field) ? wrapTerms(field, in.terms(field)) : null;
+        if (FieldNamesFieldMapper.NAME.equals(field)) {
+            return filteredFieldNameTerms(in.terms(field));
+        }
+
+        return isAllowed(field) ? in.terms(field) : null;
     }
 
-    private Terms wrapTerms(final String field, Terms terms) throws IOException {
-
-        if (terms == null) {
+    private Terms filteredFieldNameTerms(Terms originalTerms) throws IOException {
+        if (originalTerms == null) {
             return null;
         }
 
-        if (fmRule.isMasked(field)) {
-            return null;
-        }
+        // The field _field_names is a special meta data field; it contains the names of all fields in the same
+        // document that contains non-null values.
+        // It can be used in "exists" queries, depending on the available doc_values or norm values in an index.
+        // For indices with FLS active, we need to filter out the fields which are not allowed by FLS. The field names
+        // are represented as terms in the Terms object returned by this method.
+        return new FilterTerms(originalTerms) {
+            @Override
+            public TermsEnum iterator() throws IOException {
+                return new FilterTermsEnum(in.iterator()) {
+                    @Override
+                    public BytesRef next() throws IOException {
+                        // wind forward in the sequence of terms until we reached the end or we find a allowed term(=field name)
+                        // so that calling this method never return a term which is not allowed by fls rules
+                        for (BytesRef nextBytesRef = in.next(); nextBytesRef != null; nextBytesRef = in.next()) {
+                            // We do not test for field masking here, because masked fields shall be still available for the exists query
+                            if (!isAllowedButPossiblyMasked(nextBytesRef)) {
+                                continue;
+                            } else {
+                                return nextBytesRef;
+                            }
+                        }
+                        return null;
+                    }
 
-        if ("_field_names".equals(field)) {
-            return new FilteredTerms(terms);
-        }
-        return terms;
-    }
+                    @Override
+                    public TermsEnum.SeekStatus seekCeil(BytesRef text) throws IOException {
+                        // Get the current seek status for a given term in the original sequence of terms
+                        final TermsEnum.SeekStatus delegateStatus = in.seekCeil(text);
 
-    private final class FilteredTermsEnum extends FilterTermsEnum {
-        public FilteredTermsEnum(TermsEnum delegate) {
-            super(delegate);
-        }
+                        // So delegateStatus here is either FOUND or NOT_FOUND
+                        // check if the current term (=field name) is allowed
+                        // If so just return current seek status
+                        if (delegateStatus != TermsEnum.SeekStatus.END && isAllowedButPossiblyMasked(in.term())) {
+                            return delegateStatus;
+                        } else if (delegateStatus == TermsEnum.SeekStatus.END) {
+                            // If we hit the end just return END
+                            return TermsEnum.SeekStatus.END;
+                        } else {
+                            // If we are not at the end and the current term (=field name) is not allowed just check if
+                            // we are at the end of the (filtered) iterator
+                            if (this.next() != null) {
+                                return TermsEnum.SeekStatus.NOT_FOUND;
+                            } else {
+                                return TermsEnum.SeekStatus.END;
+                            }
+                        }
+                    }
 
-        @Override
-        public BytesRef next() throws IOException {
-            // wind forward in the sequence of terms until we reached the end or we find a allowed term(=field name)
-            // so that calling this method never return a term which is not allowed by fls rules
-            for (BytesRef nextBytesRef = in.next(); nextBytesRef != null; nextBytesRef = in.next()) {
-                if (!isAllowed((nextBytesRef))) {
-                    continue;
-                } else {
-                    return nextBytesRef;
-                }
+                    @Override
+                    public boolean seekExact(BytesRef term) throws IOException {
+                        return isAllowedButPossiblyMasked(term) && in.seekExact(term);
+                    }
+
+                    @Override
+                    public void seekExact(long ord) throws IOException {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public long ord() throws IOException {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public IOBooleanSupplier prepareSeekExact(BytesRef text) throws IOException {
+                        return isAllowedButPossiblyMasked(text) ? in.prepareSeekExact(text) : () -> false;
+                    }
+
+                    private boolean isAllowedButPossiblyMasked(BytesRef term) {
+                        return DlsFlsFilterLeafReader.this.isAllowedButPossiblyMasked(term.utf8ToString());
+                    }
+
+                };
             }
-            return null;
-        }
-
-        @Override
-        public SeekStatus seekCeil(BytesRef text) throws IOException {
-            // Get the current seek status for a given term in the original sequence of terms
-            final SeekStatus delegateStatus = in.seekCeil(text);
-
-            // So delegateStatus here is either FOUND or NOT_FOUND
-            // check if the current term (=field name) is allowed
-            // If so just return current seek status
-            if (delegateStatus != SeekStatus.END && isAllowed((in.term()))) {
-                return delegateStatus;
-            } else if (delegateStatus == SeekStatus.END) {
-                // If we hit the end just return END
-                return SeekStatus.END;
-            } else {
-                // If we are not at the end and the current term (=field name) is not allowed just check if
-                // we are at the end of the (filtered) iterator
-                if (this.next() != null) {
-                    return SeekStatus.NOT_FOUND;
-                } else {
-                    return SeekStatus.END;
-                }
-            }
-        }
-
-        @Override
-        public boolean seekExact(BytesRef term) throws IOException {
-            return isAllowed(term) && in.seekExact(term);
-        }
-
-        @Override
-        public void seekExact(long ord) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long ord() throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public IOBooleanSupplier prepareSeekExact(BytesRef text) throws IOException {
-            return isAllowed(text) ? in.prepareSeekExact(text) : () -> false;
-        }
-    }
-
-    private final class FilteredTerms extends FilterTerms {
-
-        // According to
-        // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/mapping-field-names-field.html
-        // "The _field_names field used to index the names of every field in a document that contains any value other than null"
-        // "For fields which have either doc_values or norm enabled the exists query will still be available but will not use the
-        // _field_names field."
-        // That means if a field has no doc values (which is always the case for an analyzed string) and no norms we need to strip the non
-        // allowed fls fields
-        // from the _field_names field. They are stored as terms, so we need to create a FilterTerms implementation which skips the terms
-        // (=field names)not allowed by fls
-
-        public FilteredTerms(Terms delegate) throws IOException {
-            super(delegate);
-        }
-
-        @Override
-        public TermsEnum iterator() throws IOException {
-            return new FilteredTermsEnum(in.iterator());
-        }
+        };
     }
 
     @Override

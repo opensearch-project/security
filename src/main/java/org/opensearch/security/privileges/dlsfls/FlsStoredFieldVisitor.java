@@ -85,7 +85,9 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public Status needsField(FieldInfo fieldInfo) throws IOException {
-        return metaFields.contains(fieldInfo.name) || flsRule.isAllowed(fieldInfo.name) ? delegate.needsField(fieldInfo) : Status.NO;
+        return metaFields.contains(fieldInfo.name) || flsRule.isAllowedRecursive(fieldInfo.name)
+            ? delegate.needsField(fieldInfo)
+            : Status.NO;
     }
 
     @Override
