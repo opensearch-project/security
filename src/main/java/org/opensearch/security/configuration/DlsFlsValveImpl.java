@@ -486,7 +486,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowed(field);
+        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowedRecursive(field);
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
