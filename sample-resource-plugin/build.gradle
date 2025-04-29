@@ -79,6 +79,9 @@ dependencies {
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
+
+    // To be removed once integration test framework supports extended plugins
+    integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
 
 sourceSets {
