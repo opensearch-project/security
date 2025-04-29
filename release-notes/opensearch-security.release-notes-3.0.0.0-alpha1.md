@@ -3,10 +3,10 @@
 Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-alpha1
 
 #### Breaking Changes
-* Optimized Privilege Evaluation ([#4380](https://github.com/opensearch-project/security/pull/4380))
 * Fix Blake2b hash implementation ([#5089](https://github.com/opensearch-project/security/pull/5089))
 
 #### Enhancements
+* Optimized Privilege Evaluation ([#4380](https://github.com/opensearch-project/security/pull/4380))
 * Add support for CIDR ranges in `ignore_hosts` setting ([#5099](https://github.com/opensearch-project/security/pull/5099))
 * Add 'good' as a valid value for `plugins.security.restapi.password_score_based_validation_strength` ([#5119](https://github.com/opensearch-project/security/pull/5119))
 * Adding stop-replication permission to `index_management_full_access` ([#5160](https://github.com/opensearch-project/security/pull/5160))
