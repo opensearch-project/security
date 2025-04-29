@@ -37,7 +37,7 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
-    opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
     buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -73,12 +73,15 @@ configurations.all {
 
 dependencies {
     // Main implementation dependencies
-    compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
+    compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
+
+    // To be removed once integration test framework supports extended plugins
+    integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
 }
 
 sourceSets {

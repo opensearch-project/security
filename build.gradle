@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -24,7 +24,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
 
         kafka_version  = '3.7.1'
         open_saml_version = '5.1.4'
@@ -559,7 +559,6 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
-        integrationTestImplementation group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
 
     }
 }
@@ -642,7 +641,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation project(path: ":opensearch-security-spi", configuration: 'shadow')
+    implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
