@@ -94,4 +94,100 @@ public class RestMatchers {
             }
         };
     }
+
+    public static DiagnosingMatcher<HttpResponse> isBadRequest(String jsonPointer, String patternString) {
+        return new DiagnosingMatcher<HttpResponse>() {
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Response has status 400 Bad Request with a JSON response that has the value ")
+                    .appendValue(patternString)
+                    .appendText(" at ")
+                    .appendValue(jsonPointer);
+            }
+
+            @Override
+            protected boolean matches(Object item, Description mismatchDescription) {
+                if (!(item instanceof HttpResponse)) {
+                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
+                    return false;
+                }
+
+                HttpResponse response = (HttpResponse) item;
+
+                if (response.getStatusCode() != 400) {
+                    mismatchDescription.appendText("Status is not 400 Bad Request: ").appendText("\n").appendValue(item);
+                    return false;
+                }
+
+                try {
+                    String value = response.getTextFromJsonBody(jsonPointer);
+
+                    if (value == null) {
+                        mismatchDescription.appendText("Could not find value at " + jsonPointer).appendText("\n").appendValue(item);
+                        return false;
+                    }
+
+                    if (value.contains(patternString)) {
+                        return true;
+                    } else {
+                        mismatchDescription.appendText("Value at " + jsonPointer + " does not match pattern: " + patternString + "\n")
+                            .appendValue(item);
+                        return false;
+                    }
+                } catch (Exception e) {
+                    mismatchDescription.appendText("Parsing request body failed with " + e).appendText("\n").appendValue(item);
+                    return false;
+                }
+            }
+        };
+    }
+
+    public static DiagnosingMatcher<HttpResponse> isInternalServerError(String jsonPointer, String patternString) {
+        return new DiagnosingMatcher<HttpResponse>() {
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Response has status 500 Internal Server Error with a JSON response that has the value ")
+                    .appendValue(patternString)
+                    .appendText(" at ")
+                    .appendValue(jsonPointer);
+            }
+
+            @Override
+            protected boolean matches(Object item, Description mismatchDescription) {
+                if (!(item instanceof HttpResponse)) {
+                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
+                    return false;
+                }
+
+                HttpResponse response = (HttpResponse) item;
+
+                if (response.getStatusCode() != 500) {
+                    mismatchDescription.appendText("Status is not 500 Internal Server Error: ").appendText("\n").appendValue(item);
+                    return false;
+                }
+
+                try {
+                    String value = response.getTextFromJsonBody(jsonPointer);
+
+                    if (value == null) {
+                        mismatchDescription.appendText("Could not find value at " + jsonPointer).appendText("\n").appendValue(item);
+                        return false;
+                    }
+
+                    if (value.contains(patternString)) {
+                        return true;
+                    } else {
+                        mismatchDescription.appendText("Value at " + jsonPointer + " does not match pattern: " + patternString + "\n")
+                            .appendValue(item);
+                        return false;
+                    }
+                } catch (Exception e) {
+                    mismatchDescription.appendText("Parsing request body failed with " + e).appendText("\n").appendValue(item);
+                    return false;
+                }
+            }
+        };
+    }
 }
