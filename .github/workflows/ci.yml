@@ -362,8 +362,8 @@ jobs:
       # To be removed once integration test framework supports extended plugins
       - name: Publish components to Maven Local
         run: |
-          gradlew.bat clean \
-            :opensearch-security-spi:publishToMavenLocal \
+          gradlew.bat clean ^
+            :opensearch-security-spi:publishToMavenLocal ^
             -Dbuild.snapshot=false
         shell: cmd
 
