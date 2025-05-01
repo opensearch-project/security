@@ -1,6 +1,6 @@
-## Version 3.0.0-beta1 Release Notes
+## Version 3.0.0 Release Notes
 
-Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
+Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0
 
 #### Breaking Changes
 * Fix Blake2b hash implementation ([#5089](https://github.com/opensearch-project/security/pull/5089))
@@ -18,9 +18,11 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 #### Bug Fixes
 * Fix version matcher string in demo config installer ([#5157](https://github.com/opensearch-project/security/pull/5157))
 * Escape pipe character for injected users ([#5175](https://github.com/opensearch-project/security/pull/5175))
-* Assume default of v7 models if _meta portion is not present ([#5193](https://github.com/opensearch-project/security/pull/5193))
+* Assume default of v7 models if _meta portion is not present ([#5193](https://github.com/opensearch-project/security/pull/5193)))
 * Fixed IllegalArgumentException when building stateful index privileges ([#5217](https://github.com/opensearch-project/security/pull/5217))
 * DlsFlsFilterLeafReader::termVectors implementation causes assertion errors for users with FLS/FM active ([#5243](https://github.com/opensearch-project/security/pull/5243))
+* Only check validity of certs in the chain of the node certificates ([#4979](https://github.com/opensearch-project/security/pull/4979))
+* Corrections in DlsFlsFilterLeafReader regarding PointVales and object valued attributes ([#5304](https://github.com/opensearch-project/security/pull/5304))
 
 #### Maintenance
 * Update AuditConfig.DEPRECATED_KEYS deprecation message to match 4.0 ([#5155](https://github.com/opensearch-project/security/pull/5155))
@@ -38,7 +40,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 * Bump ch.qos.logback:logback-classic from 1.5.16 to 1.5.17 ([#5149](https://github.com/opensearch-project/security/pull/5149))
 * Bump org.awaitility:awaitility from 4.2.2 to 4.3.0 ([#5126](https://github.com/opensearch-project/security/pull/5126))
 * Bump org.springframework.kafka:spring-kafka-test from 3.3.2 to 3.3.4 ([#5125](https://github.com/opensearch-project/security/pull/5125)) ([#5201](https://github.com/opensearch-project/security/pull/5201))
-* Bump org.junit.jupiter:junit-jupiter from 5.11.4 to 5.12.0 ([#5127](https://github.com/opensearch-project/security/pull/5127))
+* Bump org.junit.jupiter:junit-jupiter from 5.11.4 to 5.12.2 ([#5127](https://github.com/opensearch-project/security/pull/5127)) ([#5269](https://github.com/opensearch-project/security/pull/5269))
 * Bump Gradle to 8.13 ([#5148](https://github.com/opensearch-project/security/pull/5148))
 * Bump Spring version to fix CVE-2024-38827 ([#5173](https://github.com/opensearch-project/security/pull/5173))
 * Bump com.google.guava:guava from 33.4.0-jre to 33.4.6-jre ([#5205](https://github.com/opensearch-project/security/pull/5205)) ([#5228](https://github.com/opensearch-project/security/pull/5228))
@@ -57,3 +59,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.0.0-beta1
 * Bump com.google.errorprone:error_prone_annotations from 2.36.0 to 2.37.0 ([#5245](https://github.com/opensearch-project/security/pull/5245))
 * More tests for FLS and field masking ([#5237](https://github.com/opensearch-project/security/pull/5237))
 * Migrate from com.amazon.dlic to org.opensearch.security package ([#5223](https://github.com/opensearch-project/security/pull/5223))
+* Fix compilation issue after Secure gRPC PR (#17796) merged into core ([#5263](https://github.com/opensearch-project/security/pull/5263))
+* Bump commons-io:commons-io from 2.18.0 to 2.19.0 ([#5267](https://github.com/opensearch-project/security/pull/5267))
+* Bump org.apache.commons:commons-text from 1.13.0 to 1.13.1 ([#5266](https://github.com/opensearch-project/security/pull/5266))
+* Bump org.junit.jupiter:junit-jupiter-api from 5.12.1 to 5.12.2 ([#5268](https://github.com/opensearch-project/security/pull/5268))
+* Bump com.google.guava:failureaccess from 1.0.2 to 1.0.3 ([#5265](https://github.com/opensearch-project/security/pull/5265))
