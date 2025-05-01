@@ -51,6 +51,8 @@ import static org.opensearch.test.framework.matcher.RestDocumentMatchers.whereBu
 import static org.opensearch.test.framework.matcher.RestDocumentMatchers.whereDocumentSourceEquals;
 import static org.opensearch.test.framework.matcher.RestDocumentMatchers.whereFieldsEquals;
 import static org.opensearch.test.framework.matcher.RestDocumentMatchers.whereNonEmptyBucketsExist;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
+import static org.opensearch.test.framework.matcher.RestMatchers.isInternalServerError;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
@@ -242,6 +244,34 @@ public class FlsFmIntegrationTests {
             .reference(FIELD_IS_SEARCHABLE, field -> !field.startsWith("source_ip"))
             .reference(FIELD_IS_AGGREGABLE, field -> true);
 
+        TestSecurityConfig.User MASKING_ON_GEO_POINT_STRING = new TestSecurityConfig.User("masking_on_geo_point_string").description(
+            "May see geo_point_string only masked"
+        )
+            .roles(
+                new TestSecurityConfig.Role("role").clusterPermissions("cluster_composite_ops_ro")
+                    .indexPermissions("read")
+                    .maskedFields("attr_geo_point_string")
+                    .on(TEST_INDEX)
+            )
+            .reference(DOC_WITH_FLS_FM_APPLIED, doc -> doc.applyFieldTransform("attr_geo_point_string", blake2b(FIELD_MASKING_SALT_BYTES)))
+            .reference(FIELD_IS_SEARCHABLE, field -> !field.startsWith("attr_geo_point_string"))
+            .reference(FIELD_IS_AGGREGABLE, field -> true);
+
+        TestSecurityConfig.User MASKING_ON_GEO_POINT_STRING_STORED = new TestSecurityConfig.User("masking_on_geo_point_string_stored")
+            .description("May see geo_point_string_stored only masked")
+            .roles(
+                new TestSecurityConfig.Role("role").clusterPermissions("cluster_composite_ops_ro")
+                    .indexPermissions("read")
+                    .maskedFields("attr_geo_point_string_stored")
+                    .on(TEST_INDEX)
+            )
+            .reference(
+                DOC_WITH_FLS_FM_APPLIED,
+                doc -> doc.applyFieldTransform("attr_geo_point_string_stored", blake2b(FIELD_MASKING_SALT_BYTES))
+            )
+            .reference(FIELD_IS_SEARCHABLE, field -> !field.startsWith("attr_geo_point_string_stored"))
+            .reference(FIELD_IS_AGGREGABLE, field -> true);
+
         TestSecurityConfig.User MASKING_ON_BINARY = new TestSecurityConfig.User("masking_on_binary").description(
             "May see attr_binary only masked"
         )
@@ -268,6 +298,8 @@ public class FlsFmIntegrationTests {
             MASKING_ON_KEYWORD,
             MASKING_ON_STORED_FIELD,
             MASKING_ON_IP,
+            MASKING_ON_GEO_POINT_STRING,
+            MASKING_ON_GEO_POINT_STRING_STORED,
             MASKING_ON_BINARY
         );
 
@@ -306,7 +338,7 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_source() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search");
+            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?size=1000");
             assertThat(response, isOk());
             assertThat(
                 response,
@@ -322,7 +354,7 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_fields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "fields": [
                     "attr_text_1",
@@ -330,30 +362,43 @@ public class FlsFmIntegrationTests {
                     "attr_binary",
                     "attr_int",
                     "source_ip",
+                    "attr_geo_point_string",
                     "attr_object.obj_attr_text_1",
                     "attr_object.obj_attr_object.obj_obj_attr_text"
                   ]
                 }""");
-            assertThat(response, isOk());
-            assertThat(
-                response,
-                hasSearchHits(
-                    whereFieldsEquals(
-                        TEST_DOCUMENTS.applyTransform(
-                            user.reference(DOC_WITH_FLS_FM_APPLIED),
-                            d -> d.withOnlyAttributes(
-                                "attr_text_1",
-                                "attr_text_2",
-                                "attr_binary",
-                                "attr_int",
-                                "source_ip",
-                                "attr_object.obj_attr_text_1",
-                                "attr_object.obj_attr_object.obj_obj_attr_text"
+            if (user == Users.MASKING_ON_IP) {
+                // OpenSearch will try to parse the hashed IP address for retrieving the fields values;
+                // as the hashed address is not a valid IP address, this wil fail.
+                // Note: The 400 Bad Request REST response is semantically not correct, it's just the weird way OpenSearch handles
+                // IllegalArgumentExceptions
+                assertThat(response, isBadRequest("/error/root_cause/0/reason", "is not an IP string literal"));
+            } else if (user == Users.MASKING_ON_GEO_POINT_STRING) {
+                // Also for geo points, parsing the hashed geo data will fail.
+                assertThat(response, isBadRequest("/error/root_cause/0/reason", "unsupported symbol"));
+            } else {
+                assertThat(response, isOk());
+                assertThat(
+                    response,
+                    hasSearchHits(
+                        whereFieldsEquals(
+                            TEST_DOCUMENTS.applyTransform(
+                                user.reference(DOC_WITH_FLS_FM_APPLIED),
+                                d -> d.withOnlyAttributes(
+                                    "attr_text_1",
+                                    "attr_text_2",
+                                    "attr_binary",
+                                    "attr_int",
+                                    "source_ip",
+                                    "attr_geo_point_string",
+                                    "attr_object.obj_attr_text_1",
+                                    "attr_object.obj_attr_object.obj_obj_attr_text"
+                                )
                             )
                         )
                     )
-                )
-            );
+                );
+            }
         }
     }
 
@@ -364,27 +409,35 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_docValueFields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "docvalue_fields": [
                     "attr_text_1.keyword",
                     "attr_text_2.keyword",
                     "attr_int",
-                    "source_ip"
+                    "source_ip",
+                    "attr_geo_point_string"
                   ]
                 }""");
-            assertThat(response, isOk());
-            assertThat(
-                response,
-                hasSearchHits(
-                    whereFieldsEquals(
-                        TEST_DOCUMENTS.applyTransform(
-                            user.reference(DOC_WITH_FLS_FM_APPLIED),
-                            d -> d.withOnlyAttributes("attr_text_1", "attr_text_2", "attr_int", "source_ip")
+            if (user == Users.MASKING_ON_IP) {
+                // Also here: OpenSearch wont be able to parse a masked doc value. The exception types do not really matter.
+                assertThat(response, isBadRequest("/error/root_cause/0/type", "illegal_argument_exception"));
+            } else if (user == Users.MASKING_ON_GEO_POINT_STRING) {
+                assertThat(response, isInternalServerError("/error/root_cause/0/type", "illegal_state_exception"));
+            } else {
+                assertThat(response, isOk());
+                assertThat(
+                    response,
+                    hasSearchHits(
+                        whereFieldsEquals(
+                            TEST_DOCUMENTS.applyTransform(
+                                user.reference(DOC_WITH_FLS_FM_APPLIED),
+                                d -> d.withOnlyAttributes("attr_text_1", "attr_text_2", "attr_int", "source_ip", "attr_geo_point_string")
+                            )
                         )
                     )
-                )
-            );
+                );
+            }
         }
     }
 
@@ -395,7 +448,7 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_storedFields() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "stored_fields": [
                     "attr_text_stored"
@@ -519,6 +572,29 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    @Test
+    public void search_abilityToSearch_nestedAttribute() {
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = client.get(
+                TEST_INDEX.name() + "/_search?q=attr_object.obj_attr_text_1:dept_a_1&size=1000"
+            );
+            assertThat(response, isOk());
+            if (user.reference(FIELD_IS_SEARCHABLE).test("attr_object.obj_attr_text_1")) {
+                assertThat(
+                    response,
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> "dept_a_1".equals(d.getAttributeByPath("attr_object", "obj_attr_text_1")))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
+                );
+            } else {
+                assertThat(response, hasSearchHits(emptyHits()));
+            }
+        }
+    }
+
     /**
      * This test replicates the above aggregation tests for fields of type binary.
      * This gives coverage for the *BinaryDocValues methods in DlsFlsFilterLeafReader
@@ -559,12 +635,17 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_abilityToSearch_textAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_text_2:coffee");
+            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_text_2:coffee&size=1000");
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_text_2")) {
                 assertThat(
                     response,
-                    hasSearchHits(whereDocumentSourceEquals(TEST_DOCUMENTS.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))))
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> d.attrText2().contains("coffee"))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
                 );
             } else {
                 assertThat(response, hasSearchHits(emptyHits()));
@@ -578,12 +659,17 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_abilityToSearch_keywordAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_text_1.keyword:dept_a_1");
+            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_text_1.keyword:dept_a_1&size=1000");
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_text_1")) {
                 assertThat(
                     response,
-                    hasSearchHits(whereDocumentSourceEquals(TEST_DOCUMENTS.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))))
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> d.attrText1().equals("dept_a_1"))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
                 );
             } else {
                 assertThat(response, hasSearchHits(emptyHits()));
@@ -594,7 +680,7 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_abilityToSearch_keywordAttribute_prefixQuery() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "query": {
                     "prefix": {
@@ -622,12 +708,17 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_abilityToSearch_explicitKeywordAttribute() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_keyword.keyword:dept_a_1");
+            TestRestClient.HttpResponse response = client.get(TEST_INDEX.name() + "/_search?q=attr_keyword:dept_a_1&size=1000");
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_keyword")) {
                 assertThat(
                     response,
-                    hasSearchHits(whereDocumentSourceEquals(TEST_DOCUMENTS.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))))
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> d.attrKeyword().equals("dept_a_1"))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
                 );
             } else {
                 assertThat(response, hasSearchHits(emptyHits()));
@@ -638,7 +729,7 @@ public class FlsFmIntegrationTests {
     @Test
     public void search_abilityToSearch_explicitKeywordAttribute_rangeQuery() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "query": {
                     "range": {
@@ -673,7 +764,7 @@ public class FlsFmIntegrationTests {
     public void search_abilityToSearch_numericRange() {
         try (TestRestClient client = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse response = client.get(
-                TEST_INDEX.name() + "/_search?q=" + URLEncoder.encode("attr_int:[5000 TO 9000]", StandardCharsets.US_ASCII)
+                TEST_INDEX.name() + "/_search?q=" + URLEncoder.encode("attr_int:[5000 TO 9000]", StandardCharsets.US_ASCII) + "&size=1000"
             );
             assertThat(response, isOk());
             if (user.reference(FIELD_IS_SEARCHABLE).test("attr_int")) {
@@ -692,13 +783,78 @@ public class FlsFmIntegrationTests {
         }
     }
 
+    @Test
+    public void search_abilityToSearch_ip() {
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
+                {
+                  "query": {
+                    "term": {
+                      "source_ip": "101.0.0.0/8"
+                    }
+                  }
+                }""");
+            assertThat(response, isOk());
+            if (user.reference(FIELD_IS_SEARCHABLE).test("source_ip")) {
+                assertThat(
+                    response,
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> d.sourceIp().startsWith("101."))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
+                );
+            } else {
+                assertThat(response, hasSearchHits(emptyHits()));
+            }
+        }
+    }
+
+    @Test
+    public void search_abilityToSearch_geoPoint() {
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
+                {
+                  "query": {
+                    "geo_bounding_box": {
+                      "attr_geo_point_string": {
+                        "top_left": {
+                          "lat": 90,
+                          "lon": 10
+                        },
+                        "bottom_right": {
+                          "lat": 10,
+                          "lon": 99.9999999
+                        }
+                      }
+                    }
+                  }
+                }""");
+            assertThat(response, isOk());
+            if (user.reference(FIELD_IS_SEARCHABLE).test("attr_geo_point_string")) {
+                assertThat(
+                    response,
+                    hasSearchHits(
+                        whereDocumentSourceEquals(
+                            TEST_DOCUMENTS.where(d -> d.attrGeoPointString().matches("[1-9][0-9]\\.[0-9]+,\\s*[1-9][0-9]\\.[0-9]+"))
+                                .applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))
+                        )
+                    )
+                );
+            } else {
+                assertThat(response, hasSearchHits(emptyHits()));
+            }
+        }
+    }
+
     /**
      * The exists query internally operates on the _field_names field which gets special treatment in DlsFlsFilterLeafReader
      */
     @Test
     public void search_abilityToSearch_exists() {
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                   "query": {
                     "exists": {
@@ -732,7 +888,7 @@ public class FlsFmIntegrationTests {
         }
 
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search", """
+            TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {
                     "sort" : [
                        { "attr_keyword": "asc"},
