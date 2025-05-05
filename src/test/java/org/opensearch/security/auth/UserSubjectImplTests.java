@@ -38,6 +38,7 @@ public class UserSubjectImplTests {
 
         UserSubjectImpl subject = new UserSubjectImpl(threadPool, user);
 
+        assertThat(subject.getUser().getName(), equalTo(user.getName()));
         assertThat(subject.getPrincipal().getName(), equalTo(user.getName()));
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));

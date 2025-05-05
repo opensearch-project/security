@@ -11,7 +11,7 @@
 
 package org.opensearch.security.tools.democonfig;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline extension key-word is used in file ext variable
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to file extensions, keeping this rule disable for the whole file
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,8 +29,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -42,15 +40,27 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
-@SuppressWarnings("removal")
 public class InstallerTests {
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
     private final InputStream originalIn = System.in;
 
     private static Installer installer;
+
+    // Custom exception to simulate an exit call.
+    public static class TestExitException extends RuntimeException {
+        private final int status;
+
+        public TestExitException(int status) {
+            super("Exit code " + status);
+            this.status = status;
+        }
+
+        public int getStatus() {
+            return status;
+        }
+    }
 
     @Before
     public void setUpStreams() {
@@ -63,6 +73,7 @@ public class InstallerTests {
     public void restoreStreams() {
         System.setOut(originalOut);
         System.setIn(originalIn);
+        // Reset installer state to avoid cross-test contamination.
         Installer.resetInstance();
     }
 
@@ -79,7 +90,7 @@ public class InstallerTests {
 
     @Test
     public void testReadOptions_withoutHelpOption() {
-        // All options except Help `-h`
+        // All options except Help "-h"
         String[] validOptions = { "/scriptDir", "-y", "-i", "-c", "-s", "-t" };
         installer.readOptions(validOptions);
 
@@ -93,32 +104,31 @@ public class InstallerTests {
 
     @Test
     public void testReadOptions_help() {
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            String[] helpOption = { "/scriptDir", "-h" };
-            installer.readOptions(helpOption);
-        } catch (SecurityException e) {
-            // if help text printed correctly then exit code 0 is expected
-            assertThat(e.getMessage(), equalTo("System.exit(0) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        // Set exit handler that throws TestExitException instead of exiting.
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+
+        String[] helpOption = { "/scriptDir", "-h" };
+        TestExitException ex = assertThrows(
+            "Expected exit with status 0",
+            TestExitException.class,
+            () -> { installer.readOptions(helpOption); }
+        );
+        assertThat(ex.getStatus(), equalTo(0));
 
         verifyStdOutContainsString("usage: install_demo_configuration" + installer.FILE_EXTENSION + " [-c] [-h] [-i] [-s] [-t] [-y]");
     }
 
     @Test
     public void testGatherUserInputs_withoutAssumeYes() {
-        // -i & -c option is not passed
+        // -i & -c options are not passed
         String[] validOptions = { "/scriptDir" };
         installer.readOptions(validOptions);
         assertThat(installer.assumeyes, is(false));
         assertThat(installer.initsecurity, is(false));
         assertThat(installer.cluster_mode, is(false));
 
-        // set initsecurity and cluster_mode to no
-        readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator()); // pass all 3 inputs as
-        // y
+        // Provide inputs: "y" then "n", then "n".
+        readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -132,9 +142,8 @@ public class InstallerTests {
 
         outContent.reset();
 
-        // set initsecurity and cluster_mode to no
-        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-        // y
+        // Provide inputs: "y", "y", "y".
+        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator());
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -148,17 +157,16 @@ public class InstallerTests {
 
         outContent.reset();
 
-        // no to demo certificates
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
+        // Now test if the first prompt (demo certificates) is answered "n".
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        readInputStream("n" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
+        TestExitException ex = assertThrows(
+            "Expected exit with status 0",
+            TestExitException.class,
+            () -> { installer.gatherUserInputs(); }
+        );
+        assertThat(ex.getStatus(), equalTo(0));
 
-            readInputStream("n" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
-            installer.gatherUserInputs();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(0) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
         verifyStdOutContainsString("Install demo certificates?");
         verifyStdOutDoesNotContainString("Initialize Security Modules?");
         verifyStdOutDoesNotContainString("Cluster mode requires additional setup of:");
@@ -167,15 +175,15 @@ public class InstallerTests {
 
         outContent.reset();
 
-        // pass initsecurity and cluster_mode options
+        // Now test with -i and -c passed; prompts should not occur.
         String[] validOptionsIC = { "/scriptDir", "-i", "-c" };
         installer.readOptions(validOptionsIC);
         assertThat(installer.assumeyes, is(false));
         assertThat(installer.initsecurity, is(true));
         assertThat(installer.cluster_mode, is(true));
 
-        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
-        // y
+        // Even if input is provided, it should skip further prompts.
+        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator());
         installer.gatherUserInputs();
 
         verifyStdOutContainsString("Install demo certificates?");
@@ -194,6 +202,7 @@ public class InstallerTests {
 
         installer.gatherUserInputs();
 
+        // With assume yes (-y), no further prompts occur.
         assertThat(installer.initsecurity, is(false));
         assertThat(installer.cluster_mode, is(false));
     }
@@ -203,19 +212,15 @@ public class InstallerTests {
         String[] invalidScriptDirPath = { "/scriptDir", "-y" };
         installer.readOptions(invalidScriptDirPath);
 
+        // If BASE_DIR cannot be determined, a NullPointerException is expected.
         assertThrows("Expected NullPointerException to be thrown", NullPointerException.class, installer::initializeVariables);
 
         String[] invalidScriptDirPath2 = { "/opensearch/plugins/opensearch-security/tools", "-y" };
         installer.readOptions(invalidScriptDirPath2);
 
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
-            installer.initializeVariables();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows("Expected exit with status -1", TestExitException.class, installer::initializeVariables);
+        assertThat(ex.getStatus(), equalTo(-1));
 
         verifyStdOutContainsString("DEBUG: basedir does not exist");
     }
@@ -241,16 +246,13 @@ public class InstallerTests {
         String[] validBaseDir = { currentDir, "-y" };
         installer.readOptions(validBaseDir);
 
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
+        TestExitException ex = assertThrows("Expected exit with status -1", TestExitException.class, () -> {
             installer.setBaseDir();
             installer.setOpenSearchVariables();
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
+        });
+        assertThat(ex.getStatus(), equalTo(-1));
 
-        }
         verifyStdOutContainsString("Unable to determine OpenSearch config file. Quit.");
         verifyStdOutContainsString("Unable to determine OpenSearch bin directory. Quit.");
         verifyStdOutContainsString("Unable to determine OpenSearch plugins directory. Quit.");
@@ -269,7 +271,6 @@ public class InstallerTests {
         assertThat(installer.OPENSEARCH_PLUGINS_DIR, equalTo(expectedOpensearchPluginDirPath));
         assertThat(installer.OPENSEARCH_LIB_PATH, equalTo(expectedOpensearchLibDirPath));
         assertThat(installer.OPENSEARCH_INSTALL_TYPE, equalTo(expectedOpensearchInstallType));
-
     }
 
     @Test
@@ -314,16 +315,10 @@ public class InstallerTests {
 
     @Test
     public void testSetSecurityVariables_noSecurityPlugin() {
-        try {
-            System.setSecurityManager(new NoExitSecurityManager());
+        installer.setExitHandler(status -> { throw new TestExitException(status); });
 
-            installer.setSecurityVariables();
-            fail("Expected System.exit(-1) to be called");
-        } catch (SecurityException e) {
-            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
-        } finally {
-            System.setSecurityManager(null);
-        }
+        TestExitException ex = assertThrows("Expected exit with status -1", TestExitException.class, installer::setSecurityVariables);
+        assertThat(ex.getStatus(), equalTo(-1));
     }
 
     @Test
@@ -490,7 +485,7 @@ public class InstallerTests {
     }
 
     public void tearDownSecurityDirectories() {
-        // Clean up testing directories or files
+        // Clean up testing directories or files.
         deleteDirectoryRecursive(installer.OPENSEARCH_PLUGINS_DIR);
         deleteDirectoryRecursive(installer.OPENSEARCH_LIB_PATH);
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
@@ -517,3 +512,4 @@ public class InstallerTests {
         assertThat(outContent.toString(), not(containsString(s)));
     }
 }
+// CS-ENFORCE-SINGLE

@@ -59,8 +59,8 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1"), "index_a1");
-            assertTrue("included_field_a should be allowed", rule.isAllowed("included_field_a"));
-            assertFalse("Fields other than included_field_a should be not allowed", rule.isAllowed("other_field"));
+            assertTrue("included_field_a should be allowed", rule.isAllowedAssumingParentsAreAllowed("included_field_a"));
+            assertFalse("Fields other than included_field_a should be not allowed", rule.isAllowedAssumingParentsAreAllowed("other_field"));
         }
 
         @Test
@@ -72,8 +72,8 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1"), "index_a1");
-            assertFalse("excluded_field_a should be not allowed", rule.isAllowed("excluded_field_a"));
-            assertTrue("Fields other than included_field_a should be allowed", rule.isAllowed("other_field"));
+            assertFalse("excluded_field_a should be not allowed", rule.isAllowedAssumingParentsAreAllowed("excluded_field_a"));
+            assertTrue("Fields other than included_field_a should be allowed", rule.isAllowedAssumingParentsAreAllowed("other_field"));
         }
 
         @Test
@@ -86,11 +86,11 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1", "fls_role_2"), "index_a1");
-            assertTrue("included_field_a should be allowed", rule.isAllowed("included_field_a"));
-            assertTrue("included_field_a1_foo should be allowed", rule.isAllowed("included_field_a1_foo"));
+            assertTrue("included_field_a should be allowed", rule.isAllowedAssumingParentsAreAllowed("included_field_a"));
+            assertTrue("included_field_a1_foo should be allowed", rule.isAllowedAssumingParentsAreAllowed("included_field_a1_foo"));
             assertFalse(
                 "Fields other than included_field_a and included_field_a1_foo should be not allowed",
-                rule.isAllowed("other_field")
+                rule.isAllowedAssumingParentsAreAllowed("other_field")
             );
         }
 
@@ -104,9 +104,12 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1", "fls_role_2"), "index_a1");
-            assertFalse("excluded_field_a should be not allowed", rule.isAllowed("excluded_field_a"));
-            assertFalse("excluded_field_a1_foo should be not allowed", rule.isAllowed("excluded_field_a1_foo"));
-            assertTrue("Fields other than included_field_a and included_field_a1_foo should be allowed", rule.isAllowed("other_field"));
+            assertFalse("excluded_field_a should be not allowed", rule.isAllowedAssumingParentsAreAllowed("excluded_field_a"));
+            assertFalse("excluded_field_a1_foo should be not allowed", rule.isAllowedAssumingParentsAreAllowed("excluded_field_a1_foo"));
+            assertTrue(
+                "Fields other than included_field_a and included_field_a1_foo should be allowed",
+                rule.isAllowedAssumingParentsAreAllowed("other_field")
+            );
         }
 
         @Test
@@ -119,8 +122,8 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1", "non_fls_role"), "index_a1");
-            assertTrue("included_field_a should be allowed", rule.isAllowed("included_field_a"));
-            assertTrue("other_field should be allowed", rule.isAllowed("other_field"));
+            assertTrue("included_field_a should be allowed", rule.isAllowedAssumingParentsAreAllowed("included_field_a"));
+            assertTrue("other_field should be allowed", rule.isAllowedAssumingParentsAreAllowed("other_field"));
         }
 
         @Test
@@ -133,8 +136,8 @@ public class FieldPrivilegesTest {
             FieldPrivileges subject = createSubject(roleConfig);
 
             FieldPrivileges.FlsRule rule = subject.getRestriction(ctx("fls_role_1", "non_fls_role"), "index_a1");
-            assertTrue("excluded_field_a should be allowed", rule.isAllowed("excluded_field_a"));
-            assertTrue("other_field should be allowed", rule.isAllowed("other_field"));
+            assertTrue("excluded_field_a should be allowed", rule.isAllowedAssumingParentsAreAllowed("excluded_field_a"));
+            assertTrue("other_field should be allowed", rule.isAllowedAssumingParentsAreAllowed("other_field"));
         }
 
         static SecurityDynamicConfiguration<RoleV7> roleConfig(TestSecurityConfig.Role... roles) {
@@ -168,8 +171,13 @@ public class FieldPrivilegesTest {
         public void simple_inclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("field_inclusive");
             assertFalse("FLS rule field_inclusive should be restricted", flsRule.isUnrestricted());
-            assertTrue("field_inclusive is allowed", flsRule.isAllowed("field_inclusive"));
-            assertFalse("other_field is not allowed", flsRule.isAllowed("other_field"));
+
+            assertTrue("field_inclusive is allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_inclusive"));
+            assertTrue("field_inclusive is allowed", flsRule.isAllowedRecursive("field_inclusive"));
+
+            assertFalse("other_field is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
+            assertFalse("other_field is not allowed", flsRule.isAllowedRecursive("other_field"));
+
             assertEquals("FLS:[field_inclusive]", flsRule.toString());
             assertEquals(Arrays.asList("field_inclusive"), flsRule.getSource());
         }
@@ -178,26 +186,40 @@ public class FieldPrivilegesTest {
         public void simple_exclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("~field_exclusive");
             assertFalse("FLS rule field_exclusive should be restricted", flsRule.isUnrestricted());
-            assertFalse("field_exclusive is not allowed", flsRule.isAllowed("field_exclusive"));
-            assertTrue("other_field is allowed", flsRule.isAllowed("other_field"));
+
+            assertFalse("field_exclusive is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_exclusive"));
+            assertFalse("field_exclusive is not allowed", flsRule.isAllowedRecursive("field_exclusive"));
+
+            assertTrue("other_field is allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
+            assertTrue("other_field is allowed", flsRule.isAllowedRecursive("other_field"));
         }
 
         @Test
         public void multi_inclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("field_inclusive_1", "field_inclusive_2");
             assertFalse("FLS rule should be restricted", flsRule.isUnrestricted());
-            assertTrue("field_inclusive_1 is allowed", flsRule.isAllowed("field_inclusive_1"));
-            assertTrue("field_inclusive_2 is allowed", flsRule.isAllowed("field_inclusive_2"));
-            assertFalse("other_field is not allowed", flsRule.isAllowed("other_field"));
+
+            assertTrue("field_inclusive_1 is allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_inclusive_1"));
+            assertTrue("field_inclusive_2 is allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_inclusive_2"));
+            assertTrue("field_inclusive_1 is allowed", flsRule.isAllowedRecursive("field_inclusive_1"));
+            assertTrue("field_inclusive_2 is allowed", flsRule.isAllowedRecursive("field_inclusive_2"));
+
+            assertFalse("other_field is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
+            assertFalse("other_field is not allowed", flsRule.isAllowedRecursive("other_field"));
         }
 
         @Test
         public void multi_exclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("~field_exclusive_1", "~field_exclusive_2");
             assertFalse("FLS rule should be restricted", flsRule.isUnrestricted());
-            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowed("field_exclusive_1"));
-            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowed("field_exclusive_2"));
-            assertTrue("other_field is allowed", flsRule.isAllowed("other_field"));
+
+            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_exclusive_1"));
+            assertFalse("field_exclusive_2 is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_exclusive_2"));
+            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowedRecursive("field_exclusive_1"));
+            assertFalse("field_exclusive_2 is not allowed", flsRule.isAllowedRecursive("field_exclusive_2"));
+
+            assertTrue("other_field is allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
+            assertTrue("other_field is allowed", flsRule.isAllowedRecursive("other_field"));
         }
 
         @Test
@@ -207,35 +229,51 @@ public class FieldPrivilegesTest {
             // The behavior is undocumented - if there are exclusions and inclusions, only exclusions are regarded.
             // It might make sense to re-think this behavior.
             assertFalse("FLS rule should be restricted", flsRule.isUnrestricted());
-            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowed("field_exclusive_1"));
-            assertTrue("other_field is allowed", flsRule.isAllowed("other_field"));
+            assertFalse("field_exclusive_1 is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("field_exclusive_1"));
+            assertTrue("other_field is allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
         }
 
         @Test
         public void nested_inclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("a.b.c");
             assertFalse("FLS rule should be restricted", flsRule.isUnrestricted());
-            assertTrue("a.b.c is allowed", flsRule.isAllowed("a.b.c"));
-            assertFalse("a.b is not allowed for non-objects", flsRule.isAllowed("a.b"));
-            assertTrue("a.b is not allowed for objects", flsRule.isObjectAllowed("a.b"));
-            assertFalse("other_field is not allowed", flsRule.isAllowed("other_field"));
-            assertFalse("a.b.other_field is not allowed", flsRule.isAllowed("a.b.other_field"));
+
+            assertTrue("a.b.c is allowed", flsRule.isAllowedAssumingParentsAreAllowed("a.b.c"));
+            assertTrue("a.b.c is allowed", flsRule.isAllowedRecursive("a.b.c"));
+
+            assertFalse("a.b is not allowed for non-objects", flsRule.isAllowedAssumingParentsAreAllowed("a.b"));
+            assertTrue("a.b is not allowed for objects", flsRule.isObjectAllowedAssumingParentsAreAllowed("a.b"));
+            assertFalse("a.b is not allowed recursively", flsRule.isAllowedRecursive("a.b"));
+
+            assertFalse("other_field is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("other_field"));
+            assertFalse("other_field is not allowed", flsRule.isAllowedRecursive("other_field"));
+
+            assertFalse("a.b.other_field is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("a.b.other_field"));
+            assertFalse("a.b.other_field is not allowed", flsRule.isAllowedRecursive("a.b.other_field"));
+
+            assertTrue("a.b.c.d is allowed", flsRule.isAllowedRecursive("a.b.c.d"));
         }
 
         @Test
         public void nested_exclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("~a.b.c");
             assertFalse("FLS rule should be restricted", flsRule.isUnrestricted());
-            assertFalse("a.b.c is not allowed", flsRule.isAllowed("a.b.c"));
-            assertTrue("a.b is allowed", flsRule.isAllowed("a.b"));
-            assertTrue("a.b is allowed for objects", flsRule.isObjectAllowed("a.b"));
+
+            assertFalse("a.b.c is not allowed", flsRule.isAllowedAssumingParentsAreAllowed("a.b.c"));
+            assertFalse("a.b.c is not allowed", flsRule.isAllowedRecursive("a.b.c"));
+
+            assertTrue("a.b is allowed", flsRule.isAllowedAssumingParentsAreAllowed("a.b"));
+            assertTrue("a.b is allowed for objects", flsRule.isObjectAllowedAssumingParentsAreAllowed("a.b"));
+            assertTrue("a.b is allowed recursively", flsRule.isAllowedAssumingParentsAreAllowed("a.b"));
+
+            assertFalse("a.b.c.d is not allowed", flsRule.isAllowedRecursive("a.b.c.d"));
         }
 
         @Test
         public void wildcard_inclusive() throws Exception {
             FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("*");
             assertTrue("FLS rule * is unrestricted", flsRule.isUnrestricted());
-            assertTrue("anything is allowed", flsRule.isAllowed("anything"));
+            assertTrue("anything is allowed", flsRule.isAllowedAssumingParentsAreAllowed("anything"));
             assertEquals("FLS:*", flsRule.toString());
         }
 

@@ -43,9 +43,17 @@ import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
+import org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator;
+import org.opensearch.security.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator;
+import org.opensearch.security.auth.http.kerberos.HTTPSpnegoAuthenticator;
+import org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthorizationBackend;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
+import org.opensearch.security.auth.ldap2.LDAPAuthenticationBackend2;
+import org.opensearch.security.auth.ldap2.LDAPAuthorizationBackend2;
 import org.opensearch.security.auth.limiting.AddressBasedRateLimiter;
 import org.opensearch.security.auth.limiting.UserNameBasedRateLimiter;
 import org.opensearch.security.http.HTTPBasicAuthenticator;
@@ -124,20 +132,20 @@ public abstract class DynamicConfigModel {
         authImplMap.put("noop_c", NoOpAuthenticationBackend.class.getName());
         authImplMap.put("noop_z", NoOpAuthorizationBackend.class.getName());
 
-        authImplMap.put("ldap_c", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
-        authImplMap.put("ldap_z", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend");
+        authImplMap.put("ldap_c", LDAPAuthenticationBackend.class.getName());
+        authImplMap.put("ldap_z", LDAPAuthorizationBackend.class.getName());
 
-        authImplMap.put("ldap2_c", "com.amazon.dlic.auth.ldap2.LDAPAuthenticationBackend2");
-        authImplMap.put("ldap2_z", "com.amazon.dlic.auth.ldap2.LDAPAuthorizationBackend2");
+        authImplMap.put("ldap2_c", LDAPAuthenticationBackend2.class.getName());
+        authImplMap.put("ldap2_z", LDAPAuthorizationBackend2.class.getName());
 
         authImplMap.put("basic_h", HTTPBasicAuthenticator.class.getName());
         authImplMap.put("proxy_h", HTTPProxyAuthenticator.class.getName());
         authImplMap.put("extended-proxy_h", HTTPExtendedProxyAuthenticator.class.getName());
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
-        authImplMap.put("kerberos_h", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator");
-        authImplMap.put("jwt_h", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
-        authImplMap.put("openid_h", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
-        authImplMap.put("saml_h", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator");
+        authImplMap.put("kerberos_h", HTTPSpnegoAuthenticator.class.getName());
+        authImplMap.put("jwt_h", HTTPJwtAuthenticator.class.getName());
+        authImplMap.put("openid_h", HTTPJwtKeyByOpenIdConnectAuthenticator.class.getName());
+        authImplMap.put("saml_h", HTTPSamlAuthenticator.class.getName());
 
         authImplMap.put("ip_authFailureListener", AddressBasedRateLimiter.class.getName());
         authImplMap.put("username_authFailureListener", UserNameBasedRateLimiter.class.getName());

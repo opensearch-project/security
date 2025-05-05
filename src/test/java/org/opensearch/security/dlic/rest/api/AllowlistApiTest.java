@@ -71,8 +71,8 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             // Note: the response has no whitespaces, so the .json file does not have whitespaces
             assertThat(
-                FileHelper.loadFile("restapi/whitelist_response_success.json"),
-                is(FileHelper.loadFile("restapi/whitelist_response_success.json"))
+                FileHelper.loadFile("restapi/allowlist_response_success.json"),
+                is(FileHelper.loadFile("restapi/allowlist_response_success.json"))
             );
         }
         // FORBIDDEN FOR NON SUPER ADMIN
