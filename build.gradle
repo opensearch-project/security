@@ -532,7 +532,7 @@ allprojects {
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
         integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
         integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
-        integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
+        integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
             exclude(group: 'org.hamcrest', module: 'hamcrest')
         }
         integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
