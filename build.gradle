@@ -667,7 +667,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
-    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'org.apache.commons:commons-collections4:4.5.0'
 
     //Password generation
     implementation 'org.passay:passay:1.6.6'
