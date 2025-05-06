@@ -485,7 +485,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.17.0"
-            force "net.bytebuddy:byte-buddy:1.15.11"
+            force "net.bytebuddy:byte-buddy:1.17.5"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
@@ -532,7 +532,7 @@ allprojects {
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
         integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastle_version}"
         integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${bouncycastle_version}"
-        integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
+        integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
             exclude(group: 'org.hamcrest', module: 'hamcrest')
         }
         integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
