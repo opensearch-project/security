@@ -555,6 +555,7 @@ allprojects {
         integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
         integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
             exclude(group:'com.fasterxml.jackson.core')
+            exclude(group: 'org.apache.commons', module: 'commons-collections4')
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
