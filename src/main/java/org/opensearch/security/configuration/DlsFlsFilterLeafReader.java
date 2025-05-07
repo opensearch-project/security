@@ -130,7 +130,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 this.flsFieldInfos = delegate.getFieldInfos();
             }
 
-            dge = new DlsGetEvaluator(dlsQuery, in, applyDlsHere());
+            dge = new DlsGetEvaluator(dlsQuery, in, dlsQuery != null && applyDlsHere());
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
