@@ -553,6 +553,7 @@ allprojects {
         integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
         integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
         integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
+        integrationTestImplementation 'org.apache.commons:commons-collections4:4.5.0'
         integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
             exclude(group:'com.fasterxml.jackson.core')
             exclude(group: 'org.apache.commons', module: 'commons-collections4')
