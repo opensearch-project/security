@@ -6,13 +6,13 @@ on:
 jobs:
   # Enforces the update of a changelog file on every pull request
   verify-changelog:
+    if: github.repository == 'opensearch-project/security'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.pull_request.head.ref }}
-
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: dangoslen/changelog-enforcer@v3
         with:
           skipLabels: "autocut, skip-changelog"
