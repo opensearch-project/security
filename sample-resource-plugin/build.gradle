@@ -60,21 +60,15 @@ repositories {
 
 configurations.all {
     resolutionStrategy {
-        force 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3',
-                'org.hamcrest:hamcrest:2.2',
-                'org.apache.httpcomponents:httpclient:4.5.14',
-                'org.apache.httpcomponents:httpcore:4.4.16',
-                'org.mockito:mockito-core:5.17.0',
-                'net.bytebuddy:byte-buddy:1.17.5',
-                'commons-codec:commons-codec:1.18.0',
-                'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+        force 'org.apache.httpcomponents:httpclient:4.5.14'
+        force 'org.apache.httpcomponents:httpcore:4.4.16'
+        force 'commons-codec:commons-codec:1.18.0'
     }
 }
 
 dependencies {
     // Main implementation dependencies
     compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
-    compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output

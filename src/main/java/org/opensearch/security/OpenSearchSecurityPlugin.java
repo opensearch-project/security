@@ -719,7 +719,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!disabled && !client && !SSLConfig.isSslOnlyMode()) {
             log.debug("Handle auditLog {} for onIndexModule() of index {}", auditLog.getClass(), indexModule.getIndex().getName());
 
-            final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog);
+            final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog, threadPool);
             indexModule.addIndexOperationListener(ciol);
 
             indexModule.setReaderWrapper(

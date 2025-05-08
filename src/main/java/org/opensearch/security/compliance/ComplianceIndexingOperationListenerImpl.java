@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine.Delete;
@@ -26,16 +27,21 @@ import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.IndexShard;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.threadpool.ThreadPool;
+
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
     private static final Logger log = LogManager.getLogger(ComplianceIndexingOperationListenerImpl.class);
     private final AuditLog auditlog;
+    private final ThreadPool threadPool;
     private volatile IndexService is;
 
-    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog) {
+    public ComplianceIndexingOperationListenerImpl(final AuditLog auditlog, final ThreadPool threadPool) {
         super();
         this.auditlog = auditlog;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -90,10 +96,9 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             }
 
             if (shard.isReadAllowed()) {
-                try {
-
+                try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                    threadPool.getThreadContext().putHeader(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                     final GetResult getResult = shard.getService().getForUpdate(index.id(), index.getIfSeqNo(), index.getIfPrimaryTerm());
-
                     if (getResult.isExists()) {
                         threadContext.set(new Context(getResult));
                     } else {
