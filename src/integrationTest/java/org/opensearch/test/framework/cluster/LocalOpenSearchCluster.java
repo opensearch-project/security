@@ -446,7 +446,7 @@ public class LocalOpenSearchCluster {
                         false
                     )
                 )
-                .toList();
+                .collect(Collectors.toList());
             classpathPlugins.addAll(additionalPlugins);
             this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), classpathPlugins);
 
