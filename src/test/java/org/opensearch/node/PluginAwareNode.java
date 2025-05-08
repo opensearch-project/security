@@ -29,8 +29,10 @@ package org.opensearch.node;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.PluginInfo;
 
 public class PluginAwareNode extends Node {
 
@@ -43,7 +45,21 @@ public class PluginAwareNode extends Node {
     ) {
         super(
             InternalSettingsPreparer.prepareEnvironment(preparedSettings, Collections.emptyMap(), null, () -> System.getenv("HOSTNAME")),
-            plugins,
+            plugins.stream()
+                .map(
+                    p -> new PluginInfo(
+                        p.getName(),
+                        "classpath plugin",
+                        "NA",
+                        Version.CURRENT,
+                        "1.8",
+                        p.getName(),
+                        null,
+                        Collections.emptyList(),
+                        false
+                    )
+                )
+                .toList(),
             true
         );
         this.clusterManagerEligible = clusterManagerEligible;

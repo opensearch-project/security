@@ -54,6 +54,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
@@ -63,6 +64,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.http.BindHttpException;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
 import org.opensearch.transport.BindTransportException;
@@ -94,7 +96,8 @@ public class LocalOpenSearchCluster {
     private final String clusterName;
     private final ClusterManager clusterManager;
     private final NodeSettingsSupplier nodeSettingsSupplier;
-    private final List<Class<? extends Plugin>> additionalPlugins;
+    private final List<Class<? extends Plugin>> plugins;
+    private final List<PluginInfo> additionalPlugins;
     private final List<Node> nodes = new ArrayList<>();
     private final TestCertificates testCertificates;
     private final Integer expectedNodeStartupCount;
@@ -112,13 +115,15 @@ public class LocalOpenSearchCluster {
         String clusterName,
         ClusterManager clusterManager,
         NodeSettingsSupplier nodeSettingsSupplier,
-        List<Class<? extends Plugin>> additionalPlugins,
+        List<Class<? extends Plugin>> plugins,
+        List<PluginInfo> additionalPlugins,
         TestCertificates testCertificates,
         Integer expectedNodeStartCount
     ) {
         this.clusterName = clusterName;
         this.clusterManager = clusterManager;
         this.nodeSettingsSupplier = nodeSettingsSupplier;
+        this.plugins = plugins;
         this.additionalPlugins = additionalPlugins;
         this.testCertificates = testCertificates;
         this.expectedNodeStartupCount = expectedNodeStartCount;
@@ -426,8 +431,24 @@ public class LocalOpenSearchCluster {
 
         CompletableFuture<StartStage> start() {
             CompletableFuture<StartStage> completableFuture = new CompletableFuture<>();
-            final Collection<Class<? extends Plugin>> mergedPlugins = nodeSettings.pluginsWithAddition(additionalPlugins);
-            this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), mergedPlugins);
+            final Collection<Class<? extends Plugin>> mergedPlugins = nodeSettings.pluginsWithAddition(plugins);
+            final List<PluginInfo> classpathPlugins = mergedPlugins.stream()
+                .map(
+                    p -> new PluginInfo(
+                        p.getName(),
+                        "classpath plugin",
+                        "NA",
+                        Version.CURRENT,
+                        "1.8",
+                        p.getName(),
+                        null,
+                        Collections.emptyList(),
+                        false
+                    )
+                )
+                .collect(Collectors.toList());
+            classpathPlugins.addAll(additionalPlugins);
+            this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), classpathPlugins);
 
             new Thread(new Runnable() {
 
