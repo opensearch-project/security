@@ -158,7 +158,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext)
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext, final boolean isChallenge)
         throws OpenSearchSecurityException {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
@@ -166,7 +166,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             return null;
         }
 
-        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext);
+        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext, isChallenge);
 
         if (AUTHINFO_SUFFIX.equals(suffix)) {
             this.initLogoutUrl(threadContext, authCredentials);

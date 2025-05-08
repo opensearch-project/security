@@ -39,7 +39,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNotNull(creds);
@@ -66,7 +67,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNull(creds);
@@ -89,7 +91,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNotNull(creds);
@@ -115,7 +118,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNull(creds);
@@ -139,7 +143,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNotNull(creds);
@@ -151,7 +156,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNull(creds);
@@ -159,7 +165,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNull(creds);
@@ -167,7 +174,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNotNull(creds);
@@ -190,7 +198,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<String, String>())
                     .asSecurityRequest(),
-                null
+                null,
+                false
             );
 
             Assert.assertNotNull(creds);

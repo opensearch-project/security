@@ -171,7 +171,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext, final boolean isChallenge) {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
