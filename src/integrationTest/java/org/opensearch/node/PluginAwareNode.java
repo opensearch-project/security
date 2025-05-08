@@ -30,17 +30,13 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.PluginInfo;
 
 public class PluginAwareNode extends Node {
 
     private final boolean clusterManagerEligible;
 
-    public PluginAwareNode(
-        boolean clusterManagerEligible,
-        final Settings preparedSettings,
-        final Collection<Class<? extends Plugin>> plugins
-    ) {
+    public PluginAwareNode(boolean clusterManagerEligible, final Settings preparedSettings, final Collection<PluginInfo> plugins) {
         super(
             InternalSettingsPreparer.prepareEnvironment(preparedSettings, Collections.emptyMap(), null, () -> System.getenv("HOSTNAME")),
             plugins,

@@ -47,6 +47,7 @@ import org.junit.rules.ExternalResource;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -84,6 +85,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private boolean sslOnly;
 
     private final List<Class<? extends Plugin>> plugins;
+    private final List<PluginInfo> additionalPlugins;
     private final ClusterManager clusterManager;
     private final TestSecurityConfig testSecurityConfig;
     private Map<Integer, Settings> nodeSpecificOverride;
@@ -107,6 +109,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         Settings nodeOverride,
         ClusterManager clusterManager,
         List<Class<? extends Plugin>> plugins,
+        List<PluginInfo> additionalPlugins,
         TestCertificates testCertificates,
         List<LocalCluster> clusterDependencies,
         Map<String, LocalCluster> remotes,
@@ -116,6 +119,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         Integer expectedNodeStartupCount
     ) {
         this.plugins = plugins;
+        this.additionalPlugins = additionalPlugins;
         this.testCertificates = testCertificates;
         this.clusterManager = clusterManager;
         this.testSecurityConfig = testSgConfig;
@@ -247,6 +251,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                 clusterManager,
                 nodeSettingsSupplier,
                 plugins,
+                additionalPlugins,
                 testCertificates,
                 expectedNodeStartupCount
             );
@@ -326,6 +331,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private boolean sslOnly = false;
         private Integer expectedNodeStartupCount;
         private final List<Class<? extends Plugin>> plugins = new ArrayList<>();
+        private final List<PluginInfo> additionalPlugins = new ArrayList<>();
         private Map<String, LocalCluster> remoteClusters = new HashMap<>();
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
@@ -419,6 +425,16 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         @SafeVarargs
         public final Builder plugin(Class<? extends Plugin>... plugins) {
             this.plugins.addAll(List.of(plugins));
+
+            return this;
+        }
+
+        /**
+         * Adds additional plugins to the cluster
+         */
+        @SafeVarargs
+        public final Builder plugin(PluginInfo... plugins) {
+            this.additionalPlugins.addAll(List.of(plugins));
 
             return this;
         }
@@ -584,6 +600,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     settings,
                     clusterManager,
                     plugins,
+                    additionalPlugins,
                     testCertificates,
                     clusterDependencies,
                     remoteClusters,
