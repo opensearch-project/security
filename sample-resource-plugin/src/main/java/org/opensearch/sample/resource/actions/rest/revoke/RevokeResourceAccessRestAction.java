@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.opensearch.core.common.Strings;
@@ -72,7 +71,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             throw new IllegalArgumentException("entities_to_revoke is required and cannot be empty");
         }
 
-        Map<Recipient, Set<String>> entitiesToRevoke = source.entrySet()
+        Map<Recipient, Collection<String>> entitiesToRevoke = source.entrySet()
             .stream()
             .filter(entry -> entry.getValue() instanceof Collection<?>)
             .collect(

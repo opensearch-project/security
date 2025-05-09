@@ -8,6 +8,7 @@
 
 package org.opensearch.sample;
 
+import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -19,8 +20,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -61,7 +65,20 @@ public class SampleResourcePluginTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .plugin(SampleResourcePlugin.class, PainlessModulePlugin.class)
+        .plugin(PainlessModulePlugin.class)
+        .plugin(
+            new PluginInfo(
+                SampleResourcePlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "1.8",
+                SampleResourcePlugin.class.getName(),
+                null,
+                List.of(OpenSearchSecurityPlugin.class.getName()),
+                false
+            )
+        )
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
@@ -95,7 +112,6 @@ public class SampleResourcePluginTests {
     @Test
     public void testCreateUpdateDeleteSampleResource() throws Exception {
         String resourceId;
-        String resourceSharingDocId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             String sampleResource = """
@@ -106,35 +122,13 @@ public class SampleResourcePluginTests {
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-        }
-
-        // Create an entry in resource-sharing index
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
-            String json = """
-                {
-                  "source_idx": ".sample_resource_sharing_plugin",
-                  "resource_id": "%s",
-                  "created_by": {
-                    "user": "admin"
-                  }
-                }
-                """.formatted(resourceId);
-
-            TestRestClient.HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
-            assertThat(response.getStatusReason(), containsString("Created"));
-            resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
-            resourcePluginInfo.getResourceSharingExtensionsMutable().add(resourceSharingExtension);
-
-            ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
 
             Awaitility.await()
                 .alias("Wait until resource data is populated")
                 .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
-            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("sample"));
-            // Wait until resource-sharing entry is successfully created
+        }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
@@ -154,16 +148,7 @@ public class SampleResourcePluginTests {
                 sampleResourceUpdated
             );
             updateResponse.assertStatusCode(HttpStatus.SC_OK);
-        }
 
-        // resource should be visible to super-admin
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            Awaitility.await()
-                .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
@@ -194,15 +179,6 @@ public class SampleResourcePluginTests {
             );
         }
 
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            Awaitility.await()
-                .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
-        }
-
         // share resource with shared_with user
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.postJson(
@@ -225,13 +201,6 @@ public class SampleResourcePluginTests {
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
-        }
-
-        // resource is still visible to super-admin
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("sampleUpdated"));
         }
 
         // revoke share_with_user's access
@@ -264,20 +233,6 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
-        }
-
-        // corresponding entry should be removed from resource-sharing index
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Since test framework doesn't yet allow loading ex tensions we need to delete the resource sharing entry manually
-            TestRestClient.HttpResponse response = client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc/" + resourceSharingDocId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-
-            Awaitility.await()
-                .alias("Wait until resource-sharing data is updated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(0)
-                );
         }
 
         // get sample resource with SHARED_WITH_USER
