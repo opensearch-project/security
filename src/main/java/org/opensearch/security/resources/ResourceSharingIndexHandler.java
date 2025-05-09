@@ -539,6 +539,7 @@ public class ResourceSharingIndexHandler {
                         RestStatus.FORBIDDEN
                     )
                 );
+                return;
             }
 
             for (String accessLevel : shareWithMap.keySet()) {
@@ -556,7 +557,7 @@ public class ResourceSharingIndexHandler {
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
-                fetchResourceSharingDocument(sourceIdx, resourceId, listener);
+                listener.onResponse(sharingInfo);
             }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
             client.index(ir, irListener);
         }, listener::onFailure);
