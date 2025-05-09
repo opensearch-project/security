@@ -9,6 +9,7 @@
 package org.opensearch.security.spi.resources;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class ShareWithTests {
 
         SharedWithActionGroup.ActionGroupRecipients actionGroupRecipients = actionGroup.getSharedWithPerActionGroup();
         MatcherAssert.assertThat(actionGroupRecipients, notNullValue());
-        Map<Recipient, Set<String>> recipients = actionGroupRecipients.getRecipients();
+        Map<Recipient, Collection<String>> recipients = actionGroupRecipients.getRecipients();
         MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
         MatcherAssert.assertThat(recipients.get(Recipient.USERS), contains("user1"));
         MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(0));
@@ -118,7 +119,7 @@ public class ShareWithTests {
 
         for (SharedWithActionGroup actionGroup : actionGroups) {
             SharedWithActionGroup.ActionGroupRecipients perScope = actionGroup.getSharedWithPerActionGroup();
-            Map<Recipient, Set<String>> recipients = perScope.getRecipients();
+            Map<Recipient, Collection<String>> recipients = perScope.getRecipients();
             if (actionGroup.getActionGroup().equals(ResourceAccessActionGroups.PLACE_HOLDER)) {
                 MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(2));
                 MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(1));

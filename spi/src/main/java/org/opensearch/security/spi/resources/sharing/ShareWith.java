@@ -57,6 +57,15 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         return sharedWithActionGroups;
     }
 
+    public SharedWithActionGroup atAccessLevel(String accessLevel) {
+        for (SharedWithActionGroup sharedWithActionGroup : sharedWithActionGroups) {
+            if (sharedWithActionGroup.getActionGroup().equals(accessLevel)) {
+                return sharedWithActionGroup;
+            }
+        }
+        return null;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();

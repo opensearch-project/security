@@ -9,7 +9,12 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -36,6 +41,8 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
+    private String docId;
+
     /**
      * The index where the resource is defined
      */
@@ -61,6 +68,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.resourceId = resourceId;
         this.createdBy = createdBy;
         this.shareWith = shareWith;
+    }
+
+    public String getDocId() {
+        return docId;
+    }
+
+    public void setDocId(String docId) {
+        this.docId = docId;
     }
 
     public String getSourceIdx() {
@@ -93,6 +108,21 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void setShareWith(ShareWith shareWith) {
         this.shareWith = shareWith;
+    }
+
+    public void share(String accessLevel, Map<String, List<String>> target) {
+        if (shareWith == null) {
+            Map<Recipient, Collection<String>> recipients = new HashMap<>();
+            target.forEach((key, value) -> { recipients.put(Recipient.valueOf(key.toUpperCase(Locale.ROOT)), value); });
+            SharedWithActionGroup sharedWith = new SharedWithActionGroup(
+                accessLevel,
+                new SharedWithActionGroup.ActionGroupRecipients(recipients)
+            );
+            shareWith = new ShareWith(Set.of(sharedWith));
+        } else {
+            SharedWithActionGroup sharedWith = shareWith.atAccessLevel(accessLevel);
+            sharedWith.share(target);
+        }
     }
 
     @Override
