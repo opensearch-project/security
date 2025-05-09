@@ -116,16 +116,14 @@ import static org.opensearch.security.support.SecurityUtils.escapePipe;
 public class PrivilegesEvaluator {
 
     static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
-        ImmutableList.of(
-            "indices:data/read/*",
-            "indices:admin/mappings/fields/get*",
-            "indices:admin/shards/search_shards",
-            "indices:admin/resolve/index",
-            "indices:monitor/settings/get",
-            "indices:monitor/stats",
-            "indices:admin/aliases/get"
-        )
-    );
+            ImmutableList.of(
+                    "indices:data/read/*",
+                    "indices:admin/mappings/fields/get*",
+                    "indices:admin/shards/search_shards",
+                    "indices:admin/resolve/index",
+                    "indices:monitor/settings/get",
+                    "indices:monitor/stats",
+                    "indices:admin/aliases/get"));
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
 
@@ -159,19 +157,18 @@ public class PrivilegesEvaluator {
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
 
     public PrivilegesEvaluator(
-        final ClusterService clusterService,
-        Supplier<ClusterState> clusterStateSupplier,
-        ThreadPool threadPool,
-        final ThreadContext threadContext,
-        final ConfigurationRepository configurationRepository,
-        final IndexNameExpressionResolver resolver,
-        AuditLog auditLog,
-        final Settings settings,
-        final PrivilegesInterceptor privilegesInterceptor,
-        final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry
-    ) {
+            final ClusterService clusterService,
+            Supplier<ClusterState> clusterStateSupplier,
+            ThreadPool threadPool,
+            final ThreadContext threadContext,
+            final ConfigurationRepository configurationRepository,
+            final IndexNameExpressionResolver resolver,
+            AuditLog auditLog,
+            final Settings settings,
+            final PrivilegesInterceptor privilegesInterceptor,
+            final ClusterInfoHolder clusterInfoHolder,
+            final IndexResolverReplacer irr,
+            NamedXContentRegistry namedXContentRegistry) {
 
         super();
         this.resolver = resolver;
@@ -184,9 +181,8 @@ public class PrivilegesEvaluator {
         this.settings = settings;
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
-            ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-            ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
-        );
+                ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -201,10 +197,11 @@ public class PrivilegesEvaluator {
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
                 try {
-                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
-                        CType.ACTIONGROUPS
-                    );
-                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository
+                            .getConfiguration(
+                                    CType.ACTIONGROUPS);
+                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository
+                            .getConfiguration(CType.ROLES);
 
                     this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
                 } catch (Exception e) {
@@ -225,21 +222,19 @@ public class PrivilegesEvaluator {
     }
 
     void updateConfiguration(
-        SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration
-    ) {
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration,
+            SecurityDynamicConfiguration<RoleV7> rolesConfiguration) {
         if (rolesConfiguration != null) {
             SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                ? DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
-                : DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS));
+                    ? DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
+                    : DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS));
             FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
             ActionPrivileges actionPrivileges = new ActionPrivileges(
-                DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
-                flattenedActionGroups,
-                () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                settings,
-                pluginToClusterActions
-            );
+                    DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
+                    flattenedActionGroups,
+                    () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
+                    settings,
+                    pluginToClusterActions);
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
             ActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
@@ -264,7 +259,8 @@ public class PrivilegesEvaluator {
         return this.actionPrivileges.get();
     }
 
-    public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permission) {
+    public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress,
+            final String permission) {
         PrivilegesEvaluationContext context = createContext(user, permission);
         return this.actionPrivileges.get().hasExplicitClusterPrivilege(context, permission).isAllowed();
     }
@@ -285,6 +281,19 @@ public class PrivilegesEvaluator {
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(escapePipe(requestedTenant));
             }
+
+            Set<String> customAttributes = new HashSet<String>();
+            for (Map.Entry<String, String> entry : user.getCustomAttributesMap().entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                customAttributes.add(entry.getKey());
+            }
+            if (customAttributes.size() > 0) {
+                joiner.add(escapePipe(String.join(",", customAttributes)));
+            }
+
+            log.debug("set user info in thread context: {}", joiner.toString());
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
@@ -294,20 +303,21 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluationContext createContext(
-        User user,
-        String action0,
-        ActionRequest request,
-        Task task,
-        Set<String> injectedRoles
-    ) {
+            User user,
+            String action0,
+            ActionRequest request,
+            Task task,
+            Set<String> injectedRoles) {
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
         }
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
+        ImmutableSet<String> mappedRoles = ImmutableSet
+                .copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver,
+                clusterStateSupplier);
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
@@ -337,10 +347,10 @@ public class PrivilegesEvaluator {
         PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
         final String injectedRolesValidationString = threadContext.getTransient(
-            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION
-        );
+                ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
         if (injectedRolesValidationString != null) {
-            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
+            HashSet<String> injectedRolesValidationSet = new HashSet<>(
+                    Arrays.asList(injectedRolesValidationString.split(",")));
             if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
                 presponse.allowed = false;
                 presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
@@ -351,40 +361,44 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
+        // Add the security roles for this user so that they can be used for DLS
+        // parameter substitution.
         user.addSecurityRoles(mappedRoles);
         setUserInfoInThreadContext(user);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
-            log.debug("Evaluate permissions for {}", user);
+            log.debug("Evaluate permissions for {}", user.toStringWithAttributes());
             log.debug("Action: {} ({})", action0, request.getClass().getSimpleName());
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
         ActionPrivileges actionPrivileges = this.actionPrivileges.get();
         if (actionPrivileges == null) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
+            throw new OpenSearchSecurityException(
+                    "OpenSearch Security is not initialized: roles configuration is missing");
         }
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
-            // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
+            // Shortcut for bulk actions. The details are checked on the lower level of the
+            // BulkShardRequests (Action
             // indices:data/write/bulk[s]).
-            // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default
+            // This shortcut is only possible if the default tenant is selected, as we might
+            // need to rewrite the request for non-default
             // tenants.
-            // No further access check for the default tenant is necessary, as access will be also checked on the TransportShardBulkAction
+            // No further access check for the default tenant is necessary, as access will
+            // be also checked on the TransportShardBulkAction
             // level.
 
             presponse = actionPrivileges.hasClusterPrivilege(context, action0);
 
             if (!presponse.allowed) {
                 log.info(
-                    "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
-                    user,
-                    action0,
-                    mappedRoles,
-                    presponse.getMissingPrivileges()
-                );
+                        "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                        user,
+                        action0,
+                        mappedRoles,
+                        presponse.getMissingPrivileges());
             }
             return presponse;
         }
@@ -401,13 +415,15 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
-            .isComplete()) {
+        if (systemIndexAccessEvaluator
+                .evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
+                .isComplete()) {
             return presponse;
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles)
+                .isComplete()) {
             return presponse;
         }
 
@@ -426,7 +442,8 @@ public class PrivilegesEvaluator {
         final boolean serviceAccountUser = user.isServiceAccount();
         if (isClusterPerm(action0)) {
             if (serviceAccountUser) {
-                log.info("{} is a service account which doesn't have access to cluster level permission: {}", user, action0);
+                log.info("{} is a service account which doesn't have access to cluster level permission: {}", user,
+                        action0);
                 return PrivilegesEvaluatorResponse.insufficient(action0);
             }
 
@@ -434,13 +451,12 @@ public class PrivilegesEvaluator {
 
             if (!presponse.allowed) {
                 log.info(
-                    "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
-                    user,
-                    requestedResolved,
-                    action0,
-                    mappedRoles,
-                    presponse.getMissingPrivileges()
-                );
+                        "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                        user,
+                        requestedResolved,
+                        action0,
+                        mappedRoles,
+                        presponse.getMissingPrivileges());
                 return presponse;
             } else {
 
@@ -451,14 +467,14 @@ public class PrivilegesEvaluator {
                 } else {
                     if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                            request,
-                            action0,
-                            user,
-                            dcm,
-                            requestedResolved,
-                            mapTenants(user, mappedRoles)
-                        );
+                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor
+                                .replaceDashboardsIndex(
+                                        request,
+                                        action0,
+                                        user,
+                                        dcm,
+                                        requestedResolved,
+                                        mapTenants(user, mappedRoles));
 
                         if (isDebugEnabled) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
@@ -490,7 +506,8 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate(requestedResolved, request, context, actionPrivileges, presponse)
+                .isComplete()) {
             return presponse;
         }
 
@@ -498,10 +515,9 @@ public class PrivilegesEvaluator {
 
         if (isDebugEnabled) {
             log.debug(
-                "Requested {} from {}",
-                allIndexPermsRequired,
-                threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS)
-            );
+                    "Requested {} from {}",
+                    allIndexPermsRequired,
+                    threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS));
         }
 
         if (isDebugEnabled) {
@@ -514,13 +530,12 @@ public class PrivilegesEvaluator {
         if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                request,
-                action0,
-                user,
-                dcm,
-                requestedResolved,
-                mapTenants(user, mappedRoles)
-            );
+                    request,
+                    action0,
+                    user,
+                    dcm,
+                    requestedResolved,
+                    mapTenants(user, mappedRoles));
 
             if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
@@ -575,14 +590,13 @@ public class PrivilegesEvaluator {
             }
         } else {
             log.info(
-                "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
-                "index",
-                user,
-                requestedResolved,
-                presponse.getReason(),
-                action0,
-                mappedRoles
-            );
+                    "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
+                    "index",
+                    user,
+                    requestedResolved,
+                    presponse.getReason(),
+                    action0,
+                    mappedRoles);
             log.info("Index to privilege matrix:\n{}", presponse.getPrivilegeMatrix());
             if (presponse.hasEvaluationExceptions()) {
                 log.info("Evaluation errors:\n{}", presponse.getEvaluationExceptionInfo());
@@ -610,7 +624,8 @@ public class PrivilegesEvaluator {
     }
 
     public boolean privateTenantEnabled() {
-        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class && dcm.isDashboardsPrivateTenantEnabled();
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
+                && dcm.isDashboardsPrivateTenantEnabled();
     }
 
     public String dashboardsDefaultTenant() {
@@ -637,7 +652,8 @@ public class PrivilegesEvaluator {
         return dcm.getSignInOptions();
     }
 
-    private ImmutableSet<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
+    private ImmutableSet<String> evaluateAdditionalIndexPermissions(final ActionRequest request,
+            final String originalAction) {
         ImmutableSet.Builder<String> additionalPermissionsRequired = ImmutableSet.builder();
 
         if (!isClusterPerm(originalAction)) {
@@ -707,15 +723,15 @@ public class PrivilegesEvaluator {
 
     public static boolean isClusterPerm(String action0) {
         return (action0.startsWith("cluster:")
-            || action0.startsWith("indices:admin/template/")
-            || action0.startsWith("indices:admin/index_template/")
-            || action0.startsWith(SearchScrollAction.NAME)
-            || (action0.equals(BulkAction.NAME))
-            || (action0.equals(MultiGetAction.NAME))
-            || (action0.startsWith(MultiSearchAction.NAME))
-            || (action0.equals(MultiTermVectorsAction.NAME))
-            || (action0.equals(ReindexAction.NAME))
-            || (action0.equals(RenderSearchTemplateAction.NAME)));
+                || action0.startsWith("indices:admin/template/")
+                || action0.startsWith("indices:admin/index_template/")
+                || action0.startsWith(SearchScrollAction.NAME)
+                || (action0.equals(BulkAction.NAME))
+                || (action0.equals(MultiGetAction.NAME))
+                || (action0.startsWith(MultiSearchAction.NAME))
+                || (action0.equals(MultiTermVectorsAction.NAME))
+                || (action0.equals(ReindexAction.NAME))
+                || (action0.equals(RenderSearchTemplateAction.NAME)));
     }
 
     @SuppressWarnings("unchecked")
@@ -743,7 +759,8 @@ public class PrivilegesEvaluator {
             Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.getAllIndices().size());
 
             for (String requestAliasOrIndex : requestedResolved.getAllIndices()) {
-                IndexMetadata indexMetaData = clusterStateSupplier.get().getMetadata().getIndices().get(requestAliasOrIndex);
+                IndexMetadata indexMetaData = clusterStateSupplier.get().getMetadata().getIndices()
+                        .get(requestAliasOrIndex);
                 if (indexMetaData == null) {
                     if (isDebugEnabled) {
                         log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
@@ -789,11 +806,10 @@ public class PrivilegesEvaluator {
             if (filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 // TODO add queries as dls queries (works only if dls module is installed)
                 log.error(
-                    "More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
-                    filteredAliases.size(),
-                    indexMetaData.getIndex().getName(),
-                    toString(filteredAliases)
-                );
+                        "More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
+                        filteredAliases.size(),
+                        indexMetaData.getIndex().getName(),
+                        toString(filteredAliases));
                 return true;
             }
         } // end-for
