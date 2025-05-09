@@ -103,6 +103,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
