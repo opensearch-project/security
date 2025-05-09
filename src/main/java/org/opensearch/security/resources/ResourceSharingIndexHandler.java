@@ -548,18 +548,20 @@ public class ResourceSharingIndexHandler {
                 sharingInfo.share(accessLevel, target);
             }
 
-            IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setId(sharingInfo.getDocId())
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .setOpType(DocWriteRequest.OpType.INDEX)
-                .request();
+            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                    .setId(sharingInfo.getDocId())
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setOpType(DocWriteRequest.OpType.INDEX)
+                    .request();
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
-                listener.onResponse(sharingInfo);
-            }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
-            client.index(ir, irListener);
+                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
+                    listener.onResponse(sharingInfo);
+                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                client.index(ir, irListener);
+            }
         }, listener::onFailure);
     }
 
