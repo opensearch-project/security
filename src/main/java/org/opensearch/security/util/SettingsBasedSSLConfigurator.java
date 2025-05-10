@@ -47,8 +47,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class SettingsBasedSSLConfigurator {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);

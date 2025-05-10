@@ -11,6 +11,8 @@
 
 package org.opensearch.security.auth.ldap.util;
 
+import org.opensearch.security.setting.SecurableLegacySetting;
+
 public final class ConfigConstants {
 
     public static final String LDAP_AUTHC_USERBASE = "userbase";
@@ -40,7 +42,6 @@ public final class ConfigConstants {
 
     public static final String LDAP_HOSTS = "hosts";
     public static final String LDAP_BIND_DN = "bind_dn";
-    public static final String LDAP_PASSWORD = "password";
     public static final String LDAP_FAKE_LOGIN_ENABLED = "fakelogin_enabled";
     public static final String LDAP_SEARCH_ALL_BASES = "search_all_bases";
 
@@ -64,7 +65,6 @@ public final class ConfigConstants {
 
     public static final String LDAPS_PEMKEY_FILEPATH = "pemkey_filepath";
     public static final String LDAPS_PEMKEY_CONTENT = "pemkey_content";
-    public static final String LDAPS_PEMKEY_PASSWORD = "pemkey_password";
     public static final String LDAPS_PEMCERT_FILEPATH = "pemcert_filepath";
     public static final String LDAPS_PEMCERT_CONTENT = "pemcert_content";
     public static final String LDAPS_PEMTRUSTEDCAS_FILEPATH = "pemtrustedcas_filepath";
@@ -92,6 +92,10 @@ public final class ConfigConstants {
 
     public static final String LDAP_POOL_PRUNING_PERIOD = "pool.pruning_period";
     public static final String LDAP_POOL_IDLE_TIME = "pool.idle_time";
+
+    // legacy unsecure and secure settings
+    public static final SecurableLegacySetting LDAP_PASSWORD = new SecurableLegacySetting("password");
+    public static final SecurableLegacySetting LDAPS_PEMKEY_PASSWORD = new SecurableLegacySetting("pemkey_password");
 
     private ConfigConstants() {
 

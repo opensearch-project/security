@@ -23,6 +23,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
@@ -116,7 +117,27 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
-            .put(ConfigConstants.LDAP_PASSWORD, "spocksecret")
+            .put(ConfigConstants.LDAP_PASSWORD.insecurePropertyName, "spocksecret")
+            .build();
+
+        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
+            new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
+        );
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+    }
+
+    @Test
+    public void testLdapAuthenticationBindDnWithSecurePassword() throws Exception {
+        final var mockSecureSettings = new MockSecureSettings();
+        mockSecureSettings.setString(ConfigConstants.LDAP_PASSWORD.propertyName, "spocksecret");
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
+            .setSecureSettings(mockSecureSettings)
             .build();
 
         final LdapUser user = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(
@@ -134,7 +155,7 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
-            .put(ConfigConstants.LDAP_PASSWORD, "wrong")
+            .put(ConfigConstants.LDAP_PASSWORD.insecurePropertyName, "wrong")
             .build();
 
         new LDAPAuthenticationBackend(settings, null).authenticate(
