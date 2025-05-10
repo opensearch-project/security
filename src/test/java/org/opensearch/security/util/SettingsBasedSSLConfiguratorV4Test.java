@@ -71,7 +71,7 @@ import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class SettingsBasedSSLConfiguratorV4Test {
 

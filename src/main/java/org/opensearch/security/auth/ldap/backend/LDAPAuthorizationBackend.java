@@ -82,8 +82,8 @@ import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
@@ -300,7 +300,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 configureSSL(config, settings, configPath);
 
                 final String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
-                final String password = settings.get(ConfigConstants.LDAP_PASSWORD, null);
+                final String password = ConfigConstants.LDAP_PASSWORD.getSetting(settings, null);
 
                 if (isDebugEnabled) {
                     log.debug("bindDn {}, password {}", bindDn, password != null && password.length() > 0 ? "****" : "<not set>");
@@ -564,13 +564,13 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
 
                 PrivateKey authenticationKey = PemKeyReader.loadKeyFromStream(
-                    settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                    ConfigConstants.LDAPS_PEMKEY_PASSWORD.getSetting(settings),
                     PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMKEY_CONTENT, settings)
                 );
 
                 if (authenticationKey == null) {
                     authenticationKey = PemKeyReader.loadKeyFromFile(
-                        settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                        ConfigConstants.LDAPS_PEMKEY_PASSWORD.getSetting(settings),
                         PemKeyReader.resolve(ConfigConstants.LDAPS_PEMKEY_FILEPATH, settings, configPath, enableClientAuth)
                     );
                 }

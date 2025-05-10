@@ -184,7 +184,7 @@ public class LDAPConnectionFactoryFactory {
         BindConnectionInitializer result = new BindConnectionInitializer();
 
         String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
-        String password = settings.get(ConfigConstants.LDAP_PASSWORD, null);
+        String password = ConfigConstants.LDAP_PASSWORD.getSetting(settings);
 
         if (password != null && password.length() == 0) {
             password = null;

@@ -156,7 +156,7 @@ public class LdapBackendTestClientCert2 {
             .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
             .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=ldapbinder,ou=people,dc=example,dc=com")
-            .put(ConfigConstants.LDAP_PASSWORD, "ldapbinder")
+            .put(ConfigConstants.LDAP_PASSWORD.insecurePropertyName, "ldapbinder")
             .put("path.home", ".")
             .build();
 
