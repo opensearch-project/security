@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
@@ -66,6 +68,7 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HostAndCidrMatcher;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -98,12 +101,19 @@ public class BackendRegistry {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
-    private final int ttlInMin;
+    private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
     private Cache<User, Set<String>> restRoleCache; //
 
     private void createCaches() {
+        Map<AuthCredentials, User> existingUserCache = new HashMap<>();
+        Map<String, User> existingRestImpersonationCache = new HashMap<>();
+        Map<User, Set<String>> existingRestRoleCache = new HashMap<>();
+        if (userCache != null) {
+            existingUserCache.putAll(userCache.asMap());
+        }
+
         userCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
             .removalListener(new RemovalListener<AuthCredentials, User>() {
@@ -113,6 +123,14 @@ public class BackendRegistry {
                 }
             })
             .build();
+
+        if (!existingUserCache.isEmpty()) {
+            userCache.putAll(existingUserCache);
+        }
+
+        if (restImpersonationCache != null) {
+            existingRestImpersonationCache.putAll(restImpersonationCache.asMap());
+        }
 
         restImpersonationCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
@@ -124,6 +142,14 @@ public class BackendRegistry {
             })
             .build();
 
+        if (!existingRestImpersonationCache.isEmpty()) {
+            restImpersonationCache.putAll(existingRestImpersonationCache);
+        }
+
+        if (restRoleCache != null) {
+            restRoleCache.putAll(existingRestRoleCache);
+        }
+
         restRoleCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
             .removalListener(new RemovalListener<User, Set<String>>() {
@@ -134,6 +160,18 @@ public class BackendRegistry {
             })
             .build();
 
+        if (!existingRestRoleCache.isEmpty()) {
+            restRoleCache.putAll(existingRestRoleCache);
+        }
+    }
+
+    public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
+        clusterSettings.addSettingsUpdateConsumer(SecuritySettings.CACHE_TTL_SETTING, newTtlInMin -> {
+            log.info("Detected change in settings, cluster setting for TTL is {}", newTtlInMin);
+
+            ttlInMin = newTtlInMin;
+            createCaches();
+        });
     }
 
     public BackendRegistry(

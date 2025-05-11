@@ -1139,6 +1139,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
+        backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
@@ -1484,7 +1485,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_DISABLED, false, Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.intSetting(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
+            settings.add(SecuritySettings.CACHE_TTL_SETTING);
 
             // Security
             settings.add(
