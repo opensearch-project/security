@@ -203,6 +203,10 @@ public class BackendRegistry {
         return initialized;
     }
 
+    public int getTtlInMin() {
+        return ttlInMin;
+    }
+
     public void invalidateCache() {
         userCache.invalidateAll();
         restImpersonationCache.invalidateAll();

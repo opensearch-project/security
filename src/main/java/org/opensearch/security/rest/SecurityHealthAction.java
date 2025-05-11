@@ -49,6 +49,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEP
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.support.SecuritySettings.CACHE_TTL_SETTING;
 
 public class SecurityHealthAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
@@ -108,6 +109,10 @@ public class SecurityHealthAction extends BaseRestHandler {
                     builder.field("message", message);
                     builder.field("mode", mode);
                     builder.field("status", status);
+                    // TODO Consider a separate settings API
+                    builder.startObject("settings");
+                    builder.field(CACHE_TTL_SETTING.getKey(), registry.getTtlInMin());
+                    builder.endObject();
                     builder.endObject();
                     response = new BytesRestResponse(restStatus, builder);
 

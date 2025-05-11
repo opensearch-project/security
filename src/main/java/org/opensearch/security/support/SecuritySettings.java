@@ -33,7 +33,7 @@ public class SecuritySettings {
         60,
         0,
         Setting.Property.NodeScope,
-        Setting.Property.Filtered
+        Setting.Property.Dynamic
     ); // Not filtered
 
 }
