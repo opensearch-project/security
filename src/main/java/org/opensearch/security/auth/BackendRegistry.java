@@ -30,7 +30,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -107,13 +106,6 @@ public class BackendRegistry {
     private Cache<User, Set<String>> restRoleCache; //
 
     private void createCaches() {
-        Map<AuthCredentials, User> existingUserCache = new HashMap<>();
-        Map<String, User> existingRestImpersonationCache = new HashMap<>();
-        Map<User, Set<String>> existingRestRoleCache = new HashMap<>();
-        if (userCache != null) {
-            existingUserCache.putAll(userCache.asMap());
-        }
-
         userCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
             .removalListener(new RemovalListener<AuthCredentials, User>() {
@@ -123,14 +115,6 @@ public class BackendRegistry {
                 }
             })
             .build();
-
-        if (!existingUserCache.isEmpty()) {
-            userCache.putAll(existingUserCache);
-        }
-
-        if (restImpersonationCache != null) {
-            existingRestImpersonationCache.putAll(restImpersonationCache.asMap());
-        }
 
         restImpersonationCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
@@ -142,14 +126,6 @@ public class BackendRegistry {
             })
             .build();
 
-        if (!existingRestImpersonationCache.isEmpty()) {
-            restImpersonationCache.putAll(existingRestImpersonationCache);
-        }
-
-        if (restRoleCache != null) {
-            restRoleCache.putAll(existingRestRoleCache);
-        }
-
         restRoleCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
             .removalListener(new RemovalListener<User, Set<String>>() {
@@ -159,10 +135,6 @@ public class BackendRegistry {
                 }
             })
             .build();
-
-        if (!existingRestRoleCache.isEmpty()) {
-            restRoleCache.putAll(existingRestRoleCache);
-        }
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
