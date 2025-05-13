@@ -57,6 +57,14 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         return actionGroupRecipients;
     }
 
+    public void share(SharedWithActionGroup target) {
+        Map<Recipient, Set<String>> targetRecipients = target.actionGroupRecipients.getRecipients();
+        for (Recipient recipientType : targetRecipients.keySet()) {
+            Set<String> recipients = actionGroupRecipients.getRecipientsByType(recipientType);
+            recipients.addAll(targetRecipients.get(recipientType));
+        }
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.field(actionGroup);
@@ -115,6 +123,10 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
 
         public Map<Recipient, Set<String>> getRecipients() {
             return recipients;
+        }
+
+        public Set<String> getRecipientsByType(Recipient recipientType) {
+            return recipients.computeIfAbsent(recipientType, key -> new HashSet<>());
         }
 
         @Override

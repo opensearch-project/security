@@ -11,7 +11,6 @@ package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -400,6 +399,7 @@ public class ResourceSharingIndexHandler {
                         ) {
                             parser.nextToken();
                             ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                            resourceSharing.setDocId(hit.getId());
 
                             LOGGER.debug(
                                 "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
@@ -497,6 +497,7 @@ public class ResourceSharingIndexHandler {
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */
+    @SuppressWarnings("unchecked")
     public void updateResourceSharingInfo(
         String resourceId,
         String sourceIdx,
@@ -520,16 +521,14 @@ public class ResourceSharingIndexHandler {
         }
 
         StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
-        StepListener<Boolean> updateScriptListener = new StepListener<>();
-        StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
         // Fetch resource sharing doc
         fetchResourceSharingDocument(sourceIdx, resourceId, fetchDocListener);
 
         // build update script
-        fetchDocListener.whenComplete(currentSharingInfo -> {
+        fetchDocListener.whenComplete(sharingInfo -> {
             // Check if user can share. At present only the resource creator and admin is allowed to share the resource
-            if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
+            if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
                 listener.onFailure(
@@ -538,65 +537,30 @@ public class ResourceSharingIndexHandler {
                         RestStatus.FORBIDDEN
                     )
                 );
-            }
-
-            Script updateScript = new Script(ScriptType.INLINE, "painless", """
-                if (ctx._source.share_with == null) {
-                    ctx._source.share_with = [:];
-                }
-
-                for (def entry : params.shareWith.entrySet()) {
-                    def actionGroupName = entry.getKey();
-                    def newActionGroup = entry.getValue();
-
-                    if (!ctx._source.share_with.containsKey(actionGroupName)) {
-                        def newActionGroupEntry = [:];
-                        for (def field : newActionGroup.entrySet()) {
-                            if (field.getValue() != null && !field.getValue().isEmpty()) {
-                                newActionGroupEntry[field.getKey()] = new HashSet(field.getValue());
-                            }
-                        }
-                        ctx._source.share_with[actionGroupName] = newActionGroupEntry;
-                    } else {
-                        def existingActionGroup = ctx._source.share_with[actionGroupName];
-
-                        for (def field : newActionGroup.entrySet()) {
-                            def fieldName = field.getKey();
-                            def newValues = field.getValue();
-
-                            if (newValues != null && !newValues.isEmpty()) {
-                                if (!existingActionGroup.containsKey(fieldName)) {
-                                    existingActionGroup[fieldName] = new HashSet();
-                                }
-
-                                for (def value : newValues) {
-                                    if (!existingActionGroup[fieldName].contains(value)) {
-                                        existingActionGroup[fieldName].add(value);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                """, Collections.singletonMap("shareWith", shareWithMap));
-
-            updateByQueryResourceSharing(sourceIdx, resourceId, updateScript, updateScriptListener);
-
-        }, listener::onFailure);
-
-        // Build & return the updated ResourceSharing
-        updateScriptListener.whenComplete(success -> {
-            if (!success) {
-                LOGGER.error("Failed to update resource sharing info for resource {}", resourceId);
-                listener.onResponse(null);
                 return;
             }
-            // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
-            // intensive to do it in java)
-            fetchResourceSharingDocument(sourceIdx, resourceId, updatedSharingListener);
-        }, listener::onFailure);
 
-        updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
+            for (String accessLevel : shareWith.accessLevels()) {
+                SharedWithActionGroup target = shareWith.atAccessLevel(accessLevel);
+                assert sharingInfo != null;
+                sharingInfo.share(accessLevel, target);
+            }
+
+            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                    .setId(sharingInfo.getDocId())
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setOpType(DocWriteRequest.OpType.INDEX)
+                    .request();
+
+                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
+                    listener.onResponse(sharingInfo);
+                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                client.index(ir, irListener);
+            }
+        }, listener::onFailure);
     }
 
     /**

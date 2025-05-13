@@ -37,6 +37,13 @@ import org.opensearch.core.xcontent.XContentParser;
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     /**
+     * The unique identifier of the resource sharing entry
+     *
+     * TODO If this moves to a shadow index for each resource index, then use the resourceId as the key for both
+     */
+    private String docId;
+
+    /**
      * The index where the resource is defined
      */
     private String sourceIdx;
@@ -61,6 +68,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.resourceId = resourceId;
         this.createdBy = createdBy;
         this.shareWith = shareWith;
+    }
+
+    public String getDocId() {
+        return docId;
+    }
+
+    public void setDocId(String docId) {
+        this.docId = docId;
     }
 
     public String getSourceIdx() {
@@ -93,6 +108,15 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void setShareWith(ShareWith shareWith) {
         this.shareWith = shareWith;
+    }
+
+    public void share(String accessLevel, SharedWithActionGroup target) {
+        if (shareWith == null) {
+            shareWith = new ShareWith(Set.of(target));
+        } else {
+            SharedWithActionGroup sharedWith = shareWith.atAccessLevel(accessLevel);
+            sharedWith.share(target);
+        }
     }
 
     @Override
