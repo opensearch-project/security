@@ -9,7 +9,6 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -58,10 +57,11 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         return actionGroupRecipients;
     }
 
-    public void share(Map<String, Collection<String>> target) {
-        for (String recipientType : target.keySet()) {
-            Collection<String> recipients = actionGroupRecipients.getRecipientsByType(Recipient.valueOf(recipientType));
-            recipients.addAll(target.get(recipientType));
+    public void share(SharedWithActionGroup target) {
+        Map<Recipient, Set<String>> targetRecipients = target.actionGroupRecipients.getRecipients();
+        for (Recipient recipientType : targetRecipients.keySet()) {
+            Set<String> recipients = actionGroupRecipients.getRecipientsByType(recipientType);
+            recipients.addAll(targetRecipients.get(recipientType));
         }
     }
 
@@ -108,9 +108,9 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
      */
     public static class ActionGroupRecipients implements ToXContentFragment, NamedWriteable {
 
-        private final Map<Recipient, Collection<String>> recipients;
+        private final Map<Recipient, Set<String>> recipients;
 
-        public ActionGroupRecipients(Map<Recipient, Collection<String>> recipients) {
+        public ActionGroupRecipients(Map<Recipient, Set<String>> recipients) {
             if (recipients == null) {
                 throw new IllegalArgumentException("Recipients map cannot be null");
             }
@@ -121,11 +121,11 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
             this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
         }
 
-        public Map<Recipient, Collection<String>> getRecipients() {
+        public Map<Recipient, Set<String>> getRecipients() {
             return recipients;
         }
 
-        public Collection<String> getRecipientsByType(Recipient recipientType) {
+        public Set<String> getRecipientsByType(Recipient recipientType) {
             return recipients.computeIfAbsent(recipientType, key -> new HashSet<>());
         }
 
@@ -135,7 +135,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         }
 
         public static ActionGroupRecipients fromXContent(XContentParser parser) throws IOException {
-            Map<Recipient, Collection<String>> recipients = new HashMap<>();
+            Map<Recipient, Set<String>> recipients = new HashMap<>();
 
             XContentParser.Token token;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -169,7 +169,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
             if (recipients.isEmpty()) {
                 return builder;
             }
-            for (Map.Entry<Recipient, Collection<String>> entry : recipients.entrySet()) {
+            for (Map.Entry<Recipient, Set<String>> entry : recipients.entrySet()) {
                 builder.array(entry.getKey().getName(), entry.getValue().toArray());
             }
             return builder;

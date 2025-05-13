@@ -9,11 +9,7 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -114,15 +110,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.shareWith = shareWith;
     }
 
-    public void share(String accessLevel, Map<String, Collection<String>> target) {
+    public void share(String accessLevel, SharedWithActionGroup target) {
         if (shareWith == null) {
-            Map<Recipient, Collection<String>> recipients = new HashMap<>();
-            target.forEach((key, value) -> { recipients.put(Recipient.valueOf(key.toUpperCase(Locale.ROOT)), value); });
-            SharedWithActionGroup sharedWith = new SharedWithActionGroup(
-                accessLevel,
-                new SharedWithActionGroup.ActionGroupRecipients(recipients)
-            );
-            shareWith = new ShareWith(Set.of(sharedWith));
+            shareWith = new ShareWith(Set.of(target));
         } else {
             SharedWithActionGroup sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.share(target);

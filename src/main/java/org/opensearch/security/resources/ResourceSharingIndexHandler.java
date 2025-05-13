@@ -11,7 +11,6 @@ package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -522,7 +521,6 @@ public class ResourceSharingIndexHandler {
         }
 
         StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
-        StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
         // Fetch resource sharing doc
         fetchResourceSharingDocument(sourceIdx, resourceId, fetchDocListener);
@@ -542,8 +540,8 @@ public class ResourceSharingIndexHandler {
                 return;
             }
 
-            for (String accessLevel : shareWithMap.keySet()) {
-                Map<String, Collection<String>> target = (Map<String, Collection<String>>) shareWithMap.get(accessLevel);
+            for (String accessLevel : shareWith.accessLevels()) {
+                SharedWithActionGroup target = shareWith.atAccessLevel(accessLevel);
                 assert sharingInfo != null;
                 sharingInfo.share(accessLevel, target);
             }
@@ -652,7 +650,7 @@ public class ResourceSharingIndexHandler {
                 }
 
                 Map<String, Object> revoke = new HashMap<>();
-                for (Map.Entry<Recipient, Collection<String>> entry : revokeAccess.getRecipients().entrySet()) {
+                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.getRecipients().entrySet()) {
                     revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();

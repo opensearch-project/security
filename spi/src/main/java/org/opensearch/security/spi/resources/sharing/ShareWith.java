@@ -11,6 +11,7 @@ package org.opensearch.security.spi.resources.sharing;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -55,6 +56,10 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
 
     public Set<SharedWithActionGroup> getSharedWithActionGroups() {
         return sharedWithActionGroups;
+    }
+
+    public Set<String> accessLevels() {
+        return sharedWithActionGroups.stream().map(SharedWithActionGroup::getActionGroup).collect(Collectors.toSet());
     }
 
     public SharedWithActionGroup atAccessLevel(String accessLevel) {
