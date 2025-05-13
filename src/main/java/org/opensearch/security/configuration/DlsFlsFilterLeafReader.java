@@ -107,6 +107,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private final boolean maskFields;
     private final Salt salt;
     private final String maskingAlgorithmDefault;
+    private final Set<String> metaFields;
 
     private DlsGetEvaluator dge = null;
 
@@ -120,7 +121,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         final AuditLog auditlog,
         final Set<String> maskedFields,
         final ShardId shardId,
-        final Salt salt
+        final Salt salt,
+        final Set<String> metaFields
     ) {
         super(delegate);
 
@@ -131,6 +133,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.clusterService = clusterService;
         this.auditlog = auditlog;
         this.salt = salt;
+        this.metaFields = metaFields;
         this.maskingAlgorithmDefault = clusterService.getSettings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
         this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt, maskingAlgorithmDefault);
 
@@ -164,7 +167,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             if (canOptimize) {
                 if (!excludesSet.isEmpty()) {
                     for (final FieldInfo info : infos) {
-                        if (!excludesSet.contains(info.name)) {
+                        if (!isFieldExclude(excludesSet, info.name)) {
                             fa[i++] = info;
                         }
                     }
@@ -220,6 +223,19 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
+    }
+
+    private static boolean isFieldExclude(Set<String> excludesSet, String field) {
+        if (excludesSet.contains(field)) {
+            return true;
+        }
+        for (int dot = field.lastIndexOf('.'); dot != -1; dot = field.lastIndexOf('.', dot - 1)) {
+            String parentObject = field.substring(0, dot);
+            if (excludesSet.contains(parentObject)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private class DlsGetEvaluator {
@@ -336,6 +352,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         private final Set<String> maskedFields;
         private final ShardId shardId;
         private final Salt salt;
+        private final Set<String> metaFields;
 
         public DlsFlsSubReaderWrapper(
             final Set<String> includes,
@@ -346,7 +363,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             final AuditLog auditlog,
             final Set<String> maskedFields,
             ShardId shardId,
-            final Salt salt
+            final Salt salt,
+            final Set<String> metaFields
         ) {
             this.includes = includes;
             this.dlsQuery = dlsQuery;
@@ -357,6 +375,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.maskedFields = maskedFields;
             this.shardId = shardId;
             this.salt = salt;
+            this.metaFields = metaFields;
         }
 
         @Override
@@ -371,7 +390,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 auditlog,
                 maskedFields,
                 shardId,
-                salt
+                salt,
+                metaFields
+
             );
         }
 
@@ -388,6 +409,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         private final Set<String> maskedFields;
         private final ShardId shardId;
         private final Salt salt;
+        private final Set<String> metaFields;
 
         public DlsFlsDirectoryReader(
             final DirectoryReader in,
@@ -399,7 +421,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             final AuditLog auditlog,
             final Set<String> maskedFields,
             ShardId shardId,
-            final Salt salt
+            final Salt salt,
+            final Set<String> metaFields
         ) throws IOException {
             super(
                 in,
@@ -412,7 +435,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                     auditlog,
                     maskedFields,
                     shardId,
-                    salt
+                    salt,
+                    metaFields
                 )
             );
             this.includes = includes;
@@ -424,6 +448,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.maskedFields = maskedFields;
             this.shardId = shardId;
             this.salt = salt;
+            this.metaFields = metaFields;
         }
 
         @Override
@@ -438,7 +463,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 auditlog,
                 maskedFields,
                 shardId,
-                salt
+                salt,
+                metaFields
             );
         }
 
@@ -550,7 +576,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             return true;
         }
 
-        return flsFieldInfos.fieldInfo(name) != null;
+        return flsFieldInfos.fieldInfo(handleKeyword(name)) != null;
     }
 
     @Override
@@ -670,7 +696,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         private boolean shouldInclude(String field) {
             if (excludesSet != null && !excludesSet.isEmpty()) {
-                return !excludesSet.contains(field);
+                return !isFieldExclude(excludesSet, field);
             } else if (includesSet != null && !includesSet.isEmpty()) {
                 return includesSet.contains(field);
             }
@@ -729,7 +755,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public void binaryField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
-
             if (fieldInfo.name.equals("_source")) {
                 final BytesReference bytesRef = new BytesArray(value);
                 final Tuple<XContentType, Map<String, Object>> bytesRefTuple = XContentHelper.convertToMap(
@@ -869,7 +894,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public NumericDocValues getNumericDocValues(final String field) throws IOException {
-        return isFls(field) ? in.getNumericDocValues(field) : null;
+        return isAllowed(field) ? in.getNumericDocValues(field) : null;
     }
 
     @Override
@@ -999,11 +1024,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public SortedNumericDocValues getSortedNumericDocValues(final String field) throws IOException {
-        return isFls(field) ? in.getSortedNumericDocValues(field) : null;
+        return isAllowed(field) ? in.getSortedNumericDocValues(field) : null;
     }
 
     @Override
-    public SortedSetDocValues getSortedSetDocValues(final String field) throws IOException {
+    public SortedSetDocValues getSortedSetDocValues(final String field) throws IOException {// source_ip
         return isFls(field) ? wrapSortedSetDocValues(field, in.getSortedSetDocValues(field)) : null;
     }
 
@@ -1084,12 +1109,20 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public NumericDocValues getNormValues(final String field) throws IOException {
-        return isFls(field) ? in.getNormValues(field) : null;
+        return isAllowed(field) ? in.getNormValues(field) : null;
     }
 
     @Override
     public PointValues getPointValues(String field) throws IOException {
-        return isFls(field) ? in.getPointValues(field) : null;
+        return isAllowed(field) ? in.getPointValues(field) : null;
+    }
+
+    private boolean isAllowed(String fieldName) {
+        return this.metaFields.contains(fieldName) || (isFls(fieldName) && (!isMasked(fieldName)));
+    }
+
+    private boolean isMasked(String field) {
+        return this.maskedFieldsMap.anyMatch(field);
     }
 
     @Override
@@ -1239,7 +1272,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         return null;
     }
 
-    private String handleKeyword(final String field) {
+    static String handleKeyword(final String field) {
         if (field != null && field.endsWith(KEYWORD)) {
             return field.substring(0, field.length() - KEYWORD.length());
         }

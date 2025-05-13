@@ -158,7 +158,8 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             auditlog,
             maskedFields,
             shardId,
-            salt
+            salt,
+            metaFields
         );
     }
 }
