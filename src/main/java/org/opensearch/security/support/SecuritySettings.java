@@ -28,4 +28,12 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     ); // Not filtered
 
+    public static final Setting<Integer> CACHE_TTL_SETTING = Setting.intSetting(
+        ConfigConstants.SECURITY_CACHE_TTL_MINUTES,
+        60,
+        0,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    ); // Not filtered
+
 }
