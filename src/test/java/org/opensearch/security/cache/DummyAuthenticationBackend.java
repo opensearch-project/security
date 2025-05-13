@@ -17,8 +17,8 @@ import java.util.Optional;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.ImpersonationBackend;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 public class DummyAuthenticationBackend implements AuthenticationBackend, ImpersonationBackend {
@@ -34,9 +34,9 @@ public class DummyAuthenticationBackend implements AuthenticationBackend, Impers
     }
 
     @Override
-    public User authenticate(AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
         authCount++;
-        return new User(credentials.getUsername());
+        return new User(context.getCredentials().getUsername());
     }
 
     @Override

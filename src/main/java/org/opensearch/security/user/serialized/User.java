@@ -40,7 +40,7 @@ public class User implements Serializable {
     /**
      * Converts this objects back to User, just after deserialization
      */
-    Object readResolve() {
+    protected Object readResolve() {
         return new org.opensearch.security.user.User(
             this.name,
             resolve(this.roles),

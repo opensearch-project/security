@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,16 +31,16 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.ImpersonationBackend;
+import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
@@ -60,7 +62,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
+    private final WildcardMatcher allowlistedCustomLdapAttrMatcher;
     private final String[] returnAttributes;
     private final boolean shouldFollowReferrals;
 
@@ -83,14 +85,14 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
             .toArray(new String[0]);
         this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(
+        allowlistedCustomLdapAttrMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, Collections.singletonList("*"))
         );
     }
 
     @Override
     @SuppressWarnings("removal")
-    public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -101,7 +103,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
             return AccessController.doPrivileged(new PrivilegedExceptionAction<User>() {
                 @Override
                 public User run() throws Exception {
-                    return authenticate0(credentials);
+                    return authenticate0(context);
                 }
             });
         } catch (PrivilegedActionException e) {
@@ -115,11 +117,11 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
         }
     }
 
-    private User authenticate0(final AuthCredentials credentials) throws OpenSearchSecurityException {
+    private User authenticate0(AuthenticationContext context) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
-        final String user = credentials.getUsername();
-        byte[] password = credentials.getPassword();
+        final String user = context.getCredentials().getUsername();
+        byte[] password = context.getCredentials().getPassword();
 
         try {
 
@@ -165,12 +167,20 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
                 log.debug("Authenticated username {}", username);
             }
 
+            // Make LdapEntry available to authz backends by adding it to the AuthencationContext
+            context.addContextData(LdapEntry.class, entry);
+
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
             // if the whitelist contains at least one value then all attributes will be
             // additional check if whitelisted (whitelist can contain wildcard and regex)
-            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher);
-
+            ImmutableMap<String, String> userAttributes = LDAPAuthenticationBackend.extractLdapAttributes(
+                user,
+                entry,
+                customAttrMaxValueLen,
+                allowlistedCustomLdapAttrMatcher
+            );
+            return new User(username, ImmutableSet.of(), ImmutableSet.of(), null, userAttributes, false);
         } catch (final Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Unable to authenticate user due to ", e);
@@ -202,10 +212,6 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
             Connection ldapConnection = null;
             String userName = user.getName();
 
-            if (user instanceof LdapUser) {
-                userName = ((LdapUser) user).getUserEntry().getDn();
-            }
-
             try {
                 ldapConnection = this.connectionFactory.getConnection();
                 ldapConnection.open();
@@ -214,7 +220,12 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
                 if (userEntry != null) {
                     return Optional.of(
                         user.withAttributes(
-                            LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher)
+                            LDAPAuthenticationBackend.extractLdapAttributes(
+                                userName,
+                                userEntry,
+                                customAttrMaxValueLen,
+                                allowlistedCustomLdapAttrMatcher
+                            )
                         )
                     );
                 } else {

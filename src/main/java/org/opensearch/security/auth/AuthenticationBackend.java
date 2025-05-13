@@ -59,11 +59,10 @@ public interface AuthenticationBackend {
      * <p/>
      * Results of this method are normally cached so that we not need to query the backend for every authentication attempt.
      * <p/>
-     * @param The credentials to be validated, never null
+     * @param context The context of this authentication; contains the auth credentials
      * @return the authenticated User, never null
      * @throws OpenSearchSecurityException in case an authentication failure
      * (when credentials are incorrect, the user does not exist or the backend is not reachable)
      */
-    User authenticate(AuthCredentials credentials) throws OpenSearchSecurityException;
-
+    User authenticate(AuthenticationContext context) throws OpenSearchSecurityException;
 }

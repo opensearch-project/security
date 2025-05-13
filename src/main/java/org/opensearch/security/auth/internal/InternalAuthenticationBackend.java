@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -98,7 +99,8 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) {
+    public User authenticate(AuthenticationContext context) {
+        AuthCredentials credentials = context.getCredentials();
 
         boolean userExists;
 
@@ -159,7 +161,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
     }
 
     @Override
-    public User addRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException {
         if (internalUsersModel == null) {
             throw new OpenSearchSecurityException(
                 "Internal authentication backend not configured. May be OpenSearch Security is not initialized."

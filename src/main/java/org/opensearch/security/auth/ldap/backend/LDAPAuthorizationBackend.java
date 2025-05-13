@@ -46,6 +46,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
@@ -53,10 +54,8 @@ import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import io.netty.util.internal.PlatformDependent;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.BindRequest;
@@ -686,29 +685,28 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     }
 
     @Override
-    public User addRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException {
 
         if (user == null) {
             return user;
         }
 
         String authenticatedUser;
-        String originalUserName;
-        LdapEntry entry = null;
-        String dn = null;
+        String originalUserName = context.getCredentials().getUsername();
+        LdapEntry entry = context.getContextData(LdapEntry.class).orElse(null);
+        String dn;
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
             log.debug("DBGTRACE (2): username: {} -> {}", user.getName(), Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
         }
 
-        if (user instanceof LdapUser) {
-            entry = ((LdapUser) user).getUserEntry();
-            authenticatedUser = entry.getDn();
-            originalUserName = ((LdapUser) user).getOriginalUsername();
+        if (entry != null) {
+            dn = entry.getDn();
+            authenticatedUser = dn;
         } else {
+            dn = null;
             authenticatedUser = user.getName();
-            originalUserName = user.getName();
         }
 
         if (isDebugEnabled) {
@@ -746,7 +744,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         try {
             Set<String> additionalRoles = new HashSet<>();
 
-            if (entry == null || dn == null) {
+            if (dn == null) {
 
                 connection = getConnection(settings, configPath);
 
@@ -885,6 +883,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 if (isDebugEnabled) {
                     log.debug("DBGTRACE (8): escapedDn" + escapedDn);
+                }
+
+                if (connection == null) {
+                    connection = getConnection(settings, configPath);
                 }
 
                 for (Map.Entry<String, Settings> roleSearchSettingsEntry : roleBaseSettings) {

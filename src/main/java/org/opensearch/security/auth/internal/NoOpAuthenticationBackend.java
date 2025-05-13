@@ -32,6 +32,7 @@ import java.util.Optional;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthenticationContext;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -48,7 +49,8 @@ public class NoOpAuthenticationBackend implements AuthenticationBackend, Imperso
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) {
+    public User authenticate(AuthenticationContext context) {
+        AuthCredentials credentials = context.getCredentials();
         return new User(
             credentials.getUsername(),
             credentials.getBackendRoles(),

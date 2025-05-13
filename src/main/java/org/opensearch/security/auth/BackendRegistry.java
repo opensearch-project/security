@@ -528,7 +528,9 @@ public class BackendRegistry {
 
                     Optional<User> impersonatedUser = impersonationBackend.impersonate(user);
                     if (impersonatedUser.isPresent()) {
-                        return authz(impersonatedUser.get(), null, authorizers); // no role cache because no miss here in case of noop
+                        AuthenticationContext context = new AuthenticationContext(new AuthCredentials(user.getName()));
+                        return authz(context, impersonatedUser.get(), null, authorizers); // no role cache because no miss here in case of
+                                                                                          // noop
                     }
 
                     if (isDebugEnabled) {
@@ -545,7 +547,12 @@ public class BackendRegistry {
         }
     }
 
-    private User authz(User authenticatedUser, Cache<User, Set<String>> roleCache, final Set<AuthorizationBackend> authorizers) {
+    private User authz(
+        AuthenticationContext context,
+        User authenticatedUser,
+        Cache<User, Set<String>> roleCache,
+        final Set<AuthorizationBackend> authorizers
+    ) {
 
         if (authenticatedUser == null) {
             return authenticatedUser;
@@ -575,7 +582,7 @@ public class BackendRegistry {
                     );
                 }
 
-                authenticatedUser = ab.addRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
+                authenticatedUser = ab.addRoles(authenticatedUser, context);
             } catch (Exception e) {
                 log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString(), e);
             }
@@ -603,13 +610,16 @@ public class BackendRegistry {
         if (ac == null) {
             return null;
         }
+
+        AuthenticationContext context = new AuthenticationContext(ac);
+
         try {
 
             // noop backend configured and no authorizers
             // that mean authc and authz was completely done via HTTP (like JWT or PKI)
             if (authBackend.getClass() == NoOpAuthenticationBackend.class && authorizers.isEmpty()) {
                 // no cache
-                return authBackend.authenticate(ac);
+                return authBackend.authenticate(context);
             }
 
             return cache.get(ac, new Callable<User>() {
@@ -622,8 +632,8 @@ public class BackendRegistry {
                             authBackend.getType()
                         );
                     }
-                    final User authenticatedUser = authBackend.authenticate(ac);
-                    return authz(authenticatedUser, roleCache, authorizers);
+                    final User authenticatedUser = authBackend.authenticate(context);
+                    return authz(context, authenticatedUser, roleCache, authorizers);
                 }
             });
         } catch (Exception e) {

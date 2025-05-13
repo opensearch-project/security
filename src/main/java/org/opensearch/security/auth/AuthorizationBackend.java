@@ -27,7 +27,6 @@
 package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 /**
@@ -60,11 +59,11 @@ public interface AuthorizationBackend {
      * Add them by calling either {@code user.addRole()} or {@code user.addRoles()}
      * </P>
      * @param user The authenticated user to populate with backend roles, never null
-     * @param credentials Credentials to authenticate to the authorization backend, maybe null.
+     * @param context Context data specific to the request that is currently processed.
      * <em>This parameter is for future usage, currently always empty credentials are passed!</em>
      * @throws OpenSearchSecurityException in case when the authorization backend cannot be reached
      * or the {@code credentials} are insufficient to authenticate to the authorization backend.
      */
-    User addRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException;
+    User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException;
 
 }

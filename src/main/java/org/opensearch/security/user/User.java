@@ -325,7 +325,6 @@ public class User implements Serializable, CustomAttributesAware {
         return result;
     }
 
-
     void readObject(ObjectInputStream stream) throws InvalidObjectException {
         // This object is not supposed to directly read in order to keep compatibility with older OpenSearch versions
         throw new InvalidObjectException("Use org.opensearch.security.user.serialized.User");
@@ -333,20 +332,18 @@ public class User implements Serializable, CustomAttributesAware {
 
     @Serial
     private static final ObjectStreamField[] serialPersistentFields = {
-            new ObjectStreamField("name", String.class),
-            new ObjectStreamField("roles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
-            new ObjectStreamField("securityRoles",  Collections.synchronizedSet(Collections.emptySet()).getClass()),
-            new ObjectStreamField("requestedTenant", String.class),
-            new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
-            new ObjectStreamField("isInjected", Boolean.TYPE)
-    };
+        new ObjectStreamField("name", String.class),
+        new ObjectStreamField("roles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
+        new ObjectStreamField("securityRoles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
+        new ObjectStreamField("requestedTenant", String.class),
+        new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
+        new ObjectStreamField("isInjected", Boolean.TYPE) };
 
     /**
      * Creates a backwards compatible object that can be used for serialization
      */
     @Serial
-    private void writeObject(ObjectOutputStream out)
-            throws IOException {
+    private void writeObject(ObjectOutputStream out) throws IOException {
         ObjectOutputStream.PutField fields = out.putFields();
         fields.put("name", name);
         fields.put("roles", Collections.synchronizedSet(new HashSet<>(this.roles)));
