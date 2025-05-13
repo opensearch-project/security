@@ -235,14 +235,16 @@ public class SampleResourcePluginTests {
 
         // get sample resource with SHARED_WITH_USER
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is deleted")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
         }
 
         // get sample resource with admin
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is deleted")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
         }
     }
 
