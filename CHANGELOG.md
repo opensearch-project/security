@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - [Resource Permissions] Introduces Centralized Resource Access Control Framework ([#5281](https://github.com/opensearch-project/security/pull/5281))
 - Github workflow for changelog verification ([#5318](https://github.com/opensearch-project/security/pull/5318))
+- Register cluster settings listener for `plugins.security.cache.ttl_minutes` ([#5324](https://github.com/opensearch-project/security/pull/5324))
 
 ### Changed
 
@@ -23,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.springframework.kafka:spring-kafka-test` from 3.3.4 to 3.3.5 ([#5315](https://github.com/opensearch-project/security/pull/5315))
 - Bump `com.fasterxml.jackson.core:jackson-databind` from 2.18.2 to 2.19.0 ([#5292](https://github.com/opensearch-project/security/pull/5292))
 - Bump `org.apache.commons:commons-collections4` from 4.4 to 4.5.0 ([#5316](https://github.com/opensearch-project/security/pull/5316))
+- Bump `com.google.googlejavaformat:google-java-format` from 1.26.0 to 1.27.0 ([#5330](https://github.com/opensearch-project/security/pull/5330))
+- Bump `io.github.goooler.shadow` from 8.1.7 to 8.1.8 ([#5329](https://github.com/opensearch-project/security/pull/5329))
+- Bump `commons-io:commons-io` from 2.18.0 to 2.19.0 ([#5328](https://github.com/opensearch-project/security/pull/5328))
 
 ### Deprecated
 
@@ -31,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Corrections in DlsFlsFilterLeafReader regarding PointVales and object valued attributes ([#5303](https://github.com/opensearch-project/security/pull/5303))
 - Fix issue computing diffs in compliance audit log when writing to security index ([#5279](https://github.com/opensearch-project/security/pull/5279))
+- Fixing dependabot broken pull_request workflow for changelog update ([#5331](https://github.com/opensearch-project/security/pull/5331))
 
 ### Security
 
