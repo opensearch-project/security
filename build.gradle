@@ -548,7 +548,7 @@ allprojects {
         integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
-        integrationTestImplementation 'com.password4j:password4j:1.8.2'
+        integrationTestImplementation 'com.password4j:password4j:1.8.3'
         integrationTestImplementation "com.google.guava:guava:${guava_version}"
         integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
         integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
@@ -657,7 +657,7 @@ dependencies {
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
-    implementation 'com.password4j:password4j:1.8.2'
+    implementation 'com.password4j:password4j:1.8.3'
     implementation "com.github.seancfoley:ipaddress:5.5.1"
 
     // Action privileges: check tables and compact collections
