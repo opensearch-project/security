@@ -165,7 +165,7 @@ public class ResourceSharingIndexHandler {
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .setOpType(DocWriteRequest.OpType.CREATE)
+                .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .request();
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(
@@ -543,7 +543,7 @@ public class ResourceSharingIndexHandler {
             }
 
             for (String accessLevel : shareWithMap.keySet()) {
-                Map<String, List<String>> target = (Map<String, List<String>>) shareWithMap.get(accessLevel);
+                Map<String, Collection<String>> target = (Map<String, Collection<String>>) shareWithMap.get(accessLevel);
                 assert sharingInfo != null;
                 sharingInfo.share(accessLevel, target);
             }

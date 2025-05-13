@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +40,11 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
+    /**
+     * The unique identifier of the resource sharing entry
+     *
+     * TODO If this moves to a shadow index for each resource index, then use the resourceId as the key for both
+     */
     private String docId;
 
     /**
@@ -110,7 +114,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.shareWith = shareWith;
     }
 
-    public void share(String accessLevel, Map<String, List<String>> target) {
+    public void share(String accessLevel, Map<String, Collection<String>> target) {
         if (shareWith == null) {
             Map<Recipient, Collection<String>> recipients = new HashMap<>();
             target.forEach((key, value) -> { recipients.put(Recipient.valueOf(key.toUpperCase(Locale.ROOT)), value); });

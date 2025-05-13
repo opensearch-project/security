@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,7 +58,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         return actionGroupRecipients;
     }
 
-    public void share(Map<String, List<String>> target) {
+    public void share(Map<String, Collection<String>> target) {
         for (String recipientType : target.keySet()) {
             Collection<String> recipients = actionGroupRecipients.getRecipientsByType(Recipient.valueOf(recipientType));
             recipients.addAll(target.get(recipientType));
