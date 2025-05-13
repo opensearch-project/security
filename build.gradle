@@ -526,7 +526,7 @@ allprojects {
             exclude(group: 'org.slf4j', module: 'slf4j-api')
         }
         integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-        integrationTestImplementation 'commons-io:commons-io:2.18.0'
+        integrationTestImplementation 'commons-io:commons-io:2.19.0'
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
         integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
