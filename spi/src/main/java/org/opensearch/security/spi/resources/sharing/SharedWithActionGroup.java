@@ -127,10 +127,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
         }
 
         public Collection<String> getRecipientsByType(Recipient recipientType) {
-            if (!recipients.containsKey(recipientType)) {
-                recipients.put(recipientType, new HashSet<>());
-            }
-            return recipients.get(recipientType);
+            return recipients.computeIfAbsent(recipientType, key -> new HashSet<>());
         }
 
         @Override

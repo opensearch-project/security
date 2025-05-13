@@ -58,12 +58,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     }
 
     public SharedWithActionGroup atAccessLevel(String accessLevel) {
-        for (SharedWithActionGroup sharedWithActionGroup : sharedWithActionGroups) {
-            if (sharedWithActionGroup.getActionGroup().equals(accessLevel)) {
-                return sharedWithActionGroup;
-            }
-        }
-        return null;
+        return sharedWithActionGroups.stream().filter(g -> accessLevel.equals(g.getActionGroup())).findFirst().orElse(null);
     }
 
     @Override
