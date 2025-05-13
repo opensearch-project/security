@@ -9,9 +9,9 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -44,33 +44,38 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     /**
      * A set of objects representing the action-groups and their associated users, roles, and backend roles.
      */
-    private final Set<SharedWithActionGroup> sharedWithActionGroups;
+    private final Map<String, SharedWithActionGroup> sharedWithByAccessLevel;
 
-    public ShareWith(Set<SharedWithActionGroup> sharedWithActionGroups) {
-        this.sharedWithActionGroups = sharedWithActionGroups;
+    public ShareWith(Map<String, SharedWithActionGroup> sharedWithByAccessLevel) {
+        this.sharedWithByAccessLevel = sharedWithByAccessLevel;
     }
 
     public ShareWith(StreamInput in) throws IOException {
-        this.sharedWithActionGroups = in.readSet(SharedWithActionGroup::new);
+        this.sharedWithByAccessLevel = in.readMap(StreamInput::readString, SharedWithActionGroup::new);
     }
 
-    public Set<SharedWithActionGroup> getSharedWithActionGroups() {
-        return sharedWithActionGroups;
+    public boolean isPublic() {
+        // TODO Contemplate following google doc model of link sharing which has single access level when link sharing is enabled
+        return sharedWithByAccessLevel.values().stream().anyMatch(SharedWithActionGroup::isPublic);
+    }
+
+    public boolean isPrivate() {
+        return sharedWithByAccessLevel == null || sharedWithByAccessLevel.isEmpty();
     }
 
     public Set<String> accessLevels() {
-        return sharedWithActionGroups.stream().map(SharedWithActionGroup::getActionGroup).collect(Collectors.toSet());
+        return sharedWithByAccessLevel.keySet();
     }
 
     public SharedWithActionGroup atAccessLevel(String accessLevel) {
-        return sharedWithActionGroups.stream().filter(g -> accessLevel.equals(g.getActionGroup())).findFirst().orElse(null);
+        return sharedWithByAccessLevel.get(accessLevel);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
 
-        for (SharedWithActionGroup actionGroup : sharedWithActionGroups) {
+        for (SharedWithActionGroup actionGroup : sharedWithByAccessLevel.values()) {
             actionGroup.toXContent(builder, params);
         }
 
@@ -78,7 +83,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     }
 
     public static ShareWith fromXContent(XContentParser parser) throws IOException {
-        Set<SharedWithActionGroup> sharedWithActionGroups = new HashSet<>();
+        Map<String, SharedWithActionGroup> sharedWithActionGroups = new HashMap<>();
 
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
             parser.nextToken();
@@ -89,7 +94,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             // Each field in the object represents a SharedWithActionGroup
             if (token == XContentParser.Token.FIELD_NAME) {
                 SharedWithActionGroup actionGroup = SharedWithActionGroup.fromXContent(parser);
-                sharedWithActionGroups.add(actionGroup);
+                sharedWithActionGroups.put(actionGroup.getAccessLevel(), actionGroup);
             }
         }
 
@@ -103,11 +108,11 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeCollection(sharedWithActionGroups);
+        out.writeMap(sharedWithByAccessLevel, StreamOutput::writeString, (o, sw) -> sw.writeTo(o));
     }
 
     @Override
     public String toString() {
-        return "ShareWith " + sharedWithActionGroups;
+        return "ShareWith " + sharedWithByAccessLevel;
     }
 }

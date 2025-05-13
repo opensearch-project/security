@@ -8,6 +8,7 @@
 
 package org.opensearch.security.resources;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -52,7 +53,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, Set.of(ResourceAccessActionGroups.PLACE_HOLDER), listener);
+        resourceAccessHandler.hasPermission(resourceId, resourceIndex, ResourceAccessActionGroups.PLACE_HOLDER, listener);
     }
 
     /**
@@ -67,11 +68,11 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     public void share(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.ActionGroupRecipients recipients,
+        SharedWithActionGroup.AccessLevelRecipients recipients,
         ActionListener<ResourceSharing> listener
     ) {
         SharedWithActionGroup sharedWithActionGroup = new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
-        ShareWith shareWith = new ShareWith(Set.of(sharedWithActionGroup));
+        ShareWith shareWith = new ShareWith(Map.of(ResourceAccessActionGroups.PLACE_HOLDER, sharedWithActionGroup));
 
         resourceAccessHandler.shareWith(resourceId, resourceIndex, shareWith, listener);
     }
@@ -88,7 +89,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     public void revoke(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,
+        SharedWithActionGroup.AccessLevelRecipients entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     ) {
         resourceAccessHandler.revokeAccess(

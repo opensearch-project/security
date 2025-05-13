@@ -478,7 +478,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, org.opensearch.security.spi.resources.sharing.SharedWithActionGroup.ActionGroupRecipients, Set, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, SharedWithActionGroup.AccessLevelRecipients, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -609,7 +609,7 @@ public class ResourceSharingIndexHandler {
     public void revokeAccess(
         String resourceId,
         String sourceIdx,
-        SharedWithActionGroup.ActionGroupRecipients revokeAccess,
+        SharedWithActionGroup.AccessLevelRecipients revokeAccess,
         Set<String> actionGroups,
         String requestUserName,
         boolean isAdmin,

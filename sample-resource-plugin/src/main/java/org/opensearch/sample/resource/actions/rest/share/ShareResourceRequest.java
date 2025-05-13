@@ -23,16 +23,16 @@ public class ShareResourceRequest extends ActionRequest {
 
     private final String resourceId;
 
-    private final SharedWithActionGroup.ActionGroupRecipients shareWith;
+    private final SharedWithActionGroup.AccessLevelRecipients shareWith;
 
-    public ShareResourceRequest(String resourceId, SharedWithActionGroup.ActionGroupRecipients shareWith) {
+    public ShareResourceRequest(String resourceId, SharedWithActionGroup.AccessLevelRecipients shareWith) {
         this.resourceId = resourceId;
         this.shareWith = shareWith;
     }
 
     public ShareResourceRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
-        this.shareWith = in.readNamedWriteable(SharedWithActionGroup.ActionGroupRecipients.class);
+        this.shareWith = in.readNamedWriteable(SharedWithActionGroup.AccessLevelRecipients.class);
     }
 
     @Override
@@ -50,7 +50,7 @@ public class ShareResourceRequest extends ActionRequest {
         return this.resourceId;
     }
 
-    public SharedWithActionGroup.ActionGroupRecipients getShareWith() {
+    public SharedWithActionGroup.AccessLevelRecipients getShareWith() {
         return shareWith;
     }
 }

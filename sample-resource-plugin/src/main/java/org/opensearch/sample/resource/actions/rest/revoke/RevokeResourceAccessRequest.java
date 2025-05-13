@@ -22,16 +22,16 @@ import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 public class RevokeResourceAccessRequest extends ActionRequest {
 
     String resourceId;
-    SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke;
+    SharedWithActionGroup.AccessLevelRecipients entitiesToRevoke;
 
-    public RevokeResourceAccessRequest(String resourceId, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke) {
+    public RevokeResourceAccessRequest(String resourceId, SharedWithActionGroup.AccessLevelRecipients entitiesToRevoke) {
         this.resourceId = resourceId;
         this.entitiesToRevoke = entitiesToRevoke;
     }
 
     public RevokeResourceAccessRequest(StreamInput in) throws IOException {
         resourceId = in.readString();
-        entitiesToRevoke = in.readNamedWriteable(SharedWithActionGroup.ActionGroupRecipients.class);
+        entitiesToRevoke = in.readNamedWriteable(SharedWithActionGroup.AccessLevelRecipients.class);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         return resourceId;
     }
 
-    public SharedWithActionGroup.ActionGroupRecipients getEntitiesToRevoke() {
+    public SharedWithActionGroup.AccessLevelRecipients getEntitiesToRevoke() {
         return entitiesToRevoke;
     }
 }

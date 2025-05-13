@@ -9,6 +9,7 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,42 +36,60 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable {
 
-    private final String actionGroup;
+    /*
+     * accessLevel is an actionGroup that is pertinent to sharable resources
+     *
+     * i.e. With Google Docs I can share a doc with another user of Google Docs and specify the access level
+     * when sharing
+     */
+    private final String accessLevel;
 
-    private final ActionGroupRecipients actionGroupRecipients;
+    private final AccessLevelRecipients accessLevelRecipients;
 
-    public SharedWithActionGroup(String actionGroup, ActionGroupRecipients actionGroupRecipients) {
-        this.actionGroup = actionGroup;
-        this.actionGroupRecipients = actionGroupRecipients;
+    public SharedWithActionGroup(String actionGroup, AccessLevelRecipients accessLevelRecipients) {
+        this.accessLevel = actionGroup;
+        this.accessLevelRecipients = accessLevelRecipients;
     }
 
     public SharedWithActionGroup(StreamInput in) throws IOException {
-        this.actionGroup = in.readString();
-        this.actionGroupRecipients = new ActionGroupRecipients(in);
+        this.accessLevel = in.readString();
+        this.accessLevelRecipients = new AccessLevelRecipients(in);
     }
 
-    public String getActionGroup() {
-        return actionGroup;
+    public String getAccessLevel() {
+        return accessLevel;
     }
 
-    public ActionGroupRecipients getSharedWithPerActionGroup() {
-        return actionGroupRecipients;
+    public AccessLevelRecipients getSharedWith() {
+        return accessLevelRecipients;
     }
 
     public void share(SharedWithActionGroup target) {
-        Map<Recipient, Set<String>> targetRecipients = target.actionGroupRecipients.getRecipients();
+        Map<Recipient, Set<String>> targetRecipients = target.accessLevelRecipients.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            Set<String> recipients = actionGroupRecipients.getRecipientsByType(recipientType);
+            Set<String> recipients = accessLevelRecipients.getRecipientsByType(recipientType);
             recipients.addAll(targetRecipients.get(recipientType));
         }
     }
 
+    public boolean isPublic() {
+        return accessLevelRecipients.getRecipients().values().stream().anyMatch(recipients -> recipients.contains("*"));
+    }
+
+    public boolean isSharedWithAny(Recipient recipientType, Set<String> targets) {
+        return !Collections.disjoint(accessLevelRecipients.getRecipientsByType(recipientType), targets);
+    }
+
+    public Set<String> getRecipientsByType(Recipient recipientType) {
+        return accessLevelRecipients.getRecipientsByType(recipientType);
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(actionGroup);
+        builder.field(accessLevel);
         builder.startObject();
 
-        actionGroupRecipients.toXContent(builder, params);
+        accessLevelRecipients.toXContent(builder, params);
 
         return builder.endObject();
     }
@@ -80,44 +99,44 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
 
         parser.nextToken();
 
-        ActionGroupRecipients actionGroupRecipients = ActionGroupRecipients.fromXContent(parser);
+        AccessLevelRecipients accessLevelRecipients = AccessLevelRecipients.fromXContent(parser);
 
-        return new SharedWithActionGroup(actionGroup, actionGroupRecipients);
+        return new SharedWithActionGroup(actionGroup, accessLevelRecipients);
     }
 
     @Override
     public String toString() {
-        return "{" + actionGroup + ": " + actionGroupRecipients + '}';
+        return "{" + accessLevel + ": " + accessLevelRecipients + '}';
     }
 
     @Override
     public String getWriteableName() {
-        return "shared_with_action_group";
+        return "shared_with_access_level";
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(actionGroup);
-        out.writeNamedWriteable(actionGroupRecipients);
+        out.writeString(accessLevel);
+        out.writeNamedWriteable(accessLevelRecipients);
     }
 
     /**
-     * This class represents the entities with whom a resource is shared with for a given action-group.
+     * This class represents the entities with whom a resource is shared with for a given access level.
      *
      * @opensearch.experimental
      */
-    public static class ActionGroupRecipients implements ToXContentFragment, NamedWriteable {
+    public static class AccessLevelRecipients implements ToXContentFragment, NamedWriteable {
 
         private final Map<Recipient, Set<String>> recipients;
 
-        public ActionGroupRecipients(Map<Recipient, Set<String>> recipients) {
+        public AccessLevelRecipients(Map<Recipient, Set<String>> recipients) {
             if (recipients == null) {
                 throw new IllegalArgumentException("Recipients map cannot be null");
             }
             this.recipients = recipients;
         }
 
-        public ActionGroupRecipients(StreamInput in) throws IOException {
+        public AccessLevelRecipients(StreamInput in) throws IOException {
             this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
         }
 
@@ -131,10 +150,10 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
 
         @Override
         public String getWriteableName() {
-            return "action_group_recipients";
+            return "access_level_recipients";
         }
 
-        public static ActionGroupRecipients fromXContent(XContentParser parser) throws IOException {
+        public static AccessLevelRecipients fromXContent(XContentParser parser) throws IOException {
             Map<Recipient, Set<String>> recipients = new HashMap<>();
 
             XContentParser.Token token;
@@ -152,7 +171,7 @@ public class SharedWithActionGroup implements ToXContentFragment, NamedWriteable
                 }
             }
 
-            return new ActionGroupRecipients(recipients);
+            return new AccessLevelRecipients(recipients);
         }
 
         @Override

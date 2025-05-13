@@ -9,7 +9,7 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -112,7 +112,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void share(String accessLevel, SharedWithActionGroup target) {
         if (shareWith == null) {
-            shareWith = new ShareWith(Set.of(target));
+            shareWith = new ShareWith(Map.of(accessLevel, target));
         } else {
             SharedWithActionGroup sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.share(target);
@@ -173,7 +173,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject().field("source_idx", sourceIdx).field("resource_id", resourceId).field("created_by");
         createdBy.toXContent(builder, params);
-        if (shareWith != null && !shareWith.getSharedWithActionGroups().isEmpty()) {
+        if (shareWith != null) {
             builder.field("share_with");
             shareWith.toXContent(builder, params);
         }
@@ -242,37 +242,23 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return True if the resource is shared with everyone, false otherwise.
      */
     public boolean isSharedWithEveryone() {
-        return this.shareWith != null
-            && this.shareWith.getSharedWithActionGroups()
-                .stream()
-                .anyMatch(sharedWithActionGroup -> sharedWithActionGroup.getActionGroup().equals("*"));
+        return this.shareWith != null && this.shareWith.isPublic();
     }
 
     /**
      * Checks if the given resource is shared with the specified entities.
      *
-     * @param recipient The recipient entity
-     * @param entities  The set of entities to check for sharing.
-     * @param actionGroups The set of action groups to check for sharing.
+     * @param recipientType The recipient type
+     * @param targets  The set of targets to check for sharing.
+     * @param accessLevel The access level to check for sharing.
      *
      * @return True if the resource is shared with the entities, false otherwise.
      */
-    public boolean isSharedWithEntity(Recipient recipient, Set<String> entities, Set<String> actionGroups) {
-        if (shareWith == null) {
+    public boolean isSharedWithEntity(Recipient recipientType, Set<String> targets, String accessLevel) {
+        if (shareWith == null || shareWith.atAccessLevel(accessLevel) == null) {
             return false;
         }
 
-        return shareWith.getSharedWithActionGroups()
-            .stream()
-            // only keep the action-groups we care about
-            .filter(sWAG -> actionGroups.contains(sWAG.getActionGroup()))
-            // for each matching action-group, grab the recipients’ entities for YOUR recipient
-            .map(sWAG -> sWAG.getSharedWithPerActionGroup().getRecipients().getOrDefault(recipient, Set.of()))
-            // check intersection with input entities
-            .anyMatch(sharedEntities -> {
-                Set<String> intersection = new HashSet<>(sharedEntities);
-                intersection.retainAll(entities);
-                return !intersection.isEmpty();
-            });
+        return shareWith.atAccessLevel(accessLevel).isSharedWithAny(recipientType, targets);
     }
 }

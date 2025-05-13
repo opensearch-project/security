@@ -120,13 +120,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to check access for.
      * @param resourceIndex The resource index containing the resource.
-     * @param actionGroups  The set of action groups to check permission for.
+     * @param accessLevel   The access level to check permission for.
      * @param listener      The listener to be notified with the permission check result.
      */
     public void hasPermission(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Set<String> actionGroups,
+        @NonNull String accessLevel,
         ActionListener<Boolean> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -168,9 +168,9 @@ public class ResourceAccessHandler {
             userBackendRoles.add("*");
             if (document.isCreatedBy(user.getName())
                 || document.isSharedWithEveryone()
-                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), actionGroups)
-                || document.isSharedWithEntity(Recipient.ROLES, userRoles, actionGroups)
-                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, actionGroups)) {
+                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), accessLevel)
+                || document.isSharedWithEntity(Recipient.ROLES, userRoles, accessLevel)
+                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, accessLevel)) {
 
                 LOGGER.debug("User '{}' has permission to resource '{}'", user.getName(), resourceId);
                 listener.onResponse(true);
@@ -251,7 +251,7 @@ public class ResourceAccessHandler {
     public void revokeAccess(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull SharedWithActionGroup.ActionGroupRecipients revokeAccess,
+        @NonNull SharedWithActionGroup.AccessLevelRecipients revokeAccess,
         @NonNull Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {

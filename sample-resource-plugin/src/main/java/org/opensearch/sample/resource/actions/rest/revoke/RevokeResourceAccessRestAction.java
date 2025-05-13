@@ -67,7 +67,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         );
     }
 
-    private SharedWithActionGroup.ActionGroupRecipients parseRevokedEntities(Map<String, Object> source) {
+    private SharedWithActionGroup.AccessLevelRecipients parseRevokedEntities(Map<String, Object> source) {
         if (source == null || source.isEmpty()) {
             throw new IllegalArgumentException("entities_to_revoke is required and cannot be empty");
         }
@@ -85,6 +85,6 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
                 )
             );
 
-        return new SharedWithActionGroup.ActionGroupRecipients(entitiesToRevoke);
+        return new SharedWithActionGroup.AccessLevelRecipients(entitiesToRevoke);
     }
 }

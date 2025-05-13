@@ -65,14 +65,14 @@ public class ShareResourceRestAction extends BaseRestHandler {
         return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
     }
 
-    private SharedWithActionGroup.ActionGroupRecipients parseShareWith(Map<String, Object> source) throws IOException {
+    private SharedWithActionGroup.AccessLevelRecipients parseShareWith(Map<String, Object> source) throws IOException {
         String jsonString = XContentFactory.jsonBuilder().map(source).toString();
 
         try (
             XContentParser parser = XContentType.JSON.xContent()
                 .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
         ) {
-            return SharedWithActionGroup.ActionGroupRecipients.fromXContent(parser);
+            return SharedWithActionGroup.AccessLevelRecipients.fromXContent(parser);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
         }

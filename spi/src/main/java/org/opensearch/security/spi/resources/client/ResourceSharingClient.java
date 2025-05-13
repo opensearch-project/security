@@ -39,7 +39,7 @@ public interface ResourceSharingClient {
     void share(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.ActionGroupRecipients recipients,
+        SharedWithActionGroup.AccessLevelRecipients recipients,
         ActionListener<ResourceSharing> listener
     );
 
@@ -53,7 +53,7 @@ public interface ResourceSharingClient {
     void revoke(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke,
+        SharedWithActionGroup.AccessLevelRecipients entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     );
 

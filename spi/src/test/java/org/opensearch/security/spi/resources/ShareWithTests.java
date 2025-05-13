@@ -10,7 +10,7 @@ package org.opensearch.security.spi.resources;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,13 +32,13 @@ import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.mockito.Mockito;
 
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,16 +61,12 @@ public class ShareWithTests {
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
         MatcherAssert.assertThat(shareWith, notNullValue());
-        Set<SharedWithActionGroup> sharedWithActionGroups = shareWith.getSharedWithActionGroups();
-        MatcherAssert.assertThat(sharedWithActionGroups, notNullValue());
-        MatcherAssert.assertThat(1, equalTo(sharedWithActionGroups.size()));
+        SharedWithActionGroup readOnly = shareWith.atAccessLevel("read_only");
+        MatcherAssert.assertThat(readOnly, notNullValue());
 
-        SharedWithActionGroup actionGroup = sharedWithActionGroups.iterator().next();
-        MatcherAssert.assertThat("read_only", equalTo(actionGroup.getActionGroup()));
-
-        SharedWithActionGroup.ActionGroupRecipients actionGroupRecipients = actionGroup.getSharedWithPerActionGroup();
-        MatcherAssert.assertThat(actionGroupRecipients, notNullValue());
-        Map<Recipient, Set<String>> recipients = actionGroupRecipients.getRecipients();
+        SharedWithActionGroup.AccessLevelRecipients accessLevelRecipients = readOnly.getSharedWith();
+        MatcherAssert.assertThat(accessLevelRecipients, notNullValue());
+        Map<Recipient, Set<String>> recipients = accessLevelRecipients.getRecipients();
         MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
         MatcherAssert.assertThat(recipients.get(Recipient.USERS), contains("user1"));
         MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(0));
@@ -85,7 +81,8 @@ public class ShareWithTests {
         ShareWith result = ShareWith.fromXContent(parser);
 
         MatcherAssert.assertThat(result, notNullValue());
-        MatcherAssert.assertThat(result.getSharedWithActionGroups(), is(empty()));
+        MatcherAssert.assertThat(result.isPrivate(), is(true));
+        MatcherAssert.assertThat(result.isPublic(), is(false));
     }
 
     @Test
@@ -98,7 +95,7 @@ public class ShareWithTests {
                 .array("roles", "role1")
                 .array("backend_roles", "backend_role1")
                 .endObject()
-                .startObject("random-action-group")
+                .startObject("read-only")
                 .array("users", "*")
                 .array("roles", "*")
                 .array("backend_roles", "*")
@@ -113,22 +110,21 @@ public class ShareWithTests {
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
         MatcherAssert.assertThat(shareWith, notNullValue());
-        Set<SharedWithActionGroup> actionGroups = shareWith.getSharedWithActionGroups();
-        MatcherAssert.assertThat(actionGroups.size(), equalTo(2));
 
-        for (SharedWithActionGroup actionGroup : actionGroups) {
-            SharedWithActionGroup.ActionGroupRecipients perScope = actionGroup.getSharedWithPerActionGroup();
-            Map<Recipient, Set<String>> recipients = perScope.getRecipients();
-            if (actionGroup.getActionGroup().equals(ResourceAccessActionGroups.PLACE_HOLDER)) {
-                MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(2));
-                MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(1));
-                MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(1));
-            } else if (actionGroup.getActionGroup().equals("random-action-group")) {
-                MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
-                MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(1));
-                MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(1));
-            }
-        }
+        SharedWithActionGroup defaultAccessLevel = shareWith.atAccessLevel(ResourceAccessActionGroups.PLACE_HOLDER);
+
+        SharedWithActionGroup readOnly = shareWith.atAccessLevel("read-only");
+
+        MatcherAssert.assertThat(defaultAccessLevel, notNullValue());
+        MatcherAssert.assertThat(readOnly, notNullValue());
+
+        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.USERS).size(), is(2));
+        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.ROLES).size(), is(1));
+        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
+
+        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.USERS).size(), is(1));
+        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.ROLES).size(), is(1));
+        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
     }
 
     @Test
@@ -140,20 +136,18 @@ public class ShareWithTests {
         ShareWith result = ShareWith.fromXContent(mockParser);
 
         MatcherAssert.assertThat(result, notNullValue());
-        MatcherAssert.assertThat(result.getSharedWithActionGroups(), is(empty()));
+        MatcherAssert.assertThat(result.isPrivate(), is(true));
+        MatcherAssert.assertThat(result.isPublic(), is(false));
     }
 
     @Test
     public void testToXContentBuildsCorrectly() throws IOException {
         SharedWithActionGroup actionGroup = new SharedWithActionGroup(
             "actionGroup1",
-            new SharedWithActionGroup.ActionGroupRecipients(Map.of(Recipient.USERS, Set.of("bleh")))
+            new SharedWithActionGroup.AccessLevelRecipients(Map.of(Recipient.USERS, Set.of("bleh")))
         );
 
-        Set<SharedWithActionGroup> actionGroups = new HashSet<>();
-        actionGroups.add(actionGroup);
-
-        ShareWith shareWith = new ShareWith(actionGroups);
+        ShareWith shareWith = new ShareWith(Map.of("actionGroup1", actionGroup));
 
         XContentBuilder builder = JsonXContent.contentBuilder();
 
@@ -169,39 +163,42 @@ public class ShareWithTests {
 
     @Test
     public void testWriteToWithEmptySet() throws IOException {
-        Set<SharedWithActionGroup> emptySet = Collections.emptySet();
-        ShareWith shareWith = new ShareWith(emptySet);
+        Map<String, SharedWithActionGroup> emptyMap = Collections.emptyMap();
+        ShareWith shareWith = new ShareWith(emptyMap);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
 
         shareWith.writeTo(mockOutput);
 
-        verify(mockOutput).writeCollection(emptySet);
+        verify(mockOutput).writeMap(eq(emptyMap), any(), any());
     }
 
     @Test
     public void testWriteToWithIOException() throws IOException {
-        Set<SharedWithActionGroup> set = new HashSet<>();
-        set.add(new SharedWithActionGroup("test", new SharedWithActionGroup.ActionGroupRecipients(Map.of())));
-        ShareWith shareWith = new ShareWith(set);
+        SharedWithActionGroup accessLevel = new SharedWithActionGroup("test", new SharedWithActionGroup.AccessLevelRecipients(Map.of()));
+        Map<String, SharedWithActionGroup> map = Map.of("test", accessLevel);
+        ShareWith shareWith = new ShareWith(map);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
 
-        doThrow(new IOException("Simulated IO exception")).when(mockOutput).writeCollection(set);
+        doThrow(new IOException("Simulated IO exception")).when(mockOutput).writeMap(eq(map), any(), any());
 
         assertThrows(IOException.class, () -> shareWith.writeTo(mockOutput));
     }
 
     @Test
     public void testWriteToWithLargeSet() throws IOException {
-        Set<SharedWithActionGroup> largeSet = new HashSet<>();
-        for (int i = 0; i < 10000; i++) {
-            largeSet.add(new SharedWithActionGroup("actionGroup" + i, new SharedWithActionGroup.ActionGroupRecipients(Map.of())));
+        Map<String, SharedWithActionGroup> largeMap = new HashMap<>();
+        for (int i = 0; i < 10; i++) {
+            largeMap.put(
+                "actionGroup" + i,
+                new SharedWithActionGroup("actionGroup" + i, new SharedWithActionGroup.AccessLevelRecipients(Map.of()))
+            );
         }
-        ShareWith shareWith = new ShareWith(largeSet);
+        ShareWith shareWith = new ShareWith(largeMap);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
 
         shareWith.writeTo(mockOutput);
 
-        verify(mockOutput).writeCollection(largeSet);
+        verify(mockOutput).writeMap(eq(largeMap), any(), any());
     }
 
     @Test
@@ -214,23 +211,24 @@ public class ShareWithTests {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        MatcherAssert.assertThat(shareWith.getSharedWithActionGroups(), is(empty()));
+        MatcherAssert.assertThat(shareWith.isPrivate(), is(true));
+        MatcherAssert.assertThat(shareWith.isPublic(), is(false));
     }
 
     @Test
     public void test_writeSharedWithScopesToStream() throws IOException {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 
-        Set<SharedWithActionGroup> sharedWithActionGroups = new HashSet<>();
-        sharedWithActionGroups.add(
-            new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, new SharedWithActionGroup.ActionGroupRecipients(Map.of()))
+        Map<String, SharedWithActionGroup> map = Map.of(
+            ResourceAccessActionGroups.PLACE_HOLDER,
+            new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, new SharedWithActionGroup.AccessLevelRecipients(Map.of()))
         );
 
-        ShareWith shareWith = new ShareWith(sharedWithActionGroups);
+        ShareWith shareWith = new ShareWith(map);
 
         shareWith.writeTo(mockStreamOutput);
 
-        verify(mockStreamOutput, times(1)).writeCollection(eq(sharedWithActionGroups));
+        verify(mockStreamOutput, times(1)).writeMap(eq(map), any(), any());
     }
 }
 
