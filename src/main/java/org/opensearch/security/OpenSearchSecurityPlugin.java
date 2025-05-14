@@ -179,7 +179,6 @@ import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
-import org.opensearch.security.resources.ResourceSharingConstants;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
@@ -233,6 +232,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
+import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
@@ -1250,8 +1250,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         )) {
-            final var resourceSharingIndex = ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-            rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+            rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool);
 
             ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
@@ -2233,11 +2232,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
             )) {
-            final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
-                ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
-                "Resource Sharing index"
-            );
-            systemIndexDescriptors.add(resourceSharingIndexDescriptor);
+            for (String resourceIndex : resourcePluginInfo.getResourceIndices()) {
+                final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
+                    getSharingIndex(resourceIndex),
+                    "Resource Sharing index for index: " + resourceIndex
+                );
+                systemIndexDescriptors.add(resourceSharingIndexDescriptor);
+            }
         }
 
         return ImmutableList.copyOf(systemIndexDescriptors);

@@ -75,12 +75,9 @@ public class ResourceSharingIndexHandler {
 
     private final Client client;
 
-    private final String resourceSharingIndex;
-
     private final ThreadPool threadPool;
 
-    public ResourceSharingIndexHandler(final String indexName, final Client client, final ThreadPool threadPool) {
-        this.resourceSharingIndex = indexName;
+    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
         this.client = client;
         this.threadPool = threadPool;
     }
@@ -120,10 +117,10 @@ public class ResourceSharingIndexHandler {
                 CreateIndexRequest cir = new CreateIndexRequest(getSharingIndex(resourceIndex)).settings(INDEX_SETTINGS)
                     .waitForActiveShards(1);
                 ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
-                    LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
+                    LOGGER.info("Resource sharing index {} created.", getSharingIndex(resourceIndex));
                 }, (failResponse) -> {
                     /* Index already exists, ignore and continue */
-                    LOGGER.info("Index {} already exists.", resourceSharingIndex);
+                    LOGGER.info("Index {} already exists.", getSharingIndex(resourceIndex));
                 });
                 this.client.admin().indices().create(cir, cirListener);
             }
