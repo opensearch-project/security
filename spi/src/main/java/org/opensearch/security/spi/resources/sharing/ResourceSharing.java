@@ -98,21 +98,21 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         return shareWith;
     }
 
-    public void share(String accessLevel, AccessLevelRecipients target) {
+    public void share(String accessLevel, Recipients target) {
         if (shareWith == null) {
             shareWith = new ShareWith(Map.of(accessLevel, target));
         } else {
-            AccessLevelRecipients sharedWith = shareWith.atAccessLevel(accessLevel);
+            Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.share(target);
         }
     }
 
-    public void revoke(String accessLevel, AccessLevelRecipients target) {
+    public void revoke(String accessLevel, Recipients target) {
         if (shareWith == null) {
             // TODO log a warning that this is a noop
             return;
         } else {
-            AccessLevelRecipients sharedWith = shareWith.atAccessLevel(accessLevel);
+            Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.revoke(target);
         }
     }

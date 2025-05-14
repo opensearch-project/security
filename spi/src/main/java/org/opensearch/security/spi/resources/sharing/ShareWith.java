@@ -44,19 +44,19 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     /**
      * A set of objects representing the action-groups and their associated users, roles, and backend roles.
      */
-    private final Map<String, AccessLevelRecipients> sharingInfo;
+    private final Map<String, Recipients> sharingInfo;
 
-    public ShareWith(Map<String, AccessLevelRecipients> sharingInfo) {
+    public ShareWith(Map<String, Recipients> sharingInfo) {
         this.sharingInfo = sharingInfo;
     }
 
     public ShareWith(StreamInput in) throws IOException {
-        this.sharingInfo = in.readMap(StreamInput::readString, AccessLevelRecipients::new);
+        this.sharingInfo = in.readMap(StreamInput::readString, Recipients::new);
     }
 
     public boolean isPublic() {
         // TODO Contemplate following google doc model of link sharing which has single access level when link sharing is enabled
-        return sharingInfo.values().stream().anyMatch(AccessLevelRecipients::isPublic);
+        return sharingInfo.values().stream().anyMatch(Recipients::isPublic);
     }
 
     public boolean isPrivate() {
@@ -67,7 +67,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         return sharingInfo.keySet();
     }
 
-    public AccessLevelRecipients atAccessLevel(String accessLevel) {
+    public Recipients atAccessLevel(String accessLevel) {
         return sharingInfo.get(accessLevel);
     }
 
@@ -75,15 +75,17 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
 
-        for (AccessLevelRecipients actionGroup : sharingInfo.values()) {
-            actionGroup.toXContent(builder, params);
+        for (String accessLevel : sharingInfo.keySet()) {
+            builder.field(accessLevel);
+            Recipients recipients = sharingInfo.get(accessLevel);
+            recipients.toXContent(builder, params);
         }
 
         return builder.endObject();
     }
 
     public static ShareWith fromXContent(XContentParser parser) throws IOException {
-        Map<String, AccessLevelRecipients> sharedWithActionGroups = new HashMap<>();
+        Map<String, Recipients> sharingInfo = new HashMap<>();
 
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
             parser.nextToken();
@@ -93,12 +95,16 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             // Each field in the object represents a SharedWithActionGroup
             if (token == XContentParser.Token.FIELD_NAME) {
-                AccessLevelRecipients actionGroup = AccessLevelRecipients.fromXContent(parser);
-                sharedWithActionGroups.put(actionGroup.getAccessLevel(), actionGroup);
+                String accessLevel = parser.currentName();
+
+                parser.nextToken();
+
+                Recipients recipients = Recipients.fromXContent(parser);
+                sharingInfo.put(accessLevel, recipients);
             }
         }
 
-        return new ShareWith(sharedWithActionGroups);
+        return new ShareWith(sharingInfo);
     }
 
     @Override

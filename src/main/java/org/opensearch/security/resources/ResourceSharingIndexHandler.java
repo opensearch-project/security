@@ -51,9 +51,9 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
@@ -345,7 +345,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    public void fetchResourceSharingDocument(String resourceIndex, String resourceId, ActionListener<ResourceSharing> listener) {
+    public void fetchSharingInfo(String resourceIndex, String resourceId, ActionListener<ResourceSharing> listener) {
         if (StringUtils.isBlank(resourceIndex) || StringUtils.isBlank(resourceId)) {
             listener.onFailure(new IllegalArgumentException("resourceIndex and resourceId must not be null or empty"));
             return;
@@ -489,7 +489,7 @@ public class ResourceSharingIndexHandler {
      * @throws RuntimeException if there's an error during the update operation
      */
     @SuppressWarnings("unchecked")
-    public void updateResourceSharingInfo(
+    public void updateSharingInfo(
         String resourceId,
         String sourceIdx,
         String requestUserName,
@@ -500,7 +500,7 @@ public class ResourceSharingIndexHandler {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
-        fetchResourceSharingDocument(sourceIdx, resourceId, sharingInfoListener);
+        fetchSharingInfo(sourceIdx, resourceId, sharingInfoListener);
 
         // build update script
         sharingInfoListener.whenComplete(sharingInfo -> {
@@ -518,7 +518,7 @@ public class ResourceSharingIndexHandler {
             }
 
             for (String accessLevel : shareWith.accessLevels()) {
-                AccessLevelRecipients target = shareWith.atAccessLevel(accessLevel);
+                Recipients target = shareWith.atAccessLevel(accessLevel);
                 sharingInfo.share(accessLevel, target);
             }
 
@@ -581,7 +581,7 @@ public class ResourceSharingIndexHandler {
      * @see Recipient
      * @see ResourceSharing
      */
-    public void revokeAccess(
+    public void revoke(
         String resourceId,
         String sourceIdx,
         ShareWith revokeAccess,
@@ -599,7 +599,7 @@ public class ResourceSharingIndexHandler {
             StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
             // Fetch the current ResourceSharing document
-            fetchResourceSharingDocument(sourceIdx, resourceId, sharingInfoListener);
+            fetchSharingInfo(sourceIdx, resourceId, sharingInfoListener);
 
             // Check permissions & build revoke script
             sharingInfoListener.whenComplete(sharingInfo -> {
@@ -614,7 +614,7 @@ public class ResourceSharingIndexHandler {
                 }
 
                 for (String accessLevel : revokeAccess.accessLevels()) {
-                    AccessLevelRecipients target = revokeAccess.atAccessLevel(accessLevel);
+                    Recipients target = revokeAccess.atAccessLevel(accessLevel);
                     LOGGER.debug(
                         "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
                         resourceId,

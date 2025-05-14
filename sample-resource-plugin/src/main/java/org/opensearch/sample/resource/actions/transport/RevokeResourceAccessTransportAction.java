@@ -22,7 +22,7 @@ import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRe
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -44,7 +44,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-        ShareWith target = new ShareWith(Map.of(PLACE_HOLDER, new AccessLevelRecipients(PLACE_HOLDER, request.getEntitiesToRevoke())));
+        ShareWith target = new ShareWith(Map.of(PLACE_HOLDER, new Recipients(request.getEntitiesToRevoke())));
         resourceSharingClient.revoke(request.getResourceId(), RESOURCE_INDEX_NAME, target, ActionListener.wrap(success -> {
             RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());
             log.debug("Revoked resource access: {}", response.toString());

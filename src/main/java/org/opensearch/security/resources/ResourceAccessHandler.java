@@ -150,7 +150,7 @@ public class ResourceAccessHandler {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
-        this.resourceSharingIndexHandler.fetchResourceSharingDocument(resourceIndex, resourceId, ActionListener.wrap(document -> {
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
                 LOGGER.warn(
                     "ResourceSharing entry not found for '{}' and index '{}'. Access to this resource will be allowed.",
@@ -193,13 +193,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to share.
      * @param resourceIndex The index where resource is store
-     * @param shareWith     The users, roles, and backend roles as well as the action group to share the resource with.
+     * @param target     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void shareWith(
+    public void share(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull ShareWith shareWith,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -218,21 +218,21 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
+        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.updateResourceSharingInfo(
+        this.resourceSharingIndexHandler.updateSharingInfo(
             resourceId,
             resourceIndex,
             user.getName(),
-            shareWith,
+            target,
             isAdmin,
-            ActionListener.wrap(updatedResourceSharing -> {
-                LOGGER.debug("Successfully shared resource {} with {}", resourceId, shareWith.toString());
-                listener.onResponse(updatedResourceSharing);
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
+                listener.onResponse(sharingInfo);
             }, e -> {
-                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, shareWith.toString(), e.getMessage());
+                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
                 listener.onFailure(e);
             })
         );
@@ -243,13 +243,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
-     * @param revokeAccess  The access levels, users, roles, and backend roles to revoke access for.
+     * @param target        The access levels, users, roles, and backend roles to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void revokeAccess(
+    public void revoke(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull ShareWith revokeAccess,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -268,14 +268,14 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, revokeAccess);
+        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.revokeAccess(
+        this.resourceSharingIndexHandler.revoke(
             resourceId,
             resourceIndex,
-            revokeAccess,
+            target,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {

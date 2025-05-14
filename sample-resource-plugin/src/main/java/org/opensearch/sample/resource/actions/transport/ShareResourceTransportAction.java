@@ -22,7 +22,7 @@ import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceResponse;
 import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -49,7 +49,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
         }
 
         ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-        ShareWith shareWith = new ShareWith(Map.of(PLACE_HOLDER, new AccessLevelRecipients(PLACE_HOLDER, request.getRecipients())));
+        ShareWith shareWith = new ShareWith(Map.of(PLACE_HOLDER, new Recipients(request.getRecipients())));
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
             ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
             log.debug("Shared resource: {}", response.toString());

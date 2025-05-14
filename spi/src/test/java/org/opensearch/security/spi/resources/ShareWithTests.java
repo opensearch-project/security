@@ -25,8 +25,8 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
 import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import org.mockito.Mockito;
@@ -61,7 +61,7 @@ public class ShareWithTests {
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
         MatcherAssert.assertThat(shareWith, notNullValue());
-        AccessLevelRecipients readOnly = shareWith.atAccessLevel("read_only");
+        Recipients readOnly = shareWith.atAccessLevel("read_only");
         MatcherAssert.assertThat(readOnly, notNullValue());
 
         Map<Recipient, Set<String>> recipients = readOnly.getRecipients();
@@ -110,9 +110,9 @@ public class ShareWithTests {
 
         MatcherAssert.assertThat(shareWith, notNullValue());
 
-        AccessLevelRecipients defaultAccessLevel = shareWith.atAccessLevel(ResourceAccessActionGroups.PLACE_HOLDER);
+        Recipients defaultAccessLevel = shareWith.atAccessLevel(ResourceAccessActionGroups.PLACE_HOLDER);
 
-        AccessLevelRecipients readOnly = shareWith.atAccessLevel("read-only");
+        Recipients readOnly = shareWith.atAccessLevel("read-only");
 
         MatcherAssert.assertThat(defaultAccessLevel, notNullValue());
         MatcherAssert.assertThat(readOnly, notNullValue());
@@ -141,7 +141,7 @@ public class ShareWithTests {
 
     @Test
     public void testToXContentBuildsCorrectly() throws IOException {
-        AccessLevelRecipients actionGroup = new AccessLevelRecipients("actionGroup1", Map.of(Recipient.USERS, Set.of("bleh")));
+        Recipients actionGroup = new Recipients(Map.of(Recipient.USERS, Set.of("bleh")));
 
         ShareWith shareWith = new ShareWith(Map.of("actionGroup1", actionGroup));
 
@@ -159,7 +159,7 @@ public class ShareWithTests {
 
     @Test
     public void testWriteToWithEmptySet() throws IOException {
-        Map<String, AccessLevelRecipients> emptyMap = Collections.emptyMap();
+        Map<String, Recipients> emptyMap = Collections.emptyMap();
         ShareWith shareWith = new ShareWith(emptyMap);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
 
@@ -170,8 +170,8 @@ public class ShareWithTests {
 
     @Test
     public void testWriteToWithIOException() throws IOException {
-        AccessLevelRecipients accessLevel = new AccessLevelRecipients("test", Map.of());
-        Map<String, AccessLevelRecipients> map = Map.of("test", accessLevel);
+        Recipients recipients = new Recipients(Map.of());
+        Map<String, Recipients> map = Map.of("test", recipients);
         ShareWith shareWith = new ShareWith(map);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
 
@@ -182,9 +182,9 @@ public class ShareWithTests {
 
     @Test
     public void testWriteToWithLargeSet() throws IOException {
-        Map<String, AccessLevelRecipients> largeMap = new HashMap<>();
+        Map<String, Recipients> largeMap = new HashMap<>();
         for (int i = 0; i < 10; i++) {
-            largeMap.put("actionGroup" + i, new AccessLevelRecipients("actionGroup" + i, Map.of()));
+            largeMap.put("actionGroup" + i, new Recipients(Map.of()));
         }
         ShareWith shareWith = new ShareWith(largeMap);
         StreamOutput mockOutput = Mockito.mock(StreamOutput.class);
@@ -212,31 +212,12 @@ public class ShareWithTests {
     public void test_writeSharedWithScopesToStream() throws IOException {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 
-        Map<String, AccessLevelRecipients> map = Map.of(
-            ResourceAccessActionGroups.PLACE_HOLDER,
-            new AccessLevelRecipients(ResourceAccessActionGroups.PLACE_HOLDER, Map.of())
-        );
+        Map<String, Recipients> map = Map.of(ResourceAccessActionGroups.PLACE_HOLDER, new Recipients(Map.of()));
 
         ShareWith shareWith = new ShareWith(map);
 
         shareWith.writeTo(mockStreamOutput);
 
         verify(mockStreamOutput, times(1)).writeMap(eq(map), any(), any());
-    }
-}
-
-enum DefaultRecipient {
-    USERS("users"),
-    ROLES("roles"),
-    BACKEND_ROLES("backend_roles");
-
-    private final String name;
-
-    DefaultRecipient(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
     }
 }
