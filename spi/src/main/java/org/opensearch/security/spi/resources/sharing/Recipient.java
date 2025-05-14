@@ -29,15 +29,6 @@ public enum Recipient {
         return name;
     }
 
-    public static Recipient fromValue(String name) {
-        for (Recipient recipient : Recipient.values()) {
-            if (recipient.name.equals(name)) {
-                return recipient;
-            }
-        }
-        throw new IllegalArgumentException("No Recipient with value: " + name);
-    }
-
     @Override
     public String toString() {
         return name;

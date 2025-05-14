@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,13 +36,11 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -59,12 +56,11 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -478,7 +474,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, SharedWithActionGroup.AccessLevelRecipients, Set, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -506,20 +502,6 @@ public class ResourceSharingIndexHandler {
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
     ) {
-        XContentBuilder builder;
-        Map<String, Object> shareWithMap;
-        try {
-            builder = XContentFactory.jsonBuilder();
-            shareWith.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            String json = builder.toString();
-            shareWithMap = DefaultObjectMapper.readValue(json, new TypeReference<>() {
-            });
-        } catch (IOException e) {
-            LOGGER.error("Failed to build json content", e);
-            listener.onFailure(new OpenSearchStatusException("Failed to build json content", RestStatus.INTERNAL_SERVER_ERROR));
-            return;
-        }
-
         StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
 
         // Fetch resource sharing doc
@@ -528,7 +510,7 @@ public class ResourceSharingIndexHandler {
         // build update script
         fetchDocListener.whenComplete(sharingInfo -> {
             // Check if user can share. At present only the resource creator and admin is allowed to share the resource
-            if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
+            if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
 
                 LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
                 listener.onFailure(
@@ -541,8 +523,7 @@ public class ResourceSharingIndexHandler {
             }
 
             for (String accessLevel : shareWith.accessLevels()) {
-                SharedWithActionGroup target = shareWith.atAccessLevel(accessLevel);
-                assert sharingInfo != null;
+                AccessLevelRecipients target = shareWith.atAccessLevel(accessLevel);
                 sharingInfo.share(accessLevel, target);
             }
 
@@ -609,7 +590,7 @@ public class ResourceSharingIndexHandler {
     public void revokeAccess(
         String resourceId,
         String sourceIdx,
-        SharedWithActionGroup.AccessLevelRecipients revokeAccess,
+        Map<Recipient, Set<String>> revokeAccess,
         Set<String> actionGroups,
         String requestUserName,
         boolean isAdmin,
@@ -640,7 +621,7 @@ public class ResourceSharingIndexHandler {
             // Check permissions & build revoke script
             currentSharingListener.whenComplete(currentSharingInfo -> {
                 // Only admin or the creator of the resource is currently allowed to revoke access
-                if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
+                if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
                     listener.onFailure(
                         new OpenSearchStatusException(
                             "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId,
@@ -650,8 +631,8 @@ public class ResourceSharingIndexHandler {
                 }
 
                 Map<String, Object> revoke = new HashMap<>();
-                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.getRecipients().entrySet()) {
-                    revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
+                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.entrySet()) {
+                    revoke.put(entry.getKey().name(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();
 

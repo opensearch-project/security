@@ -1,0 +1,140 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+package org.opensearch.security.spi.resources.sharing;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.opensearch.core.common.io.stream.NamedWriteable;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.xcontent.ToXContentFragment;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
+
+/**
+ * This class represents the entities with which a resource is shared for a particular action-group.
+ * Example:
+ * "default": {
+ * "users": [],
+ * "roles": [],
+ * "backend_roles": []
+ * }
+ * where "users", "roles" and "backend_roles" are the recipient entities, and "default" is the action-group
+ *
+ * @opensearch.experimental
+ */
+public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable {
+
+    /*
+     * accessLevel is an actionGroup that is pertinent to sharable resources
+     *
+     * i.e. With Google Docs I can share a doc with another user of Google Docs and specify the access level
+     * when sharing
+     */
+    private final String accessLevel;
+    private final Map<Recipient, Set<String>> recipients;
+
+    public AccessLevelRecipients(String actionGroup, Map<Recipient, Set<String>> recipients) {
+        this.accessLevel = actionGroup;
+        this.recipients = recipients;
+    }
+
+    public AccessLevelRecipients(StreamInput in) throws IOException {
+        this.accessLevel = in.readString();
+        this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
+    }
+
+    public String getAccessLevel() {
+        return accessLevel;
+    }
+
+    public Map<Recipient, Set<String>> getRecipients() {
+        return recipients;
+    }
+
+    public void share(AccessLevelRecipients target) {
+        Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
+        for (Recipient recipientType : targetRecipients.keySet()) {
+            Set<String> updatedRecipients = recipients.get(recipientType);
+            updatedRecipients.addAll(targetRecipients.get(recipientType));
+        }
+    }
+
+    public boolean isPublic() {
+        return recipients.values().stream().anyMatch(recipients -> recipients.contains("*"));
+    }
+
+    public boolean isSharedWithAny(Recipient recipientType, Set<String> targets) {
+        return !Collections.disjoint(recipients.get(recipientType), targets);
+    }
+
+    public Set<String> getRecipientsByType(Recipient recipientType) {
+        return recipients.get(recipientType);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.field(accessLevel);
+        builder.startObject();
+        for (Map.Entry<Recipient, Set<String>> entry : recipients.entrySet()) {
+            builder.array(entry.getKey().name(), entry.getValue().toArray());
+        }
+        return builder.endObject();
+    }
+
+    public static AccessLevelRecipients fromXContent(XContentParser parser) throws IOException {
+        String actionGroup = parser.currentName();
+
+        parser.nextToken();
+
+        Map<Recipient, Set<String>> recipients = new HashMap<>();
+
+        XContentParser.Token token;
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                Recipient recipient = Recipient.valueOf(fieldName);
+
+                parser.nextToken();
+                Set<String> values = new HashSet<>();
+                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                    values.add(parser.text());
+                }
+                recipients.put(recipient, values);
+            }
+        }
+
+        return new AccessLevelRecipients(actionGroup, recipients);
+    }
+
+    @Override
+    public String toString() {
+        return "{" + accessLevel + ": " + recipients + '}';
+    }
+
+    @Override
+    public String getWriteableName() {
+        return "access_level_recipients";
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(accessLevel);
+        out.writeMap(
+            recipients,
+            StreamOutput::writeEnum,
+            (streamOutput, strings) -> streamOutput.writeCollection(strings, StreamOutput::writeString)
+        );
+    }
+}

@@ -21,7 +21,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -67,7 +66,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         );
     }
 
-    private SharedWithActionGroup.AccessLevelRecipients parseRevokedEntities(Map<String, Object> source) {
+    private Map<Recipient, Set<String>> parseRevokedEntities(Map<String, Object> source) {
         if (source == null || source.isEmpty()) {
             throw new IllegalArgumentException("entities_to_revoke is required and cannot be empty");
         }
@@ -77,7 +76,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             .filter(entry -> entry.getValue() instanceof Collection<?>)
             .collect(
                 Collectors.toMap(
-                    entry -> Recipient.fromValue(entry.getKey()),
+                    entry -> Recipient.valueOf(entry.getKey()),
                     entry -> ((Collection<?>) entry.getValue()).stream()
                         .filter(String.class::isInstance)
                         .map(String.class::cast)
@@ -85,6 +84,6 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
                 )
             );
 
-        return new SharedWithActionGroup.AccessLevelRecipients(entitiesToRevoke);
+        return entitiesToRevoke;
     }
 }

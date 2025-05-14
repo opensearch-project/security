@@ -18,9 +18,10 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
+import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 
 /**
  * Access control client responsible for handling resource sharing operations such as verifying,
@@ -68,11 +69,11 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     public void share(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.AccessLevelRecipients recipients,
+        Map<Recipient, Set<String>> recipients,
         ActionListener<ResourceSharing> listener
     ) {
-        SharedWithActionGroup sharedWithActionGroup = new SharedWithActionGroup(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
-        ShareWith shareWith = new ShareWith(Map.of(ResourceAccessActionGroups.PLACE_HOLDER, sharedWithActionGroup));
+        AccessLevelRecipients accessLevelRecipients = new AccessLevelRecipients(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
+        ShareWith shareWith = new ShareWith(Map.of(ResourceAccessActionGroups.PLACE_HOLDER, accessLevelRecipients));
 
         resourceAccessHandler.shareWith(resourceId, resourceIndex, shareWith, listener);
     }
@@ -89,7 +90,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     public void revoke(
         String resourceId,
         String resourceIndex,
-        SharedWithActionGroup.AccessLevelRecipients entitiesToRevoke,
+        Map<Recipient, Set<String>> entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     ) {
         resourceAccessHandler.revokeAccess(

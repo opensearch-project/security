@@ -82,10 +82,6 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         return sourceIdx;
     }
 
-    public void setSourceIdx(String sourceIdx) {
-        this.sourceIdx = sourceIdx;
-    }
-
     public String getResourceId() {
         return resourceId;
     }
@@ -98,23 +94,15 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         return createdBy;
     }
 
-    public void setCreatedBy(CreatedBy createdBy) {
-        this.createdBy = createdBy;
-    }
-
     public ShareWith getShareWith() {
         return shareWith;
     }
 
-    public void setShareWith(ShareWith shareWith) {
-        this.shareWith = shareWith;
-    }
-
-    public void share(String accessLevel, SharedWithActionGroup target) {
+    public void share(String accessLevel, AccessLevelRecipients target) {
         if (shareWith == null) {
             shareWith = new ShareWith(Map.of(accessLevel, target));
         } else {
-            SharedWithActionGroup sharedWith = shareWith.atAccessLevel(accessLevel);
+            AccessLevelRecipients sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.share(target);
         }
     }
@@ -233,7 +221,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return True if the resource is owned by the user, false otherwise.
      */
     public boolean isCreatedBy(String userName) {
-        return this.createdBy != null && this.createdBy.getCreator().equals(userName);
+        return this.createdBy != null && this.createdBy.getUsername().equals(userName);
     }
 
     /**

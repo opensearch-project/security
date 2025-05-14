@@ -13,6 +13,7 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +32,6 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -251,7 +251,7 @@ public class ResourceAccessHandler {
     public void revokeAccess(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull SharedWithActionGroup.AccessLevelRecipients revokeAccess,
+        @NonNull Map<Recipient, Set<String>> revokeAccess,
         @NonNull Set<String> actionGroups,
         ActionListener<ResourceSharing> listener
     ) {
