@@ -607,7 +607,6 @@ public class ResourceSharingIndexHandler {
             );
 
             StepListener<ResourceSharing> currentSharingListener = new StepListener<>();
-            StepListener<Boolean> revokeUpdateListener = new StepListener<>();
             StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
 
             // Fetch the current ResourceSharing document
@@ -638,18 +637,6 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
-            }, listener::onFailure);
-
-            // Return doc or null based on successful result, fail otherwise
-            revokeUpdateListener.whenComplete(success -> {
-                if (!success) {
-                    LOGGER.error("Failed to revoke access for resource {} in index {} (no docs updated).", resourceId, sourceIdx);
-                    listener.onResponse(null);
-                    return;
-                }
-                // TODO check if this should be replaced by Java in-memory computation (current intuition is that it will be more memory
-                // intensive to do it in java)
-                fetchResourceSharingDocument(sourceIdx, resourceId, updatedSharingListener);
             }, listener::onFailure);
 
             updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
