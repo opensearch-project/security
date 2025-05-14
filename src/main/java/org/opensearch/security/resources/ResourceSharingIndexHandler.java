@@ -202,7 +202,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
-     * @param pluginIndex The source index to match against the source_idx field
+     * @param resourceIndex The source index to match against the source_idx field
      * @param listener    The listener to be notified when the operation completes.
      *                    The listener receives a set of resource IDs as a result.
      * @apiNote This method:
@@ -212,22 +212,22 @@ public class ResourceSharingIndexHandler {
      *   <li>Returns an empty get instead of throwing exceptions</li>
      * </ul>
      */
-    public void fetchAllResourceIds(String pluginIndex, ActionListener<Set<String>> listener) {
-        LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
+    public void fetchAllResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
+        LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, resourceIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            TermQueryBuilder query = QueryBuilders.termQuery("source_idx.keyword", pluginIndex);
+            TermQueryBuilder query = QueryBuilders.termQuery("source_idx.keyword", resourceIndex);
 
             executeSearchRequest(scroll, searchRequest, query, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
 
             }, exception -> {
-                LOGGER.error("Search failed while locating all records inside pluginIndex={} ", pluginIndex, exception);
+                LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
 
             }));
@@ -241,7 +241,7 @@ public class ResourceSharingIndexHandler {
      * This method uses scroll API to handle large result sets efficiently.
      *
      *
-     * @param pluginIndex   The source index to match against the source_idx field
+     * @param resourceIndex The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
      * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
@@ -257,7 +257,7 @@ public class ResourceSharingIndexHandler {
      * </ul>
      */
     public void fetchSharedDocuments(
-        String pluginIndex,
+        String resourceIndex,
         Set<String> entities,
         BoolQueryBuilder actionGroupQuery,
         ActionListener<Set<String>> listener
@@ -268,7 +268,7 @@ public class ResourceSharingIndexHandler {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex));
 
             boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
 
@@ -277,15 +277,15 @@ public class ResourceSharingIndexHandler {
                 listener.onResponse(resourceIds);
 
             }, exception -> {
-                LOGGER.error("Search failed for pluginIndex={}, entities={}", pluginIndex, entities, exception);
+                LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, entities, exception);
                 listener.onFailure(exception);
 
             }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - resourceIndex: {}, entities: {}",
                 resourceSharingIndex,
-                pluginIndex,
+                resourceIndex,
                 entities,
                 e
             );
@@ -325,7 +325,7 @@ public class ResourceSharingIndexHandler {
      * @param resourceId  The resource ID to fetch. Must exactly match the resource_id field
      * @param listener    The listener to be notified when the operation completes.
      *                    The listener receives the parsed ResourceSharing object or null if not found
-     * @throws IllegalArgumentException if pluginIndexName or resourceId is null or empty
+     * @throws IllegalArgumentException if resourceIndex or resourceId is null or empty
      * @throws RuntimeException         if the search operation fails or parsing errors occur,
      *                                  wrapping the underlying exception
      * @apiNote This method:
@@ -474,7 +474,7 @@ public class ResourceSharingIndexHandler {
      * resource ID and source index.
      *
      * @param resourceId      The unique identifier of the resource whose sharing configuration needs to be updated
-     * @param sourceIdx       The source index where the original resource is stored
+     * @param resourceIndex   The source index where the original resource is stored
      * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
@@ -491,7 +491,7 @@ public class ResourceSharingIndexHandler {
     @SuppressWarnings("unchecked")
     public void updateSharingInfo(
         String resourceId,
-        String sourceIdx,
+        String resourceIndex,
         String requestUserName,
         ShareWith shareWith,
         boolean isAdmin,
@@ -500,7 +500,7 @@ public class ResourceSharingIndexHandler {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
-        fetchSharingInfo(sourceIdx, resourceId, sharingInfoListener);
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
         // build update script
         sharingInfoListener.whenComplete(sharingInfo -> {
@@ -531,7 +531,12 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
+                    LOGGER.info(
+                        "Successfully updated {} entry for resource {} in index {}.",
+                        resourceSharingIndex,
+                        resourceId,
+                        resourceIndex
+                    );
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
