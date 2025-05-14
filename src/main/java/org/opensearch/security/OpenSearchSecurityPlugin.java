@@ -192,7 +192,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
-import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
@@ -743,10 +742,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 // Listening on POST and DELETE operations in resource indices
                 ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
                 // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-                Set<String> resourceIndices = resourcePluginInfo.getResourceSharingExtensions()
-                    .stream()
-                    .flatMap(ext -> ext.getResourceProviders().stream().map(ResourceProvider::resourceIndexName))
-                    .collect(Collectors.toSet());
+                Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();
                 // CS-ENFORCE-SINGLE
                 if (resourceIndices.contains(indexModule.getIndex().getName())) {
                     indexModule.addIndexOperationListener(resourceIndexListener);
@@ -2176,7 +2172,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // create resource sharing index if absent
             // TODO check if this should be wrapped in an atomic completable future
             log.debug("Attempting to create Resource Sharing index");
-            rsIndexHandler.createResourceSharingIndexIfAbsent();
+            Set<String> resourceIndices = new HashSet<>();
+            if (resourcePluginInfo != null) {
+                resourceIndices = resourcePluginInfo.getResourceIndices();
+            }
+            rsIndexHandler.createResourceSharingIndicesIfAbsent(resourceIndices);
 
         }
 

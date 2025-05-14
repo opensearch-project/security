@@ -151,7 +151,7 @@ public class ResourceAccessHandler {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
-        this.resourceSharingIndexHandler.fetchResourceSharingDocument(resourceIndex, resourceId, ActionListener.wrap(document -> {
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
                 LOGGER.warn(
                     "ResourceSharing entry not found for '{}' and index '{}'. Access to this resource will be allowed.",
@@ -223,7 +223,7 @@ public class ResourceAccessHandler {
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.updateResourceSharingInfo(
+        this.resourceSharingIndexHandler.updateSharingInfo(
             resourceId,
             resourceIndex,
             user.getName(),
