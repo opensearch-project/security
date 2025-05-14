@@ -24,10 +24,16 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSessionContext;
+import javax.security.auth.x500.X500Principal;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 
@@ -36,6 +42,8 @@ import io.netty.handler.ssl.ApplicationProtocolNegotiator;
 import io.netty.handler.ssl.SslContext;
 
 final class KeyStoreUtils {
+
+    private final static Logger log = LogManager.getLogger(KeyStoreUtils.class);
 
     private final static class SecuritySslContext extends SslContext {
 
@@ -141,17 +149,50 @@ final class KeyStoreUtils {
                 final var a = aliases.nextElement();
                 if (keyStore.isCertificateEntry(a)) {
                     final var c = (X509Certificate) keyStore.getCertificate(a);
-                    if (c == null) {
-                        throw new CertificateException("Alias " + a + " does not contain a certificate entry");
-                    }
                     c.checkValidity();
-                } else if (keyStore.isKeyEntry(a)) {
-                    final var cc = keyStore.getCertificateChain(a);
-                    if (cc == null) {
-                        throw new CertificateException("Alias " + a + " does not contain a certificate chain");
-                    }
+                }
+                final var cc = keyStore.getCertificateChain(a);
+                if (cc != null) {
                     for (final var c : cc) {
                         ((X509Certificate) c).checkValidity();
+                    }
+                }
+            }
+        } catch (KeyStoreException e) {
+            throw new OpenSearchException("Couldn't load keys store", e);
+        } catch (CertificateException e) {
+            throw new OpenSearchException("Invalid certificates", e);
+        }
+    }
+
+    // If dnsToCheck is present, this method will only validate the certificates that match the dns in this list or
+    // up the chain
+    public static void validateKeyStoreCertificates(final KeyStore keyStore, Set<X500Principal> dnsToCheck) {
+        try {
+            final var aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                final var a = aliases.nextElement();
+                if (keyStore.isCertificateEntry(a)) {
+                    final var c = (X509Certificate) keyStore.getCertificate(a);
+                    if (dnsToCheck.contains(c.getSubjectX500Principal())) {
+                        c.checkValidity();
+                        final var cc = keyStore.getCertificateChain(a);
+                        if (cc != null) {
+                            for (final var c1 : cc) {
+                                ((X509Certificate) c1).checkValidity();
+                            }
+                        }
+                    } else {
+                        log.info("Skipping validation for " + c.getSubjectX500Principal().getName());
+                    }
+                } else {
+                    final var cc = keyStore.getCertificateChain(a);
+                    if (cc != null) {
+                        if (Arrays.stream(cc).anyMatch(c -> dnsToCheck.contains(((X509Certificate) c).getSubjectX500Principal()))) {
+                            for (final var c : cc) {
+                                ((X509Certificate) c).checkValidity();
+                            }
+                        }
                     }
                 }
             }
