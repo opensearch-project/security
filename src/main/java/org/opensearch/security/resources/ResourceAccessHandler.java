@@ -286,21 +286,6 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Deletes all resource sharing records for the current user.
-     *
-     * @param listener The listener to be notified with the deletion result.
-     */
-    public void deleteAllResourceSharingRecordsForUser(String name, ActionListener<Boolean> listener) {
-
-        LOGGER.debug("Deleting all resource sharing records for user {}", name);
-
-        resourceSharingIndexHandler.deleteAllResourceSharingRecordsForUser(name, ActionListener.wrap(listener::onResponse, exception -> {
-            LOGGER.error("Failed to delete all resource sharing records for user {}: {}", name, exception.getMessage(), exception);
-            listener.onFailure(exception);
-        }));
-    }
-
-    /**
      * Loads all resources within the specified resource index.
      *
      * @param resourceIndex The resource index to load resources from.
