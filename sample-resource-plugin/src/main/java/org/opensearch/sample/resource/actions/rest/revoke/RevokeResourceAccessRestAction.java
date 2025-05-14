@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.actions.rest.revoke;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,7 +77,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             .filter(entry -> entry.getValue() instanceof Collection<?>)
             .collect(
                 Collectors.toMap(
-                    entry -> Recipient.valueOf(entry.getKey()),
+                    entry -> Recipient.valueOf(entry.getKey().toUpperCase(Locale.ROOT)),
                     entry -> ((Collection<?>) entry.getValue()).stream()
                         .filter(String.class::isInstance)
                         .map(String.class::cast)

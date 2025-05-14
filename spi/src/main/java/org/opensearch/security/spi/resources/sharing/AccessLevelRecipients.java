@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -88,7 +89,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
         builder.field(accessLevel);
         builder.startObject();
         for (Map.Entry<Recipient, Set<String>> entry : recipients.entrySet()) {
-            builder.array(entry.getKey().name(), entry.getValue().toArray());
+            builder.array(entry.getKey().getName(), entry.getValue().toArray());
         }
         return builder.endObject();
     }
@@ -104,7 +105,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                Recipient recipient = Recipient.valueOf(fieldName);
+                Recipient recipient = Recipient.valueOf(fieldName.toUpperCase(Locale.ROOT));
 
                 parser.nextToken();
                 Set<String> values = new HashSet<>();

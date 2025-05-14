@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +64,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
         Map<Recipient, Set<String>> recipients = new HashMap<>();
         if (shareWith != null) {
             for (Map.Entry<String, Object> entry : shareWith.entrySet()) {
-                Recipient recipient = Recipient.valueOf(entry.getKey());
+                Recipient recipient = Recipient.valueOf(entry.getKey().toUpperCase(Locale.ROOT));
                 Set<String> targets = new HashSet<>((Collection<String>) entry.getValue());
                 recipients.put(recipient, targets);
             }

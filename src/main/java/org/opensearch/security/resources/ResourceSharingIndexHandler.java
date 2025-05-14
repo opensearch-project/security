@@ -632,7 +632,7 @@ public class ResourceSharingIndexHandler {
 
                 Map<String, Object> revoke = new HashMap<>();
                 for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.entrySet()) {
-                    revoke.put(entry.getKey().name(), new ArrayList<>(entry.getValue()));
+                    revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
                 }
                 List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();
 
