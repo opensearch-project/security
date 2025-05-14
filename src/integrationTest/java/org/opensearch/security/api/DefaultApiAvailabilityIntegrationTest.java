@@ -93,6 +93,7 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
 
     }
 
+    // TODO remove this test here when flushcache tests are moved to FlushCacheApiIntegrationTest.java
     @Test
     public void flushCache() throws Exception {
         withUser(NEW_USER, client -> { forbidden(() -> client.delete(apiPath("cache"))); });
