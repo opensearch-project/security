@@ -46,8 +46,8 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
     private final String accessLevel;
     private final Map<Recipient, Set<String>> recipients;
 
-    public AccessLevelRecipients(String actionGroup, Map<Recipient, Set<String>> recipients) {
-        this.accessLevel = actionGroup;
+    public AccessLevelRecipients(String accessLevel, Map<Recipient, Set<String>> recipients) {
+        this.accessLevel = accessLevel;
         this.recipients = recipients;
     }
 
@@ -103,7 +103,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
     }
 
     public static AccessLevelRecipients fromXContent(XContentParser parser) throws IOException {
-        String actionGroup = parser.currentName();
+        String accessLevel = parser.currentName();
 
         parser.nextToken();
 
@@ -124,7 +124,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
             }
         }
 
-        return new AccessLevelRecipients(actionGroup, recipients);
+        return new AccessLevelRecipients(accessLevel, recipients);
     }
 
     @Override

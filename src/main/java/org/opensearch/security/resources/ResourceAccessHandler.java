@@ -13,7 +13,6 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -244,15 +243,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
-     * @param revokeAccess  The users, roles, and backend roles to revoke access for.
-     * @param accessLevel  The access level to revoke access for.
+     * @param revokeAccess  The access levels, users, roles, and backend roles to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void revokeAccess(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Map<Recipient, Set<String>> revokeAccess,
-        @NonNull String accessLevel,
+        @NonNull ShareWith revokeAccess,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -279,7 +276,6 @@ public class ResourceAccessHandler {
             resourceId,
             resourceIndex,
             revokeAccess,
-            accessLevel,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {

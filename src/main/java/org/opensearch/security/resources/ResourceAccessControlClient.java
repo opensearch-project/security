@@ -8,7 +8,6 @@
 
 package org.opensearch.security.resources;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,8 +17,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
-import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
@@ -62,19 +59,11 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      *
      * @param resourceId    The ID of the resource to share.
      * @param resourceIndex The index containing the resource.
-     * @param recipients    The recipients of the resource, including users, roles, and backend roles.
+     * @param shareWith     The recipients of the resource, including users, roles, and backend roles and respective access levels.
      * @param listener      Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void share(
-        String resourceId,
-        String resourceIndex,
-        Map<Recipient, Set<String>> recipients,
-        ActionListener<ResourceSharing> listener
-    ) {
-        AccessLevelRecipients accessLevelRecipients = new AccessLevelRecipients(ResourceAccessActionGroups.PLACE_HOLDER, recipients);
-        ShareWith shareWith = new ShareWith(Map.of(ResourceAccessActionGroups.PLACE_HOLDER, accessLevelRecipients));
-
+    public void share(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         resourceAccessHandler.shareWith(resourceId, resourceIndex, shareWith, listener);
     }
 
@@ -87,13 +76,8 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * @param listener          Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void revoke(
-        String resourceId,
-        String resourceIndex,
-        Map<Recipient, Set<String>> entitiesToRevoke,
-        ActionListener<ResourceSharing> listener
-    ) {
-        resourceAccessHandler.revokeAccess(resourceId, resourceIndex, entitiesToRevoke, ResourceAccessActionGroups.PLACE_HOLDER, listener);
+    public void revoke(String resourceId, String resourceIndex, ShareWith entitiesToRevoke, ActionListener<ResourceSharing> listener) {
+        resourceAccessHandler.revokeAccess(resourceId, resourceIndex, entitiesToRevoke, listener);
     }
 
     /**

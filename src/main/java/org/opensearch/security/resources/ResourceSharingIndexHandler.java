@@ -571,7 +571,6 @@ public class ResourceSharingIndexHandler {
      * @param sourceIdx       The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param accessLevel     The access level to revoke access from. If null or empty, access is revoked from all action-groups
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
@@ -585,8 +584,7 @@ public class ResourceSharingIndexHandler {
     public void revokeAccess(
         String resourceId,
         String sourceIdx,
-        Map<Recipient, Set<String>> revokeAccess,
-        String accessLevel,
+        ShareWith revokeAccess,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
@@ -597,14 +595,6 @@ public class ResourceSharingIndexHandler {
         }
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-
-            LOGGER.debug(
-                "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                resourceId,
-                sourceIdx,
-                revokeAccess,
-                accessLevel
-            );
 
             StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
@@ -623,7 +613,18 @@ public class ResourceSharingIndexHandler {
                     );
                 }
 
-                sharingInfo.revoke(accessLevel, new AccessLevelRecipients(accessLevel, revokeAccess));
+                for (String accessLevel : revokeAccess.accessLevels()) {
+                    AccessLevelRecipients target = revokeAccess.atAccessLevel(accessLevel);
+                    LOGGER.debug(
+                        "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
+                        resourceId,
+                        sourceIdx,
+                        target,
+                        accessLevel
+                    );
+
+                    sharingInfo.revoke(accessLevel, target);
+                }
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getDocId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
