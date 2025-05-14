@@ -23,7 +23,7 @@ import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
+import org.opensearch.security.spi.resources.ResourceAccessLevels;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -188,7 +188,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessActionGroups.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }
@@ -338,7 +338,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessActionGroups.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }

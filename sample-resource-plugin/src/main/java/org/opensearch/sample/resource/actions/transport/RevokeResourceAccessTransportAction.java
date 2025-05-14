@@ -28,7 +28,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.spi.resources.ResourceAccessActionGroups.PLACE_HOLDER;
+import static org.opensearch.security.spi.resources.ResourceAccessLevels.PLACE_HOLDER;
 
 /**
  * Transport action for revoking resource access.

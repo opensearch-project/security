@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
+import org.opensearch.security.spi.resources.ResourceAccessLevels;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -49,7 +49,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public void verifyAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, ResourceAccessActionGroups.PLACE_HOLDER, listener);
+        resourceAccessHandler.hasPermission(resourceId, resourceIndex, ResourceAccessLevels.PLACE_HOLDER, listener);
     }
 
     /**
