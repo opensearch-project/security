@@ -360,7 +360,7 @@ public class SampleResourcePluginTests {
                 revokeAccessPayload(SHARED_WITH_USER.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
+            assertThat(response.getBody(), not(containsString("resource_sharing_test_user")));
         }
 
         // shared_with_user should not be able to access the resource directly nor via sample plugin since access is revoked

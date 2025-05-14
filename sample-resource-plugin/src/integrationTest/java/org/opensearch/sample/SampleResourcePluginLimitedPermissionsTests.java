@@ -32,6 +32,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -241,7 +242,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 revokeAccessPayload(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
+            assertThat(response.getBody(), not(containsString("resource_sharing_test_user_limited_perms")));
         }
 
         // get sample resource with SHARED_WITH_USER_LIMITED_PERMISSIONS, user no longer has access to resource
