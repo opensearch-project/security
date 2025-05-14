@@ -29,7 +29,8 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @Test
     public void testFlushCache() throws Exception {
-        withUser(NEW_USER, client -> {forbidden(() -> client.delete(cachePath()));
+        withUser(NEW_USER, client -> {
+            forbidden(() -> client.delete(cachePath()));
             forbidden(() -> client.delete(cachePath(TEST_USER)));
         });
         withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), client -> {

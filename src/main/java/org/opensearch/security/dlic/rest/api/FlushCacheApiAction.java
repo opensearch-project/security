@@ -38,8 +38,9 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
 
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(Method.DELETE, "/cache"),
-    new Route(Method.DELETE, "/cache/user/{username}")));
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(Method.DELETE, "/cache"), new Route(Method.DELETE, "/cache/user/{username}"))
+    );
 
     private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
         ImmutableList.of(new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE))

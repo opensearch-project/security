@@ -53,7 +53,7 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
         setConfigTypes(configTypes);
     }
 
-     public ConfigUpdateRequest(String configType, String[] entityNames) {
+    public ConfigUpdateRequest(String configType, String[] entityNames) {
         this();
         setConfigTypes(new String[] { configType });
         setEntityNames(entityNames);
