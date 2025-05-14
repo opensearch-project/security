@@ -583,7 +583,7 @@ public class ResourceSharingIndexHandler {
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
-     * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
+     * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException         if the update operation fails or encounters an error
      * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
      * entities don't exist in the current configuration), the original document is returned unchanged.
@@ -599,7 +599,7 @@ public class ResourceSharingIndexHandler {
         ActionListener<ResourceSharing> listener
     ) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
-            listener.onFailure(new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty"));
+            listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
             return;
         }
 
@@ -678,10 +678,14 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
+    <<<<<<< HEAD
      * @param resourceIndex The source index to match in the query (exact match)
+    =======
+     * @param resourceIndex  The source index to match in the query (exact match)
+    >>>>>>> refactor-share-with-action-group
      * @param resourceId The resource ID to match in the query (exact match)
      * @param listener   The listener to be notified when the operation completes
-     * @throws IllegalArgumentException if sourceIdx or resourceId is null/empty
+     * @throws IllegalArgumentException if resourceIndex or resourceId is null/empty
      * @throws RuntimeException         if the delete operation fails or encounters an error
      * @implNote The delete operation uses a bool query with two must clauses to ensure exact matching:
      * <pre>
@@ -689,7 +693,7 @@ public class ResourceSharingIndexHandler {
      *   "query": {
      *     "bool": {
      *       "must": [
-     *         { "term": { "source_idx": sourceIdx } },
+     *         { "term": { "source_idx": resourceIndex } },
      *         { "term": { "resource_id": resourceId } }
      *       ]
      *     }
