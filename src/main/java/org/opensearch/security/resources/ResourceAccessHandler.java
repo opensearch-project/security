@@ -13,7 +13,6 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -194,13 +193,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to share.
      * @param resourceIndex The index where resource is store
-     * @param shareWith     The users, roles, and backend roles as well as the action group to share the resource with.
+     * @param target     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void shareWith(
+    public void share(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull ShareWith shareWith,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -219,7 +218,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
+        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
@@ -227,13 +226,13 @@ public class ResourceAccessHandler {
             resourceId,
             resourceIndex,
             user.getName(),
-            shareWith,
+            target,
             isAdmin,
-            ActionListener.wrap(updatedResourceSharing -> {
-                LOGGER.debug("Successfully shared resource {} with {}", resourceId, shareWith.toString());
-                listener.onResponse(updatedResourceSharing);
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
+                listener.onResponse(sharingInfo);
             }, e -> {
-                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, shareWith.toString(), e.getMessage());
+                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
                 listener.onFailure(e);
             })
         );
@@ -244,15 +243,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
-     * @param revokeAccess  The users, roles, and backend roles to revoke access for.
-     * @param accessLevel  The access level to revoke access for.
+     * @param target        The access levels, users, roles, and backend roles to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void revokeAccess(
+    public void revoke(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Map<Recipient, Set<String>> revokeAccess,
-        @NonNull String accessLevel,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -271,15 +268,14 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, revokeAccess);
+        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.revokeAccess(
+        this.resourceSharingIndexHandler.revoke(
             resourceId,
             resourceIndex,
-            revokeAccess,
-            accessLevel,
+            target,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {

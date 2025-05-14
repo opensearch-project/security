@@ -53,9 +53,9 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.spi.resources.sharing.AccessLevelRecipients;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
@@ -117,7 +117,8 @@ public class ResourceSharingIndexHandler {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             for (String resourceIndex : resourceIndices) {
-                CreateIndexRequest cir = new CreateIndexRequest(getSharingIndex(resourceIndex)).settings(INDEX_SETTINGS).waitForActiveShards(1);
+                CreateIndexRequest cir = new CreateIndexRequest(getSharingIndex(resourceIndex)).settings(INDEX_SETTINGS)
+                    .waitForActiveShards(1);
                 ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
                     LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
                 }, (failResponse) -> {
@@ -181,7 +182,10 @@ public class ResourceSharingIndexHandler {
             return entry;
         } catch (Exception e) {
             LOGGER.error("Failed to create {} entry.", getSharingIndex(resourceIndex), e);
-            throw new OpenSearchStatusException("Failed to create " + getSharingIndex(resourceIndex) + " entry.", RestStatus.INTERNAL_SERVER_ERROR);
+            throw new OpenSearchStatusException(
+                "Failed to create " + getSharingIndex(resourceIndex) + " entry.",
+                RestStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -234,7 +238,7 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), getSharingIndex(resourceIndex));
                 listener.onResponse(resourceIds);
             }, exception -> {
-                LOGGER.error("Search failed while locating all records inside pluginIndex={} ", resourceIndex, exception);
+                LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
         } catch (Exception e) {
@@ -247,7 +251,7 @@ public class ResourceSharingIndexHandler {
      * This method uses scroll API to handle large result sets efficiently.
      *
      *
-     * @param resourceIndex   The source index to match against the source_idx field
+     * @param resourceIndex The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
      * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
@@ -289,7 +293,7 @@ public class ResourceSharingIndexHandler {
             }));
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - pluginIndex: {}, entities: {}",
+                "Failed to initiate fetch from {} for criteria - resourceIndex: {}, entities: {}",
                 getSharingIndex(resourceIndex),
                 resourceIndex,
                 entities,
@@ -331,7 +335,7 @@ public class ResourceSharingIndexHandler {
      * @param resourceId  The resource ID to fetch. Must exactly match the resource_id field
      * @param listener    The listener to be notified when the operation completes.
      *                    The listener receives the parsed ResourceSharing object or null if not found
-     * @throws IllegalArgumentException if pluginIndexName or resourceId is null or empty
+     * @throws IllegalArgumentException if resourceIndex or resourceId is null or empty
      * @throws RuntimeException         if the search operation fails or parsing errors occur,
      *                                  wrapping the underlying exception
      * @apiNote This method:
@@ -382,7 +386,11 @@ public class ResourceSharingIndexHandler {
                         }
                         try (
                             XContentParser parser = XContentType.JSON.xContent()
-                                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
+                                .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    LoggingDeprecationHandler.INSTANCE,
+                                    getResponse.getSourceAsString()
+                                )
                         ) {
                             parser.nextToken();
                             ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
@@ -465,12 +473,12 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, ShareWith, Set, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, Set, String, boolean, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
      * @param resourceId      The unique identifier of the resource whose sharing configuration needs to be updated
-     * @param resourceIndex       The source index where the original resource is stored
+     * @param resourceIndex   The source index where the original resource is stored
      * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
@@ -514,7 +522,7 @@ public class ResourceSharingIndexHandler {
             }
 
             for (String accessLevel : shareWith.accessLevels()) {
-                AccessLevelRecipients target = shareWith.atAccessLevel(accessLevel);
+                Recipients target = shareWith.atAccessLevel(accessLevel);
                 sharingInfo.share(accessLevel, target);
             }
 
@@ -527,7 +535,12 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", getSharingIndex(resourceIndex), resourceId, resourceIndex);
+                    LOGGER.info(
+                        "Successfully updated {} entry for resource {} in index {}.",
+                        getSharingIndex(resourceIndex),
+                        resourceId,
+                        resourceIndex
+                    );
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
@@ -567,7 +580,6 @@ public class ResourceSharingIndexHandler {
      * @param sourceIdx       The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param accessLevel     The access level to revoke access from. If null or empty, access is revoked from all action-groups
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
@@ -578,11 +590,10 @@ public class ResourceSharingIndexHandler {
      * @see Recipient
      * @see ResourceSharing
      */
-    public void revokeAccess(
+    public void revoke(
         String resourceId,
         String sourceIdx,
-        Map<Recipient, Set<String>> revokeAccess,
-        String accessLevel,
+        ShareWith revokeAccess,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
@@ -593,14 +604,6 @@ public class ResourceSharingIndexHandler {
         }
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-
-            LOGGER.debug(
-                "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                resourceId,
-                sourceIdx,
-                revokeAccess,
-                accessLevel
-            );
 
             StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
@@ -619,7 +622,18 @@ public class ResourceSharingIndexHandler {
                     );
                 }
 
-                sharingInfo.revoke(accessLevel, new AccessLevelRecipients(accessLevel, revokeAccess));
+                for (String accessLevel : revokeAccess.accessLevels()) {
+                    Recipients target = revokeAccess.atAccessLevel(accessLevel);
+                    LOGGER.debug(
+                        "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
+                        resourceId,
+                        sourceIdx,
+                        target,
+                        accessLevel
+                    );
+
+                    sharingInfo.revoke(accessLevel, target);
+                }
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getDocId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

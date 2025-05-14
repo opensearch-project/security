@@ -105,7 +105,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             fetchResourceById(resourceId, listener);
             return;
         }
-        client.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
+        client.verifyAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
             if (!authorized) {
                 listener.onFailure(new OpenSearchStatusException("Not authorized to access resource: " + resourceId, RestStatus.FORBIDDEN));
             } else {

@@ -35,7 +35,7 @@ import org.opensearch.core.xcontent.XContentParser;
  *
  * @opensearch.experimental
  */
-public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable {
+public class Recipients implements ToXContentFragment, NamedWriteable {
 
     /*
      * accessLevel is an actionGroup that is pertinent to sharable resources
@@ -43,28 +43,21 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
      * i.e. With Google Docs I can share a doc with another user of Google Docs and specify the access level
      * when sharing
      */
-    private final String accessLevel;
     private final Map<Recipient, Set<String>> recipients;
 
-    public AccessLevelRecipients(String actionGroup, Map<Recipient, Set<String>> recipients) {
-        this.accessLevel = actionGroup;
+    public Recipients(Map<Recipient, Set<String>> recipients) {
         this.recipients = recipients;
     }
 
-    public AccessLevelRecipients(StreamInput in) throws IOException {
-        this.accessLevel = in.readString();
+    public Recipients(StreamInput in) throws IOException {
         this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
-    }
-
-    public String getAccessLevel() {
-        return accessLevel;
     }
 
     public Map<Recipient, Set<String>> getRecipients() {
         return recipients;
     }
 
-    public void share(AccessLevelRecipients target) {
+    public void share(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
             Set<String> updatedRecipients = recipients.get(recipientType);
@@ -72,7 +65,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
         }
     }
 
-    public void revoke(AccessLevelRecipients target) {
+    public void revoke(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
             Set<String> updatedRecipients = recipients.get(recipientType);
@@ -94,7 +87,6 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(accessLevel);
         builder.startObject();
         for (Map.Entry<Recipient, Set<String>> entry : recipients.entrySet()) {
             builder.array(entry.getKey().getName(), entry.getValue().toArray());
@@ -102,11 +94,7 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
         return builder.endObject();
     }
 
-    public static AccessLevelRecipients fromXContent(XContentParser parser) throws IOException {
-        String actionGroup = parser.currentName();
-
-        parser.nextToken();
-
+    public static Recipients fromXContent(XContentParser parser) throws IOException {
         Map<Recipient, Set<String>> recipients = new HashMap<>();
 
         XContentParser.Token token;
@@ -124,12 +112,12 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
             }
         }
 
-        return new AccessLevelRecipients(actionGroup, recipients);
+        return new Recipients(recipients);
     }
 
     @Override
     public String toString() {
-        return "{" + accessLevel + ": " + recipients + '}';
+        return "{" + recipients + '}';
     }
 
     @Override
@@ -139,7 +127,6 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(accessLevel);
         out.writeMap(
             recipients,
             StreamOutput::writeEnum,
