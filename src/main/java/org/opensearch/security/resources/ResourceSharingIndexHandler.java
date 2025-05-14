@@ -573,13 +573,13 @@ public class ResourceSharingIndexHandler {
      * </pre>
      *
      * @param resourceId      The ID of the resource from which to revoke access
-     * @param sourceIdx       The name of the system index where the resource exists
+     * @param resourceIndex   The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
-     * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
+     * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException         if the update operation fails or encounters an error
      * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
      * entities don't exist in the current configuration), the original document is returned unchanged.
@@ -588,14 +588,14 @@ public class ResourceSharingIndexHandler {
      */
     public void revoke(
         String resourceId,
-        String sourceIdx,
+        String resourceIndex,
         ShareWith revokeAccess,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
     ) {
-        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null) {
-            listener.onFailure(new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty"));
+        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
+            listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
             return;
         }
 
@@ -604,7 +604,7 @@ public class ResourceSharingIndexHandler {
             StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
             // Fetch the current ResourceSharing document
-            fetchSharingInfo(sourceIdx, resourceId, sharingInfoListener);
+            fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
             // Check permissions & build revoke script
             sharingInfoListener.whenComplete(sharingInfo -> {
@@ -623,7 +623,7 @@ public class ResourceSharingIndexHandler {
                     LOGGER.debug(
                         "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
                         resourceId,
-                        sourceIdx,
+                        resourceIndex,
                         target,
                         accessLevel
                     );
@@ -638,7 +638,12 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
+                    LOGGER.info(
+                        "Successfully updated {} entry for resource {} in index {}.",
+                        resourceSharingIndex,
+                        resourceId,
+                        resourceIndex
+                    );
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
@@ -669,10 +674,10 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
-     * @param sourceIdx  The source index to match in the query (exact match)
+     * @param resourceIndex  The source index to match in the query (exact match)
      * @param resourceId The resource ID to match in the query (exact match)
      * @param listener   The listener to be notified when the operation completes
-     * @throws IllegalArgumentException if sourceIdx or resourceId is null/empty
+     * @throws IllegalArgumentException if resourceIndex or resourceId is null/empty
      * @throws RuntimeException         if the delete operation fails or encounters an error
      * @implNote The delete operation uses a bool query with two must clauses to ensure exact matching:
      * <pre>
@@ -680,7 +685,7 @@ public class ResourceSharingIndexHandler {
      *   "query": {
      *     "bool": {
      *       "must": [
-     *         { "term": { "source_idx": sourceIdx } },
+     *         { "term": { "source_idx": resourceIndex } },
      *         { "term": { "resource_id": resourceId } }
      *       ]
      *     }
@@ -688,18 +693,18 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
-    public void deleteResourceSharingRecord(String resourceId, String sourceIdx, ActionListener<Boolean> listener) {
+    public void deleteResourceSharingRecord(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
         LOGGER.debug(
             "Deleting documents asynchronously from {} where source_idx = {} and resource_id = {}",
             resourceSharingIndex,
-            sourceIdx,
+            resourceIndex,
             resourceId
         );
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.boolQuery()
-                    .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
+                    .must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex))
                     .must(QueryBuilders.termQuery("resource_id.keyword", resourceId))
             ).setRefresh(true);
 
@@ -715,7 +720,7 @@ public class ResourceSharingIndexHandler {
                         LOGGER.debug(
                             "No documents found to delete in {} for source_idx: {} and resource_id: {}",
                             resourceSharingIndex,
-                            sourceIdx,
+                            resourceIndex,
                             resourceId
                         );
                         // No documents were deleted
@@ -732,90 +737,6 @@ public class ResourceSharingIndexHandler {
             });
         } catch (Exception e) {
             LOGGER.error("Failed to delete documents from {} before request submission", resourceSharingIndex, e);
-            listener.onFailure(e);
-        }
-    }
-
-    /**
-     * Deletes all resource sharing records that were created by a specific user.
-     * This method performs a delete-by-query operation to remove all documents where
-     * the created_by.user field matches the specified username.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Validates the input username parameter</li>
-     *   <li>Creates a delete-by-query request with term query matching</li>
-     *   <li>Executes the delete operation with immediate refresh</li>
-     *   <li>Returns the operation status based on number of deleted documents</li>
-     * </ol>
-     *
-     * <p>Example query structure:
-     * <pre>
-     * {
-     *   "query": {
-     *     "term": {
-     *       "created_by.user": "username"
-     *     }
-     *   }
-     * }
-     * </pre>
-     *
-     * @param name     The username to match against the created_by.user field
-     * @param listener The listener to be notified when the operation completes
-     * @throws IllegalArgumentException if name is null or empty
-     * @implNote Implementation details:
-     * <ul>
-     *   <li>Uses DeleteByQueryRequest for efficient bulk deletion</li>
-     *   <li>Sets refresh=true for immediate consistency</li>
-     *   <li>Uses term query for exact username matching</li>
-     *   <li>Implements comprehensive error handling and logging</li>
-     * </ul>
-     * <p>
-     * Example usage:
-     * <pre>
-     * boolean success = deleteAllRecordsForUser("john.doe");
-     * if (success) {
-     *     // Records were successfully deleted
-     * } else {
-     *     // No matching records found or operation failed
-     * }
-     * </pre>
-     */
-    public void deleteAllResourceSharingRecordsForUser(String name, ActionListener<Boolean> listener) {
-        if (StringUtils.isBlank(name)) {
-            listener.onFailure(new IllegalArgumentException("Username must not be null or empty"));
-            return;
-        }
-
-        LOGGER.debug("Deleting all records for user {} asynchronously", name);
-
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            DeleteByQueryRequest deleteRequest = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
-                QueryBuilders.termQuery("created_by.user", name)
-            ).setRefresh(true);
-
-            client.execute(DeleteByQueryAction.INSTANCE, deleteRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(BulkByScrollResponse response) {
-                    long deletedDocs = response.getDeleted();
-                    if (deletedDocs > 0) {
-                        LOGGER.debug("Successfully deleted {} documents created by user {}", deletedDocs, name);
-                        listener.onResponse(true);
-                    } else {
-                        LOGGER.warn("No documents found for user {}", name);
-                        // No documents matched => success = false
-                        listener.onResponse(false);
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to delete documents for user {}", name, e);
-                    listener.onFailure(e);
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("Failed to delete documents for user {} before request submission", name, e);
             listener.onFailure(e);
         }
     }
