@@ -8,22 +8,22 @@
 
 package org.opensearch.sample;
 
+import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.plugins.PluginInfo;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
-import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -40,7 +40,6 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOUR
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.createResourceAccessControlClient;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -56,30 +55,33 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginSystemIndexDisabledTests {
 
-    ResourcePluginInfo resourcePluginInfo;
-    ResourceSharingExtension resourceSharingExtension;
-
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .plugin(SampleResourcePlugin.class, PainlessModulePlugin.class)
+        .plugin(PainlessModulePlugin.class)
+        .plugin(
+            new PluginInfo(
+                SampleResourcePlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "1.8",
+                SampleResourcePlugin.class.getName(),
+                null,
+                List.of(OpenSearchSecurityPlugin.class.getName()),
+                false
+            )
+        )
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
         .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
-    @Before
-    public void setup() {
-        resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
-        resourceSharingExtension = new SampleResourceExtension();
-    }
-
     @After
     public void clearIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            resourcePluginInfo.getResourceSharingExtensionsMutable().remove(resourceSharingExtension);
         }
     }
 
@@ -95,7 +97,6 @@ public class SampleResourcePluginSystemIndexDisabledTests {
     @Test
     public void testCreateUpdateDeleteSampleResource() throws Exception {
         String resourceId;
-        String resourceSharingDocId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             String sampleResource = """
@@ -110,30 +111,6 @@ public class SampleResourcePluginSystemIndexDisabledTests {
 
         // Create an entry in resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
-            String json = """
-                {
-                  "source_idx": ".sample_resource_sharing_plugin",
-                  "resource_id": "%s",
-                  "created_by": {
-                    "user": "admin"
-                  }
-                }
-                """.formatted(resourceId);
-
-            TestRestClient.HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
-            assertThat(response.getStatusReason(), containsString("Created"));
-            resourceSharingDocId = response.bodyAsJsonNode().get("_id").asText();
-            resourcePluginInfo.getResourceSharingExtensionsMutable().add(resourceSharingExtension);
-
-            ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
-
-            Awaitility.await()
-                .alias("Wait until resource data is populated")
-                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
-            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("sample"));
             // Wait until resource-sharing entry is successfully created
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
@@ -268,10 +245,6 @@ public class SampleResourcePluginSystemIndexDisabledTests {
 
         // corresponding entry should be removed from resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Since test framework doesn't yet allow loading ex tensions we need to delete the resource sharing entry manually
-            TestRestClient.HttpResponse response = client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc/" + resourceSharingDocId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-
             Awaitility.await()
                 .alias("Wait until resource-sharing data is updated")
                 .until(
@@ -310,33 +283,12 @@ public class SampleResourcePluginSystemIndexDisabledTests {
 
         // Create an entry in resource-sharing index
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Since test framework doesn't yet allow loading ex tensions we need to create a resource sharing entry manually
-            String json = """
-                {
-                  "source_idx": "%s",
-                  "resource_id": "%s",
-                  "created_by": {
-                    "user": "admin"
-                  }
-                }
-                """.formatted(RESOURCE_INDEX_NAME, resourceId);
-
-            HttpResponse response = client.postJson(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_doc", json);
-            assertThat(response.getStatusReason(), containsString("Created"));
-            resourcePluginInfo.getResourceSharingExtensionsMutable().add(resourceSharingExtension);
-
-            ResourceSharingClientAccessor.getInstance().setResourceSharingClient(createResourceAccessControlClient(cluster));
-
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
                     () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(1)
                 );
-            response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
-            assertThat(response.getBody(), containsString("sample"));
         }
 
         // admin will be able to access resource directly since system index protection is disabled, and also via sample plugin

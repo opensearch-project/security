@@ -497,13 +497,13 @@ public class ResourceSharingIndexHandler {
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
     ) {
-        StepListener<ResourceSharing> fetchDocListener = new StepListener<>();
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
-        fetchResourceSharingDocument(sourceIdx, resourceId, fetchDocListener);
+        fetchResourceSharingDocument(sourceIdx, resourceId, sharingInfoListener);
 
         // build update script
-        fetchDocListener.whenComplete(sharingInfo -> {
+        sharingInfoListener.whenComplete(sharingInfo -> {
             // Check if user can share. At present only the resource creator and admin is allowed to share the resource
             if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
 
@@ -606,14 +606,13 @@ public class ResourceSharingIndexHandler {
                 accessLevel
             );
 
-            StepListener<ResourceSharing> currentSharingListener = new StepListener<>();
-            StepListener<ResourceSharing> updatedSharingListener = new StepListener<>();
+            StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
             // Fetch the current ResourceSharing document
-            fetchResourceSharingDocument(sourceIdx, resourceId, currentSharingListener);
+            fetchResourceSharingDocument(sourceIdx, resourceId, sharingInfoListener);
 
             // Check permissions & build revoke script
-            currentSharingListener.whenComplete(sharingInfo -> {
+            sharingInfoListener.whenComplete(sharingInfo -> {
                 // Only admin or the creator of the resource is currently allowed to revoke access
                 if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
                     listener.onFailure(
@@ -638,8 +637,6 @@ public class ResourceSharingIndexHandler {
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
             }, listener::onFailure);
-
-            updatedSharingListener.whenComplete(listener::onResponse, listener::onFailure);
         }
     }
 
