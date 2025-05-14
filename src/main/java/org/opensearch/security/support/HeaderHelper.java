@@ -83,7 +83,7 @@ public class HeaderHelper {
         final String objectAsBase64 = getSafeFromHeader(context, headerName);
 
         if (!Strings.isNullOrEmpty(objectAsBase64)) {
-            return Base64Helper.deserializeObject(objectAsBase64, context.getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+            return Base64Helper.deserializeObject(objectAsBase64);
         }
 
         return null;
