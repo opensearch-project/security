@@ -72,12 +72,20 @@ public class AccessLevelRecipients implements ToXContentFragment, NamedWriteable
         }
     }
 
+    public void revoke(AccessLevelRecipients target) {
+        Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
+        for (Recipient recipientType : targetRecipients.keySet()) {
+            Set<String> updatedRecipients = recipients.get(recipientType);
+            updatedRecipients.removeAll(targetRecipients.get(recipientType));
+        }
+    }
+
     public boolean isPublic() {
         return recipients.values().stream().anyMatch(recipients -> recipients.contains("*"));
     }
 
     public boolean isSharedWithAny(Recipient recipientType, Set<String> targets) {
-        return !Collections.disjoint(recipients.get(recipientType), targets);
+        return !Collections.disjoint(recipients.getOrDefault(recipientType, Collections.emptySet()), targets);
     }
 
     public Set<String> getRecipientsByType(Recipient recipientType) {

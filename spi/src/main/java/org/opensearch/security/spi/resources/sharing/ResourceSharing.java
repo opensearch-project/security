@@ -107,6 +107,16 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
     }
 
+    public void revoke(String accessLevel, AccessLevelRecipients target) {
+        if (shareWith == null) {
+            // TODO log a warning that this is a noop
+            return;
+        } else {
+            AccessLevelRecipients sharedWith = shareWith.atAccessLevel(accessLevel);
+            sharedWith.revoke(target);
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

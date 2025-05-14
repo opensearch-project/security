@@ -245,14 +245,14 @@ public class ResourceAccessHandler {
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
      * @param revokeAccess  The users, roles, and backend roles to revoke access for.
-     * @param actionGroups  The action groups to revoke access for.
+     * @param accessLevel  The access level to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void revokeAccess(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
         @NonNull Map<Recipient, Set<String>> revokeAccess,
-        @NonNull Set<String> actionGroups,
+        @NonNull String accessLevel,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -279,7 +279,7 @@ public class ResourceAccessHandler {
             resourceId,
             resourceIndex,
             revokeAccess,
-            actionGroups,
+            accessLevel,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {

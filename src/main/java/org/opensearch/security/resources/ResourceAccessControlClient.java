@@ -93,13 +93,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
         Map<Recipient, Set<String>> entitiesToRevoke,
         ActionListener<ResourceSharing> listener
     ) {
-        resourceAccessHandler.revokeAccess(
-            resourceId,
-            resourceIndex,
-            entitiesToRevoke,
-            Set.of(ResourceAccessActionGroups.PLACE_HOLDER),
-            listener
-        );
+        resourceAccessHandler.revokeAccess(resourceId, resourceIndex, entitiesToRevoke, ResourceAccessActionGroups.PLACE_HOLDER, listener);
     }
 
     /**

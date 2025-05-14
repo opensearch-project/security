@@ -10,10 +10,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,8 +46,6 @@ import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
-import org.opensearch.index.reindex.UpdateByQueryAction;
-import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
@@ -576,7 +571,7 @@ public class ResourceSharingIndexHandler {
      * @param sourceIdx       The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param actionGroups     A set of action-groups to revoke access from. If null or empty, access is revoked from all action-groups
+     * @param accessLevel     The access level to revoke access from. If null or empty, access is revoked from all action-groups
      * @param requestUserName The user trying to revoke the accesses
      * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
@@ -591,7 +586,7 @@ public class ResourceSharingIndexHandler {
         String resourceId,
         String sourceIdx,
         Map<Recipient, Set<String>> revokeAccess,
-        Set<String> actionGroups,
+        String accessLevel,
         String requestUserName,
         boolean isAdmin,
         ActionListener<ResourceSharing> listener
@@ -604,11 +599,11 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             LOGGER.debug(
-                "Revoking access for resource {} in {} for entities: {} and actionGroups: {}",
+                "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
                 resourceId,
                 sourceIdx,
                 revokeAccess,
-                actionGroups
+                accessLevel
             );
 
             StepListener<ResourceSharing> currentSharingListener = new StepListener<>();
@@ -619,9 +614,9 @@ public class ResourceSharingIndexHandler {
             fetchResourceSharingDocument(sourceIdx, resourceId, currentSharingListener);
 
             // Check permissions & build revoke script
-            currentSharingListener.whenComplete(currentSharingInfo -> {
+            currentSharingListener.whenComplete(sharingInfo -> {
                 // Only admin or the creator of the resource is currently allowed to revoke access
-                if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
+                if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
                     listener.onFailure(
                         new OpenSearchStatusException(
                             "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId,
@@ -630,51 +625,19 @@ public class ResourceSharingIndexHandler {
                     );
                 }
 
-                Map<String, Object> revoke = new HashMap<>();
-                for (Map.Entry<Recipient, Set<String>> entry : revokeAccess.entrySet()) {
-                    revoke.put(entry.getKey().getName(), new ArrayList<>(entry.getValue()));
-                }
-                List<String> actionGroupsToUse = (actionGroups != null) ? new ArrayList<>(actionGroups) : new ArrayList<>();
+                sharingInfo.revoke(accessLevel, new AccessLevelRecipients(accessLevel, revokeAccess));
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                    .setId(sharingInfo.getDocId())
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setOpType(DocWriteRequest.OpType.INDEX)
+                    .request();
 
-                Script revokeScript = new Script(
-                    ScriptType.INLINE,
-                    "painless",
-                    """
-                        if (ctx._source.share_with != null) {
-                            Set actionGroupsToProcess = new HashSet(params.actionGroups.isEmpty() ? ctx._source.share_with.keySet() : params.actionGroups);
-
-                            for (def actionGroupName : actionGroupsToProcess) {
-                                if (ctx._source.share_with.containsKey(actionGroupName)) {
-                                    def existingActionGroup = ctx._source.share_with.get(actionGroupName);
-
-                                    for (def entry : params.revokeAccess.entrySet()) {
-                                        def recipient = entry.getKey();
-                                        def entitiesToRemove = entry.getValue();
-
-                                        if (existingActionGroup.containsKey(recipient) && existingActionGroup[recipient] != null) {
-                                            if (!(existingActionGroup[recipient] instanceof HashSet)) {
-                                                existingActionGroup[recipient] = new HashSet(existingActionGroup[recipient]);
-                                            }
-
-                                            existingActionGroup[recipient].removeAll(entitiesToRemove);
-
-                                            if (existingActionGroup[recipient].isEmpty()) {
-                                                existingActionGroup.remove(recipient);
-                                            }
-                                        }
-                                    }
-
-                                    if (existingActionGroup.isEmpty()) {
-                                        ctx._source.share_with.remove(actionGroupName);
-                                    }
-                                }
-                            }
-                        }
-                        """,
-                    Map.of("revokeAccess", revoke, "actionGroups", actionGroupsToUse)
-                );
-                updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript, revokeUpdateListener);
-
+                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, sourceIdx);
+                    listener.onResponse(sharingInfo);
+                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                client.index(ir, irListener);
             }, listener::onFailure);
 
             // Return doc or null based on successful result, fail otherwise
@@ -863,97 +826,6 @@ public class ResourceSharingIndexHandler {
             });
         } catch (Exception e) {
             LOGGER.error("Failed to delete documents for user {} before request submission", name, e);
-            listener.onFailure(e);
-        }
-    }
-
-    /**
-     * Updates resource sharing entries that match the specified source index and resource ID
-     * using the provided update script. This method performs an update-by-query operation
-     * in the resource sharing index.
-     *
-     * <p>The method executes the following steps:
-     * <ol>
-     *   <li>Creates a bool query to match exact source index and resource ID</li>
-     *   <li>Constructs an update-by-query request with the query and update script</li>
-     *   <li>Executes the update operation</li>
-     *   <li>Returns success/failure status based on update results</li>
-     * </ol>
-     *
-     * <p>Example document matching structure:
-     * <pre>
-     * {
-     *   "source_idx": "source_index_name",
-     *   "resource_id": "resource_id_value",
-     *   "share_with": {
-     *     // sharing configuration to be updated
-     *   }
-     * }
-     * </pre>
-     *
-     * @param sourceIdx    The source index to match in the query (exact match)
-     * @param resourceId   The resource ID to match in the query (exact match)
-     * @param updateScript The script containing the update operations to be performed.
-     *                     This script defines how the matching documents should be modified
-     * @param listener     Listener to be notified when the operation completes
-     * @apiNote This method:
-     * <ul>
-     *   <li>Uses term queries for exact matching of source_idx and resource_id</li>
-     *   <li>Returns false for both "no matching documents" and "operation failure" cases</li>
-     *   <li>Logs the complete update request for debugging purposes</li>
-     *   <li>Provides detailed logging for success and failure scenarios</li>
-     * </ul>
-     * @implNote The update operation uses a bool query with two must clauses:
-     * <pre>
-     * {
-     *   "query": {
-     *     "bool": {
-     *       "must": [
-     *         { "term": { "source_idx.keyword": sourceIdx } },
-     *         { "term": { "resource_id.keyword": resourceId } }
-     *       ]
-     *     }
-     *   }
-     * }
-     * </pre>
-     */
-    private void updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript, ActionListener<Boolean> listener) {
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            BoolQueryBuilder query = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
-                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
-
-            UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query)
-                .setScript(updateScript)
-                .setRefresh(true);
-
-            client.execute(UpdateByQueryAction.INSTANCE, ubq, new ActionListener<>() {
-                @Override
-                public void onResponse(BulkByScrollResponse response) {
-                    long updated = response.getUpdated();
-                    if (updated > 0) {
-                        LOGGER.debug("Successfully updated {} documents in {}.", updated, resourceSharingIndex);
-                        listener.onResponse(true);
-                    } else {
-                        LOGGER.debug(
-                            "No documents found to update in {} for source_idx: {} and resource_id: {}",
-                            resourceSharingIndex,
-                            sourceIdx,
-                            resourceId
-                        );
-                        listener.onResponse(false);
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
-                    listener.onFailure(e);
-
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("Failed to update documents in {} before request submission.", resourceSharingIndex, e);
             listener.onFailure(e);
         }
     }
