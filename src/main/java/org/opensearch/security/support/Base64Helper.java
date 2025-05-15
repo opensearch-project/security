@@ -36,14 +36,11 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.Strings;
 
 import static org.opensearch.security.support.SafeSerializationUtils.isSafeClass;
@@ -56,47 +53,13 @@ public class Base64Helper {
 
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
-        private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
-
-        @SuppressWarnings("removal")
-        private static boolean checkSubstitutionPermission() {
-            SecurityManager sm = System.getSecurityManager();
-            if (sm != null) {
-                try {
-                    sm.checkPermission(new SpecialPermission());
-
-                    AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-                        AccessController.checkPermission(SUBSTITUTION_PERMISSION);
-                        return null;
-                    });
-                } catch (SecurityException e) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
         static ObjectOutputStream create(ByteArrayOutputStream out) throws IOException {
-            try {
-                return useSafeObjectOutputStream ? new Base64Helper.SafeObjectOutputStream(out) : new ObjectOutputStream(out);
-            } catch (SecurityException e) {
-                // As we try to create SafeObjectOutputStream only when necessary permissions are granted, we should
-                // not reach here, but if we do, we can still return ObjectOutputStream after resetting ByteArrayOutputStream
-                out.reset();
-                return new ObjectOutputStream(out);
-            }
+            return new Base64Helper.SafeObjectOutputStream(out);
         }
 
-        @SuppressWarnings("removal")
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
-
-            SecurityManager sm = System.getSecurityManager();
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> enableReplaceObject(true));
+            enableReplaceObject(true);
         }
 
         @Override
@@ -137,7 +100,6 @@ public class Base64Helper {
     }
 
     private final static class SafeObjectInputStream extends ObjectInputStream {
-
         public SafeObjectInputStream(InputStream in) throws IOException {
             super(in);
         }
