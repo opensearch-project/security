@@ -20,7 +20,9 @@ package org.opensearch.security.ssl.util;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
 public final class SSLConfigConstants {
@@ -97,6 +99,92 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_CRL_DISABLE_OCSP = SSL_HTTP_CRL_PREFIX + "disable_ocsp";
     public static final String SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP = SSL_HTTP_CRL_PREFIX + "disable_crldp";
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
+
+    /**
+     * Auxiliary transport security settings.
+     * Aux transport settings are affix settings with individual configurations identified by their AUX_TRANSPORT_TYPES_KEY.
+     */
+    public static final String AUX_SETTINGS = "aux";
+    public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
+
+    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
+    public static final Setting<Boolean> SECURITY_SSL_AUX_ENABLED = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.ENABLED,
+            key -> Setting.boolSetting(key, SECURITY_SSL_AUX_ENABLED_DEFAULT, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<List<String>> SECURITY_SSL_AUX_ENABLED_CIPHERS = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.ENABLED_CIPHERS,
+            key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
+    );
+
+    public static final Setting<List<String>> SECURITY_SSL_AUX_ENABLED_PROTOCOLS = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.ENABLED_PROTOCOLS,
+            key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_TYPE = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.KEYSTORE_TYPE,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_ALIAS = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.KEYSTORE_ALIAS,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.KEYSTORE_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_PEMKEY_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_KEY_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_PEMCERT_FILEPATH = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.PEM_CERT_FILEPATH,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_CLIENTAUTH_MODE = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.CLIENT_AUTH_MODE,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_TYPE = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.TRUSTSTORE_TYPE,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.TRUSTSTORE_ALIAS,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.TRUSTSTORE_FILEPATH,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    public static final Setting<String> SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = Setting.affixKeySetting(
+            SSLConfigConstants.SSL_AUX_PREFIX,
+            SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH,
+            key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
 
     /**
      * Transport layer (node-to-node) settings.
