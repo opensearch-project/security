@@ -34,9 +34,9 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
             forbidden(() -> client.delete(cachePath(TEST_USER)));
         });
         withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), client -> {
-            notImplemented(() -> client.get(cachePath()));
-            notImplemented(() -> client.postJson(cachePath(), EMPTY_BODY));
-            notImplemented(() -> client.putJson(cachePath(), EMPTY_BODY));
+            methodNotAllowed(() -> client.get(cachePath()));
+            methodNotAllowed(() -> client.postJson(cachePath(), EMPTY_BODY));
+            methodNotAllowed(() -> client.putJson(cachePath(), EMPTY_BODY));
             final var deleteAllCacheResponse = ok(() -> client.delete(cachePath()));
             assertThat(
                 deleteAllCacheResponse.getBody(),
