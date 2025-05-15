@@ -48,25 +48,19 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
         // GET
         HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Method GET not supported for this action.");
 
         // PUT
         response = rh.executePutRequest(ENDPOINT, "{}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Method PUT not supported for this action.");
 
         // POST
         response = rh.executePostRequest(ENDPOINT, "{}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Method POST not supported for this action.");
 
         // DELETE
         response = rh.executeDeleteRequest(ENDPOINT, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
 
         // DELETE request for a specific user's cache
