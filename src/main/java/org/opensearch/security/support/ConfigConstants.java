@@ -374,8 +374,6 @@ public class ConfigConstants {
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
-    public static final String USE_JDK_SERIALIZATION = SECURITY_SETTINGS_PREFIX + "use_jdk_serialization";
-
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";

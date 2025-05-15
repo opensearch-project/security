@@ -219,23 +219,8 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                User deserializedUser = (User) Base64Helper.deserializeObject(serializedUserHeader, true);
+                User deserializedUser = (User) Base64Helper.deserializeObject(serializedUserHeader);
                 assertThat(deserializedUser, is(user));
-                senderLatch.get().countDown();
-            }
-        };
-
-        customSerializedSender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, false)));
                 senderLatch.get().countDown();
             }
         };
@@ -332,24 +317,10 @@ public class SecurityInterceptorTests {
 
     @Test
     public void testSendRequestDecorateRemoteConnectionUsesJDKSerialization() {
-        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, false));
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user));
         completableRequestDecorateWithPreviouslyPopulatedHeaders(
             jdkSerializedSender,
             connection3,
-            action,
-            request,
-            options,
-            handler,
-            localNode
-        );
-    }
-
-    @Test
-    public void testSendRequestDecorateRemoteConnectionUsesCustomSerialization() {
-        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, true));
-        completableRequestDecorateWithPreviouslyPopulatedHeaders(
-            customSerializedSender,
-            connection5,
             action,
             request,
             options,

@@ -26,9 +26,7 @@
 
 package org.opensearch.security.user;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,17 +36,13 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.common.io.stream.Writeable;
-
 /**
  * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
  * <p/>
  * <b>Do not subclass from this class!</b>
  *
  */
-public class User implements Serializable, Writeable, CustomAttributesAware {
+public class User implements Serializable, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User(
         "opendistro_security_anonymous",
@@ -77,18 +71,6 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     private String requestedTenant;
     private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
-
-    public User(final StreamInput in) throws IOException {
-        super();
-        name = in.readString();
-        roles.addAll(in.readList(StreamInput::readString));
-        requestedTenant = in.readString();
-        if (requestedTenant.isEmpty()) {
-            requestedTenant = null;
-        }
-        attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
-        securityRoles.addAll(in.readList(StreamInput::readString));
-    }
 
     /**
      * Create a new authenticated user
@@ -252,15 +234,6 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         if (user != null) {
             this.addRoles(user.getRoles());
         }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeStringCollection(new ArrayList<String>(roles));
-        out.writeString(requestedTenant == null ? "" : requestedTenant);
-        out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeStringCollection(securityRoles == null ? Collections.emptyList() : new ArrayList<String>(securityRoles));
     }
 
     /**

@@ -11,13 +11,10 @@
 
 package com.amazon.dlic.auth.ldap;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
@@ -56,12 +53,6 @@ public class LdapUser extends User {
         this.userEntry = userEntry;
         Map<String, String> attributes = getCustomAttributesMap();
         attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
-    }
-
-    public LdapUser(StreamInput in) throws IOException {
-        super(in);
-        userEntry = null;
-        originalUsername = in.readString();
     }
 
     /**
@@ -106,11 +97,5 @@ public class LdapUser extends User {
             }
         }
         return Collections.unmodifiableMap(attributes);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(originalUsername);
     }
 }

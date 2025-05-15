@@ -26,71 +26,93 @@
 
 package org.opensearch.security.support;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InvalidClassException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
+import java.io.OutputStream;
 import java.io.Serializable;
 
+import com.google.common.base.Preconditions;
+import com.google.common.io.BaseEncoding;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.core.common.Strings;
+
+import static org.opensearch.security.support.SafeSerializationUtils.isSafeClass;
+
+/**
+ * Provides support for Serialization/Deserialization of objects of supported classes into/from Base64 encoded stream
+ * using JDK's in-built serialization protocol implemented by the ObjectOutputStream and ObjectInputStream classes.
+ */
 public class Base64Helper {
 
-    public static String serializeObject(final Serializable object, final boolean useJDKSerialization) {
-        return useJDKSerialization ? Base64JDKHelper.serializeObject(object) : Base64CustomHelper.serializeObject(object);
+    private final static class SafeObjectOutputStream extends ObjectOutputStream {
+
+        static ObjectOutputStream create(ByteArrayOutputStream out) throws IOException {
+            return new Base64Helper.SafeObjectOutputStream(out);
+        }
+
+        private SafeObjectOutputStream(OutputStream out) throws IOException {
+            super(out);
+            enableReplaceObject(true);
+        }
+
+        @Override
+        protected Object replaceObject(Object obj) throws IOException {
+            Class<?> clazz = obj.getClass();
+            if (isSafeClass(clazz)) {
+                return obj;
+            }
+            throw new IOException("Unauthorized serialization attempt " + clazz.getName());
+        }
     }
 
     public static String serializeObject(final Serializable object) {
-        return serializeObject(object, true);
+
+        Preconditions.checkArgument(object != null, "object must not be null");
+
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (final ObjectOutputStream out = Base64Helper.SafeObjectOutputStream.create(bos)) {
+            out.writeObject(object);
+        } catch (final Exception e) {
+            throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
+        }
+        final byte[] bytes = bos.toByteArray();
+        return BaseEncoding.base64().encode(bytes);
     }
 
     public static Serializable deserializeObject(final String string) {
-        return deserializeObject(string, true);
-    }
 
-    public static Serializable deserializeObject(final String string, final boolean useJDKDeserialization) {
-        return useJDKDeserialization ? Base64JDKHelper.deserializeObject(string) : Base64CustomHelper.deserializeObject(string);
-    }
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "object must not be null or empty");
 
-    /**
-     * Ensures that the returned string is JDK serialized.
-     *
-     * If the supplied string is a custom serialized representation, will deserialize it and further serialize using
-     * JDK, otherwise returns the string as is.
-     *
-     * @param string original string, can be JDK or custom serialized
-     * @return jdk serialized string
-     */
-    public static String ensureJDKSerialized(final String string) {
-        Serializable serializable;
-        try {
-            serializable = Base64Helper.deserializeObject(string, false);
-        } catch (Exception e) {
-            // We received an exception when de-serializing the given string. It is probably JDK serialized.
-            // Try to deserialize using JDK
-            Base64Helper.deserializeObject(string, true);
-            // Since we could deserialize the object using JDK, the string is already JDK serialized, return as is
-            return string;
+        final byte[] bytes = BaseEncoding.base64().decode(string);
+        final ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        try (Base64Helper.SafeObjectInputStream in = new Base64Helper.SafeObjectInputStream(bis)) {
+            return (Serializable) in.readObject();
+        } catch (final Exception e) {
+            throw new OpenSearchException(e);
         }
-        // If we see an exception now, we want the caller to see it -
-        return Base64Helper.serializeObject(serializable, true);
     }
 
-    /**
-     * Ensures that the returned string is custom serialized.
-     *
-     * If the supplied string is a JDK serialized representation, will deserialize it and further serialize using
-     * custom, otherwise returns the string as is.
-     *
-     * @param string original string, can be JDK or custom serialized
-     * @return custom serialized string
-     */
-    public static String ensureCustomSerialized(final String string) {
-        Serializable serializable;
-        try {
-            serializable = Base64Helper.deserializeObject(string, true);
-        } catch (Exception e) {
-            // We received an exception when de-serializing the given string. It is probably custom serialized.
-            // Try to deserialize using custom
-            Base64Helper.deserializeObject(string, false);
-            // Since we could deserialize the object using custom, the string is already custom serialized, return as is
-            return string;
+    private final static class SafeObjectInputStream extends ObjectInputStream {
+        public SafeObjectInputStream(InputStream in) throws IOException {
+            super(in);
         }
-        // If we see an exception now, we want the caller to see it -
-        return Base64Helper.serializeObject(serializable, false);
+
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+
+            Class<?> clazz = super.resolveClass(desc);
+            if (isSafeClass(clazz)) {
+                return clazz;
+            }
+
+            throw new InvalidClassException("Unauthorized deserialization attempt ", clazz.getName());
+        }
     }
 }
