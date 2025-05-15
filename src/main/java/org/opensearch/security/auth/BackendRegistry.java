@@ -186,7 +186,7 @@ public class BackendRegistry {
         restRoleCache.invalidateAll();
     }
 
-    // 
+    //
     public void invalidateUserCache(String[] usernames) {
         if (usernames == null || usernames.length == 0) {
             log.debug("No usernames given, not invalidating user cache.");
@@ -211,7 +211,6 @@ public class BackendRegistry {
         // If the user isn't found it still says this, which could be bad
         log.debug("Invalidated cache for users {}", String.join(", ", usernames));
     }
-    
 
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
