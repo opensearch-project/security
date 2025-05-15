@@ -62,7 +62,6 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -234,17 +233,7 @@ public class SecurityInterceptor {
                 );
             }
 
-            try {
-                Map<String, String> jdkSerializedHeaders = new HashMap<>();
-                HeaderHelper.getAllSerializedHeaderNames()
-                    .stream()
-                    .filter(k -> headerMap.get(k) != null)
-                    .forEach(k -> jdkSerializedHeaders.put(k, headerMap.get(k)));
-                headerMap.putAll(jdkSerializedHeaders);
-                getThreadContext().putHeader(headerMap);
-            } catch (IllegalArgumentException iae) {
-                log.debug("Failed to add headers information onto on thread context", iae);
-            }
+            getThreadContext().putHeader(headerMap);
 
             ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
 
