@@ -12,12 +12,17 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -53,7 +58,16 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class InternalUsersApiAction extends AbstractApiAction {
 
+    private static final Logger log = LogManager.getLogger(InternalUsersApiAction.class);
     private final PasswordHasher passwordHasher;
+
+    /**
+     * @deprecated Use direct_security_roles instead. This field will be removed in a future release.
+     */
+    @Deprecated
+    public static final String OPENDISTRO_SECURITY_ROLES = "opendistro_security_roles";
+
+    public static final String DIRECT_SECURITY_ROLES = "direct_security_roles";
 
     @Override
     protected void consumeParameters(final RestRequest request) {
@@ -209,8 +223,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             rolesConfiguration -> loadConfiguration(CType.ROLESMAPPING, false, false).map(roleMappingsConfiguration -> {
                 final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
                 final var securityJsonNode = new SecurityJsonNode(contentAsNode);
-                var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-                securityRoles = securityRoles == null ? List.of() : securityRoles;
+                var securityRoles = getRoles(securityJsonNode);
                 final var rolesValid = endpointValidator.validateRoles(securityRoles, rolesConfiguration);
                 if (!rolesValid.isValid()) {
                     return ValidationResult.error(rolesValid.status(), rolesValid.errorMessage());
@@ -226,6 +239,37 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 return ValidationResult.success(securityConfiguration);
             })
         );
+    }
+
+    /**
+     * This method combines roles from both 'direct_security_roles' and the deprecated 'opendistro_security_roles' fields.
+     * If the deprecated field is used, a warning message is logged.
+     *
+     * @param content The SecurityJsonNode containing the security configuration
+     * @return A List of merged unique roles. Returns an empty list if no roles are found in either field.
+     */
+    List<String> getRoles(SecurityJsonNode content) {
+        List<String> openSearchRoles = content.get(DIRECT_SECURITY_ROLES).asList();
+        List<String> openDistroRoles = content.get(OPENDISTRO_SECURITY_ROLES).asList();
+
+        Set<String> mergedRoles = new HashSet<>();
+
+        // Add OpenSearch roles if present
+        if (openSearchRoles != null) {
+            mergedRoles.addAll(openSearchRoles);
+        }
+
+        // Add OpenDistro roles if present
+        if (openDistroRoles != null) {
+            mergedRoles.addAll(openDistroRoles);
+            log.warn(
+                "The field '{}' is deprecated and will be removed in a future release. Please use '{}' instead.",
+                OPENDISTRO_SECURITY_ROLES,
+                DIRECT_SECURITY_ROLES
+            );
+        }
+
+        return mergedRoles.isEmpty() ? List.of() : new ArrayList<>(mergedRoles);
     }
 
     ValidationResult<SecurityConfiguration> createOrUpdateAccount(
@@ -335,7 +379,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
                         return allowedKeys.put("backend_roles", DataType.ARRAY)
                             .put("attributes", DataType.OBJECT)
                             .put("description", DataType.STRING)
-                            .put("opendistro_security_roles", DataType.ARRAY)
+                            .put(OPENDISTRO_SECURITY_ROLES, DataType.ARRAY)
+                            .put(DIRECT_SECURITY_ROLES, DataType.ARRAY)
                             .put("hash", DataType.STRING)
                             .put("password", DataType.STRING)
                             .build();
