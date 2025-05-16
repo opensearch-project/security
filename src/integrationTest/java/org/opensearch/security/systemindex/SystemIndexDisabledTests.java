@@ -18,10 +18,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.Version;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1;
 import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin2;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
@@ -49,32 +46,7 @@ public class SystemIndexDisabledTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(
-            new PluginInfo(
-                SystemIndexPlugin1.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "1.8",
-                SystemIndexPlugin1.class.getName(),
-                null,
-                List.of(OpenSearchSecurityPlugin.class.getName()),
-                false
-            )
-        )
-        .plugin(
-            new PluginInfo(
-                SystemIndexPlugin2.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "1.8",
-                SystemIndexPlugin2.class.getName(),
-                null,
-                List.of(OpenSearchSecurityPlugin.class.getName()),
-                false
-            )
-        )
+        .plugin(SystemIndexPlugin1.class, SystemIndexPlugin2.class)
         .nodeSettings(
             Map.of(
                 SECURITY_RESTAPI_ROLES_ENABLED,

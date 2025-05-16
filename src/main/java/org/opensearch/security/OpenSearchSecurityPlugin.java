@@ -257,8 +257,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         MapperPlugin,
         IdentityPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-        ExtensiblePlugin,
-        ExtensionAwarePlugin
+        ExtensionAwarePlugin,
+        ExtensiblePlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -2297,21 +2297,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline SPI Extensions are unrelated to OpenSearch extensions
-    @Override
-    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
-        if (settings != null
-            && settings.getAsBoolean(
-                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            )) {
-            // load all resource-sharing extensions
-            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-            resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
-        }
-    }
-    // CS-ENFORCE-SINGLE
-
     @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
         final SecurityManager sm = System.getSecurityManager();
@@ -2335,6 +2320,22 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return null;
         });
     }
+
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
+    @Override
+    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
+
+        if (settings != null
+            && settings.getAsBoolean(
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+            // load all resource-sharing extensions
+            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
+            resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
+        }
+    }
+    // CS-ENFORCE-SINGLE
 
     public static class GuiceHolder implements LifecycleComponent {
 

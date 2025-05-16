@@ -33,6 +33,8 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin {
     public static final String SYSTEM_INDEX_2 = ".system-index2";
 
+    private Client client;
+
     @Override
     public Collection<Object> createComponents(
         Client client,
@@ -47,6 +49,7 @@ public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin {
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
+        this.client = client;
         return Collections.emptyList();
     }
 
