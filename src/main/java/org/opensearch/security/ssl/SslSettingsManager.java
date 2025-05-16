@@ -92,19 +92,31 @@ public class SslSettingsManager {
     }
 
     private Map<CertType, SslContextHandler> buildSslContexts(final Environment environment) {
-        final var contexts = new ImmutableMap.Builder<CertType, SslContextHandler>();
-        final var configurations = loadConfigurations(environment);
+        final ImmutableMap.Builder<CertType, SslContextHandler> contexts = new ImmutableMap.Builder<>();
+        final Map<CertType, SslConfiguration> configurations = loadConfigurations(environment);
+
+        // for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(settings)) {
+        // Setting<PortsRange> auxTypePortSettings = AUX_TRANSPORT_PORT.getConcreteSettingForNamespace(auxType);
+        // if (auxTypePortSettings.exists(settings)) {
+        // portsRanges.add(auxTypePortSettings.get(settings));
+        // } else {
+        // portsRanges.add(new PortsRange(AUX_PORT_DEFAULTS));
+        // }
+        // }
+
         Optional.ofNullable(configurations.get(CertType.HTTP))
             .ifPresentOrElse(
                 sslConfiguration -> contexts.put(CertType.HTTP, new SslContextHandler(sslConfiguration)),
                 () -> LOGGER.warn("SSL Configuration for HTTP Layer hasn't been set")
             );
+
         Optional.ofNullable(configurations.get(CertType.TRANSPORT)).ifPresentOrElse(sslConfiguration -> {
             contexts.put(CertType.TRANSPORT, new SslContextHandler(sslConfiguration));
             final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
                 .orElse(sslConfiguration);
             contexts.put(CertType.TRANSPORT_CLIENT, new SslContextHandler(transportClientConfiguration, true));
         }, () -> LOGGER.warn("SSL Configuration for Transport Layer hasn't been set"));
+
         return contexts.build();
     }
 
