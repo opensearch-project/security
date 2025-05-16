@@ -17,7 +17,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
-    private final static String TEST_USER = "testuser";
 
     private String cachePath() {
         return super.apiPath("cache");
