@@ -43,12 +43,16 @@ import java.util.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.security.support.Base64Helper;
 
 /**
- * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
- * <p/>
- * <b>Do not subclass from this class!</b>
+ * An authenticated user and attributes associated to them (like roles, tenant, custom attributes).
+ * <p>
+ * Objects of this class are immutable. Any method that modifies an attribute, returns a modified copy of this object.
+ * As the objects are immutable, all operations on the objects are inherently thread-safe. No external synchronization is required.
+ * <p>
+ * <b>Do not subclass from this class; do not add attributes that can be modified using publicly visible methods!</b>
  *
  */
 public class User implements Serializable, CustomAttributesAware {
@@ -66,8 +70,12 @@ public class User implements Serializable, CustomAttributesAware {
 
     /**
      * Deserializes the given serialized from of a user object and returns the actual user object.
-     *
+     * <p>
      * Note: Instead of using this method, prefer to use UserFactory.Caching to benefit from already parsed user objects.
+     *
+     * @param serializedBase64 a string with a serialized form of a User object
+     * @return A User object. Never returns null.
+     * @throws OpenSearchException in case the provided string could not be processed.
      */
     public static User fromSerializedBase64(String serializedBase64) {
         User user = (User) Base64Helper.deserializeObject(serializedBase64);
@@ -86,26 +94,13 @@ public class User implements Serializable, CustomAttributesAware {
     private final String requestedTenant;
     private final ImmutableMap<String, String> attributes;
     private final boolean isInjected;
-    private volatile transient String serializedBase64;
+    private final transient int estimatedByteSize;
 
     /**
-     * Create a new authenticated user
-     *
-     * @param name The username (must not be null or empty)
-     * @param roles Roles of which the user is a member off (maybe null)
-     * @param customAttributes Custom attributes associated with this (maybe null)
-     * @throws IllegalArgumentException if name is null or empty
+     * This attribute caches the serialized form of the User object. As the User object is immutable,
+     * this value can be re-used when it is set.
      */
-    public User(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
-        this(
-            name,
-            ImmutableSet.copyOf(roles),
-            ImmutableSet.of(),
-            null,
-            customAttributes != null ? ImmutableMap.copyOf(customAttributes.getAttributes()) : ImmutableMap.of(),
-            false
-        );
-    }
+    private volatile transient String serializedBase64;
 
     /**
      * Create a new authenticated user without roles and attributes
@@ -114,9 +109,19 @@ public class User implements Serializable, CustomAttributesAware {
      * @throws IllegalArgumentException if name is null or empty
      */
     public User(final String name) {
-        this(name, ImmutableSet.of(), null);
+        this(name, ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
     }
 
+    /**
+     * Creates a new User object. This is the main constructor, prefer using this one.
+     *
+     * @param name The username; must not be null or an empty string.
+     * @param roles The backend roles of a user. Must not be null. For empty roles, pass ImmutableSet.of().
+     * @param securityRoles The security roles of a user. Must not be null. For empty roles, pass ImmutableSet.of().
+     * @param requestedTenant The requested tenant property of the user. May be null.
+     * @param attributes The user attributes. Must not be null. For no attributes, pass ImmutableMap.of()
+     * @param isInjected A flag that indicates whether the user was injected.
+     */
     public User(
         String name,
         ImmutableSet<String> roles,
@@ -135,6 +140,7 @@ public class User implements Serializable, CustomAttributesAware {
         this.requestedTenant = requestedTenant;
         this.attributes = Objects.requireNonNull(attributes);
         this.isInjected = isInjected;
+        this.estimatedByteSize = calcEstimatedByteSize();
     }
 
     public final String getName() {
@@ -150,9 +156,7 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
-     * Associate this user with a backend role
-     *
-     * @param role The backend role
+     * Returns a new User object that additionally contains the provided backend role.
      */
     public User withRole(String role) {
         return new User(
@@ -166,9 +170,7 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
-     * Associate this user with a set of backend roles
-     *
-     * @param roles The backend roles
+     * Returns a new User object that additionally contains the provided backend roles.
      */
     public User withRoles(Collection<String> roles) {
         if (roles == null || roles.isEmpty()) {
@@ -186,9 +188,7 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
-     * Associate this user with a set of custom attributes
-     *
-     * @param attributes custom attributes
+     * Returns a new User object that additionally contains the provided map of custom attributes
      */
     public User withAttributes(Map<String, String> attributes) {
         if (attributes == null || attributes.isEmpty()) {
@@ -209,6 +209,9 @@ public class User implements Serializable, CustomAttributesAware {
         return requestedTenant;
     }
 
+    /**
+     * Returns a new User object with the requestedTenant attribute set to the supplied value.
+     */
     public User withRequestedTenant(String requestedTenant) {
         if (Objects.equals(requestedTenant, this.requestedTenant)) {
             return this;
@@ -277,6 +280,9 @@ public class User implements Serializable, CustomAttributesAware {
         return this.attributes;
     }
 
+    /**
+     * Returns a new user object that additionally contains the given security roles.
+     */
     public User withSecurityRoles(Collection<String> securityRoles) {
         if (securityRoles == null || securityRoles.isEmpty()) {
             return this;
@@ -315,6 +321,9 @@ public class User implements Serializable, CustomAttributesAware {
         return name != null && name.startsWith("plugin:");
     }
 
+    /**
+     * Returns a String containing serialized form of this User object. Never returns null.
+     */
     public String toSerializedBase64() {
         String result = this.serializedBase64;
 
@@ -325,11 +334,42 @@ public class User implements Serializable, CustomAttributesAware {
         return result;
     }
 
+    /**
+     * Returns a rough estimated byte size of this object. Used for cache size control.
+     */
+    public int estimatedByteSize() {
+        return this.estimatedByteSize;
+    }
+
+    private int calcEstimatedByteSize() {
+        int size = 32;
+        size += estimateStringSize(this.name);
+        size += estimateStringSize(this.requestedTenant);
+        size += this.roles.stream().mapToInt(User::estimateStringSize).sum() + 32;
+        size += this.securityRoles.stream().mapToInt(User::estimateStringSize).sum() + 32;
+        size += this.attributes.entrySet()
+            .stream()
+            .mapToInt((entry) -> estimateStringSize(entry.getKey()) + estimateStringSize(entry.getValue()))
+            .sum() + 32;
+        return size;
+    }
+
+    private static int estimateStringSize(String s) {
+        if (s != null) {
+            return 40 + s.length() * 2;
+        } else {
+            return 0;
+        }
+    }
+
     void readObject(ObjectInputStream stream) throws InvalidObjectException {
         // This object is not supposed to directly read in order to keep compatibility with older OpenSearch versions
         throw new InvalidObjectException("Use org.opensearch.security.user.serialized.User");
     }
 
+    /**
+     * Used for creating a backwards compatible object that can be used for serialization.
+     */
     @Serial
     private static final ObjectStreamField[] serialPersistentFields = {
         new ObjectStreamField("name", String.class),

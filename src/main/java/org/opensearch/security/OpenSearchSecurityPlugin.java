@@ -1119,7 +1119,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
 
-        UserFactory userFactory = new UserFactory.Caching();
+        UserFactory userFactory = new UserFactory.Caching(settings);
 
         final PrivilegesInterceptor privilegesInterceptor;
 
@@ -2146,6 +2146,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+
+            settings.add(UserFactory.Caching.MAX_SIZE);
+            settings.add(UserFactory.Caching.MAX_ENTRIES);
+            settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
         }
 
         return settings;

@@ -32,7 +32,6 @@ import java.util.Optional;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthenticationContext;
-import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;

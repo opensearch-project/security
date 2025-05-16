@@ -15,6 +15,9 @@ import java.util.Optional;
 
 import org.opensearch.security.user.User;
 
+/**
+ * If an authentication backend class implements this interface, the auth type can be used for impersonation.
+ */
 public interface ImpersonationBackend {
     /**
      * The type (name) of the impersonation backend. Only for logging.
