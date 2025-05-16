@@ -198,7 +198,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
-import org.opensearch.security.spi.SecurePluginExtension;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -241,7 +240,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.opensearch.security.identity.ContextProvidingPluginSubject.getPluginPrincipalName;
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
@@ -297,7 +295,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
-    private volatile Map<String, RoleV7> pluginToRoleMap;
     private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
@@ -2266,9 +2263,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public PluginSubject getPluginSubject(Plugin plugin) {
         PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
         String pluginPrincipal = subject.getPrincipal().getName();
-        if (pluginToRoleMap != null && pluginToRoleMap.containsKey(pluginPrincipal)) {
-            sf.updatePluginToPermissions(pluginPrincipal, pluginToRoleMap.get(pluginPrincipal));
-
+        try {
+            URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
+            RoleV7 pluginPermissions;
+            if (resource == null) {
+                log.warn("plugin-permissions.yml not found on classpath");
+                pluginPermissions = new RoleV7();
+                pluginPermissions.setCluster_permissions(new ArrayList<>());
+            } else {
+                try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                    JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
+                    pluginPermissions = RoleV7.fromJsonNode(roleJson);
+                }
+            }
+            pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
+            sf.updatePluginToPermissions(pluginPrincipal, pluginPermissions);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         return subject;
     }
@@ -2297,30 +2308,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // load all resource-sharing extensions
             Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
             resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
-        }
-
-        for (SecurePluginExtension extension : loader.loadExtensions(SecurePluginExtension.class)) {
-            try {
-                URL resource = extension.getClass().getClassLoader().getResource("plugin-permissions.yml");
-                if (pluginToRoleMap == null) {
-                    pluginToRoleMap = new HashMap<>();
-                }
-                RoleV7 pluginPermissions;
-                if (resource == null) {
-                    log.warn("plugin-permissions.yml not found on classpath");
-                    pluginPermissions = new RoleV7();
-                    pluginPermissions.setCluster_permissions(new ArrayList<>());
-                } else {
-                    try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                        JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
-                        pluginPermissions = RoleV7.fromJsonNode(roleJson);
-                    }
-                }
-                pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
-                pluginToRoleMap.put(getPluginPrincipalName(extension.getPluginCanonicalClassname()), pluginPermissions);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
     // CS-ENFORCE-SINGLE
