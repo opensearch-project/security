@@ -43,7 +43,10 @@ public class FlushCacheApiAction extends AbstractApiAction {
     );
 
     private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
-        ImmutableList.of(new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE))
+        ImmutableList.of(
+            new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.DELETE, "/cache/user/{username}", OPENDISTRO_API_DEPRECATION_MESSAGE)
+        )
     );
 
     @Inject
