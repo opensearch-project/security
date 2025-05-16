@@ -189,7 +189,7 @@ public class BackendRegistry {
     //
     public void invalidateUserCache(String[] usernames) {
         if (usernames == null || usernames.length == 0) {
-            log.debug("No usernames given, not invalidating user cache.");
+            log.warn("No usernames given, not invalidating user cache.");
             return;
         }
 

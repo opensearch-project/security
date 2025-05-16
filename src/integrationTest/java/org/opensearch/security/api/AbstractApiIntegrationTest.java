@@ -73,8 +73,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static final String NEW_USER = "new-user";
 
-    public final static String TEST_USER = "test-user";
-
     public static final String REST_ADMIN_USER = "rest-api-admin";
 
     public static final String ADMIN_USER_NAME = "admin";
