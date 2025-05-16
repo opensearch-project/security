@@ -16,17 +16,11 @@ package org.opensearch.security.ssl;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.settings.SecureString;
+import org.opensearch.security.setting.SecurableLegacySetting;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
 
@@ -34,97 +28,65 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_
  * Container for secured settings (passwords for certs, keystores) and the now deprecated original settings
  */
 public final class SecureSSLSettings {
-    private static final Logger LOG = LogManager.getLogger(SecureSSLSettings.class);
-
-    public static final String SECURE_SUFFIX = "_secure";
     private static final String PREFIX = "plugins.security.ssl";
     private static final String HTTP_PREFIX = PREFIX + ".http";
     private static final String TRANSPORT_PREFIX = PREFIX + ".transport";
 
-    public enum SSLSetting {
-        // http settings
-        SECURITY_SSL_HTTP_PEMKEY_PASSWORD(HTTP_PREFIX + ".pemkey_password"),
-        SECURITY_SSL_HTTP_KEYSTORE_PASSWORD(HTTP_PREFIX + ".keystore_password"),
-        SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD(HTTP_PREFIX + ".keystore_keypassword"),
-        SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD(HTTP_PREFIX + ".truststore_password", DEFAULT_STORE_PASSWORD),
+    // http settings
+    public final static SecurableLegacySetting SECURITY_SSL_HTTP_PEMKEY_PASSWORD = new SecurableLegacySetting(
+        HTTP_PREFIX + ".pemkey_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_HTTP_KEYSTORE_PASSWORD = new SecurableLegacySetting(
+        HTTP_PREFIX + ".keystore_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD = new SecurableLegacySetting(
+        HTTP_PREFIX + ".keystore_keypassword"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD = new SecurableLegacySetting(
+        HTTP_PREFIX + ".truststore_password",
+        DEFAULT_STORE_PASSWORD
+    );
 
-        // transport settings
-        SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD(TRANSPORT_PREFIX + ".pemkey_password"),
-        SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD(TRANSPORT_PREFIX + ".server.pemkey_password"),
-        SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD(TRANSPORT_PREFIX + ".client.pemkey_password"),
-        SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD(TRANSPORT_PREFIX + ".keystore_password"),
-        SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD(TRANSPORT_PREFIX + ".keystore_keypassword"),
-        SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD(TRANSPORT_PREFIX + ".server.keystore_keypassword"),
-        SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD(TRANSPORT_PREFIX + ".client.keystore_keypassword"),
-        SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD(TRANSPORT_PREFIX + ".truststore_password", DEFAULT_STORE_PASSWORD);
-
-        SSLSetting(String insecurePropertyName) {
-            this(insecurePropertyName, null);
-        }
-
-        SSLSetting(String insecurePropertyName, String defaultValue) {
-            this.insecurePropertyName = insecurePropertyName;
-            this.propertyName = String.format("%s%s", this.insecurePropertyName, SECURE_SUFFIX);
-            this.defaultValue = defaultValue;
-        }
-
-        public final String insecurePropertyName;
-
-        public final String propertyName;
-
-        public final String defaultValue;
-
-        public Setting<SecureString> asSetting() {
-            return SecureSetting.secureString(this.propertyName, new InsecureFallbackStringSetting(this.insecurePropertyName));
-        }
-
-        public Setting<SecureString> asInsecureSetting() {
-            return new InsecureFallbackStringSetting(this.insecurePropertyName);
-        }
-
-        public String getSetting(Settings settings) {
-            return this.getSetting(settings, this.defaultValue);
-        }
-
-        public String getSetting(Settings settings, String defaultValue) {
-            return Optional.of(this.asSetting().get(settings))
-                .filter(ss -> ss.length() > 0)
-                .map(SecureString::toString)
-                .orElse(defaultValue);
-        }
-    }
+    // transport settings
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".pemkey_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".server.pemkey_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".client.pemkey_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".keystore_password"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".keystore_keypassword"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".server.keystore_keypassword"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".client.keystore_keypassword"
+    );
+    public final static SecurableLegacySetting SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD = new SecurableLegacySetting(
+        TRANSPORT_PREFIX + ".truststore_password",
+        DEFAULT_STORE_PASSWORD
+    );
 
     private SecureSSLSettings() {}
 
     public static List<Setting<?>> getSecureSettings() {
-        return Arrays.stream(SSLSetting.values())
+        return Arrays.stream(SecureSSLSettings.class.getDeclaredFields())
+            .filter(field -> SecurableLegacySetting.class.isAssignableFrom(field.getType()))
+            .map(field -> {
+                try {
+                    return (SecurableLegacySetting) field.get(null);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("Unable to access field: " + field.getName(), e);
+                }
+            })
             .flatMap(setting -> Stream.of(setting.asSetting(), setting.asInsecureSetting()))
             .collect(Collectors.toList());
-    }
-
-    /**
-     * Alternative to InsecureStringSetting, which doesn't raise an exception if allow_insecure_settings is false, but
-     * instead log.WARNs the violation. This is to appease a potential cyclic dependency between commons-utils
-     */
-    private static class InsecureFallbackStringSetting extends Setting<SecureString> {
-        private final String name;
-
-        private InsecureFallbackStringSetting(String name) {
-            super(name, "", s -> new SecureString(s.toCharArray()), Property.Deprecated, Property.Filtered, Property.NodeScope);
-            this.name = name;
-        }
-
-        public SecureString get(Settings settings) {
-            if (this.exists(settings)) {
-                LOG.warn(
-                    "Setting [{}] has a secure counterpart [{}{}] which should be used instead - allowing for legacy SSL setups",
-                    this.name,
-                    this.name,
-                    SECURE_SUFFIX
-                );
-            }
-
-            return super.get(settings);
-        }
     }
 }
