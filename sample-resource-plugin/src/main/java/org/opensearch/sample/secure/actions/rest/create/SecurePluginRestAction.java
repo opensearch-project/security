@@ -19,7 +19,7 @@ import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_API_PREFIX;
+import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 /**
  * Rest action to trigger the sample plugin to run actions using its assigned PluginSubject
@@ -45,7 +45,7 @@ public class SecurePluginRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(new Route(POST, SAMPLE_PLUGIN_API_PREFIX + "/run_action"));
+        return List.of(new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/run_action"));
     }
 
     @Override

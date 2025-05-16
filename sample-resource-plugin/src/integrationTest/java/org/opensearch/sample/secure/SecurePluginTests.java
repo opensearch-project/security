@@ -32,7 +32,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_PREFIX;
+import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -76,7 +76,7 @@ public class SecurePluginTests {
     @Test
     public void testRunClusterHealthWithPluginSubject() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.postJson(SAMPLE_PLUGIN_PREFIX + "/run_action", """
+            HttpResponse response = client.postJson(SAMPLE_RESOURCE_PLUGIN_PREFIX + "/run_action", """
                 {
                     "action": "cluster:monitor/health"
                 }
@@ -90,7 +90,7 @@ public class SecurePluginTests {
     @Test
     public void testRunCreateIndexWithPluginSubject() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.postJson(SAMPLE_PLUGIN_PREFIX + "/run_action", """
+            HttpResponse response = client.postJson(SAMPLE_RESOURCE_PLUGIN_PREFIX + "/run_action", """
                 {
                     "action": "indices:admin/create",
                     "index": "test-index"

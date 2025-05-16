@@ -14,6 +14,6 @@ package org.opensearch.sample.utils;
 public class Constants {
     public static final String RESOURCE_INDEX_NAME = ".sample_resource";
 
-    public static final String SAMPLE_PLUGIN_PREFIX = "_plugins/sample_plugin";
-    public static final String SAMPLE_PLUGIN_API_PREFIX = "/" + SAMPLE_PLUGIN_PREFIX;
+    public static final String SAMPLE_RESOURCE_PLUGIN_PREFIX = "_plugins/sample_plugin";
+    public static final String SAMPLE_RESOURCE_PLUGIN_API_PREFIX = "/" + SAMPLE_RESOURCE_PLUGIN_PREFIX;
 }
