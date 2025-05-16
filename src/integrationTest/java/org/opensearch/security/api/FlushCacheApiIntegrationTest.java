@@ -20,11 +20,11 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
     private final static String TEST_USER = "testuser";
 
     private String cachePath() {
-        return apiPath("cache");
+        return super.apiPath("cache");
     }
 
     private String cachePath(String user) {
-        return apiPath("cache", "user", user);
+        return super.apiPath("cache", "user", user);
     }
 
     @Test

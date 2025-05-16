@@ -186,7 +186,6 @@ public class BackendRegistry {
         restRoleCache.invalidateAll();
     }
 
-    //
     public void invalidateUserCache(String[] usernames) {
         if (usernames == null || usernames.length == 0) {
             log.warn("No usernames given, not invalidating user cache.");
