@@ -173,6 +173,7 @@ import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.ContextProvidingPluginSubject;
+import org.opensearch.security.identity.NoopPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -2261,25 +2262,30 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
-        String pluginPrincipal = subject.getPrincipal().getName();
-        try {
-            URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
-            RoleV7 pluginPermissions;
-            if (resource == null) {
-                log.warn("plugin-permissions.yml not found on classpath");
-                pluginPermissions = new RoleV7();
-                pluginPermissions.setCluster_permissions(new ArrayList<>());
-            } else {
-                try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                    JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
-                    pluginPermissions = RoleV7.fromJsonNode(roleJson);
+        PluginSubject subject;
+        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+            subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+            String pluginPrincipal = subject.getPrincipal().getName();
+            try {
+                URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
+                RoleV7 pluginPermissions;
+                if (resource == null) {
+                    log.warn("plugin-permissions.yml not found on classpath");
+                    pluginPermissions = new RoleV7();
+                    pluginPermissions.setCluster_permissions(new ArrayList<>());
+                } else {
+                    try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                        JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
+                        pluginPermissions = RoleV7.fromJsonNode(roleJson);
+                    }
                 }
+                pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
+                sf.updatePluginToPermissions(pluginPrincipal, pluginPermissions);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
-            sf.updatePluginToPermissions(pluginPrincipal, pluginPermissions);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } else {
+            subject = new NoopPluginSubject(threadPool);
         }
         return subject;
     }
