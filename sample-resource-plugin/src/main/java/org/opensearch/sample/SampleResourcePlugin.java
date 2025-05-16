@@ -76,10 +76,13 @@ import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENS
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, IdentityAwarePlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
+    private boolean isResourceSharingEnabled = false;
 
     private RunAsSubjectClient pluginClient;
 
-    public SampleResourcePlugin() {}
+    public SampleResourcePlugin(final Settings settings) {
+        isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
+    }
 
     @Override
     public Collection<Object> createComponents(
@@ -109,10 +112,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        boolean isResourceSharingEnabled = settings.getAsBoolean(
-            OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
         List<RestHandler> handlers = new ArrayList<>();
         handlers.add(new CreateResourceRestAction());
         handlers.add(new GetResourceRestAction());
@@ -133,8 +132,10 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class));
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
-        actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
-        actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
+        if (isResourceSharingEnabled) {
+            actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
+            actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
+        }
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }
