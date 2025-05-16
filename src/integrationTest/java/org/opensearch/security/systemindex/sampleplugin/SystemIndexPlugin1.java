@@ -10,6 +10,7 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline SPI Extensions are unrelated to OpenSearch extensions
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -116,3 +117,4 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         return SystemIndexPlugin1.class.getCanonicalName();
     }
 }
+// CS-ENFORCE-SINGLE

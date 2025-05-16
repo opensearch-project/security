@@ -56,7 +56,6 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public static RoleV7 fromJsonNode(JsonNode node) {
         RoleV7 role = new RoleV7();
-        System.out.println("pretty print: " + node.toPrettyString());
         ArrayNode clusterPermsArray = node.withArray("cluster_permissions");
         List<String> clusterPermissions = new ArrayList<>(clusterPermsArray.size());
         for (JsonNode elt : clusterPermsArray) {

@@ -2289,7 +2289,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     // CS-SUPPRESS-SINGLE: RegexpSingleline SPI Extensions are unrelated to OpenSearch extensions
     @Override
     public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
-        System.out.println("loadExtensions");
         if (settings != null
             && settings.getAsBoolean(
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
@@ -2301,20 +2300,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         for (SecurePluginExtension extension : loader.loadExtensions(SecurePluginExtension.class)) {
-            System.out.println("extension: " + extension.getPluginCanonicalClassname());
             try {
-                // TODO Parse plugin-permissions.yml file (available as resource on classpath) into RoleV7 object
-                /**
-                 * Example yml
-                 *
-                 * cluster_permissions:
-                 *   - "cluster:monitor/health"
-                 * index_permissions:
-                 *   - index_patterns:
-                 *       - "security-auditlog*"
-                 *     allowed_actions:
-                 *       - "indices:data/write/index*"
-                 */
                 URL resource = extension.getClass().getClassLoader().getResource("plugin-permissions.yml");
                 if (pluginToRoleMap == null) {
                     pluginToRoleMap = new HashMap<>();
@@ -2327,7 +2313,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 } else {
                     try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
                         JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
-                        System.out.println("pluginPermissions: " + roleJson);
                         pluginPermissions = RoleV7.fromJsonNode(roleJson);
                     }
                 }

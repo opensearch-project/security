@@ -10,6 +10,7 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline SPI Extensions are unrelated to OpenSearch extensions
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Supplier;
@@ -34,8 +35,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin, SecurePluginExtension {
     public static final String SYSTEM_INDEX_2 = ".system-index2";
 
-    private Client client;
-
     @Override
     public Collection<Object> createComponents(
         Client client,
@@ -50,7 +49,6 @@ public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin, Sec
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        this.client = client;
         return Collections.emptyList();
     }
 
@@ -65,3 +63,4 @@ public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin, Sec
         return SystemIndexPlugin2.class.getCanonicalName();
     }
 }
+// CS-ENFORCE-SINGLE

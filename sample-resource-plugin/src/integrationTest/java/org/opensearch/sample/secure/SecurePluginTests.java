@@ -97,8 +97,6 @@ public class SecurePluginTests {
                 }
                 """);
 
-            System.out.println("body: " + response.getBody());
-
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
         }
     }
