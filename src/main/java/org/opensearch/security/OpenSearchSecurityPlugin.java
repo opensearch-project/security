@@ -2142,6 +2142,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+
+            //Security Config Version Index
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED,
+                    ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;

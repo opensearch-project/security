@@ -19,6 +19,10 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.junit.Before;
@@ -67,6 +71,9 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.ClusterAdminClient;
 import org.opensearch.transport.client.IndicesAdminClient;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.user.User;
+import org.opensearch.common.action.ActionFuture;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -144,6 +151,12 @@ public class ConfigurationRepositoryTest {
 
     private static final String TEST_CONFIG_DIR = "./src/test/resources";
 
+    @Mock
+    private SecurityConfigVersionsLoader configVersionsLoader;
+
+    @SuppressWarnings("unchecked")
+    private static final Map<String, SecurityDynamicConfiguration<Object>> EMPTY_DYN_CONF_MAP = (Map<String, SecurityDynamicConfiguration<Object>>) (Map) Map.of();
+
     @Before
     public void setUp() {
         Settings settings = Settings.builder()
@@ -179,9 +192,23 @@ public class ConfigurationRepositoryTest {
         when(adminClient.indices()).thenReturn(indicesAdminClient);
     }
 
+    @SuppressWarnings("unchecked")
+    private <T> ActionFuture<T> mockActionFuture(T response) {
+        ActionFuture<T> future = mock(ActionFuture.class, invocation -> {
+            if (invocation.getMethod().getName().equals("actionGet")) {
+                return response;
+            }
+            return null;
+        });
+        return future;
+    }
+
     private ConfigurationRepository createConfigurationRepository(Settings settings) {
+        String securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        String configVersionsIndex = settings.get(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX);
         return new ConfigurationRepository(
-            settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+            securityIndex,
+            configVersionsIndex,
             settings,
             path,
             threadPool,
@@ -189,13 +216,17 @@ public class ConfigurationRepositoryTest {
             clusterService,
             auditLog,
             securityIndexHandler,
-            configurationLoaderSecurity7
+            configurationLoaderSecurity7,
+            configVersionsLoader
         );
     }
 
     private ConfigurationRepository createConfigurationRepository(Settings settings, ThreadPool threadPool) {
+        String securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        String configVersionsIndex = settings.get(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX);
         return new ConfigurationRepository(
-            settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+            securityIndex,
+            configVersionsIndex,
             settings,
             path,
             threadPool,
@@ -203,7 +234,8 @@ public class ConfigurationRepositoryTest {
             clusterService,
             auditLog,
             securityIndexHandler,
-            configurationLoaderSecurity7
+            configurationLoaderSecurity7,
+            configVersionsLoader
         );
     }
 
@@ -591,6 +623,150 @@ public class ConfigurationRepositoryTest {
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false, false);
 
         assertThat(result.size(), is(CType.values().size()));
+    }
+
+    @Test
+    public void testFetchNextVersionId_shouldReturn_v1_IfNoLatestVersion() {
+        when(configVersionsLoader.loadLatestVersion()).thenReturn(null); 
+        Settings s = Settings.builder()
+            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ".opendistro_security_config_versions")
+            .build();
+
+        ConfigurationRepository repo = createConfigurationRepository(s);
+
+        String nextId = repo.fetchNextVersionId();
+
+        assertThat(nextId, is("v1"));
+    }
+
+    @Test
+    public void testFetchNextVersionId_shouldIncrementCorrectly() {
+        SecurityConfigVersionDocument.Version<?> v3 = new SecurityConfigVersionDocument.Version<>(
+            "v3",
+            Instant.now().toString(),
+            Map.of(),
+            "test_user"
+        );
+
+        Mockito.<SecurityConfigVersionDocument.Version<?>>when(configVersionsLoader.loadLatestVersion()).thenReturn(v3);
+        Settings s = Settings.builder()
+            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ".opendistro_security_config_versions")
+            .build();
+
+        ConfigurationRepository repo = createConfigurationRepository(s);
+        String nextId = repo.fetchNextVersionId();
+        assertThat(nextId, is("v4"));
+    }
+
+    @Test
+    public void testSaveCurrentVersionToSystemIndex_shouldWriteIfChanged() throws IOException {
+        SecurityConfigVersionDocument existingDoc = new SecurityConfigVersionDocument();
+        existingDoc.addVersion(new SecurityConfigVersionDocument.Version<Object>("v1", Instant.now().toString(), new HashMap<>(),"test_user"));
+ 
+        when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
+ 
+        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> newConfigs = new HashMap<>();
+        newConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_DYN_CONF_MAP));
+
+        SecurityConfigVersionDocument.Version<Object> newVer = new SecurityConfigVersionDocument.Version<>("v2", Instant.now().toString(), newConfigs, "test_user");
+
+        when(localClient.index(any())).thenReturn(mockActionFuture(null));
+        
+        Settings s = Settings.builder()
+            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ".opendistro_security_config_versions")
+            .build();
+        ConfigurationRepository repo = createConfigurationRepository(s);
+ 
+        repo.saveCurrentVersionToSystemIndex(newVer);
+ 
+        verify(localClient).index(any()); 
+    }
+
+    @Test
+    public void testSaveCurrentVersionToSystemIndex_shouldSkipWriteIfNoChanges() throws IOException {
+        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> oldConfigs = new HashMap<>();
+        oldConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_DYN_CONF_MAP));
+        SecurityConfigVersionDocument.Version<?> v1 = new SecurityConfigVersionDocument.Version<>("v1", Instant.now().toString(), oldConfigs,"test_user");
+ 
+        SecurityConfigVersionDocument existingDoc = new SecurityConfigVersionDocument();
+        existingDoc.addVersion(v1);
+ 
+        when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
+ 
+        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> sameConfigs = new HashMap<>();
+        sameConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_DYN_CONF_MAP));
+        SecurityConfigVersionDocument.Version<?> newVer = new SecurityConfigVersionDocument.Version<>(
+            "v2", Instant.now().toString(), sameConfigs, "test_user"
+        );
+ 
+        Settings s = Settings.builder().build();
+        ConfigurationRepository repo = createConfigurationRepository(s);
+ 
+        repo.saveCurrentVersionToSystemIndex(newVer);
+ 
+        verify(localClient, never()).index(any());
+    }
+
+    @Test
+    public void testUpdateSecurityConfigVersionAfterUpdate_shouldSaveIfChanged() throws IOException {
+        SecurityConfigVersionDocument existingDoc = new SecurityConfigVersionDocument();
+        existingDoc.addVersion(new SecurityConfigVersionDocument.Version<>("v2", Instant.now().toString(), Map.of(), "test_user"));
+ 
+        when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
+        when(localClient.index(any())).thenReturn(mockActionFuture(null));
+ 
+        Settings s = Settings.builder()
+           .put(ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED, true)
+           .build();
+        ConfigurationRepository repo = Mockito.spy(createConfigurationRepository(s));
+  
+        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> newConfigs = new HashMap<>();
+        newConfigs.put("test", new SecurityConfigVersionDocument.SecurityConfig<>("now", EMPTY_DYN_CONF_MAP));
+        SecurityConfigVersionDocument.Version<?> newVersion = new SecurityConfigVersionDocument.Version<>("v3", Instant.now().toString(), newConfigs, "test_user");
+
+        Mockito.doReturn(newVersion).when(repo).buildVersionFromSecurityIndex(Mockito.anyString(), Mockito.anyString());
+
+        repo.updateSecurityConfigVersionAfterUpdate();
+ 
+        verify(localClient).index(any());
+    }
+
+    @Test
+    public void testSortVersionsById_shouldSortNumerically() {
+        List<SecurityConfigVersionDocument.Version<?>> versions = new ArrayList<>();
+        versions.add(new SecurityConfigVersionDocument.Version<Object>("v10", Instant.now().toString(), Map.of(),"test_user"));
+        versions.add(new SecurityConfigVersionDocument.Version<Object>("v2", Instant.now().toString(), Map.of(), "test_user"));
+        versions.add(new SecurityConfigVersionDocument.Version<Object>("v1", Instant.now().toString(), Map.of(), "test_user"));
+ 
+        SecurityConfigVersionsLoader.sortVersionsById(versions);
+ 
+        assertThat(versions.get(0).getVersion_id(), is("v1"));
+        assertThat(versions.get(1).getVersion_id(), is("v2"));
+        assertThat(versions.get(2).getVersion_id(), is("v10"));
+    }
+
+    @Test
+    public void testApplyRetentionPolicyAsync_shouldPruneOldVersions() throws Exception {
+        SecurityConfigVersionDocument document = new SecurityConfigVersionDocument();
+        for (int i = 1; i <= 12; i++) {
+            document.addVersion(new SecurityConfigVersionDocument.Version<>(
+                "v" + i, Instant.now().toString(), Map.of(), "test_user"
+            ));
+        }
+
+        Settings s = Settings.builder()
+            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ".opendistro_security_config_versions")
+            .build();
+        ConfigurationRepository repo = createConfigurationRepository(s);
+
+        when(configVersionsLoader.loadFullDocument()).thenReturn(document);
+
+        when(localClient.index(any())).thenReturn(mockActionFuture(null));
+
+        repo.applySecurityConfigVersionIndexRetentionPolicy();
+
+        assertThat(document.getVersions().size(), is(10));
+        assertThat(document.getVersions().get(0).getVersion_id(), is("v3"));
     }
 
     @Test
