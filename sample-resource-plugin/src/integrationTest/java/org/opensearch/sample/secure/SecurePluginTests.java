@@ -7,23 +7,22 @@
  * compatible open source license.
  *
  */
-package org.opensearch.security.systemindex;
+package org.opensearch.sample.secure;
 
 import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.Version;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
+import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1;
-import org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin2;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -32,7 +31,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -40,7 +40,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SystemIndexDisabledTests {
+public class SecurePluginTests {
 
     public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");
 
@@ -49,27 +49,15 @@ public class SystemIndexDisabledTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
+        .plugin(PainlessModulePlugin.class)
         .plugin(
             new PluginInfo(
-                SystemIndexPlugin1.class.getName(),
+                SampleResourcePlugin.class.getName(),
                 "classpath plugin",
                 "NA",
                 Version.CURRENT,
                 "1.8",
-                SystemIndexPlugin1.class.getName(),
-                null,
-                List.of(OpenSearchSecurityPlugin.class.getName()),
-                false
-            )
-        )
-        .plugin(
-            new PluginInfo(
-                SystemIndexPlugin2.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "1.8",
-                SystemIndexPlugin2.class.getName(),
+                SampleResourcePlugin.class.getName(),
                 null,
                 List.of(OpenSearchSecurityPlugin.class.getName()),
                 false
@@ -80,37 +68,38 @@ public class SystemIndexDisabledTests {
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
                 SECURITY_SYSTEM_INDICES_ENABLED_KEY,
-                false
+                true
             )
         )
         .build();
 
-    @Before
-    public void setup() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            client.delete(".system-index1");
+    @Test
+    public void testRunClusterHealthWithPluginSubject() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.postJson(SAMPLE_PLUGIN_PREFIX + "/run_action", """
+                {
+                    "action": "cluster:monitor/health"
+                }
+                """);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response.getBody(), containsString("number_of_nodes"));
         }
     }
 
     @Test
-    public void testPluginShouldBeAbleToIndexIntoAnySystemIndexWhenProtectionIsDisabled() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            client.put(".system-index1");
-            client.put(".system-index2");
-        }
+    public void testRunCreateIndexWithPluginSubject() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.put("try-create-and-bulk-mixed-index");
+            HttpResponse response = client.postJson(SAMPLE_PLUGIN_PREFIX + "/run_action", """
+                {
+                    "action": "indices:admin/create",
+                    "index": "test-index"
+                }
+                """);
 
-            response.assertStatusCode(RestStatus.OK.getStatus());
+            System.out.println("body: " + response.getBody());
 
-            assertThat(
-                response.getBody(),
-                not(
-                    containsString(
-                        "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
-                    )
-                )
-            );
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
         }
     }
 }

@@ -27,10 +27,14 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
@@ -48,6 +52,38 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public RoleV7() {
 
+    }
+
+    public static RoleV7 fromJsonNode(JsonNode node) {
+        RoleV7 role = new RoleV7();
+        System.out.println("pretty print: " + node.toPrettyString());
+        ArrayNode clusterPermsArray = node.withArray("cluster_permissions");
+        List<String> clusterPermissions = new ArrayList<>(clusterPermsArray.size());
+        for (JsonNode elt : clusterPermsArray) {
+            clusterPermissions.add(elt.asText());
+        }
+        role.cluster_permissions = clusterPermissions;
+        role.index_permissions = new ArrayList<>();
+        if (node.get("index_permissions") != null) {
+            for (Iterator<JsonNode> it = node.get("index_permissions").elements(); it.hasNext();) {
+                JsonNode indexNode = it.next();
+                Index indexPerm = new Index();
+                ArrayNode actionsArray = indexNode.withArray("allowed_actions");
+                List<String> allowedActions = new ArrayList<>(actionsArray.size());
+                for (JsonNode elt : actionsArray) {
+                    allowedActions.add(elt.asText());
+                }
+                indexPerm.allowed_actions = allowedActions;
+                ArrayNode indexPatternsArray = indexNode.withArray("index_patterns");
+                List<String> indexPatterns = new ArrayList<>(indexPatternsArray.size());
+                for (JsonNode elt : indexPatternsArray) {
+                    indexPatterns.add(elt.asText());
+                }
+                indexPerm.index_patterns = indexPatterns;
+                role.index_permissions.add(indexPerm);
+            }
+        }
+        return role;
     }
 
     public static class Index {

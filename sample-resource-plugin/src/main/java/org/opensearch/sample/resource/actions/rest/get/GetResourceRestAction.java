@@ -16,7 +16,7 @@ import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
+import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_API_PREFIX;
 
 /**
  * Rest action to get a sample resource
@@ -27,10 +27,7 @@ public class GetResourceRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-            new Route(GET, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/get/{resource_id}"),
-            new Route(GET, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/get")
-        );
+        return List.of(new Route(GET, SAMPLE_PLUGIN_API_PREFIX + "/get/{resource_id}"), new Route(GET, SAMPLE_PLUGIN_API_PREFIX + "/get"));
     }
 
     @Override

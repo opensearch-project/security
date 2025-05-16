@@ -21,7 +21,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
+import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_API_PREFIX;
 
 /**
  * Rest Action to create a Sample Resource. Registers Create and Update REST APIs.
@@ -33,8 +33,8 @@ public class CreateResourceRestAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-            new Route(PUT, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/create"),
-            new Route(POST, SAMPLE_RESOURCE_PLUGIN_API_PREFIX + "/update/{resource_id}")
+            new Route(PUT, SAMPLE_PLUGIN_API_PREFIX + "/create"),
+            new Route(POST, SAMPLE_PLUGIN_API_PREFIX + "/update/{resource_id}")
         );
     }
 

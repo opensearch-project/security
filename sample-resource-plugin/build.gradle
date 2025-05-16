@@ -86,6 +86,7 @@ sourceSets {
             srcDir file('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
+            // TODO How to ensure resource are also on the classpath?
         }
         resources {
             srcDir file('src/integrationTest/resources')

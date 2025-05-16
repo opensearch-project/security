@@ -29,6 +29,11 @@ package org.opensearch.security;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -60,6 +65,7 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -189,8 +195,10 @@ import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.SecurePluginExtension;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -233,6 +241,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.identity.ContextProvidingPluginSubject.getPluginPrincipalName;
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
@@ -250,8 +259,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         MapperPlugin,
         IdentityPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-        ExtensionAwarePlugin,
-        ExtensiblePlugin
+        ExtensiblePlugin,
+        ExtensionAwarePlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -288,6 +297,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
+    private volatile Map<String, RoleV7> pluginToRoleMap;
     private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
@@ -1069,7 +1079,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-
         SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         if (SSLConfig.isSslOnlyMode()) {
             return super.createComponents(
@@ -2255,10 +2264,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        Set<String> clusterActions = new HashSet<>();
-        clusterActions.add(BulkAction.NAME);
         PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
-        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        String pluginPrincipal = subject.getPrincipal().getName();
+        if (pluginToRoleMap != null && pluginToRoleMap.containsKey(pluginPrincipal)) {
+            sf.updatePluginToPermissions(pluginPrincipal, pluginToRoleMap.get(pluginPrincipal));
+
+        }
         return subject;
     }
 
@@ -2274,6 +2285,60 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
     }
+
+    // CS-SUPPRESS-SINGLE: RegexpSingleline SPI Extensions are unrelated to OpenSearch extensions
+    @Override
+    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
+        System.out.println("loadExtensions");
+        if (settings != null
+            && settings.getAsBoolean(
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+            // load all resource-sharing extensions
+            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
+            resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
+        }
+
+        for (SecurePluginExtension extension : loader.loadExtensions(SecurePluginExtension.class)) {
+            System.out.println("extension: " + extension.getPluginCanonicalClassname());
+            try {
+                // TODO Parse plugin-permissions.yml file (available as resource on classpath) into RoleV7 object
+                /**
+                 * Example yml
+                 *
+                 * cluster_permissions:
+                 *   - "cluster:monitor/health"
+                 * index_permissions:
+                 *   - index_patterns:
+                 *       - "security-auditlog*"
+                 *     allowed_actions:
+                 *       - "indices:data/write/index*"
+                 */
+                URL resource = extension.getClass().getClassLoader().getResource("plugin-permissions.yml");
+                if (pluginToRoleMap == null) {
+                    pluginToRoleMap = new HashMap<>();
+                }
+                RoleV7 pluginPermissions;
+                if (resource == null) {
+                    log.warn("plugin-permissions.yml not found on classpath");
+                    pluginPermissions = new RoleV7();
+                    pluginPermissions.setCluster_permissions(new ArrayList<>());
+                } else {
+                    try (InputStream in = resource.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                        JsonNode roleJson = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
+                        System.out.println("pluginPermissions: " + roleJson);
+                        pluginPermissions = RoleV7.fromJsonNode(roleJson);
+                    }
+                }
+                pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
+                pluginToRoleMap.put(getPluginPrincipalName(extension.getPluginCanonicalClassname()), pluginPermissions);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    // CS-ENFORCE-SINGLE
 
     @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
@@ -2298,22 +2363,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return null;
         });
     }
-
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-    @Override
-    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
-
-        if (settings != null
-            && settings.getAsBoolean(
-                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-            )) {
-            // load all resource-sharing extensions
-            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-            resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
-        }
-    }
-    // CS-ENFORCE-SINGLE
 
     public static class GuiceHolder implements LifecycleComponent {
 

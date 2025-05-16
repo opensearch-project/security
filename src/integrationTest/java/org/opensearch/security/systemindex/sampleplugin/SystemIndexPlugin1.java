@@ -38,11 +38,12 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.spi.SecurePluginExtension;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
+public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin, SecurePluginExtension {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
     private RunAsSubjectClient pluginClient;
@@ -108,5 +109,10 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         if (pluginClient != null) {
             this.pluginClient.setSubject(pluginSystemSubject);
         }
+    }
+
+    @Override
+    public String getPluginCanonicalClassname() {
+        return SystemIndexPlugin1.class.getCanonicalName();
     }
 }

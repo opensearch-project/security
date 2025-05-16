@@ -447,7 +447,7 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: java
-      - run: ./gradlew clean assemble
+      - run: ./gradlew clean :assemble
       - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:

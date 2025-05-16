@@ -10,7 +10,7 @@ package org.opensearch.sample;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 
-import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
+import static org.opensearch.sample.utils.Constants.SAMPLE_PLUGIN_PREFIX;
 
 /**
  * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
@@ -35,12 +35,12 @@ public abstract class SampleResourcePluginTestHelper {
         )
     );
 
-    protected static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
-    protected static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
-    protected static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
-    protected static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
-    protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
-    protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
+    protected static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/create";
+    protected static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/get";
+    protected static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/update";
+    protected static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/delete";
+    protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/share";
+    protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_PLUGIN_PREFIX + "/revoke";
 
     protected static String shareWithPayload(String user) {
         return """

@@ -26,11 +26,12 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.spi.SecurePluginExtension;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin {
+public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin, SecurePluginExtension {
     public static final String SYSTEM_INDEX_2 = ".system-index2";
 
     private Client client;
@@ -57,5 +58,10 @@ public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin {
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(SYSTEM_INDEX_2, "System index 2");
         return Collections.singletonList(systemIndexDescriptor);
+    }
+
+    @Override
+    public String getPluginCanonicalClassname() {
+        return SystemIndexPlugin2.class.getCanonicalName();
     }
 }
