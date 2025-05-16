@@ -20,7 +20,6 @@ import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Creator;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -73,7 +72,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
             ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
                 resourceId,
                 resourceIndex,
-                new CreatedBy(Creator.USER, user.getName()),
+                new CreatedBy(user.getName()),
                 null
             );
             log.debug(

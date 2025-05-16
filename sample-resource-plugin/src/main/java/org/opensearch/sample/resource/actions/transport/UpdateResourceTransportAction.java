@@ -65,7 +65,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             updateResource(request, listener);
             return;
         }
-        resourceSharingClient.verifyResourceAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
+        resourceSharingClient.verifyAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(
                     new OpenSearchStatusException(

@@ -74,7 +74,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
             deleteResource(resourceId, deleteResponseListener);
             return;
         }
-        resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
+        resourceSharingClient.verifyAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
             if (!isAuthorized) {
                 listener.onFailure(
                     new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)

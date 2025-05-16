@@ -9,9 +9,9 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -19,6 +19,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.spi.resources.ResourceAccessLevels;
 
 /**
  * This class contains information about whom a resource is shared with and what is the action-group associated with it.
@@ -34,7 +35,7 @@ import org.opensearch.core.xcontent.XContentParser;
  * }
  * </pre>
  *
- * "default" is a place-holder {@link org.opensearch.security.spi.resources.ResourceAccessActionGroups#PLACE_HOLDER } that must be replaced with action-group names once Resource Authorization framework is implemented.
+ * "default" is a place-holder {@link ResourceAccessLevels#PLACE_HOLDER } that must be replaced with action-group names once Resource Authorization framework is implemented.
  *
  * @opensearch.experimental
  */
@@ -44,41 +45,48 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     /**
      * A set of objects representing the action-groups and their associated users, roles, and backend roles.
      */
-    private final Set<SharedWithActionGroup> sharedWithActionGroups;
+    private final Map<String, Recipients> sharingInfo;
 
-    public ShareWith(Set<SharedWithActionGroup> sharedWithActionGroups) {
-        this.sharedWithActionGroups = sharedWithActionGroups;
+    public ShareWith(Map<String, Recipients> sharingInfo) {
+        this.sharingInfo = sharingInfo;
     }
 
     public ShareWith(StreamInput in) throws IOException {
-        this.sharedWithActionGroups = in.readSet(SharedWithActionGroup::new);
+        this.sharingInfo = in.readMap(StreamInput::readString, Recipients::new);
     }
 
-    public Set<SharedWithActionGroup> getSharedWithActionGroups() {
-        return sharedWithActionGroups;
+    public boolean isPublic() {
+        // TODO Contemplate following google doc model of link sharing which has single access level when link sharing is enabled
+        return sharingInfo.values().stream().anyMatch(Recipients::isPublic);
+    }
+
+    public boolean isPrivate() {
+        return sharingInfo == null || sharingInfo.isEmpty();
     }
 
     public Set<String> accessLevels() {
-        return sharedWithActionGroups.stream().map(SharedWithActionGroup::getActionGroup).collect(Collectors.toSet());
+        return sharingInfo.keySet();
     }
 
-    public SharedWithActionGroup atAccessLevel(String accessLevel) {
-        return sharedWithActionGroups.stream().filter(g -> accessLevel.equals(g.getActionGroup())).findFirst().orElse(null);
+    public Recipients atAccessLevel(String accessLevel) {
+        return sharingInfo.get(accessLevel);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
 
-        for (SharedWithActionGroup actionGroup : sharedWithActionGroups) {
-            actionGroup.toXContent(builder, params);
+        for (String accessLevel : sharingInfo.keySet()) {
+            builder.field(accessLevel);
+            Recipients recipients = sharingInfo.get(accessLevel);
+            recipients.toXContent(builder, params);
         }
 
         return builder.endObject();
     }
 
     public static ShareWith fromXContent(XContentParser parser) throws IOException {
-        Set<SharedWithActionGroup> sharedWithActionGroups = new HashSet<>();
+        Map<String, Recipients> sharingInfo = new HashMap<>();
 
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
             parser.nextToken();
@@ -88,12 +96,16 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             // Each field in the object represents a SharedWithActionGroup
             if (token == XContentParser.Token.FIELD_NAME) {
-                SharedWithActionGroup actionGroup = SharedWithActionGroup.fromXContent(parser);
-                sharedWithActionGroups.add(actionGroup);
+                String accessLevel = parser.currentName();
+
+                parser.nextToken();
+
+                Recipients recipients = Recipients.fromXContent(parser);
+                sharingInfo.put(accessLevel, recipients);
             }
         }
 
-        return new ShareWith(sharedWithActionGroups);
+        return new ShareWith(sharingInfo);
     }
 
     @Override
@@ -103,11 +115,11 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeCollection(sharedWithActionGroups);
+        out.writeMap(sharingInfo, StreamOutput::writeString, (o, sw) -> sw.writeTo(o));
     }
 
     @Override
     public String toString() {
-        return "ShareWith " + sharedWithActionGroups;
+        return "ShareWith " + sharingInfo;
     }
 }
