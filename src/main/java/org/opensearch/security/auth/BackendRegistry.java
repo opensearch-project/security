@@ -208,7 +208,7 @@ public class BackendRegistry {
         restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsList.contains(user.getName())).forEach(restRoleCache::invalidate);
 
         // If the user isn't found it still says this, which could be bad
-        log.debug("Invalidated cache for users {}", String.join(", ", usernames));
+        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernames));
     }
 
     @Subscribe
