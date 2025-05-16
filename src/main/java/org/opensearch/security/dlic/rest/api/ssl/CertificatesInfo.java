@@ -13,7 +13,6 @@ package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -32,20 +31,20 @@ public class CertificatesInfo implements Writeable, ToXContent {
     }
 
     public CertificatesInfo(final StreamInput in) throws IOException {
-        certificates = in.readMap(keyIn -> keyIn.readEnum(CertType.class), listIn -> listIn.readList(CertificateInfo::new));
+        certificates = in.readMap(CertType::new, listIn -> listIn.readList(CertificateInfo::new));
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeMap(certificates, StreamOutput::writeEnum, StreamOutput::writeList);
+        out.writeMap(certificates, (streamOutput, certType) -> certType.writeTo(streamOutput), StreamOutput::writeList);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject("certificates")
-            .field(CertType.HTTP.name().toLowerCase(Locale.ROOT), certificates.get(CertType.HTTP))
-            .field(CertType.TRANSPORT.name().toLowerCase(Locale.ROOT), certificates.get(CertType.TRANSPORT))
-            .field(CertType.TRANSPORT_CLIENT.name().toLowerCase(Locale.ROOT), certificates.get(CertType.TRANSPORT_CLIENT))
-            .endObject();
+        builder.startObject("certificates");
+        for (Map.Entry<CertType, List<CertificateInfo>> entry : certificates.entrySet()) {
+            builder.field(entry.getKey().name(), certificates.get(entry.getKey()));
+        }
+        return builder.endObject();
     }
 }
