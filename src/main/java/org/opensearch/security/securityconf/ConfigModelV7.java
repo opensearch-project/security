@@ -45,6 +45,7 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
@@ -192,11 +193,14 @@ public class ConfigModelV7 extends ConfigModel {
 
         }
 
-        public Map<String, Boolean> mapTenants(final User user, Set<String> roles) {
+        public Map<String, Boolean> mapTenants(PrivilegesEvaluationContext privilegesEvaluationContext) {
 
-            if (user == null || tenantsMM == null) {
+            if (privilegesEvaluationContext == null || tenantsMM == null) {
                 return Collections.emptyMap();
             }
+
+            User user = privilegesEvaluationContext.getUser();
+            Set<String> roles = privilegesEvaluationContext.getMappedRoles();
 
             final Map<String, Boolean> result = new HashMap<>(roles.size());
             result.put(user.getName(), true);
@@ -210,7 +214,7 @@ public class ConfigModelV7 extends ConfigModel {
                     // replaceProperties for tenant name because
                     // at this point e.getValue().v1() can be in this form : "${attr.[internal|jwt|proxy|ldap].*}"
                     // let's substitute it with the eventual value of the user's attribute
-                    final String tenant = UserAttributes.replaceProperties(e.getValue().v1(), user);
+                    final String tenant = UserAttributes.replaceProperties(e.getValue().v1(), privilegesEvaluationContext);
                     final boolean rw = e.getValue().v2();
 
                     if (rw || !result.containsKey(tenant)) { // RW outperforms RO
@@ -353,8 +357,9 @@ public class ConfigModelV7 extends ConfigModel {
         }
     }
 
-    public Map<String, Boolean> mapTenants(User user, Set<String> roles) {
-        return tenantHolder.mapTenants(user, roles);
+    @Override
+    public Map<String, Boolean> mapTenants(PrivilegesEvaluationContext privilegesEvaluationContext) {
+        return tenantHolder.mapTenants(privilegesEvaluationContext);
     }
 
     public Set<String> mapSecurityRoles(User user, TransportAddress caller) {
