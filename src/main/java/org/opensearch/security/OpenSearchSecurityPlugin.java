@@ -2148,7 +2148,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             settings.add(UserFactory.Caching.MAX_SIZE);
-            settings.add(UserFactory.Caching.MAX_ENTRIES);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
         }
 

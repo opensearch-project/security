@@ -62,15 +62,6 @@ public abstract class UserFactory {
         );
 
         /**
-         * This setting specifies the maximum number of users inside the cache. The default is 1000 users.
-         */
-        public static Setting<Integer> MAX_ENTRIES = Setting.intSetting(
-            "plugins.security.transport_user_cache.max_entries",
-            1000,
-            Setting.Property.NodeScope
-        );
-
-        /**
          * This setting specifies the maximum time an entry is kept in the cache. This is solely for saving space;
          * a stale cache is not possible. The default is 1 hour.
          */
@@ -85,7 +76,6 @@ public abstract class UserFactory {
         public Caching(Settings settings) {
             this.serializedBase64ToUserCache = CacheBuilder.<String, User>newBuilder()
                 .weigher((Weigher<String, User>) (key, user) -> 16 + key.length() + user.estimatedByteSize())
-                .maximumSize(MAX_ENTRIES.get(settings))
                 .maximumWeight(MAX_SIZE.get(settings).getBytes())
                 .expireAfterAccess(Duration.ofMillis(EXPIRE_AFTER_ACCESS.get(settings).millis()))
                 .build();
