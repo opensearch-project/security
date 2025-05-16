@@ -11,13 +11,16 @@
 package org.opensearch.security.user;
 
 import java.util.Arrays;
+import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import org.opensearch.security.support.Base64Helper;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 public class UserTest {
     @Test
@@ -75,5 +78,61 @@ public class UserTest {
                 .withAttributes(ImmutableMap.of("a", "v_a", "b", "v_b")),
             user
         );
+    }
+
+    @Test
+    public void withRoles() {
+        User original = new User("test_user").withRoles("a");
+        User modified = original.withRoles("b");
+
+        assertEquals(ImmutableSet.of("a"), original.getRoles());
+        assertEquals(ImmutableSet.of("a", "b"), modified.getRoles());
+    }
+
+    @Test
+    public void withRoles_unmodified() {
+        User original = new User("test_user").withRoles("a");
+        User unmodified = original.withRoles(ImmutableSet.of());
+
+        assertSame(original, unmodified);
+    }
+
+    @Test
+    public void withAttributes() {
+        User original = new User("test_user").withAttributes(Map.of("a", "1"));
+        User modified = original.withAttributes(Map.of("b", "2"));
+
+        assertEquals(ImmutableMap.of("a", "1"), original.getCustomAttributesMap());
+        assertEquals(ImmutableMap.of("a", "1", "b", "2"), modified.getCustomAttributesMap());
+    }
+
+    @Test
+    public void withAttributes_unmodified() {
+        User original = new User("test_user").withAttributes(Map.of("a", "1"));
+        User unmodified = original.withAttributes(Map.of());
+
+        assertSame(original, unmodified);
+    }
+
+    @Test
+    public void withRequestedTenant() {
+        User original = new User("test_user").withRequestedTenant("a");
+        User modified = original.withRequestedTenant("b");
+
+        assertEquals("a", original.getRequestedTenant());
+        assertEquals("b", modified.getRequestedTenant());
+    }
+
+    @Test
+    public void withRequestedTenant_unmodified() {
+        User original = new User("test_user").withRequestedTenant("a");
+        User unmodified = original.withRequestedTenant("a");
+
+        assertSame(original, unmodified);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void illegalName() {
+        new User("");
     }
 }

@@ -33,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,14 +58,14 @@ import org.opensearch.security.support.Base64Helper;
  */
 public class User implements Serializable, CustomAttributesAware {
 
-    public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRole("opendistro_security_anonymous_backendrole");
+    public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
     // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is
     // enabled.
     // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information
     // in threadcontext, yet we need the communication to not break between the nodes.
     // Attach the required permissions to either the user or the backend role.
-    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user").withRole(
+    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user").withRoles(
         "opendistro_security_default_transport_backendrole"
     );
 
@@ -156,17 +157,10 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
-     * Returns a new User object that additionally contains the provided backend role.
+     * Returns a new User object that additionally contains the provided backend roles.
      */
-    public User withRole(String role) {
-        return new User(
-            this.name,
-            new ImmutableSet.Builder<String>().addAll(this.roles).add(role).build(),
-            this.securityRoles,
-            this.requestedTenant,
-            this.attributes,
-            this.isInjected
-        );
+    public User withRoles(String... roles) {
+        return withRoles(Arrays.asList(roles));
     }
 
     /**

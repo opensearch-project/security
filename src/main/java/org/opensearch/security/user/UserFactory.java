@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Setting;
@@ -84,11 +85,11 @@ public abstract class UserFactory {
         public User fromSerializedBase64(String serializedBase64) {
             try {
                 return serializedBase64ToUserCache.get(serializedBase64, () -> User.fromSerializedBase64(serializedBase64));
-            } catch (ExecutionException e) {
+            } catch (ExecutionException | UncheckedExecutionException e) {
                 if (e.getCause() instanceof RuntimeException) {
                     throw (RuntimeException) e.getCause();
                 } else {
-                    throw new RuntimeException(e);
+                    throw new RuntimeException(e.getCause());
                 }
             }
         }

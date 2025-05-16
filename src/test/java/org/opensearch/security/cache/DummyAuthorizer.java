@@ -33,7 +33,7 @@ public class DummyAuthorizer implements AuthorizationBackend {
     @Override
     public User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException {
         count++;
-        return user.withRole("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
+        return user.withRoles("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
     }
 
     public static long getCount() {

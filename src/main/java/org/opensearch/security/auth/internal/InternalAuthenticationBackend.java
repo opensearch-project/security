@@ -30,7 +30,6 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
@@ -69,13 +68,11 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
         if (exists) {
             // FIX https://github.com/opendistro-for-elasticsearch/security/pull/23
             // Credits to @turettn
-            final Map<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
+            ImmutableMap<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
             ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.builder();
 
-            if (customAttributes != null) {
-                for (Entry<String, String> attributeEntry : customAttributes.entrySet()) {
-                    attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
-                }
+            for (Entry<String, String> attributeEntry : customAttributes.entrySet()) {
+                attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
             }
 
             return Optional.of(

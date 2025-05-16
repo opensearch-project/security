@@ -186,9 +186,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         if (skipUsersMatcher.test(authenticatedUser)) {
-            if (isDebugEnabled) {
-                log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
-            }
+            log.debug("Skipped search roles of user {}/{}", authenticatedUser, originalUserName);
             return user;
         }
 
