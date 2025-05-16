@@ -19,17 +19,11 @@ import java.util.HashMap;
 import java.util.stream.IntStream;
 
 import com.google.common.io.BaseEncoding;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
-import org.ldaptive.LdapEntry;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -116,30 +110,6 @@ public class Base64HelperTest {
             () -> Base64Helper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()))
         );
         assertThat(exception.getMessage(), containsString("Unauthorized deserialization attempt"));
-    }
-
-    @Test
-    public void testLdapUser() {
-        LdapUser ldapUser = new LdapUser(
-            "username",
-            "originalusername",
-            new LdapEntry("dn"),
-            new AuthCredentials("originalusername", "12345"),
-            34,
-            WildcardMatcher.ANY
-        );
-        assertThat(ds(ldapUser), is(ldapUser));
-    }
-
-    @Test
-    public void testInjectedUser() {
-        UserInjector.InjectedUser injectedUser = new UserInjector.InjectedUser("username");
-
-        // we expect to get User object when deserializing InjectedUser via JDK serialization
-        User user = new User("username");
-        User deserializedUser = (User) ds(injectedUser);
-        assertThat(deserializedUser, is(user));
-        Assert.assertTrue(deserializedUser.isInjected());
     }
 
     /**

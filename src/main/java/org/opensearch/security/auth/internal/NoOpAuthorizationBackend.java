@@ -29,8 +29,8 @@ package org.opensearch.security.auth.internal;
 import java.nio.file.Path;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 public class NoOpAuthorizationBackend implements AuthorizationBackend {
@@ -45,8 +45,7 @@ public class NoOpAuthorizationBackend implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(final User user, final AuthCredentials authCreds) {
-        // no-op
+    public User addRoles(User user, AuthenticationContext context) {
+        return user;
     }
-
 }

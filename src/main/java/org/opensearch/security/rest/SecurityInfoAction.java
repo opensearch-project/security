@@ -27,9 +27,10 @@
 package org.opensearch.security.rest;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -145,14 +146,14 @@ public class SecurityInfoAction extends BaseRestHandler {
                             builder.field(
                                 "size_of_custom_attributes",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap())
+                                    Base64Helper.serializeObject(new HashMap<>(user.getCustomAttributesMap()))
                                         .getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                             builder.field(
                                 "size_of_backendroles",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject((Serializable) user.getRoles()).getBytes(StandardCharsets.UTF_8).length
+                                    Base64Helper.serializeObject(new HashSet<>(user.getRoles())).getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                         } catch (Throwable e) {

@@ -30,14 +30,17 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
+import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
@@ -45,7 +48,7 @@ import org.opensearch.security.user.User;
 
 import org.greenrobot.eventbus.Subscribe;
 
-public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
+public class InternalAuthenticationBackend implements AuthenticationBackend, ImpersonationBackend, AuthorizationBackend {
 
     private final PasswordHasher passwordHasher;
     private InternalUsersModel internalUsersModel;
@@ -55,37 +58,31 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     @Override
-    public boolean exists(User user) {
-
+    public Optional<User> impersonate(User user) {
         if (user == null || internalUsersModel == null) {
-            return false;
+            return Optional.empty();
         }
 
         final boolean exists = internalUsersModel.exists(user.getName());
 
         if (exists) {
-            user.addRoles(internalUsersModel.getBackenRoles(user.getName()));
             // FIX https://github.com/opendistro-for-elasticsearch/security/pull/23
             // Credits to @turettn
-            final Map<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
-            Map<String, String> attributeMap = new HashMap<>();
+            ImmutableMap<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
+            ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.builder();
 
-            if (customAttributes != null) {
-                for (Entry<String, String> attributeEntry : customAttributes.entrySet()) {
-                    attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
-                }
+            for (Entry<String, String> attributeEntry : customAttributes.entrySet()) {
+                attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
             }
 
-            final List<String> securityRoles = internalUsersModel.getSecurityRoles(user.getName());
-            if (securityRoles != null) {
-                user.addSecurityRoles(securityRoles);
-            }
-
-            user.addAttributes(attributeMap);
-            return true;
+            return Optional.of(
+                user.withRoles(internalUsersModel.getBackendRoles(user.getName()))
+                    .withSecurityRoles(internalUsersModel.getSecurityRoles(user.getName()))
+                    .withAttributes(attributeMap.build())
+            );
+        } else {
+            return Optional.empty();
         }
-
-        return false;
     }
 
     /**
@@ -99,7 +96,8 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) {
+    public User authenticate(AuthenticationContext context) {
+        AuthCredentials credentials = context.getCredentials();
 
         boolean userExists;
 
@@ -133,21 +131,14 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
         try {
             if (passwordMatchesHash(hash, array) && userExists) {
-                final List<String> roles = internalUsersModel.getBackenRoles(credentials.getUsername());
-                final Map<String, String> customAttributes = internalUsersModel.getAttributes(credentials.getUsername());
-                if (customAttributes != null) {
-                    for (Entry<String, String> attributeName : customAttributes.entrySet()) {
-                        credentials.addAttribute("attr.internal." + attributeName.getKey(), attributeName.getValue());
-                    }
-                }
+                ImmutableSet<String> backendRoles = internalUsersModel.getBackendRoles(credentials.getUsername());
+                ImmutableSet<String> securityRoles = internalUsersModel.getSecurityRoles(credentials.getUsername());
+                ImmutableMap<String, String> attributeMap = ImmutableMap.<String, String>builder()
+                    .putAll(credentials.getAttributes())
+                    .putAll(prefixedAttributeMap(internalUsersModel.getAttributes(credentials.getUsername())))
+                    .build();
 
-                final User user = new User(credentials.getUsername(), roles, credentials);
-
-                final List<String> securityRoles = internalUsersModel.getSecurityRoles(credentials.getUsername());
-                if (securityRoles != null) {
-                    user.addSecurityRoles(securityRoles);
-                }
-                return user;
+                return new User(credentials.getUsername(), backendRoles, securityRoles, null, attributeMap, false);
             } else {
                 if (!userExists) {
                     throw new OpenSearchSecurityException(credentials.getUsername() + " not found");
@@ -167,27 +158,35 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     }
 
     @Override
-    public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
-
+    public User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException {
         if (internalUsersModel == null) {
             throw new OpenSearchSecurityException(
                 "Internal authentication backend not configured. May be OpenSearch Security is not initialized."
             );
-
         }
 
-        if (exists(user)) {
-            final List<String> roles = internalUsersModel.getBackenRoles(user.getName());
-            if (roles != null && !roles.isEmpty() && user != null) {
-                user.addRoles(roles);
-            }
+        if (internalUsersModel.exists(user.getName())) {
+            return user.withRoles(internalUsersModel.getBackendRoles(user.getName()))
+                .withSecurityRoles(internalUsersModel.getSecurityRoles(user.getName()))
+                .withAttributes(prefixedAttributeMap(internalUsersModel.getAttributes(user.getName())));
+        } else {
+            return user;
         }
-
     }
 
     @Subscribe
     public void onInternalUsersModelChanged(InternalUsersModel ium) {
         this.internalUsersModel = ium;
+    }
+
+    ImmutableMap<String, String> prefixedAttributeMap(ImmutableMap<String, String> attributeMap) {
+        ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+
+        for (Entry<String, String> attributeEntry : attributeMap.entrySet()) {
+            result.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
+        }
+
+        return result.build();
     }
 
 }

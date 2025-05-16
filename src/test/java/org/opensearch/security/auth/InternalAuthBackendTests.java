@@ -16,6 +16,8 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,13 +82,17 @@ public class InternalAuthBackendTests {
 
         when(internalUsersModel.getHash(validUsernameAuth.getUsername())).thenReturn(hash);
         when(internalUsersModel.exists(validUsernameAuth.getUsername())).thenReturn(true);
+        when(internalUsersModel.getAttributes(validUsernameAuth.getUsername())).thenReturn(ImmutableMap.of());
+        when(internalUsersModel.getSecurityRoles(validUsernameAuth.getUsername())).thenReturn(ImmutableSet.of());
+        when(internalUsersModel.getBackendRoles(validUsernameAuth.getUsername())).thenReturn(ImmutableSet.of());
+
         doReturn(true).when(internalAuthenticationBackend).passwordMatchesHash(Mockito.any(String.class), Mockito.any(char[].class));
 
         // Act
-        internalAuthenticationBackend.authenticate(validUsernameAuth);
+        internalAuthenticationBackend.authenticate(new AuthenticationContext(validUsernameAuth));
 
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
-        verify(internalUsersModel, times(1)).getBackenRoles(validUsernameAuth.getUsername());
+        verify(internalUsersModel, times(1)).getBackendRoles(validUsernameAuth.getUsername());
     }
 
     @Test
@@ -106,7 +112,7 @@ public class InternalAuthBackendTests {
 
         OpenSearchSecurityException ex = Assert.assertThrows(
             OpenSearchSecurityException.class,
-            () -> internalAuthenticationBackend.authenticate(validUsernameAuth)
+            () -> internalAuthenticationBackend.authenticate(new AuthenticationContext(validUsernameAuth))
         );
         assert (ex.getMessage().contains("password does not match"));
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
@@ -129,7 +135,7 @@ public class InternalAuthBackendTests {
 
         OpenSearchSecurityException ex = Assert.assertThrows(
             OpenSearchSecurityException.class,
-            () -> internalAuthenticationBackend.authenticate(invalidUsernameAuth)
+            () -> internalAuthenticationBackend.authenticate(new AuthenticationContext(invalidUsernameAuth))
         );
         assert (ex.getMessage().contains("not found"));
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
@@ -151,7 +157,7 @@ public class InternalAuthBackendTests {
 
         OpenSearchSecurityException ex = Assert.assertThrows(
             OpenSearchSecurityException.class,
-            () -> internalAuthenticationBackend.authenticate(invalidUsernameAuth)
+            () -> internalAuthenticationBackend.authenticate(new AuthenticationContext(invalidUsernameAuth))
         );
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
         assert (ex.getMessage().contains("not found"));
