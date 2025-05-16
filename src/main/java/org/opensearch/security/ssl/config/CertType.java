@@ -11,32 +11,54 @@
 
 package org.opensearch.security.ssl.config;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.Writeable;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 
-public enum CertType {
-    HTTP(SSL_HTTP_PREFIX),
-    TRANSPORT(SSL_TRANSPORT_PREFIX),
-    TRANSPORT_CLIENT(SSL_TRANSPORT_CLIENT_PREFIX);
-
-    public static Set<String> TYPES = Arrays.stream(CertType.values())
-        .map(CertType::name)
-        .map(String::toLowerCase)
-        .collect(Collectors.toSet());
-
+/**
+ * CertTypes have a 1-to-1 relationship with ssl context configurations and identify
+ * the setting prefix under which configuration settings are located.
+ */
+public class CertType implements Writeable {
     private final String sslConfigPrefix;
+    private final String certTypeKey;
 
-    private CertType(String sslConfigPrefix) {
+    public static CertType HTTP = new CertType(SSL_HTTP_PREFIX, "http");
+    public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX, "transport");
+    public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX, "transport_client");
+
+    public static final Set<CertType> REGISTERED_CERT_TYPES = new HashSet<>(Arrays.asList(HTTP, TRANSPORT, TRANSPORT_CLIENT));
+
+    CertType(String sslConfigPrefix, String certTypeKey) {
         this.sslConfigPrefix = sslConfigPrefix;
+        this.certTypeKey = certTypeKey;
+    }
+
+    public CertType(final StreamInput in) throws IOException {
+        this.sslConfigPrefix = in.readString();
+        this.certTypeKey = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(sslConfigPrefix);
+        out.writeString(certTypeKey);
     }
 
     public String sslConfigPrefix() {
         return sslConfigPrefix;
     }
 
+    public String name() {
+        return certTypeKey;
+    }
 }

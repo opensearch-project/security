@@ -97,7 +97,6 @@ import io.netty.util.internal.PlatformDependent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_CIPHERS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_DEFAULT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
@@ -652,21 +651,23 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         /**
          * Expose aux transport settings.
          */
-        settings.addAll(List.of(
-            SECURITY_SSL_AUX_ENABLED,
-            SECURITY_SSL_AUX_ENABLED_CIPHERS,
-            SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
-            SECURITY_SSL_AUX_KEYSTORE_TYPE,
-            SECURITY_SSL_AUX_KEYSTORE_ALIAS,
-            SECURITY_SSL_AUX_KEYSTORE_FILEPATH,
-            SECURITY_SSL_AUX_PEMKEY_FILEPATH,
-            SECURITY_SSL_AUX_PEMCERT_FILEPATH,
-            SECURITY_SSL_AUX_CLIENTAUTH_MODE,
-            SECURITY_SSL_AUX_TRUSTSTORE_TYPE,
-            SECURITY_SSL_AUX_TRUSTSTORE_ALIAS,
-            SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH,
-            SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH
-        ));
+        settings.addAll(
+            List.of(
+                SECURITY_SSL_AUX_ENABLED,
+                SECURITY_SSL_AUX_ENABLED_CIPHERS,
+                SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
+                SECURITY_SSL_AUX_KEYSTORE_TYPE,
+                SECURITY_SSL_AUX_KEYSTORE_ALIAS,
+                SECURITY_SSL_AUX_KEYSTORE_FILEPATH,
+                SECURITY_SSL_AUX_PEMKEY_FILEPATH,
+                SECURITY_SSL_AUX_PEMCERT_FILEPATH,
+                SECURITY_SSL_AUX_CLIENTAUTH_MODE,
+                SECURITY_SSL_AUX_TRUSTSTORE_TYPE,
+                SECURITY_SSL_AUX_TRUSTSTORE_ALIAS,
+                SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH,
+                SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH
+            )
+        );
 
         return settings;
     }

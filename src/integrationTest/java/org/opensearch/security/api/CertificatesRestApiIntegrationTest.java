@@ -108,13 +108,13 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {
-        assertSSLCertsInfo(localCluster.nodes(), CertType.TYPES, ok(() -> client.get(sslCertsPath())));
+        assertSSLCertsInfo(localCluster.nodes(), CertType.REGISTERED_CERT_TYPES, ok(() -> client.get(sslCertsPath())));
         if (localCluster.nodes().size() > 1) {
             final var randomNodes = randomNodes();
             final var nodeIds = randomNodes.stream().map(n -> n.esNode().getNodeEnvironment().nodeId()).collect(Collectors.joining(","));
-            assertSSLCertsInfo(randomNodes, CertType.TYPES, ok(() -> client.get(sslCertsPath(nodeIds))));
+            assertSSLCertsInfo(randomNodes, CertType.REGISTERED_CERT_TYPES, ok(() -> client.get(sslCertsPath(nodeIds))));
         }
-        final var randomCertType = randomFrom(List.copyOf(CertType.TYPES));
+        final var randomCertType = randomFrom(List.copyOf(CertType.REGISTERED_CERT_TYPES));
         assertSSLCertsInfo(
             localCluster.nodes(),
             Set.of(randomCertType),
@@ -125,7 +125,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     private void assertSSLCertsInfo(
         final List<LocalOpenSearchCluster.Node> expectedNode,
-        final Set<String> expectedCertTypes,
+        final Set<CertType> expectedCertTypes,
         final TestRestClient.HttpResponse response
     ) {
         final var body = response.bodyAsJsonNode();
@@ -145,13 +145,13 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
             assertThat(prettyStringBody, node.get("name").asText(), is(n.getNodeName()));
             assertThat(prettyStringBody, node.has("certificates"));
             final var certificates = node.get("certificates");
-            if (expectedCertTypes.contains(CertType.HTTP.name().toUpperCase(Locale.ROOT))) {
+            if (expectedCertTypes.contains(CertType.HTTP)) {
                 final var httpCertificates = certificates.get(CertType.HTTP.name().toUpperCase(Locale.ROOT));
                 assertThat(prettyStringBody, httpCertificates.isArray());
                 assertThat(prettyStringBody, httpCertificates.size(), is(1));
                 verifyCertsJson(n.nodeNumber(), httpCertificates.get(0));
             }
-            if (expectedCertTypes.contains(CertType.TRANSPORT_CLIENT.name().toUpperCase(Locale.ROOT))) {
+            if (expectedCertTypes.contains(CertType.TRANSPORT_CLIENT)) {
                 final var transportCertificates = certificates.get(CertType.TRANSPORT.name().toUpperCase(Locale.ROOT));
                 assertThat(prettyStringBody, transportCertificates.isArray());
                 assertThat(prettyStringBody, transportCertificates.size(), is(1));
