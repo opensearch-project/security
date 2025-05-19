@@ -17,7 +17,10 @@ import java.util.Random;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.yaml.YamlXContent;
