@@ -28,6 +28,7 @@ package org.opensearch.security.action.configupdate;
 
 import java.io.IOException;
 
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.support.nodes.BaseNodesRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -41,7 +42,9 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     public ConfigUpdateRequest(StreamInput in) throws IOException {
         super(in);
         this.configTypes = in.readStringArray();
-        this.entityNames = in.readOptionalStringArray();
+        if (in.getVersion().onOrAfter(Version.V_3_0_0)) {
+            this.entityNames = in.readOptionalStringArray();
+        }
     }
 
     public ConfigUpdateRequest() {
@@ -63,7 +66,9 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeStringArray(configTypes);
-        out.writeOptionalStringArray(entityNames);
+        if (out.getVersion().onOrAfter(Version.V_3_0_0)) {
+            out.writeOptionalStringArray(entityNames);
+        }
     }
 
     public String[] getConfigTypes() {

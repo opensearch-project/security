@@ -126,17 +126,20 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
 
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        if (request.request.getConfigTypes() != null
-            && request.request.getEntityNames() != null
-            && request.request.getConfigTypes().length == 1
-            && Arrays.asList(request.request.getConfigTypes()).contains(CType.INTERNALUSERS.toLCString())
-            && request.request.getEntityNames().length > 0) {
-            backendRegistry.get().invalidateUserCache(request.request.getEntityNames());
+        final var configupdateRequest = request.request;
+        if (configupdateRequest.getConfigTypes() != null
+            && configupdateRequest.getEntityNames() != null
+            && configupdateRequest.getConfigTypes().length == 1
+            && Arrays.asList(configupdateRequest.getConfigTypes()).contains(CType.INTERNALUSERS.toLCString())
+            && configupdateRequest.getEntityNames().length > 0) {
+            backendRegistry.get().invalidateUserCache(configupdateRequest.getEntityNames());
         } else {
-            configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
-            backendRegistry.get().invalidateCache();
+            boolean didReload = configurationRepository.reloadConfiguration(CType.fromStringValues((configupdateRequest.getConfigTypes())));
+            if (didReload) {
+                backendRegistry.get().invalidateCache();
+            }
         }
-        return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
+        return new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null);
     }
 
     @Override
