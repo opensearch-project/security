@@ -115,8 +115,8 @@ class FlsDocumentFilter {
                 queuedFieldName = null;
 
                 if (metaFields.contains(fullQueuedFieldName)
-                    || flsRule.isAllowed(fullQueuedFieldName)
-                    || (startOfObjectOrArray && flsRule.isObjectAllowed(fullQueuedFieldName))) {
+                    || flsRule.isAllowedAssumingParentsAreAllowed(fullQueuedFieldName)
+                    || (startOfObjectOrArray && flsRule.isObjectAllowedAssumingParentsAreAllowed(fullQueuedFieldName))) {
                     generator.writeFieldName(parser.currentName());
                     fullCurrentName = fullQueuedFieldName;
                 } else {

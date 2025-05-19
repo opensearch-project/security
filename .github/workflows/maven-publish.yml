@@ -5,8 +5,8 @@ on:
   push:
       branches:
         - 'main'
-        - '1.*'
-        - '2.*'
+        - '[0-9]+.[0-9]+'
+        - '[0-9]+.x'
 
 jobs:
   build-and-publish-snapshots:
@@ -32,4 +32,4 @@ jobs:
           export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
-          ./gradlew publishPluginZipPublicationToSnapshotsRepository
+          ./gradlew --no-daemon publishPluginZipPublicationToSnapshotsRepository publishShadowPublicationToSnapshotsRepository

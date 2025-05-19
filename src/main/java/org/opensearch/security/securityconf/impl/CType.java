@@ -83,7 +83,6 @@ public class CType<T> implements Comparable<CType<?>> {
     public static final CType<RoleV7> ROLES = new CType<>("roles", "roles", RoleV7.class, 6, false);
     public static final CType<RoleMappingsV7> ROLESMAPPING = new CType<>("rolesmapping", "roles_mapping", RoleMappingsV7.class, 7, false);
     public static final CType<TenantV7> TENANTS = new CType<>("tenants", "tenants", TenantV7.class, 8, false);
-    public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", "whitelist", WhitelistingSettings.class, 9, true);
 
     private final String name;
     private final String nameUpperCase;

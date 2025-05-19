@@ -37,7 +37,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.RestoreInProgress;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.IndexUtils;
+import org.opensearch.core.index.Index;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.repositories.Repository;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -87,6 +91,24 @@ public class SnapshotRestoreHelper {
             setCurrentThreadName(threadName);
         }
         return snapshotInfo;
+    }
+
+    public static boolean isSecurityIndexRestoredFromSnapshot(ClusterService clusterService, Index index, String securityIndex) {
+        try {
+            ClusterState clusterState = clusterService.state();
+            RestoreInProgress restoreInProgress = clusterState.custom(RestoreInProgress.TYPE);
+
+            if (restoreInProgress != null) {
+                for (RestoreInProgress.Entry entry : restoreInProgress) {
+                    if (entry.indices().contains(securityIndex)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not determine if index {} was restored from snapshot, assuming new index", index.getName(), e);
+        }
+        return false;
     }
 
     @SuppressWarnings("removal")

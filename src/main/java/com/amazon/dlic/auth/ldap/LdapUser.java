@@ -11,21 +11,29 @@
 
 package com.amazon.dlic.auth.ldap;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.util.Utils;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
+/**
+ * This class intentionally remains in the com.amazon.dlic.auth.ldap package
+ * to maintain compatibility with serialization/deserialization in mixed cluster
+ * environments (nodes running different versions). The class is serialized and
+ * passed between nodes, and changing the package would break backward compatibility.
+ *
+ * Note: This class is planned to be replaced as part of making the User object
+ * immutable in a future release or reconsidering java serialization.
+ *
+ * @see https://github.com/opensearch-project/security/pull/5223
+ */
 public class LdapUser extends User {
 
     private static final long serialVersionUID = 1L;
@@ -45,12 +53,6 @@ public class LdapUser extends User {
         this.userEntry = userEntry;
         Map<String, String> attributes = getCustomAttributesMap();
         attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
-    }
-
-    public LdapUser(StreamInput in) throws IOException {
-        super(in);
-        userEntry = null;
-        originalUsername = in.readString();
     }
 
     /**
@@ -95,11 +97,5 @@ public class LdapUser extends User {
             }
         }
         return Collections.unmodifiableMap(attributes);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(originalUsername);
     }
 }

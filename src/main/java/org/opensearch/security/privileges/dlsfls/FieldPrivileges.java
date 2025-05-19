@@ -187,13 +187,87 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
             this.objectOnlyPatterns = ImmutableList.copyOf(flsPatternsIncludingObjectsOnly);
         }
 
-        public boolean isAllowed(String field) {
+        /**
+         * Checks whether the current field is allowed, assuming the status of
+         * the parent fields has been already checked. This can be used in
+         * a JSON parser which recursively walks from the root of the document tree
+         * up to the leafs.
+         */
+        public boolean isAllowedAssumingParentsAreAllowed(String field) {
+            if (isAllowAll()) {
+                return true;
+            }
+
+            return isAllowedNonRecursive(stripKeywordSuffix(field));
+        }
+
+        /**
+         * Similar to isAllowedAssumingParentsAreAllowed(); however, there are additions
+         * for the "include" mode, i.e. when fields must be positively specified in order
+         * to be included. In this case, an include rule for a.b.c also generates implicit
+         * include rules for a.b and a. This is because in order to be able to display
+         * a.b.c, we also need to display a.b and a.
+         */
+        public boolean isObjectAllowedAssumingParentsAreAllowed(String field) {
+            if (excluding) {
+                return isAllowedAssumingParentsAreAllowed(field);
+            }
+
+            for (FlsPattern pattern : this.objectOnlyPatterns) {
+                if (pattern.getPattern().test(field)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Recursive isAllowed check. For nested fields (a.b.c), it also checks
+         * for the parents whether these are allowed.
+         */
+        public boolean isAllowedRecursive(String field) {
             if (isAllowAll()) {
                 return true;
             }
 
             field = stripKeywordSuffix(field);
 
+            if (excluding) {
+                // search for rules that explicitly forbid this field
+                if (!isAllowedNonRecursive(field)) {
+                    return false;
+                }
+
+                // If there is a match on a parent object, the whole object is forbidden.
+                // Thus, also the requested field is forbidden, because it is a member of the object.
+                for (int dot = field.lastIndexOf('.'); dot != -1; dot = field.lastIndexOf('.', dot - 1)) {
+                    if (!isAllowedNonRecursive(field.substring(0, dot))) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } else {
+                // including
+                // search for rules that give explicit permission for this field
+                if (isAllowedNonRecursive(field)) {
+                    return true;
+                }
+
+                // If there is a match on a parent object, the whole object is allowed.
+                // Thus, also the requested field is allowed, because it is a member of the object.
+                for (int dot = field.lastIndexOf('.'); dot != -1; dot = field.lastIndexOf('.', dot - 1)) {
+                    if (isAllowedNonRecursive(field.substring(0, dot))) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private boolean isAllowedNonRecursive(String field) {
             if (excluding) {
                 for (FlsPattern pattern : this.effectivePatterns) {
                     assert pattern.isExcluded();
@@ -212,20 +286,6 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
                 }
                 return false;
             }
-        }
-
-        public boolean isObjectAllowed(String field) {
-            if (excluding) {
-                return isAllowed(field);
-            }
-
-            for (FlsPattern pattern : this.objectOnlyPatterns) {
-                if (pattern.getPattern().test(field)) {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public boolean isAllowAll() {

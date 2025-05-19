@@ -27,8 +27,6 @@
 package org.opensearch.security.support;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
 
 import com.google.common.base.Strings;
 
@@ -83,7 +81,7 @@ public class HeaderHelper {
         final String objectAsBase64 = getSafeFromHeader(context, headerName);
 
         if (!Strings.isNullOrEmpty(objectAsBase64)) {
-            return Base64Helper.deserializeObject(objectAsBase64, context.getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+            return Base64Helper.deserializeObject(objectAsBase64);
         }
 
         return null;
@@ -91,17 +89,5 @@ public class HeaderHelper {
 
     public static boolean isTrustedClusterRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
-    }
-
-    public static List<String> getAllSerializedHeaderNames() {
-        return Arrays.asList(
-            ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER,
-            ConfigConstants.OPENDISTRO_SECURITY_SOURCE_FIELD_CONTEXT
-        );
     }
 }
