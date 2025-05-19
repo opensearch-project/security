@@ -31,7 +31,6 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -120,13 +119,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to check access for.
      * @param resourceIndex The resource index containing the resource.
-     * @param actionGroups  The set of action groups to check permission for.
+     * @param accessLevel   The access level to check permission for.
      * @param listener      The listener to be notified with the permission check result.
      */
     public void hasPermission(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Set<String> actionGroups,
+        @NonNull String accessLevel,
         ActionListener<Boolean> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -151,7 +150,7 @@ public class ResourceAccessHandler {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
-        this.resourceSharingIndexHandler.fetchResourceSharingDocument(resourceIndex, resourceId, ActionListener.wrap(document -> {
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             if (document == null) {
                 LOGGER.warn(
                     "ResourceSharing entry not found for '{}' and index '{}'. Access to this resource will be allowed.",
@@ -168,9 +167,9 @@ public class ResourceAccessHandler {
             userBackendRoles.add("*");
             if (document.isCreatedBy(user.getName())
                 || document.isSharedWithEveryone()
-                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), actionGroups)
-                || document.isSharedWithEntity(Recipient.ROLES, userRoles, actionGroups)
-                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, actionGroups)) {
+                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), accessLevel)
+                || document.isSharedWithEntity(Recipient.ROLES, userRoles, accessLevel)
+                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, accessLevel)) {
 
                 LOGGER.debug("User '{}' has permission to resource '{}'", user.getName(), resourceId);
                 listener.onResponse(true);
@@ -194,13 +193,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to share.
      * @param resourceIndex The index where resource is store
-     * @param shareWith     The users, roles, and backend roles as well as the action group to share the resource with.
+     * @param target     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void shareWith(
+    public void share(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull ShareWith shareWith,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -219,21 +218,21 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
+        LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.updateResourceSharingInfo(
+        this.resourceSharingIndexHandler.updateSharingInfo(
             resourceId,
             resourceIndex,
             user.getName(),
-            shareWith,
+            target,
             isAdmin,
-            ActionListener.wrap(updatedResourceSharing -> {
-                LOGGER.debug("Successfully shared resource {} with {}", resourceId, shareWith.toString());
-                listener.onResponse(updatedResourceSharing);
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
+                listener.onResponse(sharingInfo);
             }, e -> {
-                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, shareWith.toString(), e.getMessage());
+                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
                 listener.onFailure(e);
             })
         );
@@ -244,15 +243,13 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to revoke access from.
      * @param resourceIndex The index where resource is store
-     * @param revokeAccess  The users, roles, and backend roles to revoke access for.
-     * @param actionGroups  The action groups to revoke access for.
+     * @param target        The access levels, users, roles, and backend roles to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
-    public void revokeAccess(
+    public void revoke(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull SharedWithActionGroup.ActionGroupRecipients revokeAccess,
-        @NonNull Set<String> actionGroups,
+        @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -271,15 +268,14 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, revokeAccess);
+        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        this.resourceSharingIndexHandler.revokeAccess(
+        this.resourceSharingIndexHandler.revoke(
             resourceId,
             resourceIndex,
-            revokeAccess,
-            actionGroups,
+            target,
             user.getName(),
             isAdmin,
             ActionListener.wrap(listener::onResponse, exception -> {
@@ -287,21 +283,6 @@ public class ResourceAccessHandler {
                 listener.onFailure(exception);
             })
         );
-    }
-
-    /**
-     * Deletes all resource sharing records for the current user.
-     *
-     * @param listener The listener to be notified with the deletion result.
-     */
-    public void deleteAllResourceSharingRecordsForUser(String name, ActionListener<Boolean> listener) {
-
-        LOGGER.debug("Deleting all resource sharing records for user {}", name);
-
-        resourceSharingIndexHandler.deleteAllResourceSharingRecordsForUser(name, ActionListener.wrap(listener::onResponse, exception -> {
-            LOGGER.error("Failed to delete all resource sharing records for user {}: {}", name, exception.getMessage(), exception);
-            listener.onFailure(exception);
-        }));
     }
 
     /**

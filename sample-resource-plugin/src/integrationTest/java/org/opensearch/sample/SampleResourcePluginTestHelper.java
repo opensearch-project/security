@@ -8,12 +8,7 @@
 
 package org.opensearch.sample;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.resources.ResourceAccessControlClient;
-import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 
@@ -46,12 +41,6 @@ public abstract class SampleResourcePluginTestHelper {
     protected static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
-
-    protected static ResourceSharingClient createResourceAccessControlClient(LocalCluster cluster) {
-        ResourceAccessHandler rAH = cluster.nodes().getFirst().getInjectable(ResourceAccessHandler.class);
-        Settings settings = cluster.node().settings();
-        return new ResourceAccessControlClient(rAH, settings);
-    }
 
     protected static String shareWithPayload(String user) {
         return """

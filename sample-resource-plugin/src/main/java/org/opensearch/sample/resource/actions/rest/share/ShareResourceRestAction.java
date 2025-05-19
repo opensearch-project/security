@@ -9,19 +9,20 @@
 package org.opensearch.sample.resource.actions.rest.share;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -60,21 +61,16 @@ public class ShareResourceRestAction extends BaseRestHandler {
         }
 
         Map<String, Object> shareWith = (Map<String, Object>) source.get("share_with");
-
-        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, parseShareWith(shareWith));
-        return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
-    }
-
-    private SharedWithActionGroup.ActionGroupRecipients parseShareWith(Map<String, Object> source) throws IOException {
-        String jsonString = XContentFactory.jsonBuilder().map(source).toString();
-
-        try (
-            XContentParser parser = XContentType.JSON.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
-        ) {
-            return SharedWithActionGroup.ActionGroupRecipients.fromXContent(parser);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+        Map<Recipient, Set<String>> recipients = new HashMap<>();
+        if (shareWith != null) {
+            for (Map.Entry<String, Object> entry : shareWith.entrySet()) {
+                Recipient recipient = Recipient.valueOf(entry.getKey().toUpperCase(Locale.ROOT));
+                Set<String> targets = new HashSet<>((Collection<String>) entry.getValue());
+                recipients.put(recipient, targets);
+            }
         }
+
+        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, recipients);
+        return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
     }
 }

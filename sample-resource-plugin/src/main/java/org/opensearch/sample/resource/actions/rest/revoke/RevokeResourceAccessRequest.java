@@ -9,12 +9,14 @@
 package org.opensearch.sample.resource.actions.rest.revoke;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 
 /**
  * Request object for revoking access to a sample resource
@@ -22,22 +24,26 @@ import org.opensearch.security.spi.resources.sharing.SharedWithActionGroup;
 public class RevokeResourceAccessRequest extends ActionRequest {
 
     String resourceId;
-    SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke;
+    Map<Recipient, Set<String>> entitiesToRevoke;
 
-    public RevokeResourceAccessRequest(String resourceId, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke) {
+    public RevokeResourceAccessRequest(String resourceId, Map<Recipient, Set<String>> entitiesToRevoke) {
         this.resourceId = resourceId;
         this.entitiesToRevoke = entitiesToRevoke;
     }
 
     public RevokeResourceAccessRequest(StreamInput in) throws IOException {
         resourceId = in.readString();
-        entitiesToRevoke = in.readNamedWriteable(SharedWithActionGroup.ActionGroupRecipients.class);
+        entitiesToRevoke = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         out.writeString(resourceId);
-        out.writeNamedWriteable(entitiesToRevoke);
+        out.writeMap(
+            entitiesToRevoke,
+            StreamOutput::writeEnum,
+            (streamOutput, strings) -> streamOutput.writeCollection(strings, StreamOutput::writeString)
+        );
     }
 
     @Override
@@ -49,7 +55,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         return resourceId;
     }
 
-    public SharedWithActionGroup.ActionGroupRecipients getEntitiesToRevoke() {
+    public Map<Recipient, Set<String>> getEntitiesToRevoke() {
         return entitiesToRevoke;
     }
 }
