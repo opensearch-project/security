@@ -27,15 +27,24 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
@@ -54,34 +63,55 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
-    public static RoleV7 fromJsonNode(JsonNode node) {
+    public static RoleV7 fromYmlFile(URL pluginPermissionsFile) {
         RoleV7 role = new RoleV7();
-        ArrayNode clusterPermsArray = node.withArray("cluster_permissions");
-        List<String> clusterPermissions = new ArrayList<>(clusterPermsArray.size());
-        for (JsonNode elt : clusterPermsArray) {
-            clusterPermissions.add(elt.asText());
-        }
-        role.cluster_permissions = clusterPermissions;
-        role.index_permissions = new ArrayList<>();
-        if (node.get("index_permissions") != null) {
-            for (Iterator<JsonNode> it = node.get("index_permissions").elements(); it.hasNext();) {
-                JsonNode indexNode = it.next();
-                Index indexPerm = new Index();
-                ArrayNode actionsArray = indexNode.withArray("allowed_actions");
-                List<String> allowedActions = new ArrayList<>(actionsArray.size());
-                for (JsonNode elt : actionsArray) {
-                    allowedActions.add(elt.asText());
-                }
-                indexPerm.allowed_actions = allowedActions;
-                ArrayNode indexPatternsArray = indexNode.withArray("index_patterns");
-                List<String> indexPatterns = new ArrayList<>(indexPatternsArray.size());
-                for (JsonNode elt : indexPatternsArray) {
-                    indexPatterns.add(elt.asText());
-                }
-                indexPerm.index_patterns = indexPatterns;
-                role.index_permissions.add(indexPerm);
+        try (InputStream in = pluginPermissionsFile.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            JsonNode node = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
+            if (node.isEmpty()) {
+                return role;
             }
+            Set<String> validKeys = Set.of("cluster_permissions", "index_permissions");
+            Iterator<String> fieldNames = node.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                if (!validKeys.contains(fieldName)) {
+                    throw new OpenSearchSecurityException(
+                        "Invalid configuration: unexpected key '"
+                            + fieldName
+                            + "'. Only 'cluster_permissions' and 'index_permissions' are allowed."
+                    );
+                }
+            }
+            ArrayNode clusterPermsArray = node.withArray("cluster_permissions");
+            List<String> clusterPermissions = new ArrayList<>(clusterPermsArray.size());
+            for (JsonNode elt : clusterPermsArray) {
+                clusterPermissions.add(elt.asText());
+            }
+            role.cluster_permissions = clusterPermissions;
+            role.index_permissions = new ArrayList<>();
+            if (node.get("index_permissions") != null) {
+                for (Iterator<JsonNode> it = node.get("index_permissions").elements(); it.hasNext();) {
+                    JsonNode indexNode = it.next();
+                    Index indexPerm = new Index();
+                    ArrayNode actionsArray = indexNode.withArray("allowed_actions");
+                    List<String> allowedActions = new ArrayList<>(actionsArray.size());
+                    for (JsonNode elt : actionsArray) {
+                        allowedActions.add(elt.asText());
+                    }
+                    indexPerm.allowed_actions = allowedActions;
+                    ArrayNode indexPatternsArray = indexNode.withArray("index_patterns");
+                    List<String> indexPatterns = new ArrayList<>(indexPatternsArray.size());
+                    for (JsonNode elt : indexPatternsArray) {
+                        indexPatterns.add(elt.asText());
+                    }
+                    indexPerm.index_patterns = indexPatterns;
+                    role.index_permissions.add(indexPerm);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
         return role;
     }
 

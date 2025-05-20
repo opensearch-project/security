@@ -1,0 +1,10 @@
+cluster_permissions:
+  - "cluster:monitor/health"
+  - "cluster:monitor/shards"
+index_permissions:
+  - index_patterns:
+      - "test-*"
+      - "index-*"
+    allowed_actions:
+      - "read"
+      - "write"
