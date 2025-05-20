@@ -26,8 +26,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Map;
-
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -84,7 +82,8 @@ public class PrivilegesInterceptor {
         final User user,
         final DynamicConfigModel config,
         final Resolved requestedResolved,
-        final Map<String, Boolean> tenants
+        final PrivilegesEvaluationContext context,
+        final TenantPrivileges tenantPrivileges
     ) {
         throw new RuntimeException("not implemented");
     }

@@ -413,4 +413,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return o instanceof Hideable && ((Hideable) o).isReserved();
     }
 
+    @JsonIgnore
+    public boolean isEmpty() {
+        return centries.isEmpty();
+    }
 }
