@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `commons-codec:commons-codec` from 1.16.1 to 1.18.0 ([#5295](https://github.com/opensearch-project/security/pull/5295))
 - Bump `net.bytebuddy:byte-buddy` from 1.15.11 to 1.17.5 ([#5313](https://github.com/opensearch-project/security/pull/5313))
 - Bump `org.awaitility:awaitility` from 4.2.2 to 4.3.0 ([#5314](https://github.com/opensearch-project/security/pull/5314))
-- Bump `org.springframework.kafka:spring-kafka-test` from 3.3.4 to 3.3.5 ([#5315](https://github.com/opensearch-project/security/pull/5315))
+- Bump `org.springframework.kafka:spring-kafka-test` from 3.3.4 to 3.3.6 ([#5315](https://github.com/opensearch-project/security/pull/5315), [#5352](https://github.com/opensearch-project/security/pull/5352))
 - Bump `com.fasterxml.jackson.core:jackson-databind` from 2.18.2 to 2.19.0 ([#5292](https://github.com/opensearch-project/security/pull/5292))
 - Bump `org.apache.commons:commons-collections4` from 4.4 to 4.5.0 ([#5316](https://github.com/opensearch-project/security/pull/5316))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.26.0 to 1.27.0 ([#5330](https://github.com/opensearch-project/security/pull/5330))
