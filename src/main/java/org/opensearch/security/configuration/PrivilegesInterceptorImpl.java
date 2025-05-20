@@ -146,8 +146,13 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
-        if (USER_TENANT.equals(requestedTenant)) {
+        boolean isPrivateTenant;
+
+        if (USER_TENANT.equals(requestedTenant) || user.getName().equals(requestedTenant)) {
             requestedTenant = user.getName();
+            isPrivateTenant = true;
+        } else {
+            isPrivateTenant = false;
         }
 
         if (isDebugEnabled && !user.getName().equals(dashboardsServerUsername)) {
@@ -161,7 +166,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
-                && tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType)) {
+                && (isPrivateTenant || tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType))) {
                 return ACCESS_GRANTED_REPLACE_RESULT;
             }
         }
@@ -175,7 +180,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("is user tenant: " + requestedTenant.equals(user.getName()));
             }
 
-            if (!tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType)) {
+            if (!isPrivateTenant && !tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType)) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 

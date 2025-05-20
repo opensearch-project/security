@@ -218,6 +218,10 @@ public class TenantPrivileges {
             }
         }
 
+        // Additionally, the private tenant is represented in the result map as the user's name.
+        // This is also not ideal, but this is also for backwards compatibility.
+        result.put(context.getUser().getName(), true);
+
         return result;
     }
 
