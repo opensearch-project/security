@@ -36,9 +36,14 @@ public class CertType implements Writeable {
     public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX, "transport");
     public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX, "transport_client");
 
+    /*
+     * REGISTERED_CERT_TYPES provides visibility of known configured certificates to certificates api.
+     * {@link org.opensearch.security.dlic.rest.api.ssl.CertificatesInfoNodesRequest}.
+     * Disabled or invalid cert configurations are still registered here.
+     */
     public static final Set<CertType> REGISTERED_CERT_TYPES = new HashSet<>(Arrays.asList(HTTP, TRANSPORT, TRANSPORT_CLIENT));
 
-    CertType(String sslConfigPrefix, String certTypeKey) {
+    public CertType(String sslConfigPrefix, String certTypeKey) {
         this.sslConfigPrefix = sslConfigPrefix;
         this.certTypeKey = certTypeKey;
     }
