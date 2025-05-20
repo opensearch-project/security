@@ -26,7 +26,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
 
-        kafka_version  = '3.7.1'
+        kafka_version  = '4.0.0'
         open_saml_version = '5.1.4'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
@@ -754,6 +754,7 @@ dependencies {
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
+    testImplementation "com.google.re2j:re2j:1.8"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
@@ -761,8 +762,14 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
+    testImplementation "org.apache.kafka:test-common:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-coordinator-common:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-group-coordinator-api:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-share-coordinator:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.9.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.5'
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M2"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.2'
