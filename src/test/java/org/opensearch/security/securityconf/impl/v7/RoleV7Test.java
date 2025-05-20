@@ -16,7 +16,11 @@ import java.net.URL;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import org.opensearch.OpenSearchSecurityException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class RoleV7Test {
 
@@ -84,7 +88,7 @@ public class RoleV7Test {
         assertTrue(role.getIndex_permissions().isEmpty());
     }
 
-    @Test(expected = Exception.class)
+    @Test(expected = OpenSearchSecurityException.class)
     public void testFromYmlFileWithInvalidYaml() throws Exception {
         // Given an invalid YAML file
         URL invalidYamlUrl = RoleV7Test.class.getResource("/test-role-invalid.yml");
