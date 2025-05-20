@@ -26,7 +26,6 @@
 
 package org.opensearch.security.securityconf;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.core.common.transport.TransportAddress;
@@ -34,10 +33,5 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.user.User;
 
 public abstract class ConfigModel {
-
-    public abstract Map<String, Boolean> mapTenants(PrivilegesEvaluationContext privilegesEvaluationContext);
-
     public abstract Set<String> mapSecurityRoles(User user, TransportAddress caller);
-
-    public abstract Set<String> getAllConfiguredTenantNames();
 }

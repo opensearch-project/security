@@ -261,7 +261,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         // rebuild v7 Models
         dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
-        cm = new ConfigModelV7(roles, rolesmapping, actionGroups, tenants, dcm, opensearchSettings);
+        cm = new ConfigModelV7(roles, rolesmapping, dcm, opensearchSettings);
 
         // notify subscribers
         eventBus.post(cm);
