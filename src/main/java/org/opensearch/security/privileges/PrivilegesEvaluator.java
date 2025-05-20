@@ -93,7 +93,6 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -232,39 +231,36 @@ public class PrivilegesEvaluator {
         SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
         SecurityDynamicConfiguration<TenantV7> tenantConfiguration
     ) {
-        if (rolesConfiguration != null) {
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                ? DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
-                : DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS));
-            FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
+        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+        rolesConfiguration = rolesConfiguration.withStaticConfig();
+        tenantConfiguration = tenantConfiguration.withStaticConfig();
+        try {
+            ActionPrivileges actionPrivileges = new ActionPrivileges(
+                rolesConfiguration,
+                flattenedActionGroups,
+                () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
+                settings,
+                pluginToClusterActions
+            );
+            Metadata metadata = clusterStateSupplier.get().metadata();
+            actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
+            ActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
+
+            if (oldInstance != null) {
+                oldInstance.shutdown();
+            }
+        } catch (Exception e) {
+            log.error("Error while updating ActionPrivileges", e);
+        }
+
+        if (!tenantConfiguration.isEmpty()) {
             try {
-                ActionPrivileges actionPrivileges = new ActionPrivileges(
-                    DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
-                    flattenedActionGroups,
-                    () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                    settings,
-                    pluginToClusterActions
-                );
-                Metadata metadata = clusterStateSupplier.get().metadata();
-                actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
-                ActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
-
-                if (oldInstance != null) {
-                    oldInstance.shutdown();
-                }
+                this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
             } catch (Exception e) {
-                log.error("Error while updating ActionPrivileges", e);
+                log.error("Error while updating TenantPrivileges", e);
             }
-
-            if (tenantConfiguration != null && !tenantConfiguration.isEmpty()) {
-                try {
-                    this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
-                } catch (Exception e) {
-                    log.error("Error while updating TenantPrivileges", e);
-                }
-            } else {
-                this.tenantPrivileges.set(TenantPrivileges.EMPTY);
-            }
+        } else {
+            this.tenantPrivileges.set(TenantPrivileges.EMPTY);
         }
     }
 
