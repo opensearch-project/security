@@ -190,6 +190,19 @@ public class TenantPrivileges {
             }
         }
 
+        // TODO
+        if ("global_tenant".equals(tenant) && context.getMappedRoles().contains("kibana_user")) {
+            if (actionTypeToRoles == null) {
+                return true;
+            }
+
+            ImmutableCompactSubSet<String> readRoles = actionTypeToRoles.get(ActionType.READ);
+
+            if (readRoles == null || !readRoles.containsAny(context.getMappedRoles())) {
+                return true;
+            }
+        }
+
         return false;
     }
 
