@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +48,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.io.IOException;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -63,7 +61,6 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
@@ -76,7 +73,6 @@ import org.opensearch.common.Priority;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.index.Index;
@@ -86,7 +82,6 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.index.shard.IndexEventListener;
 import org.opensearch.index.shard.IndexShard;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -100,13 +95,6 @@ import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
-import org.opensearch.security.configuration.SecurityConfigVersionDocument;
-import org.opensearch.security.configuration.SecurityConfigVersionDocument.SecurityConfig;
-import org.opensearch.security.configuration.SecurityConfigDiffCalculator;
-import org.opensearch.security.configuration.SecurityConfigVersionsLoader;
-import org.opensearch.security.user.User;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.SnapshotRestoreHelper.isSecurityIndexRestoredFromSnapshot;
@@ -115,7 +103,6 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
 
     private final String securityIndex;
-    private final String SecurityConfigVersionsIndex;
     private final Client client;
     private final Cache<CType<?>, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
@@ -137,14 +124,9 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
     private final SecurityIndexHandler securityIndexHandler;
 
-    private final SecurityConfigVersionsLoader configVersionsLoader;
-
-    private static final int MAX_VERSIONS_TO_KEEP = 10;
-
     // visible for testing
     protected ConfigurationRepository(
         final String securityIndex,
-        final String SecurityConfigVersionsIndex,
         final Settings settings,
         final Path configPath,
         final ThreadPool threadPool,
@@ -152,11 +134,9 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         final ClusterService clusterService,
         final AuditLog auditLog,
         final SecurityIndexHandler securityIndexHandler,
-        final ConfigurationLoaderSecurity7 configurationLoaderSecurity7,
-        final SecurityConfigVersionsLoader configVersionsLoader
+        final ConfigurationLoaderSecurity7 configurationLoaderSecurity7
     ) {
         this.securityIndex = securityIndex;
-        this.SecurityConfigVersionsIndex = SecurityConfigVersionsIndex;
         this.settings = settings;
         this.configPath = configPath;
         this.client = client;
@@ -168,7 +148,6 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         this.cl = configurationLoaderSecurity7;
         configCache = CacheBuilder.newBuilder().build();
         this.securityIndexHandler = securityIndexHandler;
-        this.configVersionsLoader = configVersionsLoader;
     }
 
     private Path resolveConfigDir() {
@@ -207,10 +186,6 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             ? (lookupDir + File.separator)
             : new Environment(settings, configPath).configDir().toAbsolutePath().resolve("opensearch-security").toString() + File.separator;
         return cd;
-    }
-
-    public Client getClient() {
-        return this.client;
     }
 
     private void initalizeClusterConfiguration(final boolean installDefaultConfig) {
@@ -323,181 +298,6 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
         } catch (Exception e) {
             LOGGER.error("Unexpected exception while initializing node " + e, e);
-        }
-    }
-
-    public static boolean isVersionIndexEnabled(Settings settings) {
-        return settings.getAsBoolean(
-            SECURITY_CONFIG_VERSION_INDEX_ENABLED,
-            SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    public String fetchNextVersionId() {
-        try {
-            SecurityConfigVersionDocument.Version<?> latestVersion = configVersionsLoader.loadLatestVersion();
-            if (latestVersion == null || latestVersion.getVersion_id() == null || !latestVersion.getVersion_id().startsWith("v")) {
-                return "v1";
-            }
-            int currentVersionNumber = Integer.parseInt(latestVersion.getVersion_id().substring(1));
-            return "v" + (currentVersionNumber + 1);
-        } catch (Exception e) {
-            LOGGER.error("Failed to fetch latest version from {}", SecurityConfigVersionsIndex, e);
-            throw new RuntimeException("Failed to fetch next version id", e);
-        }
-    }
-
-    private void writeSecurityConfigVersion(SecurityConfigVersionDocument document, long currentSeqNo, long currentPrimaryTerm) throws IOException {
-        Map<String, Object> updatedDocMap = document.toMap();
-        String json = DefaultObjectMapper.objectMapper.writeValueAsString(updatedDocMap);
-         
-        var indexRequest = new org.opensearch.action.index.IndexRequest(SecurityConfigVersionsIndex)
-            .id("opendistro_security_config_versions")
-            .source(json, XContentType.JSON)
-            .setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-         
-        if (currentSeqNo >= 0 && currentPrimaryTerm > 0) {
-            indexRequest.setIfSeqNo(currentSeqNo);
-            indexRequest.setIfPrimaryTerm(currentPrimaryTerm);
-        }
-         
-        client.index(indexRequest).actionGet();
-    }
-
-    private boolean shouldSkipVersionUpdate(SecurityConfigVersionDocument document, SecurityConfigVersionDocument.Version<?> newVersion) {
-        SecurityConfigVersionsLoader.sortVersionsById(document.getVersions());
-         
-        if (!document.getVersions().isEmpty()) {
-            SecurityConfigVersionDocument.Version<?> latestVersion = document.getVersions().get(document.getVersions().size() - 1);
-            Map<String, SecurityConfig<?>> latestConfigMap = latestVersion.getSecurity_configs();
-            Map<String, SecurityConfig<?>> newConfigMap = newVersion.getSecurity_configs();
-         
-            if (!SecurityConfigDiffCalculator.hasSecurityConfigChanged(latestConfigMap, newConfigMap)) {
-                LOGGER.info("No changes detected in security configuration. Skipping version update.");
-                return true;
-            }
-        }
-         
-        return false;
-    }
-
-    public <T> void saveCurrentVersionToSystemIndex(SecurityConfigVersionDocument.Version<T> version) {
-        try {
-            SecurityConfigVersionDocument document = configVersionsLoader.loadFullDocument();
-            if (shouldSkipVersionUpdate(document, version)) {
-                return;
-            }
-            // Otherwise, add the new version and update the document
-            document.addVersion(version);
-            writeSecurityConfigVersion(document, document.getSeqNo(), document.getPrimaryTerm());
-     
-            LOGGER.info("Successfully saved version {} to {}", version.getVersion_id(), SecurityConfigVersionsIndex);
-    
-            // Async retention task
-            threadPool.generic().submit(() -> {
-                try {
-                    applySecurityConfigVersionIndexRetentionPolicy();
-                } catch (Exception e) {
-                     LOGGER.warn("Retention policy async failed", e);
-                }
-            });
-     
-            } catch (org.opensearch.index.engine.VersionConflictEngineException conflictEx) {
-                LOGGER.warn("Concurrent update detected on {}", SecurityConfigVersionsIndex);
-            }
-        catch (Exception e) {
-            LOGGER.error("Failed to save version to {}", SecurityConfigVersionsIndex, e);
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public SecurityConfigVersionDocument.Version<?> buildVersionFromSecurityIndex(String versionId, String modified_by) throws IOException {
-        Instant now = Instant.now();
-        String timestamp = now.toString();
-        
-        SecurityConfigVersionDocument.Version<?> version = new SecurityConfigVersionDocument.Version<>(versionId, timestamp, new HashMap<>(), modified_by);
-        
-        ConfigurationMap allConfigs = getConfigurationsFromIndex(CType.values(), false);
-        
-        for (CType<?> cType : CType.values()) {
-            SecurityDynamicConfiguration<?> dynamicConfig = allConfigs.get(cType);
-            
-            if (dynamicConfig == null || dynamicConfig.getCEntries() == null || dynamicConfig.getCEntries().isEmpty()) {
-                version.addSecurityConfig(cType.toLCString(), new SecurityConfigVersionDocument.SecurityConfig<>(timestamp, new HashMap<>()));
-            } else {
-                version.addSecurityConfig(cType.toLCString(), 
-                    new SecurityConfigVersionDocument.SecurityConfig(timestamp, new TreeMap<>(dynamicConfig.getCEntries())));
-            }
-        }
-        
-        return version;
-    }
-    
-    public void updateSecurityConfigVersionAfterUpdate() {
-        if (!isVersionIndexEnabled(settings)) {
-            LOGGER.info("Skipping version update: security config version index is disabled");
-            return;
-        }
-        try {
-            String nextVersionId = fetchNextVersionId();
-            final ThreadContext threadContext = threadPool.getThreadContext();
-            User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            String userinfo = (user != null) ? user.getName() : "unknown";
-            
-            //Build version from .opensearch_security
-            SecurityConfigVersionDocument.Version<?> newVersion = buildVersionFromSecurityIndex(nextVersionId, userinfo);
-            if (newVersion == null) {
-                LOGGER.warn("Skipping version update: newVersion is null");
-                return;
-            }
- 
-            SecurityConfigVersionDocument document = configVersionsLoader.loadFullDocument();
-
-           if (shouldSkipVersionUpdate(document, newVersion)) {
-               return;
-           }
-    
-            document.addVersion(newVersion);
-            writeSecurityConfigVersion(document, document.getSeqNo(), document.getPrimaryTerm());
-            LOGGER.info("Successfully saved new security config version {}", newVersion.getVersion_id());
-
-            // Async retention task
-          threadPool.generic().submit(() -> {
-              try {
-                  applySecurityConfigVersionIndexRetentionPolicy();
-              } catch (Exception e) {
-                  LOGGER.warn("Retention policy async failed", e);
-              }
-          });
-    
-            } catch (org.opensearch.index.engine.VersionConflictEngineException conflictEx) {
-                LOGGER.warn("Concurrent update detected on {}", SecurityConfigVersionsIndex);
-        } catch (Exception e) {
-            LOGGER.error("Failed to update security config version doc", e);
-        }
-    }
-
-    public void applySecurityConfigVersionIndexRetentionPolicy() {
-        SecurityConfigVersionDocument document = configVersionsLoader.loadFullDocument();
-        List<SecurityConfigVersionDocument.Version<?>> versions = document.getVersions();
-
-        SecurityConfigVersionsLoader.sortVersionsById(versions);
-
-        if (versions.size() > MAX_VERSIONS_TO_KEEP) {
-            int numVersionsToDelete = versions.size() - MAX_VERSIONS_TO_KEEP;
-            LOGGER.info("Applying retention policy: deleting {} old security config versions", numVersionsToDelete);
-
-            for (int i = 0; i < numVersionsToDelete; i++) {
-                versions.remove(0);
-            }
-
-            try {
-                writeSecurityConfigVersion(document, document.getSeqNo(), document.getPrimaryTerm());
-            } catch (Exception e) {
-                LOGGER.warn("Failed to write document after pruning old versions", e);
-            }
         }
     }
 
@@ -686,13 +486,8 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
-        final var SecurityConfigVersionsIndex = settings.get(
-              ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
-              ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX
-        );
         return new ConfigurationRepository(
             securityIndex,
-            SecurityConfigVersionsIndex,
             settings,
             configPath,
             threadPool,
@@ -700,8 +495,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             clusterService,
             auditLog,
             new SecurityIndexHandler(securityIndex, settings, client),
-            new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService),
-            new SecurityConfigVersionsLoader(client, settings)
+            new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService)
         );
     }
 

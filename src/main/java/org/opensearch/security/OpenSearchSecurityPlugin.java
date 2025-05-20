@@ -2143,7 +2143,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            //Security Config Version Index
+            // Security Config Version Index
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED,

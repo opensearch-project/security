@@ -1,42 +1,69 @@
+/*
+ * Copyright 2015-2018 _floragunn_ GmbH
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
 package org.opensearch.security.configuration;
- 
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
- 
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
- 
+
 // Represents the document structure for the .opendistro_security_config_versions system index.
 public class SecurityConfigVersionDocument {
- 
+
     private long seqNo = -1;
     private long primaryTerm = -1;
- 
+
     private final List<Version<?>> versions;
- 
+
     @JsonCreator
     public SecurityConfigVersionDocument(@JsonProperty("versions") List<Version<?>> versions) {
         this.versions = (versions != null) ? versions : new ArrayList<>();
     }
- 
+
     // No-arg constructor
     public SecurityConfigVersionDocument() {
         this.versions = new ArrayList<>();
     }
- 
+
     @JsonProperty("versions")
     public List<Version<?>> getVersions() {
         return versions;
     }
- 
+
     public void addVersion(Version<?> version) {
         versions.add(version);
     }
- 
+
     public Map<String, Object> toMap() {
         Map<String, Object> docMap = new HashMap<>();
         List<Map<String, Object>> versionsList = new ArrayList<>();
@@ -46,30 +73,30 @@ public class SecurityConfigVersionDocument {
         docMap.put("versions", versionsList);
         return docMap;
     }
- 
+
     public long getSeqNo() {
         return seqNo;
     }
- 
+
     public void setSeqNo(long seqNo) {
         this.seqNo = seqNo;
     }
- 
+
     public long getPrimaryTerm() {
         return primaryTerm;
     }
- 
+
     public void setPrimaryTerm(long primaryTerm) {
         this.primaryTerm = primaryTerm;
     }
- 
+
     public static class Version<T> {
         private final String version_id;
         private final String timestamp;
         private final Map<String, SecurityConfig<?>> security_configs;
- 
+
         private final String modified_by;
- 
+
         @JsonCreator
         public Version(
             @JsonProperty("version_id") String version_id,
@@ -82,31 +109,31 @@ public class SecurityConfigVersionDocument {
             this.security_configs = (security_configs != null) ? security_configs : new HashMap<>();
             this.modified_by = modified_by;
         }
- 
+
         @JsonProperty("version_id")
         public String getVersion_id() {
             return version_id;
         }
- 
+
         @JsonProperty("timestamp")
         public String getTimestamp() {
             return timestamp;
         }
- 
+
         @JsonProperty("security_configs")
         public Map<String, SecurityConfig<?>> getSecurity_configs() {
             return security_configs;
         }
- 
+
         @JsonProperty("modified_by")
         public String getModified_by() {
             return modified_by;
         }
- 
+
         public void addSecurityConfig(String type, SecurityConfig<?> config) {
             security_configs.put(type, config);
         }
- 
+
         public Map<String, Object> toMap() {
             Map<String, Object> versionMap = new HashMap<>();
             versionMap.put("version_id", version_id);
@@ -120,11 +147,11 @@ public class SecurityConfigVersionDocument {
             return versionMap;
         }
     }
- 
+
     public static class SecurityConfig<T> {
         private final String lastUpdated;
         private final Map<String, SecurityDynamicConfiguration<T>> configData;
- 
+
         @JsonCreator
         public SecurityConfig(
             @JsonProperty("lastUpdated") String lastUpdated,
@@ -133,17 +160,17 @@ public class SecurityConfigVersionDocument {
             this.lastUpdated = lastUpdated;
             this.configData = (configData != null) ? configData : new HashMap<>();
         }
- 
+
         @JsonProperty("lastUpdated")
         public String getLastUpdated() {
             return lastUpdated;
         }
- 
+
         @JsonProperty("configData")
         public Map<String, SecurityDynamicConfiguration<T>> getConfigData() {
             return configData;
         }
- 
+
         public Map<String, Object> toMap() {
             Map<String, Object> scMap = new HashMap<>();
             scMap.put("lastUpdated", lastUpdated);

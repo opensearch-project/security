@@ -41,6 +41,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -48,6 +49,7 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
@@ -64,8 +66,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
-import org.opensearch.security.configuration.ConfigVersionInitializer;
-import org.opensearch.common.util.concurrent.ThreadContext;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
@@ -128,6 +128,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final InternalAuthenticationBackend iab;
     private final ClusterInfoHolder cih;
     private final ThreadPool threadPool;
+    private final Client client;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -147,6 +148,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.cih = cih;
         this.iab = new InternalAuthenticationBackend(passwordHasher);
         this.threadPool = threadPool;
+        this.client = client;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -157,6 +159,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         } else {
             log.info("Static resources will not be loaded.");
         }
+
+        ThreadContext threadContext = threadPool.getThreadContext();
+        registerDCFListener(new SecurityConfigVersionHandler(cr, opensearchSettings, threadContext, threadPool, client));
 
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
@@ -278,15 +283,12 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             eventBus.post(audit == null ? defaultAuditConfig : audit);
         }
 
-        ThreadContext threadContext = threadPool.getThreadContext();
-        registerDCFListener(new ConfigVersionInitializer(cr, opensearchSettings, threadContext));
-
-        eventBus.post(new ConfigInitializedEvent());
+        eventBus.post(new SecurityConfigChangeEvent());
 
         initialized.set(true);
     }
 
-    public static class ConfigInitializedEvent {}
+    public static class SecurityConfigChangeEvent {}
 
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
