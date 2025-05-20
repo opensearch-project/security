@@ -251,7 +251,7 @@ public class TenantPrivilegesTest {
                 """, CType.TENANTS);
 
             TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
-            assertEquals(Map.of("tenant_a1", true, "tenant_a2", false), subject.tenantMap(ctx("test_role")));
+            assertEquals(Map.of("test_user", true, "tenant_a1", true, "tenant_a2", false), subject.tenantMap(ctx("test_role")));
         }
 
         @Test
