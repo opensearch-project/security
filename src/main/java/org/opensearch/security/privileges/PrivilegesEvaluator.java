@@ -253,14 +253,10 @@ public class PrivilegesEvaluator {
             log.error("Error while updating ActionPrivileges", e);
         }
 
-        if (!tenantConfiguration.isEmpty()) {
-            try {
-                this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
-            } catch (Exception e) {
-                log.error("Error while updating TenantPrivileges", e);
-            }
-        } else {
-            this.tenantPrivileges.set(TenantPrivileges.EMPTY);
+        try {
+            this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
+        } catch (Exception e) {
+            log.error("Error while updating TenantPrivileges", e);
         }
     }
 
