@@ -112,71 +112,71 @@ public final class SSLConfigConstants {
 
     // aux enable settings
     public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
-    public static final Setting<Boolean> SECURITY_SSL_AUX_ENABLED = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<Boolean> SECURITY_SSL_AUX_ENABLED = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.ENABLED,
         key -> Setting.boolSetting(key, SECURITY_SSL_AUX_ENABLED_DEFAULT, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<List<String>> SECURITY_SSL_AUX_ENABLED_CIPHERS = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<List<String>> SECURITY_SSL_AUX_ENABLED_CIPHERS = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.ENABLED_CIPHERS,
         key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
     );
-    public static final Setting<List<String>> SECURITY_SSL_AUX_ENABLED_PROTOCOLS = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<List<String>> SECURITY_SSL_AUX_ENABLED_PROTOCOLS = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.ENABLED_PROTOCOLS,
         key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
     );
 
     // aux keystore settings
-    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_TYPE = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_TYPE = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.KEYSTORE_TYPE,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_ALIAS = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_ALIAS = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.KEYSTORE_ALIAS,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_KEYSTORE_FILEPATH = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.KEYSTORE_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_PEMKEY_FILEPATH = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMKEY_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.PEM_KEY_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_PEMCERT_FILEPATH = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMCERT_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.PEM_CERT_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
 
     // aux truststore settings
-    public static final Setting<String> SECURITY_SSL_AUX_CLIENTAUTH_MODE = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_CLIENTAUTH_MODE = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.CLIENT_AUTH_MODE,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_TYPE = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_TYPE = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.TRUSTSTORE_TYPE,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.TRUSTSTORE_ALIAS,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.TRUSTSTORE_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
-    public static final Setting<String> SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = Setting.affixKeySetting(
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
