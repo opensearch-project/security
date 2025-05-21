@@ -140,8 +140,8 @@ public class SslSettingsManager {
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
         final Settings settings = environment.settings();
         final ImmutableMap.Builder<CertType, SslConfiguration> configurationBuilder = ImmutableMap.builder();
-        if (settings.getByPrefix(CertType.HTTP.sslConfigPrefix()).isEmpty()
-            && settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix()).isEmpty()) {
+        if (settings.getByPrefix(CertType.HTTP.sslSettingPrefix()).isEmpty()
+            && settings.getByPrefix(CertType.TRANSPORT.sslSettingPrefix()).isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
@@ -151,14 +151,14 @@ public class SslSettingsManager {
          * Registered all configured aux transports as new CertTypes.
          */
         for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(environment.settings())) {
-            final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType, auxType);
+            final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType + ".");
             final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSetting(auxType);
             REGISTERED_CERT_TYPES.add(auxCert);
             if (auxEnabled.get(settings) && !clientNode(settings)) {
                 validateSettings(auxCert, settings, false);
                 final SslParameters auxSslParameters = SslParameters.loader(auxCert, settings).load();
                 final Tuple<TrustStoreConfiguration, KeyStoreConfiguration> auxTrustAndKeyStore = new SslCertificatesLoader(
-                    auxCert.sslConfigPrefix()
+                    auxCert.sslSettingPrefix()
                 ).loadConfiguration(environment);
                 configurationBuilder.put(
                     auxCert,
@@ -172,11 +172,11 @@ public class SslSettingsManager {
         /*
          * Load HTTP SslConfiguration.
          */
-        final boolean httpEnabled = settings.getAsBoolean(CertType.HTTP.sslConfigPrefix() + ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
+        final boolean httpEnabled = settings.getAsBoolean(CertType.HTTP.sslSettingPrefix() + ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         if (httpEnabled && !clientNode(settings)) {
             validateSettings(CertType.HTTP, settings, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
             final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
-            final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslConfigPrefix()).loadConfiguration(environment);
+            final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslSettingPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
                 CertType.HTTP,
                 new SslConfiguration(httpSslParameters, httpTrustAndKeyStore.v1(), httpTrustAndKeyStore.v2())
@@ -188,13 +188,13 @@ public class SslSettingsManager {
         /*
          * Load transport layer SslConfigurations.
          */
-        final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
+        final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslSettingPrefix());
         final SslParameters transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
         if (transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT)) {
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
                 validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
-                    CertType.TRANSPORT.sslConfigPrefix(),
+                    CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_SERVER_EXTENDED_PREFIX
                 ).loadConfiguration(environment);
                 configurationBuilder.put(
@@ -202,7 +202,7 @@ public class SslSettingsManager {
                     new SslConfiguration(transportSslParameters, transportServerTrustAndKeyStore.v1(), transportServerTrustAndKeyStore.v2())
                 );
                 final var transportClientTrustAndKeyStore = new SslCertificatesLoader(
-                    CertType.TRANSPORT.sslConfigPrefix(),
+                    CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX
                 ).loadConfiguration(environment);
                 configurationBuilder.put(
@@ -211,7 +211,7 @@ public class SslSettingsManager {
                 );
             } else {
                 validateTransportSettings(transportSettings);
-                final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslConfigPrefix()).loadConfiguration(
+                final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslSettingPrefix()).loadConfiguration(
                     environment
                 );
                 configurationBuilder.put(
@@ -281,7 +281,7 @@ public class SslSettingsManager {
      * @param settings {@link org.opensearch.env.Environment} settings.
      */
     private void validateSettings(final CertType certType, final Settings settings, final boolean enabled_default) {
-        final Settings certSettings = settings.getByPrefix(certType.sslConfigPrefix());
+        final Settings certSettings = settings.getByPrefix(certType.sslSettingPrefix());
         if (certSettings.isEmpty()) return;
         if (!certSettings.getAsBoolean(ENABLED, enabled_default)) return;
         if (hasPemStoreSettings(certSettings)) {
@@ -309,7 +309,7 @@ public class SslSettingsManager {
      * @param settings {@link org.opensearch.env.Environment} settings.
      */
     private void validatePemStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
-        final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
+        final var transportSettings = settings.getByPrefix(transportType.sslSettingPrefix());
         final var clientAuth = ClientAuth.valueOf(
             transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
         );
@@ -342,7 +342,7 @@ public class SslSettingsManager {
      * @param settings {@link org.opensearch.env.Environment} settings.
      */
     private void validateKeyStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
-        final var transportSettings = settings.getByPrefix(transportType.sslConfigPrefix());
+        final var transportSettings = settings.getByPrefix(transportType.sslSettingPrefix());
         final var clientAuth = ClientAuth.valueOf(
             transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
         );
