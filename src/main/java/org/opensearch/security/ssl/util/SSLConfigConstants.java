@@ -26,6 +26,8 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
 
+import io.netty.handler.ssl.ClientAuth;
+
 public final class SSLConfigConstants {
     /**
      * Global configurations
@@ -216,6 +218,12 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = SSL_TRANSPORT_PREFIX
         + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
+
+    /*
+    On the transport layer we enforce ClientAuth.REQUIRE.
+    This setting is fixed and not exposed to users.
+     */
+    public static final ClientAuth SECURITY_SSL_TRANSPORT_CLIENTAUTH_MODE_DEFAULT = ClientAuth.REQUIRE;
 
     // transport server keystore settings
     public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = SSL_TRANSPORT_SERVER_PREFIX + KEYSTORE_ALIAS;

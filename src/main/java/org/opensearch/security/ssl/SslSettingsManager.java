@@ -140,9 +140,8 @@ public class SslSettingsManager {
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
         final Settings settings = environment.settings();
         final ImmutableMap.Builder<CertType, SslConfiguration> configurationBuilder = ImmutableMap.builder();
-        final Settings httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
-        final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
-        if (httpSettings.isEmpty() && transportSettings.isEmpty()) {
+        if (settings.getByPrefix(CertType.HTTP.sslConfigPrefix()).isEmpty()
+            && settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix()).isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
@@ -153,12 +152,11 @@ public class SslSettingsManager {
          */
         for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(environment.settings())) {
             final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType, auxType);
-            final Settings auxTransportSettings = settings.getByPrefix(auxCert.sslConfigPrefix());
             final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSetting(auxType);
             REGISTERED_CERT_TYPES.add(auxCert);
             if (auxEnabled.get(settings) && !clientNode(settings)) {
                 validateSettings(auxCert, settings, false);
-                final SslParameters auxSslParameters = SslParameters.loader(auxTransportSettings).load(true);
+                final SslParameters auxSslParameters = SslParameters.loader(auxCert, settings).load();
                 final Tuple<TrustStoreConfiguration, KeyStoreConfiguration> auxTrustAndKeyStore = new SslCertificatesLoader(
                     auxCert.sslConfigPrefix()
                 ).loadConfiguration(environment);
@@ -174,10 +172,10 @@ public class SslSettingsManager {
         /*
          * Load HTTP SslConfiguration.
          */
-        final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
+        final boolean httpEnabled = settings.getAsBoolean(CertType.HTTP.sslConfigPrefix() + ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         if (httpEnabled && !clientNode(settings)) {
             validateSettings(CertType.HTTP, settings, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-            final var httpSslParameters = SslParameters.loader(httpSettings).load(true);
+            final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
             final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslConfigPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
                 CertType.HTTP,
@@ -190,9 +188,9 @@ public class SslSettingsManager {
         /*
          * Load transport layer SslConfigurations.
          */
-        final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
-        final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
-        if (transportEnabled) {
+        final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
+        final SslParameters transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
+        if (transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT)) {
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
                 validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
