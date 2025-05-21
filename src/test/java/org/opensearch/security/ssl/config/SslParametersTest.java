@@ -32,16 +32,14 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_H
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 
 public class SslParametersTest {
 
     @Test
     public void testDefaultSslParameters() throws Exception {
         final var settings = Settings.EMPTY;
-        final var httpSslParameters = SslParameters.loader(settings).load(true);
-        final var transportSslParameters = SslParameters.loader(settings).load(false);
+        final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
+        final var transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
 
         final var defaultCiphers = List.of(ALLOWED_SSL_CIPHERS);
         final var finalDefaultCiphers = Stream.of(SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites())
@@ -71,8 +69,8 @@ public class SslParametersTest {
             .putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1.3", "TLSv1.2"))
             .putList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"))
             .build();
-        final var httpSslParameters = SslParameters.loader(settings.getByPrefix(SSL_HTTP_PREFIX)).load(true);
-        final var transportSslParameters = SslParameters.loader(settings.getByPrefix(SSL_TRANSPORT_PREFIX)).load(false);
+        final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
+        final var transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
 
         assertThat(httpSslParameters.provider(), is(SslProvider.JDK));
         assertThat(transportSslParameters.provider(), is(SslProvider.JDK));
