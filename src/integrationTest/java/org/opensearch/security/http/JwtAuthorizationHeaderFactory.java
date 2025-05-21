@@ -55,7 +55,6 @@ class JwtAuthorizationHeaderFactory {
             .setExpiration(new Date(now.getTime() + 3600 * 1000))
             .signWith(privateKey, RS256)
             .compact();
-        System.out.println("Generated token: " + token);
         return toHeader(token);
     }
 
