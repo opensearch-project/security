@@ -61,6 +61,8 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;
     private static final Set<CType<?>> SELECTIVE_VALIDATION_TYPES = Set.of(CType.INTERNALUSERS);
+    // Note: While INTERNALUSERS is used as a marker, the cache invalidation
+    // applies to all user types (internal, LDAP, etc.)
 
     @Inject
     public TransportConfigUpdateAction(
