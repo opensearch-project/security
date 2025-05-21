@@ -14,6 +14,7 @@ package org.opensearch.security.ssl.config;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -66,5 +67,18 @@ public class CertType implements Writeable {
 
     public String name() {
         return certTypeKey;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CertType certType = (CertType) o;
+        return sslConfigSettingPrefix.equals(certType.sslConfigSettingPrefix);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sslConfigSettingPrefix);
     }
 }

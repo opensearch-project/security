@@ -90,8 +90,8 @@ public class SslSettingsManager {
         return Optional.ofNullable(sslSettingsContexts.get(certType)).map(SslContextHandler::sslConfiguration);
     }
 
-    public Optional<SslContextHandler> sslContextHandler(final CertType sslConfigPrefix) {
-        return Optional.ofNullable(sslSettingsContexts.get(sslConfigPrefix));
+    public Optional<SslContextHandler> sslContextHandler(final CertType certType) {
+        return Optional.ofNullable(sslSettingsContexts.get(certType));
     }
 
     /**
@@ -152,7 +152,7 @@ public class SslSettingsManager {
          */
         for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(environment.settings())) {
             final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType + ".");
-            final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSetting(auxType);
+            final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(auxType);
             REGISTERED_CERT_TYPES.add(auxCert);
             if (auxEnabled.get(settings) && !clientNode(settings)) {
                 validateSettings(auxCert, settings, false);
