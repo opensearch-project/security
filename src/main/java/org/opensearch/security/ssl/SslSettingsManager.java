@@ -96,26 +96,31 @@ public class SslSettingsManager {
 
     /**
      * Load and validate environment configuration for available CertTypes.
-     * For each valid CertType
      * @param environment settings and JDK environment.
      */
     private Map<CertType, SslContextHandler> buildSslContexts(final Environment environment) {
         final ImmutableMap.Builder<CertType, SslContextHandler> contexts = new ImmutableMap.Builder<>();
         final Map<CertType, SslConfiguration> configurations = loadConfigurations(environment);
         configurations.forEach((cert, sslConfig) -> {
-            // Handle TRANSPORT_CLIENT
-            // SslContextHandler configured as client and falls back to CertType.TRANSPORT sslConfiguration
-            if (cert == CertType.TRANSPORT_CLIENT) {
-                final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
-                    .orElse(sslConfig);
-                contexts.put(CertType.TRANSPORT_CLIENT, new SslContextHandler(transportClientConfiguration, true));
-            } else {
-                Optional.ofNullable(configurations.get(cert))
-                    .ifPresentOrElse(
-                        sslConfiguration -> contexts.put(cert, new SslContextHandler(sslConfiguration)),
-                        () -> LOGGER.warn("SSL Configuration for " + cert.name() + " Layer hasn't been set")
-                    );
+            // TRANSPORT/TRANSPORT_CLIENT are exceptions.
+            if (cert == CertType.TRANSPORT) {
+                Optional.ofNullable(configurations.get(CertType.TRANSPORT)).ifPresentOrElse(sslConfiguration -> {
+                    contexts.put(CertType.TRANSPORT, new SslContextHandler(sslConfiguration));
+                    final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
+                        .orElse(sslConfiguration);
+                    contexts.put(CertType.TRANSPORT_CLIENT, new SslContextHandler(transportClientConfiguration, true));
+                }, () -> LOGGER.warn("SSL Configuration for Transport Layer hasn't been set"));
+                return;
+            } else if (cert == CertType.TRANSPORT_CLIENT) {
+                return; // TRANSPORT_CLIENT is handled in TRANSPORT case. Skip.
             }
+
+            // Load all other configurations into SslContextHandlers.
+            Optional.ofNullable(configurations.get(cert))
+                .ifPresentOrElse(
+                    sslConfiguration -> contexts.put(cert, new SslContextHandler(sslConfiguration)),
+                    () -> LOGGER.warn("SSL Configuration for {} Layer hasn't been set", cert.name())
+                );
         });
         return contexts.build();
     }
