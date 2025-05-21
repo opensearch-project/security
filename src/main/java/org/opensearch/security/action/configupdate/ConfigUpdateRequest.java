@@ -42,7 +42,7 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     public ConfigUpdateRequest(StreamInput in) throws IOException {
         super(in);
         this.configTypes = in.readStringArray();
-        if (in.getVersion().onOrAfter(Version.V_3_0_0)) {
+        if (in.getVersion().onOrAfter(Version.V_3_1_0)) {
             this.entityNames = in.readOptionalStringArray();
         }
     }
@@ -66,7 +66,7 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeStringArray(configTypes);
-        if (out.getVersion().onOrAfter(Version.V_3_0_0)) {
+        if (out.getVersion().onOrAfter(Version.V_3_1_0)) {
             out.writeOptionalStringArray(entityNames);
         }
     }
