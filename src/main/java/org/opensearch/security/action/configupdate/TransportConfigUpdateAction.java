@@ -27,7 +27,6 @@
 package org.opensearch.security.action.configupdate;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -61,8 +60,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;
-    private static final Set<CType<?>> SELECTIVE_VALIDATION_TYPES = 
-    Set.of(CType.INTERNALUSERS);
+    private static final Set<CType<?>> SELECTIVE_VALIDATION_TYPES = Set.of(CType.INTERNALUSERS);
 
     @Inject
     public TransportConfigUpdateAction(
@@ -142,11 +140,11 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     }
 
     private boolean canHandleSelectively(ConfigUpdateRequest request) {
-    return request.getConfigTypes() != null
-        && request.getEntityNames() != null
-        && request.getConfigTypes().length == 1
-        && request.getEntityNames().length > 0
-        && SELECTIVE_VALIDATION_TYPES.contains(CType.fromString(request.getConfigTypes()[0]));
+        return request.getConfigTypes() != null
+            && request.getEntityNames() != null
+            && request.getConfigTypes().length == 1
+            && request.getEntityNames().length > 0
+            && SELECTIVE_VALIDATION_TYPES.contains(CType.fromString(request.getConfigTypes()[0]));
     }
 
     @Override
