@@ -29,6 +29,7 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.X509CertificateHolder;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.config.TrustStoreConfiguration;
@@ -295,7 +296,7 @@ public class SslContextHandlerTest {
     // CS-ENFORCE-SINGLE
 
     SslContextHandler sslContextHandler() {
-        final var sslParameters = SslParameters.loader(Settings.EMPTY).load(false);
+        final var sslParameters = SslParameters.loader(CertType.TRANSPORT, Settings.EMPTY).load();
         final var trustStoreConfiguration = new TrustStoreConfiguration.PemTrustStoreConfiguration(caCertificatePath);
         final var keyStoreConfiguration = new KeyStoreConfiguration.PemKeyStoreConfiguration(
             accessCertificatePath,
