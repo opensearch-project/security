@@ -67,6 +67,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.util.CertFileProps;
 import org.opensearch.security.ssl.util.CertFromFile;
 import org.opensearch.security.ssl.util.CertFromKeystore;
@@ -806,16 +807,16 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     private void initEnabledSSLCiphers() {
 
         final ImmutableSet<String> allowedSecureHttpSSLCiphers = ImmutableSet.copyOf(
-            SSLConfigConstants.getSecureSSLCiphers(settings, true)
+            SSLConfigConstants.getSecureSSLCiphers(settings, CertType.HTTP)
         );
         final ImmutableSet<String> allowedSecureTransportSSLCiphers = ImmutableSet.copyOf(
-            SSLConfigConstants.getSecureSSLCiphers(settings, false)
+            SSLConfigConstants.getSecureSSLCiphers(settings, CertType.TRANSPORT)
         );
         final ImmutableSet<String> allowedSecureHttpSSLProtocols = ImmutableSet.copyOf(
-            (SSLConfigConstants.getSecureSSLProtocols(settings, true))
+            (SSLConfigConstants.getSecureSSLProtocols(settings, CertType.HTTP))
         );
         final ImmutableSet<String> allowedSecureTransportSSLProtocols = ImmutableSet.copyOf(
-            SSLConfigConstants.getSecureSSLProtocols(settings, false)
+            SSLConfigConstants.getSecureSSLProtocols(settings, CertType.TRANSPORT)
         );
 
         SSLEngine engine = null;

@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.config.CertType;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS;
@@ -24,13 +25,13 @@ public class SSLConfigConstantsTest {
 
     @Test
     public void testDefaultTLSProtocols() {
-        final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false);
+        final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT);
         assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, tlsDefaultProtocols);
     }
 
     @Test
     public void testDefaultSSLProtocols() {
-        final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, true);
+        final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.HTTP);
         assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, sslDefaultProtocols);
     }
 
@@ -38,7 +39,7 @@ public class SSLConfigConstantsTest {
     public void testCustomTLSProtocols() {
         final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(
             Settings.builder().putList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, List.of("TLSv1", "TLSv1.1")).build(),
-            false
+            CertType.TRANSPORT
         );
         assertArrayEquals(new String[] { "TLSv1", "TLSv1.1" }, tlsDefaultProtocols);
     }
@@ -47,7 +48,7 @@ public class SSLConfigConstantsTest {
     public void testCustomSSLProtocols() {
         final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(
             Settings.builder().putList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, List.of("TLSv1", "TLSv1.1")).build(),
-            true
+            CertType.HTTP
         );
         assertArrayEquals(new String[] { "TLSv1", "TLSv1.1" }, sslDefaultProtocols);
     }
