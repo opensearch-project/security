@@ -29,6 +29,7 @@ package org.opensearch.security.action.configupdate;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,6 +61,8 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;
+    private static final Set<CType<?>> SELECTIVE_VALIDATION_TYPES = 
+    Set.of(CType.INTERNALUSERS);
 
     @Inject
     public TransportConfigUpdateAction(
@@ -127,11 +130,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         final var configupdateRequest = request.request;
-        if (configupdateRequest.getConfigTypes() != null
-            && configupdateRequest.getEntityNames() != null
-            && configupdateRequest.getConfigTypes().length == 1
-            && Arrays.asList(configupdateRequest.getConfigTypes()).contains(CType.INTERNALUSERS.toLCString())
-            && configupdateRequest.getEntityNames().length > 0) {
+        if (canHandleSelectively(configupdateRequest)) {
             backendRegistry.get().invalidateUserCache(configupdateRequest.getEntityNames());
         } else {
             boolean didReload = configurationRepository.reloadConfiguration(CType.fromStringValues((configupdateRequest.getConfigTypes())));
@@ -140,6 +139,14 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
             }
         }
         return new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null);
+    }
+
+    private boolean canHandleSelectively(ConfigUpdateRequest request) {
+    return request.getConfigTypes() != null
+        && request.getEntityNames() != null
+        && request.getConfigTypes().length == 1
+        && request.getEntityNames().length > 0
+        && SELECTIVE_VALIDATION_TYPES.contains(CType.fromString(request.getConfigTypes()[0]));
     }
 
     @Override
