@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.config.CertType;
 
 public final class SSLConfigConstants {
     /**
@@ -245,21 +246,19 @@ public final class SSLConfigConstants {
         + "resolve_hostname";
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
-    public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
-        List<String> configuredProtocols = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
-            } else {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
-            }
+    public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
+        List<String> configuredCiphers = settings.getAsList(certType.sslConfigPrefix() + ENABLED_CIPHERS, Collections.emptyList());
+        if (configuredCiphers != null && !configuredCiphers.isEmpty()) {
+            return configuredCiphers;
         }
+        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
+    }
 
-        if (configuredProtocols != null && configuredProtocols.size() > 0) {
+    public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
+        List<String> configuredProtocols = settings.getAsList(certType.sslConfigPrefix() + ENABLED_PROTOCOLS, Collections.emptyList());
+        if (configuredProtocols != null && !configuredProtocols.isEmpty()) {
             return configuredProtocols.toArray(new String[0]);
         }
-
         return ALLOWED_SSL_PROTOCOLS.clone();
     }
 
@@ -377,27 +376,5 @@ public final class SSLConfigConstants {
     };
     // @formatter:on
 
-    public static List<String> getSecureSSLCiphers(Settings settings, boolean http) {
-
-        List<String> configuredCiphers = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
-            } else {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
-            }
-        }
-
-        if (configuredCiphers != null && configuredCiphers.size() > 0) {
-            return configuredCiphers;
-        }
-
-        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
-    }
-
-    private SSLConfigConstants() {
-
-    }
-
+    private SSLConfigConstants() {}
 }
