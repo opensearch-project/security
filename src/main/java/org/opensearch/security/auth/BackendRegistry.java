@@ -192,23 +192,23 @@ public class BackendRegistry {
             return;
         }
 
-        List<String> usernamesAsList = Arrays.asList(usernames);
+        Set<String> usernamesAsSet = new HashSet<>(Arrays.asList(usernames));
 
         // Invalidate entries in the userCache by iterating over the keys and matching the username.
         userCache.asMap()
             .keySet()
             .stream()
-            .filter(authCreds -> usernamesAsList.contains(authCreds.getUsername()))
+            .filter(authCreds -> usernamesAsSet.contains(authCreds.getUsername()))
             .forEach(userCache::invalidate);
 
         // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
-        restImpersonationCache.invalidateAll(usernamesAsList);
+        restImpersonationCache.invalidateAll(usernamesAsSet);
 
         // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
-        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsList.contains(user.getName())).forEach(restRoleCache::invalidate);
+        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsSet.contains(user.getName())).forEach(restRoleCache::invalidate);
 
         // If the user isn't found it still says this, which could be bad
-        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernames));
+        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernamesAsSet));
     }
 
     @Subscribe
