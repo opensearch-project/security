@@ -29,12 +29,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
  * the setting prefix under which configuration settings are located.
  */
 public class CertType implements Writeable {
-    private final String sslConfigPrefix;
+    private final String sslConfigSettingPrefix;
     private final String certTypeKey;
 
-    public static CertType HTTP = new CertType(SSL_HTTP_PREFIX, "http");
-    public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX, "transport");
-    public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX, "transport_client");
+    public static CertType HTTP = new CertType(SSL_HTTP_PREFIX);
+    public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX);
+    public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX);
 
     /*
      * REGISTERED_CERT_TYPES provides visibility of known configured certificates to certificates api.
@@ -43,24 +43,25 @@ public class CertType implements Writeable {
      */
     public static final Set<CertType> REGISTERED_CERT_TYPES = new HashSet<>(Arrays.asList(HTTP, TRANSPORT, TRANSPORT_CLIENT));
 
-    public CertType(String sslConfigPrefix, String certTypeKey) {
-        this.sslConfigPrefix = sslConfigPrefix;
-        this.certTypeKey = certTypeKey;
+    public CertType(String sslConfigSettingPrefix) {
+        this.sslConfigSettingPrefix = sslConfigSettingPrefix;
+        String[] parts = sslConfigSettingPrefix.split("\\.");
+        this.certTypeKey = parts[parts.length - 1];
     }
 
     public CertType(final StreamInput in) throws IOException {
-        this.sslConfigPrefix = in.readString();
+        this.sslConfigSettingPrefix = in.readString();
         this.certTypeKey = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(sslConfigPrefix);
+        out.writeString(sslConfigSettingPrefix);
         out.writeString(certTypeKey);
     }
 
-    public String sslConfigPrefix() {
-        return sslConfigPrefix;
+    public String sslSettingPrefix() {
+        return sslConfigSettingPrefix;
     }
 
     public String name() {

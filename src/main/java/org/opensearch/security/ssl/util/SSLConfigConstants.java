@@ -255,7 +255,7 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
     public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
-        List<String> configuredCiphers = settings.getAsList(certType.sslConfigPrefix() + ENABLED_CIPHERS, Collections.emptyList());
+        List<String> configuredCiphers = settings.getAsList(certType.sslSettingPrefix() + ENABLED_CIPHERS, Collections.emptyList());
         if (configuredCiphers != null && !configuredCiphers.isEmpty()) {
             return configuredCiphers;
         }
@@ -263,7 +263,7 @@ public final class SSLConfigConstants {
     }
 
     public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
-        List<String> configuredProtocols = settings.getAsList(certType.sslConfigPrefix() + ENABLED_PROTOCOLS, Collections.emptyList());
+        List<String> configuredProtocols = settings.getAsList(certType.sslSettingPrefix() + ENABLED_PROTOCOLS, Collections.emptyList());
         if (configuredProtocols != null && !configuredProtocols.isEmpty()) {
             return configuredProtocols.toArray(new String[0]);
         }

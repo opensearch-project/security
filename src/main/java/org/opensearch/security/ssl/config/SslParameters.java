@@ -108,7 +108,7 @@ public class SslParameters {
 
         public Loader(final CertType certType, final Settings settings) {
             this.certType = certType;
-            this.sslConfigSettings = settings.getByPrefix(certType.sslConfigPrefix());
+            this.sslConfigSettings = settings.getByPrefix(certType.sslSettingPrefix());
         }
 
         private SslProvider provider() {
