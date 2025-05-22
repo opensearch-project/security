@@ -675,11 +675,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
-    <<<<<<< HEAD
-     * @param resourceIndex The source index to match in the query (exact match)
-    =======
      * @param resourceIndex  The source index to match in the query (exact match)
-    >>>>>>> refactor-share-with-action-group
      * @param resourceId The resource ID to match in the query (exact match)
      * @param listener   The listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceIndex or resourceId is null/empty
