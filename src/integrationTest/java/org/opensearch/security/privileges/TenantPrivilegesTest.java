@@ -10,6 +10,9 @@
  */
 package org.opensearch.security.privileges;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -274,28 +277,103 @@ public class TenantPrivilegesTest {
         @Test
         public void allAccess() throws Exception {
             SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
-                IOUtils.toString(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"), StandardCharsets.UTF_8),
+                testResource("/static_config/static_roles.yml"),
                 CType.ROLES
             );
             SecurityDynamicConfiguration<TenantV7> tenants = SecurityDynamicConfiguration.fromYaml(
-                IOUtils.toString(
-                    DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"),
-                    StandardCharsets.UTF_8
-                ),
+                testResource("/static_config/static_tenants.yml"),
                 CType.TENANTS
             );
             SecurityDynamicConfiguration<ActionGroupsV7> actionGroups = SecurityDynamicConfiguration.fromYaml(
-                IOUtils.toString(
-                    DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"),
-                    StandardCharsets.UTF_8
-                ),
+                testResource("/static_config/static_action_groups.yml"),
                 CType.ACTIONGROUPS
             );
 
             TenantPrivileges subject = new TenantPrivileges(roles, tenants, new FlattenedActionGroups(actionGroups));
-
             assertTrue(subject.hasTenantPrivilege(ctx("all_access"), "global_tenant", TenantPrivileges.ActionType.WRITE));
         }
+
+        @Test
+        public void invalidDynamicTenantPattern() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("""
+                test_role:
+                   tenant_permissions:
+                   - tenant_patterns:
+                     - "/${user.roles}a{/"
+                     allowed_actions:
+                     - "kibana:saved_objects/*/read"
+                """, CType.ROLES);
+            SecurityDynamicConfiguration<TenantV7> tenants = SecurityDynamicConfiguration.fromYaml("""
+                tenant_a1: {}
+                """, CType.TENANTS);
+
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            assertFalse(subject.hasTenantPrivilege(ctx("test_role"), "tenant_a1", TenantPrivileges.ActionType.READ));
+        }
+
+        /**
+         * This tests legacy behavior which should be removed during the next major release;
+         * see https://github.com/opensearch-project/security/issues/5356
+         */
+        @Test
+        public void implicitGlobalTenantAccessGrantedByKibanaUserRole_granted() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("""
+                test_role: {}
+                """, CType.ROLES);
+            SecurityDynamicConfiguration<TenantV7> tenants = SecurityDynamicConfiguration.fromYaml("""
+                tenant_a1: {}
+                global_tenant: {}
+                """, CType.TENANTS);
+
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+
+            assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
+            assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
+
+            assertFalse(subject.hasTenantPrivilege(ctx("not_kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
+            assertFalse(subject.hasTenantPrivilege(ctx("not_kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
+
+            roles = SecurityDynamicConfiguration.fromYaml("""
+                test_role:
+                   tenant_permissions:
+                   - tenant_patterns:
+                     - "*"
+                     allowed_actions:
+                     - "kibana:saved_objects/*/read"
+                """, CType.ROLES);
+
+            subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+
+            assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
+            assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
+
+        }
+
+        /**
+         * This tests legacy behavior which should be removed during the next major release;
+         * see https://github.com/opensearch-project/security/issues/5356
+         */
+        @Test
+        public void implicitGlobalTenantAccessGrantedByKibanaUserRole_notGranted() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("""
+                test_role:
+                   tenant_permissions:
+                   - tenant_patterns:
+                     - "*"
+                     allowed_actions:
+                     - "kibana:saved_objects/*/read"
+                """, CType.ROLES);
+            SecurityDynamicConfiguration<TenantV7> tenants = SecurityDynamicConfiguration.fromYaml("""
+                tenant_a1: {}
+                global_tenant: {}
+                """, CType.TENANTS);
+
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+
+            assertFalse(subject.hasTenantPrivilege(ctx("test_role", "kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
+            assertTrue(subject.hasTenantPrivilege(ctx("test_role", "kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
+        }
+
     }
 
     static PrivilegesEvaluationContext ctx(String... roles) {
@@ -326,5 +404,15 @@ public class TenantPrivilegesTest {
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             null
         );
+    }
+
+    static String testResource(String fileName) throws IOException {
+        InputStream in = DynamicConfigFactory.class.getResourceAsStream(fileName);
+
+        if (in == null) {
+            throw new FileNotFoundException("could not find " + fileName);
+        }
+
+        return IOUtils.toString(in, StandardCharsets.UTF_8);
     }
 }
