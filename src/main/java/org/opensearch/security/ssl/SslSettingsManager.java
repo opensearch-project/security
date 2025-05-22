@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.common.Booleans;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.config.CertType;
@@ -38,8 +37,6 @@ import org.opensearch.watcher.FileWatcher;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.util.internal.PlatformDependent;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
@@ -50,7 +47,6 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEP
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
@@ -62,7 +58,6 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH;
@@ -133,7 +128,6 @@ public class SslSettingsManager {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
-        openSslWarnings(settings);
 
         final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
@@ -390,59 +384,6 @@ public class SslSettingsManager {
             }
         } catch (final NoSuchAlgorithmException e) {
             LOGGER.error("AES encryption not supported (SG 1). ", e);
-        }
-    }
-
-    void openSslWarnings(final Settings settings) {
-        if (!OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED
-            && OpenSsl.isAvailable()
-            && (settings.getAsBoolean(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true)
-                || settings.getAsBoolean(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, true))) {
-            if (PlatformDependent.javaVersion() < 12) {
-                LOGGER.warn(
-                    "Support for OpenSSL with Java 11 or prior versions require using Netty allocator. Set "
-                        + "'opensearch.unsafe.use_netty_default_allocator' system property to true"
-                );
-            } else {
-                LOGGER.warn("Support for OpenSSL with Java 12+ has been removed from OpenSearch Security. Using JDK SSL instead.");
-            }
-        }
-        if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
-            LOGGER.info("OpenSSL {} ({}) available", OpenSsl.versionString(), OpenSsl.version());
-
-            if (OpenSsl.version() < 0x10002000L) {
-                LOGGER.warn(
-                    "Outdated OpenSSL version detected. You should update to 1.0.2k or later. Currently installed: {}",
-                    OpenSsl.versionString()
-                );
-            }
-
-            if (!OpenSsl.supportsHostnameValidation()) {
-                LOGGER.warn(
-                    "Your OpenSSL version {} does not support hostname verification. You should update to 1.0.2k or later.",
-                    OpenSsl.versionString()
-                );
-            }
-
-            LOGGER.debug("OpenSSL available ciphers {}", OpenSsl.availableOpenSslCipherSuites());
-        } else {
-            boolean openSslIsEnabled = false;
-
-            if (settings.hasValue(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
-                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE));
-            }
-
-            if (settings.hasValue(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
-                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE));
-            }
-
-            if (openSslIsEnabled == true) {
-                /* only print warning if OpenSsl is enabled explicitly but not available */
-                LOGGER.warn(
-                    "OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of ",
-                    OpenSsl.unavailabilityCause()
-                );
-            }
         }
     }
 

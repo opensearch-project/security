@@ -50,6 +50,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
@@ -66,6 +67,7 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HostAndCidrMatcher;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -75,7 +77,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
+import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 
@@ -95,11 +97,10 @@ public class BackendRegistry {
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings opensearchSettings;
-    // private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
-    private final int ttlInMin;
+    private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
     private Cache<User, Set<String>> restRoleCache; //
@@ -134,7 +135,15 @@ public class BackendRegistry {
                 }
             })
             .build();
+    }
 
+    public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
+        clusterSettings.addSettingsUpdateConsumer(SecuritySettings.CACHE_TTL_SETTING, newTtlInMin -> {
+            log.info("Detected change in settings, cluster setting for TTL is {}", newTtlInMin);
+
+            ttlInMin = newTtlInMin;
+            createCaches();
+        });
     }
 
     public BackendRegistry(
@@ -164,6 +173,10 @@ public class BackendRegistry {
 
     public boolean isInitialized() {
         return initialized;
+    }
+
+    public int getTtlInMin() {
+        return ttlInMin;
     }
 
     public void invalidateCache() {
@@ -197,7 +210,7 @@ public class BackendRegistry {
      * @param request
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
-    */
+     */
     public boolean authenticate(final SecurityRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
@@ -227,7 +240,6 @@ public class BackendRegistry {
             UserSubject subject = new UserSubjectImpl(threadPool, superuser);
             threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
-            auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
 
@@ -392,9 +404,10 @@ public class BackendRegistry {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
+
             UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-            auditLog.logSucceededLogin(effectiveUser.getName(), false, authenticatedUser.getName(), request);
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -425,7 +438,6 @@ public class BackendRegistry {
 
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-                auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }

@@ -71,8 +71,8 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             // Note: the response has no whitespaces, so the .json file does not have whitespaces
             assertThat(
-                FileHelper.loadFile("restapi/whitelist_response_success.json"),
-                is(FileHelper.loadFile("restapi/whitelist_response_success.json"))
+                FileHelper.loadFile("restapi/allowlist_response_success.json"),
+                is(FileHelper.loadFile("restapi/allowlist_response_success.json"))
             );
         }
         // FORBIDDEN FOR NON SUPER ADMIN
@@ -215,7 +215,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         // TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ,
-            1L,
+            2L,
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE,
             1L
         );

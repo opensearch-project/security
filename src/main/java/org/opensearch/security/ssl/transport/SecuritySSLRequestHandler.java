@@ -34,7 +34,6 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.SerializationFormat;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
@@ -90,11 +89,6 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         if (!DEFAULT_CHANNEL_TYPES.contains(channelType)) {
             channel = getInnerChannel(channel);
         }
-
-        threadContext.putTransient(
-            ConfigConstants.USE_JDK_SERIALIZATION,
-            SerializationFormat.determineFormat(channel.getVersion()) == SerializationFormat.JDK
-        );
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();

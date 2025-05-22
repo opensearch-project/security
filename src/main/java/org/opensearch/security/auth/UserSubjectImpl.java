@@ -48,4 +48,8 @@ public class UserSubjectImpl implements UserSubject {
             return callable.call();
         }
     }
+
+    public User getUser() {
+        return user;
+    }
 }

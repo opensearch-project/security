@@ -55,7 +55,6 @@ import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -77,7 +76,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty(CType.TENANTS);
-    private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
     private static final AuditConfig defaultAuditConfig = AuditConfig.from(Settings.EMPTY);
 
@@ -175,7 +173,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<RoleMappingsV7> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<TenantV7> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<NodesDn> nodesDn = cr.getConfiguration(CType.NODESDN);
-        SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting = cr.getConfiguration(CType.WHITELIST);
         SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSetting = cr.getConfiguration(CType.ALLOWLIST);
 
         if (log.isDebugEnabled()) {
@@ -217,11 +214,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 + " with "
                 + nodesDn.getCEntries().size()
                 + " entries\n"
-                + " whitelist "
-                + whitelistingSetting.getImplementingClass()
-                + " with "
-                + whitelistingSetting.getCEntries().size()
-                + " entries\n"
                 + " allowlist "
                 + allowlistingSetting.getImplementingClass()
                 + " with "
@@ -234,7 +226,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final WhitelistingSettings whitelist = cr.getConfiguration(CType.WHITELIST).getCEntry("config");
         final AllowlistingSettings allowlist = cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
@@ -282,7 +273,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(whitelist == null ? defaultWhitelistingSettings : whitelist);
         eventBus.post(allowlist == null ? defaultAllowlistingSettings : allowlist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit == null ? defaultAuditConfig : audit);
@@ -298,7 +288,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     @Override
-    public final boolean isInitialized() {
+    public boolean isInitialized() {
         return initialized.get();
     }
 

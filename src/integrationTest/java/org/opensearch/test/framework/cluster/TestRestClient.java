@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
@@ -89,8 +90,8 @@ public class TestRestClient implements AutoCloseable {
 
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
-    private boolean enableHTTPClientSSL = true;
-    private boolean sendHTTPClientCertificate = false;
+    private boolean enableHTTPClientSSL;
+    private boolean sendHTTPClientCertificate;
     private InetSocketAddress nodeHttpAddress;
     private RequestConfig requestConfig;
     private List<Header> headers = new ArrayList<>();
@@ -99,11 +100,20 @@ public class TestRestClient implements AutoCloseable {
 
     private final InetAddress sourceInetAddress;
 
-    public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext, InetAddress sourceInetAddress) {
+    public TestRestClient(
+        InetSocketAddress nodeHttpAddress,
+        List<Header> headers,
+        SSLContext sslContext,
+        InetAddress sourceInetAddress,
+        boolean enableHTTPClientSSL,
+        boolean sendHTTPClientCertificate
+    ) {
         this.nodeHttpAddress = nodeHttpAddress;
         this.headers.addAll(headers);
         this.sslContext = sslContext;
         this.sourceInetAddress = sourceInetAddress;
+        this.enableHTTPClientSSL = enableHTTPClientSSL;
+        this.sendHTTPClientCertificate = sendHTTPClientCertificate;
     }
 
     public HttpResponse get(String path, Header... headers) {
@@ -434,6 +444,20 @@ public class TestRestClient implements AutoCloseable {
         public JsonNode bodyAsJsonNode() {
             try {
                 return DefaultObjectMapper.readTree(getBody());
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot parse response body", e);
+            }
+        }
+
+        /**
+         * Parses the body as JSON and returns it as a simple Java Map.
+         * JSON objects become Map<String, Object>, JSON arrays become List<>.
+         * Other values are converted to the corresponding Java base types.
+         */
+        public Map<String, Object> bodyAsMap() {
+            try {
+                return DefaultObjectMapper.readValue(getBody(), new TypeReference<Map<String, Object>>() {
+                });
             } catch (IOException e) {
                 throw new RuntimeException("Cannot parse response body", e);
             }

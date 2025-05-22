@@ -1,0 +1,160 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'jacoco'
+    id "org.gradle.test-retry"
+}
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.testclusters'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+opensearchplugin {
+    name 'opensearch-sample-resource-plugin'
+    description 'Sample plugin that extends OpenSearch Resource Plugin'
+    classname 'org.opensearch.sample.SampleResourcePlugin'
+    extendedPlugins = ['opensearch-security;optional=true']
+}
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+loggerUsageCheck.enabled = false
+validateNebulaPom.enabled = false
+testingConventions.enabled = false
+tasks.configureEach { task ->
+    if(task.name.contains("forbiddenApisIntegrationTest")) {
+        task.enabled = false
+    }
+}
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
+    opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'org.apache.httpcomponents:httpclient:4.5.14'
+        force 'org.apache.httpcomponents:httpcore:4.4.16'
+        force 'commons-codec:commons-codec:1.18.0'
+        force 'org.hamcrest:hamcrest:2.2'
+        force 'org.mockito:mockito-core:5.17.0'
+    }
+}
+
+dependencies {
+    // Main implementation dependencies
+    compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
+
+    // Integration test dependencies
+    integrationTestImplementation rootProject.sourceSets.integrationTest.output
+    integrationTestImplementation rootProject.sourceSets.main.output
+
+    // To be removed once integration test framework supports extended plugins
+    integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
+}
+
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+    }
+}
+
+tasks.register("integrationTest", Test) {
+    doFirst {
+        retry {
+            failOnPassedAfterRetry = false
+            maxRetries = 5
+            maxFailures = 5
+        }
+    }
+    description = 'Run integration tests for the subproject.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+}
+
+
+tasks.named("integrationTest") {
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
+}
+
+jacoco {
+    reportsDirectory = file("$buildDir/reports/jacoco")
+}
+
+// report covering both sample & root plugin classes
+tasks.register('jacocoSamplePluginReport', JacocoReport) {
+    dependsOn tasks.named("integrationTest")
+
+    executionData = fileTree(dir: buildDir, include: 'jacoco/*.exec')
+    def sampleClasses = sourceSets.main.output.classesDirs
+    def rootClasses   = project(':').sourceSets.main.output.classesDirs
+    def filteredRootClasses = rootClasses.collect { outDir ->
+        fileTree(dir: outDir, include: [
+                'org/opensearch/security/spi/resources/**/*.class',
+                'org/opensearch/security/resources/**/*.class',
+                'org/opensearch/security/OpenSearchSecurityPlugin.class'
+        ])
+    }
+    def spiClasses = project(':opensearch-security-spi').sourceSets.main.output.classesDirs
+    classDirectories  = files(sampleClasses, filteredRootClasses, spiClasses)
+
+    def sampleSrc = sourceSets.main.allSource.srcDirs
+    def rootSrc   = project(':').sourceSets.main.allSource.srcDirs
+    def filteredRootSrc = rootSrc.collect { srcDir ->
+        fileTree(dir: srcDir, include: [
+                'org/opensearch/security/spi/resources/**/*.java',
+                'org/opensearch/security/resources/**/*.java',
+                'org/opensearch/security/OpenSearchSecurityPlugin.java'
+        ])
+    }
+    def spiSrc = project(':opensearch-security-spi').sourceSets.main.allSource.srcDirs
+    sourceDirectories = files(sampleSrc, filteredRootSrc, spiSrc)
+
+    reports {
+        xml.required  = true
+    }
+}
+
+// Ensure integrationTest task depends on the root project's compile task
+tasks.named("integrationTest").configure {
+    dependsOn rootProject.tasks.named("compileIntegrationTestJava")
+    finalizedBy jacocoSamplePluginReport
+}

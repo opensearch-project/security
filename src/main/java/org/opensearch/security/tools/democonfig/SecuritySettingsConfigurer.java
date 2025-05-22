@@ -118,7 +118,7 @@ public class SecuritySettingsConfigurer {
                     for (String key : yamlData.keySet()) {
                         if (key.startsWith("plugins.security")) {
                             System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                            System.exit(installer.skip_updates);
+                            installer.getExitHandler().exit(installer.skip_updates);
                         }
                     }
                     // Check for nested keys
@@ -127,18 +127,18 @@ public class SecuritySettingsConfigurer {
                         for (String key : plugins.keySet()) {
                             if (key.startsWith("security")) {
                                 System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                                System.exit(installer.skip_updates);
+                                installer.getExitHandler().exit(installer.skip_updates);
                             }
                         }
                     }
                 }
             } catch (IOException e) {
                 System.err.println("Error reading configuration file.");
-                System.exit(-1);
+                installer.getExitHandler().exit(-1);
             }
         } else {
             System.err.println("OpenSearch configuration file does not exist. Quit.");
-            System.exit(-1);
+            installer.getExitHandler().exit(-1);
         }
     }
 
@@ -155,7 +155,6 @@ public class SecuritySettingsConfigurer {
             return;
         }
 
-        // if hashed value for default password "admin" is found, update it with the custom password.
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -185,7 +184,7 @@ public class SecuritySettingsConfigurer {
                             DEFAULT_PASSWORD_MIN_LENGTH
                         )
                     );
-                    System.exit(-1);
+                    installer.getExitHandler().exit(-1);
                 }
             }
 
@@ -197,7 +196,7 @@ public class SecuritySettingsConfigurer {
                         ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
                     )
                 );
-                System.exit(-1);
+                installer.getExitHandler().exit(-1);
             }
 
             // Update the custom password in internal_users.yml file
@@ -207,7 +206,7 @@ public class SecuritySettingsConfigurer {
 
         } catch (IOException e) {
             System.out.println("Exception updating the admin password : " + e.getMessage());
-            System.exit(-1);
+            installer.getExitHandler().exit(-1);
         }
     }
 
@@ -234,7 +233,7 @@ public class SecuritySettingsConfigurer {
 
         if (hashedAdminPassword.isEmpty()) {
             System.out.println("Failure while hashing the admin password, see console for details.");
-            System.exit(-1);
+            installer.getExitHandler().exit(-1);
         }
 
         try {
@@ -277,7 +276,7 @@ public class SecuritySettingsConfigurer {
             writer.write(configFooter);
         } catch (IOException e) {
             System.err.println("Exception writing security configuration to opensearch.yml : " + e.getMessage());
-            System.exit(-1);
+            installer.getExitHandler().exit(-1);
         }
     }
 
