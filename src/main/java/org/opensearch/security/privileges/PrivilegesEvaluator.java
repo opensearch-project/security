@@ -201,17 +201,13 @@ public class PrivilegesEvaluator {
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
-                try {
-                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
-                        CType.ACTIONGROUPS
-                    );
-                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
-                    SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
 
-                    this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
-                } catch (Exception e) {
-                    log.error("Error while updating privileges after config change", e);
-                }
+                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
             });
         }
 
