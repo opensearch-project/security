@@ -35,7 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
-import org.opensearch.security.privileges.RoleBasedPrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
@@ -55,7 +55,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class DlsFlsLegacyHeadersTest {
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
@@ -256,11 +255,11 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = mock(Transport.Connection.class);
+        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_2_0_0);
 
         // ShardSearchRequest does not extend ActionRequest, thus the headers must be set
-        ShardSearchRequest request = mock(ShardSearchRequest.class);
+        ShardSearchRequest request = Mockito.mock(ShardSearchRequest.class);
 
         Map<String, String> headerSink = new HashMap<>();
 
@@ -278,7 +277,7 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = mock(Transport.Connection.class);
+        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_2_0_0);
 
         // SearchRequest does extend ActionRequest, thus the headers must not be set
@@ -297,11 +296,11 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = mock(Transport.Connection.class);
+        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_3_0_0);
 
         // ShardSearchRequest does not extend ActionRequest, thus the headers must be set
-        ShardSearchRequest request = mock(ShardSearchRequest.class);
+        ShardSearchRequest request = Mockito.mock(ShardSearchRequest.class);
 
         Map<String, String> headerSink = new HashMap<>();
 
@@ -338,7 +337,7 @@ public class DlsFlsLegacyHeadersTest {
         User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
 
-        RoleBasedPrivilegesEvaluationContext ctx = new RoleBasedPrivilegesEvaluationContext(
+        PrivilegesEvaluationContext ctx = new PrivilegesEvaluationContext(
             user,
             ImmutableSet.of("test_role"),
             null,
@@ -353,11 +352,11 @@ public class DlsFlsLegacyHeadersTest {
         assertTrue(threadContext.getResponseHeaders().containsKey(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
     }
 
-    static RoleBasedPrivilegesEvaluationContext ctx(Metadata metadata, String... roles) {
+    static PrivilegesEvaluationContext ctx(Metadata metadata, String... roles) {
         User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
 
-        return new RoleBasedPrivilegesEvaluationContext(
+        return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
             null,

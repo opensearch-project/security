@@ -27,6 +27,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.ActionListenerUtils.TestActionListener;
 
@@ -87,21 +88,26 @@ public class ApiTokenRepositoryTest {
         User derek = new User("derek");
         User apiTokenNotExists = new User("apitoken:notexists");
         User apiTokenExists = new User("apitoken:exists");
-        repository.getJtis()
-            .put("exists", new Permissions(List.of("cluster_all"), List.of(new ApiToken.IndexPermission(List.of("*"), List.of("*")))));
+        RoleV7 all = new RoleV7();
+        RoleV7.Index allIndices = new RoleV7.Index();
+        allIndices.setAllowed_actions(List.of("*"));
+        allIndices.setIndex_patterns(List.of("*"));
+        all.setCluster_permissions(List.of("cluster_all"));
+        all.setIndex_permissions(List.of(allIndices));
+        repository.getJtis().put("exists", all);
 
-        Permissions permissionsForDerek = repository.getApiTokenPermissionsForUser(derek);
-        assertEquals(List.of(), permissionsForDerek.getClusterPerm());
-        assertEquals(List.of(), permissionsForDerek.getIndexPermission());
+        RoleV7 permissionsForDerek = repository.getApiTokenPermissionsForUser(derek);
+        assertEquals(List.of(), permissionsForDerek.getCluster_permissions());
+        assertEquals(List.of(), permissionsForDerek.getIndex_permissions());
 
-        Permissions permissionsForApiTokenNotExists = repository.getApiTokenPermissionsForUser(apiTokenNotExists);
-        assertEquals(List.of(), permissionsForApiTokenNotExists.getClusterPerm());
-        assertEquals(List.of(), permissionsForApiTokenNotExists.getIndexPermission());
+        RoleV7 permissionsForApiTokenNotExists = repository.getApiTokenPermissionsForUser(apiTokenNotExists);
+        assertEquals(List.of(), permissionsForApiTokenNotExists.getCluster_permissions());
+        assertEquals(List.of(), permissionsForApiTokenNotExists.getIndex_permissions());
 
-        Permissions permissionsForApiTokenExists = repository.getApiTokenPermissionsForUser(apiTokenExists);
-        assertEquals(List.of("cluster_all"), permissionsForApiTokenExists.getClusterPerm());
-        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getAllowedActions());
-        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndexPermission().getFirst().getIndexPatterns());
+        RoleV7 permissionsForApiTokenExists = repository.getApiTokenPermissionsForUser(apiTokenExists);
+        assertEquals(List.of("cluster_all"), permissionsForApiTokenExists.getCluster_permissions());
+        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndex_permissions().get(0).getAllowed_actions());
+        assertEquals(List.of("*"), permissionsForApiTokenExists.getIndex_permissions().get(0).getIndex_patterns());
     }
 
     @Test
@@ -204,10 +210,15 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testJtisOperations() {
         String jti = "testJti";
-        Permissions permissions = new Permissions(List.of("read"), List.of(new ApiToken.IndexPermission(List.of(), List.of())));
+        RoleV7 testRole = new RoleV7();
+        RoleV7.Index none = new RoleV7.Index();
+        none.setAllowed_actions(List.of(""));
+        none.setIndex_patterns(List.of(""));
+        testRole.setCluster_permissions(List.of("read"));
+        testRole.setIndex_permissions(List.of(none));
 
-        repository.getJtis().put(jti, permissions);
-        assertEquals("Should retrieve correct permissions", permissions, repository.getJtis().get(jti));
+        repository.getJtis().put(jti, testRole);
+        assertEquals("Should retrieve correct permissions", testRole, repository.getJtis().get(jti));
 
         repository.getJtis().remove(jti);
         assertNull("Should return null after removal", repository.getJtis().get(jti));
@@ -215,7 +226,13 @@ public class ApiTokenRepositoryTest {
 
     @Test
     public void testClearJtis() {
-        repository.getJtis().put("testJti", new Permissions(List.of("read"), List.of(new ApiToken.IndexPermission(List.of(), List.of()))));
+        RoleV7 testRole = new RoleV7();
+        RoleV7.Index none = new RoleV7.Index();
+        none.setAllowed_actions(List.of(""));
+        none.setIndex_patterns(List.of(""));
+        testRole.setCluster_permissions(List.of("read"));
+        testRole.setIndex_permissions(List.of(none));
+        repository.getJtis().put("testJti", testRole);
 
         doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
@@ -248,8 +265,12 @@ public class ApiTokenRepositoryTest {
             assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
             assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
             assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
-            assertEquals("Should have one cluster action", List.of("cluster:monitor"), repository.getJtis().get("test").getClusterPerm());
-            assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndexPermission());
+            assertEquals(
+                "Should have one cluster action",
+                List.of("cluster:monitor"),
+                repository.getJtis().get("test").getCluster_permissions()
+            );
+            assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndex_permissions());
         });
     }
 }

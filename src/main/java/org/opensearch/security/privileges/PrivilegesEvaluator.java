@@ -311,20 +311,8 @@ public class PrivilegesEvaluator {
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
-        if (user.getName().startsWith("apitoken:")) {
-            return new PermissionBasedPrivilegesEvaluationContext(
-                user,
-                action0,
-                request,
-                task,
-                irr,
-                resolver,
-                clusterStateSupplier,
-                apiTokenRepository.getApiTokenPermissionsForUser(user)
-            );
-        }
 
-        return new RoleBasedPrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {

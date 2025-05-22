@@ -154,8 +154,8 @@ public class SystemIndexAccessEvaluatorTest {
         when(log.isInfoEnabled()).thenReturn(true);
     }
 
-    RoleBasedPrivilegesEvaluationContext ctx(String action) {
-        return new RoleBasedPrivilegesEvaluationContext(
+    PrivilegesEvaluationContext ctx(String action) {
+        return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.of("role_a"),
             action,

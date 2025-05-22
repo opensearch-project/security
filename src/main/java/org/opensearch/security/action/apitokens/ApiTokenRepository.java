@@ -11,6 +11,7 @@
 
 package org.opensearch.security.action.apitokens;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +26,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.transport.client.Client;
 
@@ -35,7 +37,7 @@ public class ApiTokenRepository {
     private final SecurityTokenManager securityTokenManager;
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
-    private final Map<String, Permissions> jtis = new ConcurrentHashMap<>();
+    private final Map<String, RoleV7> jtis = new ConcurrentHashMap<>();
 
     void reloadApiTokensFromIndex() {
         CompletableFuture<Map<String, ApiToken>> future = new CompletableFuture<>();
@@ -52,15 +54,24 @@ public class ApiTokenRepository {
             }
         });
 
-        future.thenAccept(tokensFromIndex -> {
-            jtis.keySet().removeIf(key -> !tokensFromIndex.containsKey(key));
-            tokensFromIndex.forEach(
-                (key, apiToken) -> jtis.put(key, new Permissions(apiToken.getClusterPermissions(), apiToken.getIndexPermissions()))
-            );
+        future.thenAccept(tokenMetadatas -> {
+            jtis.keySet().removeIf(key -> !tokenMetadatas.containsKey(key));
+            tokenMetadatas.forEach((key, tokenMetadata) -> {
+                RoleV7 role = new RoleV7();
+                role.setCluster_permissions(tokenMetadata.getClusterPermissions());
+                List<RoleV7.Index> indexPerms = new ArrayList<>();
+                for (ApiToken.IndexPermission ip : tokenMetadata.getIndexPermissions()) {
+                    RoleV7.Index indexPerm = new RoleV7.Index();
+                    indexPerm.setIndex_patterns(ip.getIndexPatterns());
+                    indexPerm.setAllowed_actions(ip.getAllowedActions());
+                    indexPerms.add(indexPerm);
+                }
+                jtis.put(key, role);
+            });
         });
     }
 
-    public Permissions getApiTokenPermissionsForUser(User user) {
+    public RoleV7 getApiTokenPermissionsForUser(User user) {
         String name = user.getName();
         if (name.startsWith(API_TOKEN_USER_PREFIX)) {
             String jti = user.getName().split(API_TOKEN_USER_PREFIX)[1];
@@ -68,10 +79,10 @@ public class ApiTokenRepository {
                 return getPermissionsForJti(jti);
             }
         }
-        return new Permissions(List.of(), List.of());
+        return new RoleV7();
     }
 
-    public Permissions getPermissionsForJti(String jti) {
+    public RoleV7 getPermissionsForJti(String jti) {
         return jtis.get(jti);
     }
 
@@ -80,7 +91,7 @@ public class ApiTokenRepository {
         return jtis.containsKey(jti);
     }
 
-    public Map<String, Permissions> getJtis() {
+    public Map<String, RoleV7> getJtis() {
         return jtis;
     }
 

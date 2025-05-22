@@ -13,9 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,8 +35,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
-import org.opensearch.security.action.apitokens.ApiToken;
-import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -145,29 +141,11 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
     }
 
     public PrivilegesEvaluatorResponse hasClusterPrivilege(PrivilegesEvaluationContext context, String action) {
-        if (context instanceof RoleBasedPrivilegesEvaluationContext) {
-            return cluster.providesPrivilege((RoleBasedPrivilegesEvaluationContext) context, action, context.getMappedRoles());
-        } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
-            return cluster.apiTokenProvidesClusterPrivilege((PermissionBasedPrivilegesEvaluationContext) context, Set.of(action), false);
-        } else {
-            // Not supported
-            return PrivilegesEvaluatorResponse.insufficient(action);
-        }
+        return cluster.providesPrivilege(context, action, context.getMappedRoles());
     }
 
     public PrivilegesEvaluatorResponse hasAnyClusterPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
-        if (context instanceof RoleBasedPrivilegesEvaluationContext) {
-            return cluster.providesAnyPrivilege((RoleBasedPrivilegesEvaluationContext) context, actions, context.getMappedRoles());
-        } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
-            return cluster.apiTokenProvidesClusterPrivilege((PermissionBasedPrivilegesEvaluationContext) context, actions, false);
-        } else {
-            // Not supported
-            if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
-            } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-            }
-        }
+        return cluster.providesAnyPrivilege(context, actions, context.getMappedRoles());
     }
 
     /**
@@ -181,14 +159,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
      * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
      */
     public PrivilegesEvaluatorResponse hasExplicitClusterPrivilege(PrivilegesEvaluationContext context, String action) {
-        if (context instanceof RoleBasedPrivilegesEvaluationContext) {
-            return cluster.providesExplicitPrivilege((RoleBasedPrivilegesEvaluationContext) context, action, context.getMappedRoles());
-        } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
-            return cluster.apiTokenProvidesClusterPrivilege((PermissionBasedPrivilegesEvaluationContext) context, Set.of(action), true);
-        } else {
-            // Not supported
-            return PrivilegesEvaluatorResponse.insufficient(action);
-        }
+        return cluster.providesExplicitPrivilege(context, action, context.getMappedRoles());
     }
 
     /**
@@ -206,64 +177,44 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         Set<String> actions,
         IndexResolverReplacer.Resolved resolvedIndices
     ) {
-        if (context instanceof RoleBasedPrivilegesEvaluationContext) {
-            PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
-            if (response != null) {
-                return response;
-            }
-
-            if (!resolvedIndices.isLocalAll() && resolvedIndices.getAllIndices().isEmpty()) {
-                // This is necessary for requests which operate on remote indices.
-                // Access control for the remote indices will be performed on the remote cluster.
-                log.debug("No local indices; grant the request");
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
-            // what's the action and what's the index in the generic parameters of CheckTable.
-            CheckTable<String, String> checkTable = CheckTable.create(
-                resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
-                actions
-            );
-
-            StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
-            PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
-
-            Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
-
-            if (statefulIndex != null) {
-                resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable, indexMetadata);
-
-                if (resultFromStatefulIndex != null) {
-                    // If we get a result from statefulIndex, we are done.
-                    return resultFromStatefulIndex;
-                }
-
-                // Otherwise, we need to carry on checking privileges using the non-stateful object.
-                // Note: statefulIndex.hasPermission() modifies as a side effect the checkTable.
-                // We can carry on using this as an intermediate result and further complete checkTable below.
-            }
-            return this.index.providesPrivilege(
-                (RoleBasedPrivilegesEvaluationContext) context,
-                actions,
-                resolvedIndices,
-                checkTable,
-                indexMetadata
-            );
-        } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
-            Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
-            return this.index.apiTokenProvidesIndexPrivilege(
-                (PermissionBasedPrivilegesEvaluationContext) context,
-                resolvedIndices,
-                actions,
-                indexMetadata,
-                false
-            );
-        } else {
-            // Not supported
-            return PrivilegesEvaluatorResponse.insufficient("No explicit privileges have been provided for the referenced indices.");
-
+        PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
+        if (response != null) {
+            return response;
         }
+
+        if (!resolvedIndices.isLocalAll() && resolvedIndices.getAllIndices().isEmpty()) {
+            // This is necessary for requests which operate on remote indices.
+            // Access control for the remote indices will be performed on the remote cluster.
+            log.debug("No local indices; grant the request");
+            return PrivilegesEvaluatorResponse.ok();
+        }
+
+        // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
+        // what's the action and what's the index in the generic parameters of CheckTable.
+        CheckTable<String, String> checkTable = CheckTable.create(
+            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
+            actions
+        );
+
+        StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
+        PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
+
+        Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
+
+        if (statefulIndex != null) {
+            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable, indexMetadata);
+
+            if (resultFromStatefulIndex != null) {
+                // If we get a result from statefulIndex, we are done.
+                return resultFromStatefulIndex;
+            }
+
+            // Otherwise, we need to carry on checking privileges using the non-stateful object.
+            // Note: statefulIndex.hasPermission() modifies as a side effect the checkTable.
+            // We can carry on using this as an intermediate result and further complete checkTable below.
+        }
+
+        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, indexMetadata);
     }
 
     /**
@@ -278,21 +229,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         Set<String> actions,
         IndexResolverReplacer.Resolved resolvedIndices
     ) {
-        if (context instanceof RoleBasedPrivilegesEvaluationContext) {
-            CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
-            return this.index.providesExplicitPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
-        } else if (context instanceof PermissionBasedPrivilegesEvaluationContext) {
-            return this.index.apiTokenProvidesIndexPrivilege(
-                (PermissionBasedPrivilegesEvaluationContext) context,
-                resolvedIndices,
-                actions,
-                this.indexMetadataSupplier.get(),
-                true
-            );
-        } else {
-            // Not supported
-            return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-        }
+        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
+        return this.index.providesExplicitPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
     }
 
     /**
@@ -384,8 +322,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
         private final ImmutableSet<String> wellKnownClusterActions;
 
-        private final FlattenedActionGroups actionGroups;
-
         /**
          * Creates pre-computed cluster privileges based on the given parameters.
          * <p>
@@ -473,7 +409,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             this.rolesToActionMatcher = rolesToActionMatcher.build();
             this.usersToActionMatcher = usersToActionMatcher.build();
             this.wellKnownClusterActions = wellKnownClusterActions;
-            this.actionGroups = actionGroups;
         }
 
         /**
@@ -481,7 +416,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * provided roles. Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
          * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
          */
-        PrivilegesEvaluatorResponse providesPrivilege(RoleBasedPrivilegesEvaluationContext context, String action, Set<String> roles) {
+        PrivilegesEvaluatorResponse providesPrivilege(PrivilegesEvaluationContext context, String action, Set<String> roles) {
 
             // 1: Check roles with wildcards
             if (CollectionUtils.containsAny(roles, this.rolesWithWildcardPermissions)) {
@@ -518,54 +453,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         }
 
         /**
-         * Evaluates cluster privileges for api tokens. It does so by checking exact match, regex match, * match, and action group match in a non-optimized, naive way.
-         * First it expands all action groups to get all the actions and patterns of actions. Then it checks * if not an explicit check, then for exact match, then for pattern match.
-         */
-        PrivilegesEvaluatorResponse apiTokenProvidesClusterPrivilege(
-            PermissionBasedPrivilegesEvaluationContext context,
-            Set<String> actions,
-            Boolean explicit
-        ) {
-            Permissions permissions = context.getPermissions();
-            Set<String> resolvedClusterPermissions = actionGroups.resolve(permissions.getClusterPerm());
-
-            // Check for wildcard permission
-            if (!explicit) {
-                if (resolvedClusterPermissions.contains("*")) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            // Check for exact match
-            if (!Collections.disjoint(resolvedClusterPermissions, actions)) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // Check for pattern matches (like "cluster:*")
-            for (String permission : resolvedClusterPermissions) {
-                // skip pure *, which was evaluated above
-                if (!"*".equals(permission)) {
-                    // Skip exact matches as we already checked those
-                    if (!permission.contains("*")) {
-                        continue;
-                    }
-
-                    WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
-                    for (String action : actions) {
-                        if (permissionMatcher.test(action)) {
-                            return PrivilegesEvaluatorResponse.ok();
-                        }
-                    }
-                }
-            }
-            if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
-            } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-            }
-        }
-
-        /**
          * Checks whether this instance provides explicit privileges for the combination of the provided action and the
          * provided roles.
          * <p>
@@ -575,11 +462,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
          * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
          */
-        PrivilegesEvaluatorResponse providesExplicitPrivilege(
-            RoleBasedPrivilegesEvaluationContext context,
-            String action,
-            Set<String> roles
-        ) {
+        PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, String action, Set<String> roles) {
 
             // 1: Check well-known actions - this should cover most cases
             ImmutableCompactSubSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
@@ -607,11 +490,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * provided roles. Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
          * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
          */
-        PrivilegesEvaluatorResponse providesAnyPrivilege(
-            RoleBasedPrivilegesEvaluationContext context,
-            Set<String> actions,
-            Set<String> roles
-        ) {
+        PrivilegesEvaluatorResponse providesAnyPrivilege(PrivilegesEvaluationContext context, Set<String> actions, Set<String> roles) {
             // 1: Check roles with wildcards
             if (CollectionUtils.containsAny(roles, this.rolesWithWildcardPermissions)) {
                 return PrivilegesEvaluatorResponse.ok();
@@ -711,8 +590,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * Compare https://github.com/opensearch-project/security/pull/2887
          */
         private final ImmutableMap<String, ImmutableMap<String, IndexPattern>> rolesToExplicitActionToIndexPattern;
-
-        private final FlattenedActionGroups actionGroups;
 
         /**
          * Creates pre-computed index privileges based on the given parameters.
@@ -851,7 +728,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
             this.wellKnownIndexActions = wellKnownIndexActions;
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
-            this.actionGroups = actionGroups;
         }
 
         /**
@@ -871,7 +747,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * checkTable instance as checked.
          */
         PrivilegesEvaluatorResponse providesPrivilege(
-            RoleBasedPrivilegesEvaluationContext context,
+            PrivilegesEvaluationContext context,
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
             CheckTable<String, String> checkTable,
@@ -1025,69 +901,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                     }
                 }
             }
+
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
-        }
-
-        PrivilegesEvaluatorResponse apiTokenProvidesIndexPrivilege(
-            PermissionBasedPrivilegesEvaluationContext context,
-            IndexResolverReplacer.Resolved resolvedIndices,
-            Set<String> actions,
-            Map<String, IndexAbstraction> indexMetadata,
-            Boolean explicit
-        ) {
-            Permissions permissions = context.getPermissions();
-            List<ApiToken.IndexPermission> indexPermissions = permissions.getIndexPermission();
-
-            for (String concreteIndex : resolvedIndices.getAllIndices()) {
-                boolean indexHasAllPermissions = false;
-
-                // Check each index permission
-                for (ApiToken.IndexPermission indexPermission : indexPermissions) {
-                    // First check if this permission applies to this index
-                    IndexPattern indexPattern = IndexPattern.from(indexPermission.getIndexPatterns());
-                    boolean indexMatched = false;
-                    try {
-                        indexMatched = indexPattern.matches(concreteIndex, context, indexMetadata);
-                    } catch (PrivilegesEvaluationException e) {
-                        // We can ignore these errors, as this max leads to fewer privileges than available
-                        log.error("Error while evaluating index pattern. Ignoring entry");
-                    }
-                    if (!indexMatched) {
-                        continue;
-                    }
-
-                    // Index matched, now check if this permission covers all actions
-                    Set<String> remainingActions = new HashSet<>(actions);
-                    ImmutableSet<String> resolvedIndexPermissions = actionGroups.resolve(indexPermission.getAllowedActions());
-
-                    for (String permission : resolvedIndexPermissions) {
-                        // Skip global wildcard if explicit is true
-                        if (explicit && permission.equals("*")) {
-                            continue;
-                        }
-
-                        WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
-                        remainingActions.removeIf(action -> permissionMatcher.test(action));
-
-                        if (remainingActions.isEmpty()) {
-                            indexHasAllPermissions = true;
-                            break;
-                        }
-                    }
-
-                    if (indexHasAllPermissions) {
-                        break; // Found a permission that covers all actions for this index
-                    }
-                }
-
-                if (!indexHasAllPermissions) {
-                    return PrivilegesEvaluatorResponse.insufficient("Insufficient permissions for the index" + concreteIndex);
-                }
-            }
-            // If we get here, all indices had sufficient permissions
-            return PrivilegesEvaluatorResponse.ok();
         }
     }
 

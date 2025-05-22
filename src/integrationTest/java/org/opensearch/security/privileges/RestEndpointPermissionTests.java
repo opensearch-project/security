@@ -188,13 +188,13 @@ public class RestEndpointPermissionTests {
             .collect(Collectors.toList());
         for (final Endpoint endpoint : noSslEndpoints) {
             final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build();
-            final RoleBasedPrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT)));
+            final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT)));
             Assert.assertTrue(endpoint.name(), actionPrivileges.hasExplicitClusterPrivilege(ctx, permission).isAllowed());
             assertHasNoPermissionsForRestApiAdminOnePermissionRole(endpoint, ctx);
         }
         // verify SSL endpoint with 2 actions
         for (final String sslAction : ImmutableSet.of(CERTS_INFO_ACTION, RELOAD_CERTS_ACTION)) {
-            final RoleBasedPrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(sslAction));
+            final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(sslAction));
             final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.SSL);
             Assert.assertTrue(
                 Endpoint.SSL + "/" + sslAction,
@@ -203,7 +203,7 @@ public class RestEndpointPermissionTests {
             assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, ctx);
         }
         // verify CONFIG endpoint with 1 action
-        final RoleBasedPrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(SECURITY_CONFIG_UPDATE));
+        final PrivilegesEvaluationContext ctx = ctx(restAdminApiRoleName(SECURITY_CONFIG_UPDATE));
         final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.CONFIG);
         Assert.assertTrue(
             Endpoint.SSL + "/" + SECURITY_CONFIG_UPDATE,
@@ -212,10 +212,7 @@ public class RestEndpointPermissionTests {
         assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.CONFIG, ctx);
     }
 
-    void assertHasNoPermissionsForRestApiAdminOnePermissionRole(
-        final Endpoint allowEndpoint,
-        final RoleBasedPrivilegesEvaluationContext ctx
-    ) {
+    void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final PrivilegesEvaluationContext ctx) {
         final Collection<Endpoint> noPermissionEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
             .stream()
             .filter(e -> e != allowEndpoint)
@@ -253,17 +250,8 @@ public class RestEndpointPermissionTests {
         return SecurityDynamicConfiguration.fromNode(rolesNode, CType.ROLES, 2, 0, 0);
     }
 
-    static RoleBasedPrivilegesEvaluationContext ctx(String... roles) {
-        return new RoleBasedPrivilegesEvaluationContext(
-            new User("test_user"),
-            ImmutableSet.copyOf(roles),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        );
+    static PrivilegesEvaluationContext ctx(String... roles) {
+        return new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.copyOf(roles), null, null, null, null, null, null);
     }
 
 }
