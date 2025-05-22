@@ -243,7 +243,8 @@ public class PrivilegesEvaluator {
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
                 settings,
-                pluginToClusterActions
+                pluginToClusterActions,
+                apiTokenRepository.getJtis()
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());

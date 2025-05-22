@@ -135,7 +135,8 @@ public class ActionPrivilegesTest {
                 FlattenedActionGroups.EMPTY,
                 null,
                 Settings.EMPTY,
-                Map.of("plugin:org.opensearch.sample.SamplePlugin", Set.of("*"))
+                Map.of("plugin:org.opensearch.sample.SamplePlugin", Set.of("*")),
+                Map.of()
             );
 
             assertThat(
@@ -478,6 +479,7 @@ public class ActionPrivilegesTest {
                     WellKnownActions.CLUSTER_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
+                    Map.of(),
                     Map.of()
                 );
 

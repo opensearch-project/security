@@ -66,6 +66,7 @@ public class ApiTokenRepository {
                     indexPerm.setAllowed_actions(ip.getAllowedActions());
                     indexPerms.add(indexPerm);
                 }
+                role.setIndex_permissions(indexPerms);
                 jtis.put(key, role);
             });
         });

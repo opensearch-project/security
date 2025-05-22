@@ -58,7 +58,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private final JwtParser jwtParser;
     private final Boolean apiTokenEnabled;
     private final String clusterName;
-    public static final String API_TOKEN_USER_PREFIX = "apitoken:";
+    public static final String API_TOKEN_USER_PREFIX = "token:";
     private final ApiTokenRepository apiTokenRepository;
 
     @SuppressWarnings("removal")

@@ -278,4 +278,11 @@ public class User implements Serializable, CustomAttributesAware {
     public boolean isPluginUser() {
         return name != null && name.startsWith("plugin:");
     }
+
+    /**
+     * @return true if the request is from an API token, otherwise false
+     */
+    public boolean isApiTokenRequest() {
+        return name != null && name.startsWith("token:");
+    }
 }
