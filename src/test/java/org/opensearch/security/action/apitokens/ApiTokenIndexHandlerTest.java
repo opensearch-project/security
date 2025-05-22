@@ -290,13 +290,13 @@ public class ApiTokenIndexHandlerTest {
 
         Map<String, ApiToken> resultTokens = listener.assertSuccess();
         assertThat(resultTokens.size(), equalTo(2));
-        assertThat(resultTokens.containsKey("token1-description"), is(true));
-        assertThat(resultTokens.containsKey("token2-description"), is(true));
+        assertThat(resultTokens.containsKey("token:token1-description"), is(true));
+        assertThat(resultTokens.containsKey("token:token2-description"), is(true));
 
-        ApiToken resultToken1 = resultTokens.get("token1-description");
+        ApiToken resultToken1 = resultTokens.get("token:token1-description");
         assertThat(resultToken1.getClusterPermissions(), contains("cluster:admin/something"));
 
-        ApiToken resultToken2 = resultTokens.get("token2-description");
+        ApiToken resultToken2 = resultTokens.get("token:token2-description");
         assertThat(resultToken2.getClusterPermissions(), contains("cluster:admin/other"));
     }
 }
