@@ -88,11 +88,13 @@ public class TenantPrivileges {
     ) {
         this.allTenantNames = ImmutableSet.copyOf(definedTenants.getCEntries().keySet());
 
-        DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(roles.getCEntries().keySet());
+        Map<String, RoleV7> roleEntries = roles.getCEntries();
+
+        DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(roleEntries.keySet());
         Map<String, Map<ActionType, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>>> tenantToActionTypeToRoles = new HashMap<>();
         Map<String, Map<ActionType, Set<String>>> rolesToActionTypeToDynamicTenantPattern = new HashMap<>();
 
-        for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
+        for (Map.Entry<String, RoleV7> entry : roleEntries.entrySet()) {
             try {
                 String roleName = entry.getKey();
                 RoleV7 role = entry.getValue();
