@@ -2250,7 +2250,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
+        final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
         systemIndexDescriptors.add(securityIndexDescriptor);
         final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
             ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
