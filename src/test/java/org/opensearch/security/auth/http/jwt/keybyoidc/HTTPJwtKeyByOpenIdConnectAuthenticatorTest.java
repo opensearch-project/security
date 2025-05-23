@@ -264,6 +264,28 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
+    public void testRolesInNestedClaim() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .putList("roles_key", TestJwts.NESTED_ROLES_CLAIM)
+            .put("required_issuer", TestJwts.TEST_ISSUER)
+            .put("required_audience", TestJwts.TEST_AUDIENCE)
+            .build();
+
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NESTED_ROLES_OCT_1), new HashMap<String, String>())
+                .asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), Matchers.is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getBackendRoles(), Matchers.is(TestJwts.TEST_ROLES));
+    }
+
+    @Test
     public void testExp() {
         Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 

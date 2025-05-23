@@ -11,6 +11,9 @@
 
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -29,6 +32,7 @@ import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 
 class TestJwts {
     static final String ROLES_CLAIM = "roles";
+    static final List<String> NESTED_ROLES_CLAIM = List.of("attributes", "roles");
     static final Set<String> TEST_ROLES = ImmutableSet.of("role1", "role2");
     static final String TEST_ROLES_STRING = String.join(",", TEST_ROLES);
 
@@ -41,6 +45,14 @@ class TestJwts {
     static final JWTClaimsSet MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
     static final JWTClaimsSet MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+    static final JWTClaimsSet MC_COY_NESTED_ROLES = create(
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        NESTED_ROLES_CLAIM,
+        TEST_ROLES_STRING
+    );
 
     static final JWTClaimsSet MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
@@ -60,6 +72,7 @@ class TestJwts {
 
     static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
 
+    static final String MC_COY_SIGNED_NESTED_ROLES_OCT_1 = createSigned(MC_COY_NESTED_ROLES, TestJwk.OCT_1);
     static final String MC_COY_SIGNED_NO_AUDIENCE_OCT_1 = createSigned(MC_COY_NO_AUDIENCE, TestJwk.OCT_1);
     static final String MC_COY_SIGNED_NO_ISSUER_OCT_1 = createSigned(MC_COY_NO_ISSUER, TestJwk.OCT_1);
 
@@ -94,7 +107,32 @@ class TestJwts {
 
         if (moreClaims != null) {
             for (int i = 0; i < moreClaims.length; i += 2) {
-                claimsBuilder.claim(String.valueOf(moreClaims[i]), moreClaims[i + 1]);
+                Object claimPath = moreClaims[i];
+                Object claimValue = moreClaims[i + 1];
+
+                if (claimPath instanceof List<?> pathParts) {
+                    // Handle nested path specified as List<String>
+                    if (!pathParts.isEmpty()) {
+                        Map<String, Object> nestedMap = new HashMap<>();
+                        Map<String, Object> currentMap = nestedMap;
+
+                        // Build nested structure for all but last element
+                        for (int j = 0; j < pathParts.size() - 1; j++) {
+                            Map<String, Object> nextMap = new HashMap<>();
+                            currentMap.put(String.valueOf(pathParts.get(j)), nextMap);
+                            currentMap = nextMap;
+                        }
+
+                        // Set the final value at the deepest level
+                        currentMap.put(String.valueOf(pathParts.get(pathParts.size() - 1)), claimValue);
+
+                        // Add the top-level claim
+                        claimsBuilder.claim(String.valueOf(pathParts.get(0)), nestedMap.get(pathParts.get(0)));
+                    }
+                } else {
+                    // Handle simple claim
+                    claimsBuilder.claim(String.valueOf(claimPath), claimValue);
+                }
             }
         }
 
