@@ -72,6 +72,16 @@ import static org.junit.Assert.assertTrue;
     ActionPrivilegesTest.Misc.class,
     ActionPrivilegesTest.StatefulIndexPrivilegesHeapSize.class })
 public class ActionPrivilegesTest {
+    // TODO Create unlimited role statically here
+    private static final RoleV7 UNLIMITED_ROLE = new RoleV7();
+    private static final RoleV7.Index UNLIMITED_INDEX = new RoleV7.Index();
+    static {
+        UNLIMITED_INDEX.setIndex_patterns(List.of("*"));
+        UNLIMITED_INDEX.setAllowed_actions(List.of("*"));
+        UNLIMITED_ROLE.setCluster_permissions(List.of("*"));
+        UNLIMITED_ROLE.setIndex_permissions(List.of(UNLIMITED_INDEX));
+    }
+
     public static class ClusterPrivileges {
         @Test
         public void wellKnown() throws Exception {
@@ -135,7 +145,7 @@ public class ActionPrivilegesTest {
                 FlattenedActionGroups.EMPTY,
                 null,
                 Settings.EMPTY,
-                Map.of("plugin:org.opensearch.sample.SamplePlugin", Set.of("*"))
+                Map.of("plugin:org.opensearch.sample.SamplePlugin", UNLIMITED_ROLE)
             );
 
             assertThat(
