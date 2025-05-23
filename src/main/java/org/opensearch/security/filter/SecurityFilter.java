@@ -190,8 +190,12 @@ public class SecurityFilter implements ActionFilter {
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user == null && (user = userInjector.getInjectedUser()) != null) {
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+            if (user == null) {
+                UserInjector.Result injectedUser = userInjector.getInjectedUser();
+                if (injectedUser != null) {
+                    user = injectedUser.getUser();
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                }
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);

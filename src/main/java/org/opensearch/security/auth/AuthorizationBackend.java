@@ -27,7 +27,6 @@
 package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 /**
@@ -55,16 +54,15 @@ public interface AuthorizationBackend {
     String getType();
 
     /**
-     * Populate a {@link User} with backend roles. This method will not be called for cached users.
-     * <p/>
-     * Add them by calling either {@code user.addRole()} or {@code user.addRoles()}
-     * </P>
+     * This method is called during the auth phase to add additional backend roles to a  {@link User}. This method will not be called for cached users.
+     * <p>
+     * Implementations must use the withRoles() method and return the newly created User object.
+     *
      * @param user The authenticated user to populate with backend roles, never null
-     * @param credentials Credentials to authenticate to the authorization backend, maybe null.
-     * <em>This parameter is for future usage, currently always empty credentials are passed!</em>
+     * @param context Context data specific to the request that is currently processed.
      * @throws OpenSearchSecurityException in case when the authorization backend cannot be reached
      * or the {@code credentials} are insufficient to authenticate to the authorization backend.
      */
-    void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException;
+    User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException;
 
 }

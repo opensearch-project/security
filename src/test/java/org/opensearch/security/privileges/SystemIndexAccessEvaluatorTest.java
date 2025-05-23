@@ -134,8 +134,7 @@ public class SystemIndexAccessEvaluatorTest {
         }
 
         // create a user and associate them with the role
-        user = new User("user_a");
-        user.addSecurityRoles(List.of("role_a"));
+        user = new User("user_a").withSecurityRoles(List.of("role_a"));
 
         // when trying to resolve Index Names
 
