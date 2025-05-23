@@ -36,7 +36,7 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_U
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -90,7 +90,7 @@ public class SampleResourcePluginFeatureDisabledTests {
 
         // assert that resource-sharing index doesn't exist
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search");
+            HttpResponse response = client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search");
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
 
