@@ -166,7 +166,11 @@ public class RestLayerPrivilegesEvaluatorTest {
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);
 
         if (roles != null) {
-            privilegesEvaluator.updateConfiguration(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS), roles);
+            privilegesEvaluator.updateConfiguration(
+                SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS),
+                roles,
+                SecurityDynamicConfiguration.empty(CType.TENANTS)
+            );
         }
         return privilegesEvaluator;
     }
