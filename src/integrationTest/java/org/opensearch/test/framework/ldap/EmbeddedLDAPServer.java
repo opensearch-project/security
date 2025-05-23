@@ -46,6 +46,14 @@ public class EmbeddedLDAPServer extends ExternalResource {
         }
     }
 
+    public void loadLdifData(LdifData ldifData) {
+        try {
+            server.loadLdifData(ldifData);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot reload LDIF data.", e);
+        }
+    }
+
     public int getLdapNonTlsPort() {
         return server.getLdapNonTlsPort();
     }
