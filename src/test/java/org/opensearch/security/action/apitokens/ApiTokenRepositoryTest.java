@@ -86,8 +86,8 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testGetApiTokenPermissionsForUser() throws ApiTokenException {
         User derek = new User("derek");
-        User apiTokenNotExists = new User("apitoken:notexists");
-        User apiTokenExists = new User("apitoken:exists");
+        User apiTokenNotExists = new User("token:notexists");
+        User apiTokenExists = new User("token:exists");
         RoleV7 all = new RoleV7();
         RoleV7.Index allIndices = new RoleV7.Index();
         allIndices.setAllowed_actions(List.of("*"));
