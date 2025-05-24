@@ -45,7 +45,7 @@ jobs:
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
         platform: [windows-latest]
-        jdk: [21]
+        jdk: [21, 24]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -80,7 +80,7 @@ jobs:
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
         platform: [ubuntu-latest]
-        jdk: [21]
+        jdk: [21, 24]
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build to build the OpenSearch Distribution
@@ -144,7 +144,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -178,7 +178,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [ubuntu-latest]
     runs-on: ubuntu-latest
     container:
@@ -221,7 +221,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     container:
@@ -263,7 +263,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -338,7 +338,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -371,7 +371,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21]
+        jdk: [21, 24]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
