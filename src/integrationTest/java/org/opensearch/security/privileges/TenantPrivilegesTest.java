@@ -377,8 +377,7 @@ public class TenantPrivilegesTest {
     }
 
     static PrivilegesEvaluationContext ctx(String... roles) {
-        User user = new User("test_user");
-        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a1"));
+        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.dept_no", "a1"));
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
@@ -392,8 +391,7 @@ public class TenantPrivilegesTest {
     }
 
     static PrivilegesEvaluationContext ctxWithDifferentUserAttr(String... roles) {
-        User user = new User("test_user");
-        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a10"));
+        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.dept_no", "a10"));
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
