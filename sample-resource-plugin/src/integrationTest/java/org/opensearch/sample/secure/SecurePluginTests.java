@@ -33,9 +33,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -63,14 +61,7 @@ public class SecurePluginTests {
                 false
             )
         )
-        .nodeSettings(
-            Map.of(
-                SECURITY_RESTAPI_ROLES_ENABLED,
-                List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
-                SECURITY_SYSTEM_INDICES_ENABLED_KEY,
-                true
-            )
-        )
+        .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
         .build();
 
     @Test

@@ -14,7 +14,6 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -759,13 +758,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             Map<String, IndexAbstraction> indexMetadata
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
-            Set<String> rolesToCheck = context.getMappedRoles();
-            if (context.getUser().isPluginUser()) {
-                rolesToCheck = new HashSet<>(rolesToCheck);
-                rolesToCheck.add(context.getUser().getName());
-            }
 
-            for (String role : rolesToCheck) {
+            for (String role : context.getMappedRoles()) {
                 ImmutableMap<String, IndexPattern> actionToIndexPattern = this.rolesToActionToIndexPattern.get(role);
 
                 if (actionToIndexPattern != null) {
