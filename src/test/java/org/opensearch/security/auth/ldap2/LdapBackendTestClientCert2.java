@@ -22,12 +22,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
+import org.opensearch.security.user.User;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -58,11 +58,9 @@ public class LdapBackendTestClientCert2 {
             .build();
 
         @SuppressWarnings("unused")
-        LdapUser user;
+        User user;
         try {
-            user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-                new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-            );
+            user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(
@@ -92,11 +90,9 @@ public class LdapBackendTestClientCert2 {
             .build();
 
         @SuppressWarnings("unused")
-        LdapUser user;
+        User user;
         try {
-            user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-                new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-            );
+            user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(
@@ -126,11 +122,9 @@ public class LdapBackendTestClientCert2 {
             .build();
 
         @SuppressWarnings("unused")
-        LdapUser user;
+        User user;
         try {
-            user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-                new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-            );
+            user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(
@@ -160,9 +154,7 @@ public class LdapBackendTestClientCert2 {
             .put("path.home", ".")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-        );
+        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
     }
@@ -189,9 +181,7 @@ public class LdapBackendTestClientCert2 {
             .put("path.home", ".")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-        );
+        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
     }
@@ -221,9 +211,7 @@ public class LdapBackendTestClientCert2 {
             // .put(ConfigConstants.LDAP_PASSWORD, "ldapbinder")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-        );
+        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
     }
@@ -250,9 +238,7 @@ public class LdapBackendTestClientCert2 {
             .put("path.home", ".")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-        );
+        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
     }
@@ -285,9 +271,7 @@ public class LdapBackendTestClientCert2 {
             .put("path.home", ".")
             .build();
 
-        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null).authenticate(
-            new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
-        );
+        final User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
     }
@@ -312,5 +296,9 @@ public class LdapBackendTestClientCert2 {
             System.err.println("Failed to load " + fileNameFromClasspath);
         }
         return null;
+    }
+
+    static AuthenticationContext ctx(String userName, String password) {
+        return new AuthenticationContext(new AuthCredentials(userName, password.getBytes(StandardCharsets.UTF_8)));
     }
 }

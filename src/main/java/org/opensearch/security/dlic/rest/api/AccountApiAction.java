@@ -128,6 +128,7 @@ public class AccountApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<?> configuration
     ) {
         final var securityRoles = securityApiDependencies.privilegesEvaluator().mapRoles(user, remoteAddress);
+
         ok(
             channel,
             (builder, params) -> builder.startObject()
