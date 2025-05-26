@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGINS_PREFIX;
 
 public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
     private final static String TEST_USER = "testuser";
@@ -25,6 +26,11 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
 
     private String cachePath(String user) {
         return super.apiPath("cache", "user", user);
+    }
+
+    @Override
+    protected final String apiPathPrefix() {
+        return PLUGINS_PREFIX;
     }
 
     @Test
