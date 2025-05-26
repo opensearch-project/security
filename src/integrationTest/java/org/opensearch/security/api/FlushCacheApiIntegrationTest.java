@@ -4,6 +4,7 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
+ *
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
@@ -28,7 +29,7 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
     }
 
     @Override
-    protected final String apiPathPrefix() {
+    protected String apiPathPrefix() {
         return PLUGINS_PREFIX;
     }
 
