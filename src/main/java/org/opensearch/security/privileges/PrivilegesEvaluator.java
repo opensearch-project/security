@@ -351,8 +351,6 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
         setUserInfoInThreadContext(user);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -457,7 +455,7 @@ public class PrivilegesEvaluator {
                             user,
                             dcm,
                             requestedResolved,
-                            mapTenants(user, mappedRoles)
+                            mapTenants(context)
                         );
 
                         if (isDebugEnabled) {
@@ -519,7 +517,7 @@ public class PrivilegesEvaluator {
                 user,
                 dcm,
                 requestedResolved,
-                mapTenants(user, mappedRoles)
+                mapTenants(context)
             );
 
             if (isDebugEnabled) {
@@ -596,8 +594,14 @@ public class PrivilegesEvaluator {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public Map<String, Boolean> mapTenants(final User user, Set<String> roles) {
-        return this.configModel.mapTenants(user, roles);
+    public Map<String, Boolean> mapTenants(PrivilegesEvaluationContext privilegesEvaluationContext) {
+        return this.configModel.mapTenants(privilegesEvaluationContext);
+    }
+
+    public Map<String, Boolean> mapTenants(User user, Set<String> mappedRoles) {
+        return this.configModel.mapTenants(
+            new PrivilegesEvaluationContext(user, ImmutableSet.copyOf(mappedRoles), null, null, null, irr, resolver, clusterStateSupplier)
+        );
     }
 
     public Set<String> getAllConfiguredTenantNames() {

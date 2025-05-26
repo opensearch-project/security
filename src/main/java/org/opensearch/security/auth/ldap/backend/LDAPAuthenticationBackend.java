@@ -19,9 +19,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,16 +32,17 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.AuthenticationContext;
+import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
+import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
@@ -46,7 +50,7 @@ import org.ldaptive.SearchScope;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 
-public class LDAPAuthenticationBackend implements AuthenticationBackend {
+public class LDAPAuthenticationBackend implements AuthenticationBackend, ImpersonationBackend {
 
     static final int ZERO_PLACEHOLDER = 0;
     static final String DEFAULT_USERBASE = "";
@@ -81,11 +85,11 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
-        final String user = credentials.getUsername();
-        byte[] password = credentials.getPassword();
+        final String user = context.getCredentials().getUsername();
+        byte[] password = context.getCredentials().getPassword();
 
         try {
             LdapEntry entry;
@@ -135,12 +139,20 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                 log.debug("Authenticated username {}", username);
             }
 
+            // Make LdapEntry available to authz backends by adding it to the AuthencationContext
+            context.addContextData(LdapEntry.class, entry);
+
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
             // if the allowlist contains at least one value then all attributes will be
             // additional check if allowlisted (allowlist can contain wildcard and regex)
-            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher);
-
+            ImmutableMap<String, String> userAttributes = extractLdapAttributes(
+                user,
+                entry,
+                customAttrMaxValueLen,
+                allowlistedCustomLdapAttrMatcher
+            );
+            return new User(username, ImmutableSet.of(), ImmutableSet.of(), null, userAttributes, false);
         } catch (final Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Unable to authenticate user due to ", e);
@@ -160,13 +172,9 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public boolean exists(final User user) {
+    public Optional<User> impersonate(User user) {
         Connection ldapConnection = null;
         String userName = user.getName();
-
-        if (user instanceof LdapUser) {
-            userName = ((LdapUser) user).getUserEntry().getDn();
-        }
 
         try {
             ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
@@ -178,19 +186,17 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                 this.returnAttributes,
                 this.shouldFollowReferrals
             );
-            boolean exists = userEntry != null;
 
-            if (exists) {
-                user.addAttributes(
-                    LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher)
+            if (userEntry != null) {
+                return Optional.of(
+                    user.withAttributes(extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher))
                 );
+            } else {
+                return Optional.empty();
             }
-
-            return exists;
-
         } catch (final Exception e) {
-            log.warn("User {} does not exist due to ", userName, e);
-            return false;
+            log.warn("User {} does not exist due to exception", userName, e);
+            return Optional.empty();
         } finally {
             Utils.unbindAndCloseSilently(ldapConnection);
         }
@@ -324,4 +330,41 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         return result.iterator().next();
     }
 
+    /**
+     * Support functionality to extract user attributes from an LdapEntry object.
+     * <p>
+     * This functionality makes sure that:
+     * <ul>
+     *     <li>The attributes ldap.original.username and ldap.dn are initialized</li>
+     *     <li>Only attributes of a specified max length are considered (in order to limit the size of the user object)</li>
+     *     <li>That only allowlisted attributes are added</li>
+     * </ul>
+     * Originally located in the LdapUser class: https://github.com/nibix/security/blob/5bc2523535228cca9353054970bd8ac040b79023/src/main/java/com/amazon/dlic/auth/ldap/LdapUser.java#L84
+     */
+    public static ImmutableMap<String, String> extractLdapAttributes(
+        String originalUsername,
+        LdapEntry userEntry,
+        int customAttrMaxValueLen,
+        WildcardMatcher allowlistedCustomLdapAttrMatcher
+    ) {
+        ImmutableMap.Builder<String, String> attributes = ImmutableMap.builder();
+        attributes.put("ldap.original.username", originalUsername);
+        attributes.put("ldap.dn", userEntry.getDn());
+
+        if (customAttrMaxValueLen > 0) {
+            for (LdapAttribute attr : userEntry.getAttributes()) {
+                if (attr != null && !attr.isBinary() && !attr.getName().toLowerCase().contains("password")) {
+                    final String val = Utils.getSingleStringValue(attr);
+                    // only consider attributes which are not binary and where its value is not
+                    // longer than customAttrMaxValueLen characters
+                    if (val != null && !val.isEmpty() && val.length() <= customAttrMaxValueLen) {
+                        if (allowlistedCustomLdapAttrMatcher.test(attr.getName())) {
+                            attributes.put("attr.ldap." + attr.getName(), val);
+                        }
+                    }
+                }
+            }
+        }
+        return attributes.build();
+    }
 }
