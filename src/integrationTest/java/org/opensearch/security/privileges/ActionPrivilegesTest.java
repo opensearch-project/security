@@ -73,14 +73,15 @@ import static org.junit.Assert.assertTrue;
     ActionPrivilegesTest.StatefulIndexPrivilegesHeapSize.class })
 public class ActionPrivilegesTest {
     // TODO Create unlimited role statically here
-    private static final RoleV7 UNLIMITED_ROLE = new RoleV7();
-    private static final RoleV7.Index UNLIMITED_INDEX = new RoleV7.Index();
-    static {
-        UNLIMITED_INDEX.setIndex_patterns(List.of("*"));
-        UNLIMITED_INDEX.setAllowed_actions(List.of("*"));
-        UNLIMITED_ROLE.setCluster_permissions(List.of("*"));
-        UNLIMITED_ROLE.setIndex_permissions(List.of(UNLIMITED_INDEX));
-    }
+    private static final RoleV7 UNLIMITED_ROLE = RoleV7.fromYamlStringUnchecked("""
+        cluster_permissions:
+          - "*"
+        index_permissions:
+          - index_patterns:
+              - "*"
+            allowed_actions:
+              - "*"
+                    """);
 
     public static class ClusterPrivileges {
         @Test

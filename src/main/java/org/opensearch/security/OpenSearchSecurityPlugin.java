@@ -2268,7 +2268,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 pluginPermissions = new RoleV7();
                 pluginPermissions.setCluster_permissions(new ArrayList<>());
             } else {
-                pluginPermissions = RoleV7.fromYmlFile(resource);
+                try {
+                    pluginPermissions = RoleV7.fromPluginPermissionsFile(resource);
+                } catch (IOException e) {
+                    throw new OpenSearchSecurityException(e.getMessage(), e);
+                }
             }
             pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
             sf.updatePluginToPermissions(pluginPrincipal, pluginPermissions);

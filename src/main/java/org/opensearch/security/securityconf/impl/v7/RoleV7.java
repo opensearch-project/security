@@ -31,19 +31,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchCorruptionException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
@@ -63,53 +59,44 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
-    public static RoleV7 fromYmlFile(URL pluginPermissionsFile) {
-        RoleV7 role = new RoleV7();
-        try (InputStream in = pluginPermissionsFile.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-            JsonNode node = DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader);
-            if (node.isEmpty()) {
-                return role;
-            }
-            Set<String> validKeys = Set.of("cluster_permissions", "index_permissions");
-            Iterator<String> fieldNames = node.fieldNames();
-            while (fieldNames.hasNext()) {
-                String fieldName = fieldNames.next();
-                if (!validKeys.contains(fieldName)) {
-                    throw new OpenSearchSecurityException(
-                        "Invalid configuration: unexpected key '"
-                            + fieldName
-                            + "'. Only 'cluster_permissions' and 'index_permissions' are allowed."
-                    );
-                }
-            }
-            ArrayNode clusterPermsArray = node.withArray("cluster_permissions");
-            List<String> clusterPermissions = new ArrayList<>(clusterPermsArray.size());
-            for (JsonNode elt : clusterPermsArray) {
-                clusterPermissions.add(elt.asText());
-            }
-            role.cluster_permissions = clusterPermissions;
-            role.index_permissions = new ArrayList<>();
-            if (node.get("index_permissions") != null) {
-                for (Iterator<JsonNode> it = node.get("index_permissions").elements(); it.hasNext();) {
-                    JsonNode indexNode = it.next();
-                    Index indexPerm = new Index();
-                    ArrayNode actionsArray = indexNode.withArray("allowed_actions");
-                    List<String> allowedActions = new ArrayList<>(actionsArray.size());
-                    for (JsonNode elt : actionsArray) {
-                        allowedActions.add(elt.asText());
-                    }
-                    indexPerm.allowed_actions = allowedActions;
-                    ArrayNode indexPatternsArray = indexNode.withArray("index_patterns");
-                    List<String> indexPatterns = new ArrayList<>(indexPatternsArray.size());
-                    for (JsonNode elt : indexPatternsArray) {
-                        indexPatterns.add(elt.asText());
-                    }
-                    indexPerm.index_patterns = indexPatterns;
-                    role.index_permissions.add(indexPerm);
-                }
-            }
+    public static RoleV7 fromYamlString(String yamlString) throws IOException {
+        try (Reader yamlReader = new StringReader(yamlString)) {
+            return fromYaml(yamlReader);
+        }
+    }
+
+    /**
+     * Converts any validation error exceptions into runtime exceptions. Only use when you are sure that is safe;
+     * useful for tests.
+     */
+    public static RoleV7 fromYamlStringUnchecked(String yamlString) {
+        try (Reader yamlReader = new StringReader(yamlString)) {
+            return fromYaml(yamlReader);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static RoleV7 fromYaml(URL yamlFile) throws IOException {
+        try (InputStream in = yamlFile.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            return fromYaml(yamlReader);
+        }
+    }
+
+    public static RoleV7 fromYaml(Reader yamlReader) throws IOException {
+        return DefaultObjectMapper.YAML_MAPPER.readValue(yamlReader, RoleV7.class);
+    }
+
+    /**
+     * Does additional validations regarding limitiations of plugin permissions files.
+     */
+    public static RoleV7 fromPluginPermissionsFile(URL pluginPermissionsFile) throws IOException {
+        RoleV7 role = fromYaml(pluginPermissionsFile);
+
+        if (role.tenant_permissions != null && !role.tenant_permissions.isEmpty()) {
+            throw new OpenSearchCorruptionException(
+                "Unsupported key tenant_permissions. Only 'cluster_permissions' and 'index_permissions' are allowed."
+            );
         }
 
         return role;
