@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `guava_version` from 33.4.6-jre to 33.4.8-jre ([#5284](https://github.com/opensearch-project/security/pull/5284))
 - Bump `spring_version` from 6.2.5 to 6.2.7 ([#5283](https://github.com/opensearch-project/security/pull/5283), [#5345](https://github.com/opensearch-project/security/pull/5345))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.37.0 to 2.38.0 ([#5285](https://github.com/opensearch-project/security/pull/5285))
-- Bump `org.mockito:mockito-core` from 5.15.2 to 5.17.0 ([#5296](https://github.com/opensearch-project/security/pull/5296))
+- Bump `org.mockito:mockito-core` from 5.15.2 to 5.18.0 ([#5296](https://github.com/opensearch-project/security/pull/5296), [#5362](https://github.com/opensearch-project/security/pull/5362))
 - Bump `com.carrotsearch.randomizedtesting:randomizedtesting-runner` from 2.8.2 to 2.8.3 ([#5294](https://github.com/opensearch-project/security/pull/5294))
 - Bump `org.ow2.asm:asm` from 9.7.1 to 9.8 ([#5293](https://github.com/opensearch-project/security/pull/5293))
 - Bump `commons-codec:commons-codec` from 1.16.1 to 1.18.0 ([#5295](https://github.com/opensearch-project/security/pull/5295))
