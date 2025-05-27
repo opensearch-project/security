@@ -13,10 +13,9 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import java.net.URL;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.opensearch.OpenSearchSecurityException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -50,7 +49,7 @@ public class RoleV7Test {
         */
 
         // When
-        RoleV7 role = RoleV7.fromYmlFile(testYamlUrl);
+        RoleV7 role = RoleV7.fromPluginPermissionsFile(testYamlUrl);
 
         // Then
         assertNotNull(role);
@@ -80,7 +79,7 @@ public class RoleV7Test {
         URL emptyYamlUrl = RoleV7Test.class.getResource("/test-role-empty.yml");
 
         // When
-        RoleV7 role = RoleV7.fromYmlFile(emptyYamlUrl);
+        RoleV7 role = RoleV7.fromPluginPermissionsFile(emptyYamlUrl);
 
         // Then
         assertNotNull(role);
@@ -88,13 +87,13 @@ public class RoleV7Test {
         assertTrue(role.getIndex_permissions().isEmpty());
     }
 
-    @Test(expected = OpenSearchSecurityException.class)
+    @Test(expected = UnrecognizedPropertyException.class)
     public void testFromYmlFileWithInvalidYaml() throws Exception {
         // Given an invalid YAML file
         URL invalidYamlUrl = RoleV7Test.class.getResource("/test-role-invalid.yml");
 
         // When/Then
-        RoleV7.fromYmlFile(invalidYamlUrl); // Should throw an exception
+        RoleV7.fromPluginPermissionsFile(invalidYamlUrl); // Should throw an exception
     }
 
     @Test
@@ -109,7 +108,7 @@ public class RoleV7Test {
         URL clusterOnlyYamlUrl = RoleV7Test.class.getResource("/test-role-cluster-only.yml");
 
         // When
-        RoleV7 role = RoleV7.fromYmlFile(clusterOnlyYamlUrl);
+        RoleV7 role = RoleV7.fromPluginPermissionsFile(clusterOnlyYamlUrl);
 
         // Then
         assertNotNull(role);
