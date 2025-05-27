@@ -14,17 +14,19 @@ package org.opensearch.security.action.apitokens;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
+import org.opensearch.security.configuration.TokenListener;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
@@ -35,41 +37,53 @@ import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_
 public class ApiTokenRepository {
     private final ApiTokenIndexHandler apiTokenIndexHandler;
     private final SecurityTokenManager securityTokenManager;
+    private final List<TokenListener> tokenListener = new ArrayList<>();
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
     private final Map<String, RoleV7> jtis = new ConcurrentHashMap<>();
 
-    void reloadApiTokensFromIndex() {
-        CompletableFuture<Map<String, ApiToken>> future = new CompletableFuture<>();
-
+    void reloadApiTokensFromIndex(ActionListener<Void> listener) {
         apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
             @Override
-            public void onResponse(Map<String, ApiToken> tokensFromIndex) {
-                future.complete(tokensFromIndex);
+            public void onResponse(Map<String, ApiToken> tokenMetadatas) {
+                jtis.keySet().removeIf(key -> !tokenMetadatas.containsKey(key));
+                tokenMetadatas.forEach((key, tokenMetadata) -> {
+                    RoleV7 role = new RoleV7();
+                    role.setCluster_permissions(tokenMetadata.getClusterPermissions());
+                    List<RoleV7.Index> indexPerms = new ArrayList<>();
+                    for (ApiToken.IndexPermission ip : tokenMetadata.getIndexPermissions()) {
+                        RoleV7.Index indexPerm = new RoleV7.Index();
+                        indexPerm.setIndex_patterns(ip.getIndexPatterns());
+                        indexPerm.setAllowed_actions(ip.getAllowedActions());
+                        indexPerms.add(indexPerm);
+                    }
+                    role.setIndex_permissions(indexPerms);
+                    jtis.put(key, role);
+                    listener.onResponse(null);
+                });
             }
 
             @Override
             public void onFailure(Exception e) {
-                future.completeExceptionally(e);
+                listener.onFailure(new OpenSearchSecurityException("Received error while reloading API tokens metadata from index", e));
             }
         });
+    }
 
-        future.thenAccept(tokenMetadatas -> {
-            jtis.keySet().removeIf(key -> !tokenMetadatas.containsKey(key));
-            tokenMetadatas.forEach((key, tokenMetadata) -> {
-                RoleV7 role = new RoleV7();
-                role.setCluster_permissions(tokenMetadata.getClusterPermissions());
-                List<RoleV7.Index> indexPerms = new ArrayList<>();
-                for (ApiToken.IndexPermission ip : tokenMetadata.getIndexPermissions()) {
-                    RoleV7.Index indexPerm = new RoleV7.Index();
-                    indexPerm.setIndex_patterns(ip.getIndexPatterns());
-                    indexPerm.setAllowed_actions(ip.getAllowedActions());
-                    indexPerms.add(indexPerm);
-                }
-                role.setIndex_permissions(indexPerms);
-                jtis.put(key, role);
-            });
-        });
+    public synchronized void subscribeOnChange(TokenListener listener) {
+        tokenListener.add(listener);
+    }
+
+    public synchronized void notifyAboutChanges() {
+        for (TokenListener listener : tokenListener) {
+            try {
+                log.debug("Notify {} listener about change", listener);
+                listener.onChange();
+            } catch (Exception e) {
+                log.error("{} listener errored: " + e, listener, e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
+            }
+        }
     }
 
     public RoleV7 getApiTokenPermissionsForUser(User user) {
@@ -123,7 +137,7 @@ public class ApiTokenRepository {
             ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
             apiTokenIndexHandler.indexTokenMetadata(
                 apiToken,
-                ActionListener.wrap(unused -> listener.onResponse(token.getCompleteToken()), exception -> listener.onFailure(exception))
+                ActionListener.wrap(unused -> { listener.onResponse(token.getCompleteToken()); }, listener::onFailure)
             );
         }));
 

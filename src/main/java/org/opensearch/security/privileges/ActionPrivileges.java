@@ -400,7 +400,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
             if (pluginToClusterActions != null) {
                 for (String pluginIdentifier : pluginToClusterActions.keySet()) {
-                    Set<String> clusterActions = pluginToClusterActions.get(pluginIdentifier);
+                    Set<String> clusterActions = actionGroups.resolve(pluginToClusterActions.get(pluginIdentifier));
                     WildcardMatcher matcher = WildcardMatcher.from(clusterActions);
                     usersToActionMatcher.put(pluginIdentifier, matcher);
                 }
@@ -408,7 +408,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
             if (jtiToRole != null) {
                 for (String tokenIdentifier : jtiToRole.keySet()) {
-                    List<String> clusterActions = jtiToRole.get(tokenIdentifier).getCluster_permissions();
+                    Set<String> clusterActions = actionGroups.resolve(jtiToRole.get(tokenIdentifier).getCluster_permissions());
                     WildcardMatcher matcher = WildcardMatcher.from(clusterActions);
                     usersToActionMatcher.put(tokenIdentifier, matcher);
                 }
@@ -455,8 +455,9 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            // 4: If plugin is performing the action, check if plugin has permission
-            if (context.getUser().isPluginUser() && this.usersToActionMatcher.containsKey(context.getUser().getName())) {
+            // 4: If plugin or API Token is performing the action, check if plugin has permission
+            if ((context.getUser().isPluginUser() || context.getUser().isApiTokenRequest())
+                && this.usersToActionMatcher.containsKey(context.getUser().getName())) {
                 WildcardMatcher matcher = this.usersToActionMatcher.get(context.getUser().getName());
                 if (matcher != null && matcher.test(action)) {
                     return PrivilegesEvaluatorResponse.ok();

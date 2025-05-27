@@ -13,6 +13,7 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
@@ -20,6 +21,7 @@ import org.opensearch.action.support.nodes.TransportNodesAction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.threadpool.ThreadPool;
@@ -99,7 +101,25 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
 
     @Override
     protected ApiTokenUpdateNodeResponse nodeOperation(final NodeApiTokenUpdateRequest request) {
-        apiTokenRepository.reloadApiTokensFromIndex();
-        return new ApiTokenUpdateNodeResponse(clusterService.localNode());
+        CompletableFuture<ApiTokenUpdateNodeResponse> future = new CompletableFuture<>();
+
+        ActionListener<Void> reloadListener = new ActionListener<>() {
+            @Override
+            public void onResponse(Void unused) {
+                future.complete(new ApiTokenUpdateNodeResponse(clusterService.localNode()));
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                future.completeExceptionally(e);
+            }
+        };
+
+        try {
+            apiTokenRepository.reloadApiTokensFromIndex(reloadListener);
+            return future.get(); // This will block until the future completes
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to reload API tokens", e);
+        }
     }
 }

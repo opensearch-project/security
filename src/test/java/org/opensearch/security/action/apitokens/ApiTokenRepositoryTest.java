@@ -237,10 +237,10 @@ public class ApiTokenRepositoryTest {
             return null;
         }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
 
-        repository.reloadApiTokensFromIndex();
-
-        await().atMost(5, TimeUnit.SECONDS)
-            .untilAsserted(() -> assertTrue("Jtis should be empty after clear", repository.getJtis().isEmpty()));
+        repository.reloadApiTokensFromIndex(ActionListener.wrap(() -> {
+            await().atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertTrue("Jtis should be empty after clear", repository.getJtis().isEmpty()));
+        }));
     }
 
     @Test
@@ -255,19 +255,19 @@ public class ApiTokenRepositoryTest {
         }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
 
         // Execute the reload
-        repository.reloadApiTokensFromIndex();
-
-        // Wait for and verify the async updates
-        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-            assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
-            assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
-            assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
-            assertEquals(
-                "Should have one cluster action",
-                List.of("cluster:monitor"),
-                repository.getJtis().get("test").getCluster_permissions()
-            );
-            assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndex_permissions());
-        });
+        repository.reloadApiTokensFromIndex(ActionListener.wrap(() -> {
+            // Wait for and verify the async updates
+            await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+                assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
+                assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
+                assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
+                assertEquals(
+                    "Should have one cluster action",
+                    List.of("cluster:monitor"),
+                    repository.getJtis().get("test").getCluster_permissions()
+                );
+                assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndex_permissions());
+            });
+        }));
     }
 }

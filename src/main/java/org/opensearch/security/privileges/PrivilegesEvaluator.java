@@ -214,6 +214,18 @@ public class PrivilegesEvaluator {
             });
         }
 
+        if (apiTokenRepository != null) {
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
+
+                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
+            });
+        }
+
         if (clusterService != null) {
             clusterService.addListener(event -> {
                 ActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();

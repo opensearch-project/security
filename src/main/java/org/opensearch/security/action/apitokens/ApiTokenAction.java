@@ -211,6 +211,7 @@ public class ApiTokenAction extends BaseRestHandler {
                         indexPermissions,
                         expiration,
                         wrapWithCacheRefresh(ActionListener.wrap(token -> {
+                            apiTokenRepository.notifyAboutChanges();
                             XContentBuilder builder = channel.newBuilder();
                             builder.startObject();
                             builder.field("token", token);
