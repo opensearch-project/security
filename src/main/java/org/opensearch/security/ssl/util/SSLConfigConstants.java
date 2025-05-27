@@ -127,18 +127,6 @@ public final class SSLConfigConstants {
         SSLConfigConstants.ENABLED_PROTOCOLS,
         key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
     );
-
-    // aux keystore settings
-    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_TYPE = Setting.affixKeySetting(
-        SSLConfigConstants.SSL_AUX_PREFIX,
-        SSLConfigConstants.KEYSTORE_TYPE,
-        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
-    );
-    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_ALIAS = Setting.affixKeySetting(
-        SSLConfigConstants.SSL_AUX_PREFIX,
-        SSLConfigConstants.KEYSTORE_ALIAS,
-        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
-    );
     public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.KEYSTORE_FILEPATH,
@@ -159,16 +147,6 @@ public final class SSLConfigConstants {
     public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_CLIENTAUTH_MODE = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.CLIENT_AUTH_MODE,
-        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
-    );
-    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_TYPE = Setting.affixKeySetting(
-        SSLConfigConstants.SSL_AUX_PREFIX,
-        SSLConfigConstants.TRUSTSTORE_TYPE,
-        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
-    );
-    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_ALIAS = Setting.affixKeySetting(
-        SSLConfigConstants.SSL_AUX_PREFIX,
-        SSLConfigConstants.TRUSTSTORE_ALIAS,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
     public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = Setting.affixKeySetting(

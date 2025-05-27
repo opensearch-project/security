@@ -98,15 +98,11 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_PROTOCOLS;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_TYPE;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
@@ -656,14 +652,10 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 SECURITY_SSL_AUX_ENABLED,
                 SECURITY_SSL_AUX_ENABLED_CIPHERS,
                 SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
-                SECURITY_SSL_AUX_KEYSTORE_TYPE,
-                SECURITY_SSL_AUX_KEYSTORE_ALIAS,
                 SECURITY_SSL_AUX_KEYSTORE_FILEPATH,
                 SECURITY_SSL_AUX_PEMKEY_FILEPATH,
                 SECURITY_SSL_AUX_PEMCERT_FILEPATH,
                 SECURITY_SSL_AUX_CLIENTAUTH_MODE,
-                SECURITY_SSL_AUX_TRUSTSTORE_TYPE,
-                SECURITY_SSL_AUX_TRUSTSTORE_ALIAS,
                 SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH,
                 SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH
             )
