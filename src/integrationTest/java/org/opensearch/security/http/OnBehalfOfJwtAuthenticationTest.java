@@ -118,7 +118,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         .roles(HOST_MAPPING_ROLE, ROLE_WITH_OBO_PERM);
 
     private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
-        return new OnBehalfOfConfig().oboEnabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey);
+        return new OnBehalfOfConfig().enabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey);
     }
 
     @ClassRule
@@ -155,7 +155,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     }
 
     @Test
-    public void shouldNotAuthenticateWithATemperedOBOToken() {
+    public void shouldNotAuthenticateWithATamperedOBOToken() {
         String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
         oboToken = oboToken.substring(0, oboToken.length() - 1); // tampering the token
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
@@ -242,11 +242,11 @@ public class OnBehalfOfJwtAuthenticationTest {
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
 
         // Disable OBO via config and see that the authenticator doesn't authorize
-        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(false));
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().enabled(false));
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_UNAUTHORIZED);
 
         // Reenable OBO via config and see that the authenticator is working again
-        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(true));
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().enabled(true));
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
     }
 

@@ -13,7 +13,6 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Set;
 
 import com.google.common.io.BaseEncoding;
@@ -258,7 +257,7 @@ public class SecurityTokenManagerTest {
     public void testCreateJwtWithNegativeExpiry() {
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
@@ -281,7 +280,7 @@ public class SecurityTokenManagerTest {
         doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
@@ -301,7 +300,7 @@ public class SecurityTokenManagerTest {
     public void testCreateJwtWithBadEncryptionKey() {
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
@@ -323,7 +322,7 @@ public class SecurityTokenManagerTest {
     public void testCreateJwtWithBadRoles() {
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);
@@ -345,7 +344,7 @@ public class SecurityTokenManagerTest {
     public void issueApiToken_success() throws Exception {
         doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final ConfigModel configModel = mock(ConfigModel.class);
         tokenManager.onConfigModelChanged(configModel);

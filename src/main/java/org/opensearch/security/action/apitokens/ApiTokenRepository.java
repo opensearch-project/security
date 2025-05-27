@@ -118,13 +118,15 @@ public class ApiTokenRepository {
         Long expiration,
         ActionListener<String> listener
     ) {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
-        ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
-        ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
-        apiTokenIndexHandler.indexTokenMetadata(
-            apiToken,
-            ActionListener.wrap(unused -> listener.onResponse(token.getCompleteToken()), exception -> listener.onFailure(exception))
-        );
+        apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
+            ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
+            ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
+            apiTokenIndexHandler.indexTokenMetadata(
+                apiToken,
+                ActionListener.wrap(unused -> listener.onResponse(token.getCompleteToken()), exception -> listener.onFailure(exception))
+            );
+        }));
+
     }
 
     public void deleteApiToken(String name, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
@@ -132,7 +134,8 @@ public class ApiTokenRepository {
     }
 
     public void getApiTokens(ActionListener<Map<String, ApiToken>> listener) {
-        apiTokenIndexHandler.getTokenMetadatas(listener);
+        apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> { apiTokenIndexHandler.getTokenMetadatas(listener); }));
+
     }
 
     public void getTokenCount(ActionListener<Long> listener) {

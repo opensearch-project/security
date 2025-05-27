@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -28,6 +29,12 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
     public static final String EXPIRATION_FIELD = "expiration";
+    public static final Set<String> ALLOWED_FIELDS = Set.of(
+        NAME_FIELD,
+        EXPIRATION_FIELD,
+        CLUSTER_PERMISSIONS_FIELD,
+        INDEX_PERMISSIONS_FIELD
+    );
 
     private final String name;
     private final Instant creationTime;

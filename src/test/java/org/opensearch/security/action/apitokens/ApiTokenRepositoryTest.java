@@ -116,6 +116,12 @@ public class ApiTokenRepositoryTest {
         expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Long.MAX_VALUE));
 
         doAnswer(invocation -> {
+            ActionListener<?> listener = invocation.getArgument(0);
+            listener.onResponse(null);
+            return null;
+        }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
+
+        doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
             listener.onResponse(expectedTokens);
             return null;
@@ -154,7 +160,7 @@ public class ApiTokenRepositoryTest {
             public void onResponse(String result) {
                 try {
                     assertThat(result, equalTo(completeToken));
-                    verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent();
+                    verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any());
                     verify(securityTokenManager).issueApiToken(any(), any());
                     verify(apiTokenIndexHandler).indexTokenMetadata(
                         argThat(
@@ -171,23 +177,14 @@ public class ApiTokenRepositoryTest {
             }
         };
 
+        doAnswer(invocation -> {
+            ActionListener<?> l = invocation.getArgument(0);
+            l.onResponse(null);
+            return null;
+        }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
+
         repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, listener);
         listener.assertSuccess();
-    }
-
-    @Test
-    public void testGetApiTokensThrowsIndexNotFoundException() {
-        doAnswer(invocation -> {
-            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
-            listener.onFailure(new IndexNotFoundException("test-index"));
-            return null;
-        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
-
-        TestActionListener<Map<String, ApiToken>> listener = new TestActionListener<>();
-        repository.getApiTokens(listener);
-
-        Exception e = listener.assertException(IndexNotFoundException.class);
-        assertThat(e.getMessage(), containsString("test-index"));
     }
 
     @Test

@@ -53,12 +53,14 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_ACTIONS_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_FIELDS;
 import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.ISSUED_AT_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
+import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.util.ParsingUtils.safeMapList;
@@ -125,7 +127,10 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
-        authorizeSecurityAccess(request);
+        String authError = authorizeSecurityAccess(request);
+        if (authError != null) {
+            return channel -> forbidden(channel, "No permission to access REST API: " + authError);
+        }
         return doPrepareRequest(request, client);
     }
 
@@ -289,6 +294,12 @@ public class ApiTokenAction extends BaseRestHandler {
      * Validates the request parameters
      */
     void validateRequestParameters(Map<String, Object> requestBody) {
+        // Check for unknown fields
+        for (String field : requestBody.keySet()) {
+            if (!ALLOWED_FIELDS.contains(field)) {
+                throw new IllegalArgumentException("Unknown field in request: " + field);
+            }
+        }
         if (!requestBody.containsKey(NAME_FIELD)) {
             throw new IllegalArgumentException("Missing required parameter: " + NAME_FIELD);
         }
@@ -375,11 +386,12 @@ public class ApiTokenAction extends BaseRestHandler {
         }
     }
 
-    protected void authorizeSecurityAccess(RestRequest request) throws IOException {
+    protected String authorizeSecurityAccess(RestRequest request) throws IOException {
         // Check if user has security API access
         if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
             || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
-            throw new SecurityException("User does not have required security API access");
+            return "User does not have required security API access";
         }
+        return null;
     }
 }

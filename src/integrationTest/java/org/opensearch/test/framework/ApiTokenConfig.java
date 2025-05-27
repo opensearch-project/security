@@ -11,40 +11,28 @@ package org.opensearch.test.framework;
 
 import java.io.IOException;
 
-import org.apache.commons.lang3.StringUtils;
-
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
-public class OnBehalfOfConfig implements ToXContentObject {
+public class ApiTokenConfig implements ToXContentObject {
     private Boolean enabled;
     private String signing_key;
-    private String encryption_key;
 
-    public OnBehalfOfConfig enabled(Boolean enabled) {
+    public ApiTokenConfig enabled(Boolean enabled) {
         this.enabled = enabled;
         return this;
     }
 
-    public OnBehalfOfConfig signingKey(String signing_key) {
+    public ApiTokenConfig signingKey(String signing_key) {
         this.signing_key = signing_key;
         return this;
     }
 
-    public OnBehalfOfConfig encryptionKey(String encryption_key) {
-        this.encryption_key = encryption_key;
-        return this;
-    }
-
     @Override
-    public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field("enabled", enabled);
         xContentBuilder.field("signing_key", signing_key);
-        if (StringUtils.isNoneBlank(encryption_key)) {
-            xContentBuilder.field("encryption_key", encryption_key);
-        }
         xContentBuilder.endObject();
         return xContentBuilder;
     }

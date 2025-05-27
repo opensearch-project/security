@@ -139,11 +139,12 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         try {
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-            final String subject = claims.getSubject();
-            if (subject == null) {
+            if (claims.getSubject() == null) {
                 log.error("Api token does not have a subject");
                 return null;
             }
+
+            final String subject = API_TOKEN_USER_PREFIX + claims.getSubject();
 
             if (!apiTokenRepository.isValidToken(subject)) {
                 log.error("Api token is not allowlisted");
@@ -156,7 +157,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            return new AuthCredentials(API_TOKEN_USER_PREFIX + subject, List.of(), "").markComplete();
+            return new AuthCredentials(subject, List.of(), "").markComplete();
 
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate api token because of ", e);

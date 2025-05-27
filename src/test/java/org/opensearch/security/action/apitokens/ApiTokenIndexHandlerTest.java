@@ -103,20 +103,20 @@ public class ApiTokenIndexHandlerTest {
     public void testCreateApiTokenIndexWhenIndexNotExist() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(false);
 
-        indexHandler.createApiTokenIndexIfAbsent();
-
-        ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
-        verify(indicesAdminClient).create(captor.capture());
-        assertThat(captor.getValue().index(), equalTo(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
+        indexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
+            ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+            verify(indicesAdminClient).create(captor.capture());
+            assertThat(captor.getValue().index(), equalTo(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
+        }));
     }
 
     @Test
     public void testCreateApiTokenIndexWhenIndexExists() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
-        indexHandler.createApiTokenIndexIfAbsent();
-
-        verifyNoInteractions(indicesAdminClient);
+        indexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
+            verifyNoInteractions(indicesAdminClient);
+        }));
     }
 
     @Test

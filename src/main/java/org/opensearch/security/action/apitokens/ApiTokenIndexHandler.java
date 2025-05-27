@@ -20,8 +20,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -57,7 +59,8 @@ public class ApiTokenIndexHandler {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
 
-            IndexRequest request = new IndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).source(jsonString, XContentType.JSON);
+            IndexRequest request = new IndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).source(jsonString, XContentType.JSON)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
             client.index(request, ActionListener.wrap(indexResponse -> {
                 LOGGER.info("Created {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
@@ -122,13 +125,15 @@ public class ApiTokenIndexHandler {
         return clusterService.state().metadata().hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
     }
 
-    public void createApiTokenIndexIfAbsent() {
+    public void createApiTokenIndexIfAbsent(ActionListener<CreateIndexResponse> listener) {
         if (!apiTokenIndexExists()) {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
                 indexSettings
             );
-            client.admin().indices().create(createIndexRequest);
+            client.admin().indices().create(createIndexRequest, listener);
+        } else {
+            listener.onResponse(null);
         }
     }
 
