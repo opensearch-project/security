@@ -146,13 +146,32 @@ public class CertificatesRule extends ExternalResource {
 
     public X509CertificateHolder generateCaCertificate(
         final KeyPair parentKeyPair,
+        final String subjectName,
+        final Instant startDate,
+        final Instant endDate
+    ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
+        return generateCaCertificate(parentKeyPair, subjectName, generateSerialNumber(), startDate, endDate);
+    }
+
+    public X509CertificateHolder generateCaCertificate(
+        final KeyPair parentKeyPair,
+        final BigInteger serialNumber,
+        final Instant startDate,
+        final Instant endDate
+    ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
+        return generateCaCertificate(parentKeyPair, DEFAULT_SUBJECT_NAME, serialNumber, startDate, endDate);
+    }
+
+    public X509CertificateHolder generateCaCertificate(
+        final KeyPair parentKeyPair,
+        final String subjectName,
         final BigInteger serialNumber,
         final Instant startDate,
         final Instant endDate
     ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         return createCertificateBuilder(
-            DEFAULT_SUBJECT_NAME,
+            subjectName,
             DEFAULT_SUBJECT_NAME,
             parentKeyPair.getPublic(),
             parentKeyPair.getPublic(),

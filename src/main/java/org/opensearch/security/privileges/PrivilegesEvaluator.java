@@ -94,7 +94,6 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -102,6 +101,7 @@ import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -158,6 +158,7 @@ public class PrivilegesEvaluator {
     private final Settings settings;
     private final Map<String, Set<String>> pluginToClusterActions;
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
+    private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
     private ApiTokenRepository apiTokenRepository;
 
     public PrivilegesEvaluator(
@@ -203,16 +204,13 @@ public class PrivilegesEvaluator {
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
-                try {
-                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
-                        CType.ACTIONGROUPS
-                    );
-                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
 
-                    this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
-                } catch (Exception e) {
-                    log.error("Error while updating ActionPrivileges object with {}", configMap, e);
-                }
+                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
             });
         }
 
@@ -231,15 +229,15 @@ public class PrivilegesEvaluator {
 
     void updateConfiguration(
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration
+        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+        SecurityDynamicConfiguration<TenantV7> tenantConfiguration
     ) {
-        if (rolesConfiguration != null) {
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                ? DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
-                : DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS));
-            FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
+        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+        rolesConfiguration = rolesConfiguration.withStaticConfig();
+        tenantConfiguration = tenantConfiguration.withStaticConfig();
+        try {
             ActionPrivileges actionPrivileges = new ActionPrivileges(
-                DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
+                rolesConfiguration,
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
                 settings,
@@ -253,6 +251,14 @@ public class PrivilegesEvaluator {
             if (oldInstance != null) {
                 oldInstance.shutdown();
             }
+        } catch (Exception e) {
+            log.error("Error while updating ActionPrivileges", e);
+        }
+
+        try {
+            this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
+        } catch (Exception e) {
+            log.error("Error while updating TenantPrivileges", e);
         }
     }
 
@@ -357,8 +363,6 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
         setUserInfoInThreadContext(user);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -463,7 +467,8 @@ public class PrivilegesEvaluator {
                             user,
                             dcm,
                             requestedResolved,
-                            mapTenants(user, mappedRoles)
+                            context,
+                            this.tenantPrivileges.get()
                         );
 
                         if (isDebugEnabled) {
@@ -525,7 +530,8 @@ public class PrivilegesEvaluator {
                 user,
                 dcm,
                 requestedResolved,
-                mapTenants(user, mappedRoles)
+                context,
+                this.tenantPrivileges.get()
             );
 
             if (isDebugEnabled) {
@@ -602,13 +608,8 @@ public class PrivilegesEvaluator {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public Map<String, Boolean> mapTenants(final User user, Set<String> roles) {
-        return this.configModel.mapTenants(user, roles);
-    }
-
-    public Set<String> getAllConfiguredTenantNames() {
-
-        return configModel.getAllConfiguredTenantNames();
+    public TenantPrivileges tenantPrivileges() {
+        return this.tenantPrivileges.get();
     }
 
     public boolean multitenancyEnabled() {

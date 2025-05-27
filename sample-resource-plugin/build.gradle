@@ -64,7 +64,7 @@ configurations.all {
         force 'org.apache.httpcomponents:httpcore:4.4.16'
         force 'commons-codec:commons-codec:1.18.0'
         force 'org.hamcrest:hamcrest:2.2'
-        force 'org.mockito:mockito-core:5.17.0'
+        force 'org.mockito:mockito-core:5.18.0'
     }
 }
 

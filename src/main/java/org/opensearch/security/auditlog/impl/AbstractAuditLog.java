@@ -75,6 +75,7 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -98,6 +99,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private final Set<String> ignoredUrlParams = new HashSet<>();
+    private final UserFactory userFactory;
 
     protected abstract void enableRoutes();
 
@@ -115,7 +117,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         final ThreadPool threadPool,
         final IndexNameExpressionResolver resolver,
         final ClusterService clusterService,
-        final Environment environment
+        final Environment environment,
+        final UserFactory userFactory
     ) {
         super();
         this.threadPool = threadPool;
@@ -133,6 +136,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             )
         );
         this.environment = environment;
+        this.userFactory = userFactory;
     }
 
     protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
@@ -793,7 +797,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private String getUser() {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
-            user = (User) Base64Helper.deserializeObject(
+            user = this.userFactory.fromSerializedBase64(
                 threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
             );
         }

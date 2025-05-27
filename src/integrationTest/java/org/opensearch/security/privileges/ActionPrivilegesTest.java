@@ -1073,12 +1073,7 @@ public class ActionPrivilegesTest {
     }
 
     static PrivilegesEvaluationContext ctx(String... roles) {
-        return ctxWithUserName("test-user", roles);
-    }
-
-    static PrivilegesEvaluationContext ctxWithUserName(String userName, String... roles) {
-        User user = new User(userName);
-        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
+        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
@@ -1092,8 +1087,7 @@ public class ActionPrivilegesTest {
     }
 
     static PrivilegesEvaluationContext ctxByUsername(String username) {
-        User user = new User(username);
-        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
+        User user = new User(username).withAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.of(),

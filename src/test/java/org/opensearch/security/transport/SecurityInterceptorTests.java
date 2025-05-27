@@ -40,6 +40,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.test.transport.MockTransport;
 import org.opensearch.threadpool.ThreadPool;
@@ -148,7 +149,8 @@ public class SecurityInterceptorTests {
             sslExceptionHandler,
             clusterInfoHolder,
             sslConfig,
-            () -> true
+            () -> true,
+            new UserFactory.Simple()
         );
 
         clusterName = ClusterName.DEFAULT;

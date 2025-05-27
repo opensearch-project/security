@@ -46,7 +46,9 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.security.privileges.DocumentAllowList;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
+import org.opensearch.security.privileges.TenantPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
@@ -84,32 +86,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         super(resolver, clusterService, client, threadPool);
     }
 
-    private boolean isTenantAllowed(
-        final ActionRequest request,
-        final String action,
-        final User user,
-        final Map<String, Boolean> tenants,
-        final String requestedTenant
-    ) {
-
-        if (!tenants.keySet().contains(requestedTenant)) {
-            log.warn("Tenant {} is not allowed for user {}", requestedTenant, user.getName());
-            return false;
-        } else {
-
-            if (log.isDebugEnabled()) {
-                log.debug("request " + request.getClass());
-            }
-
-            if (tenants.get(requestedTenant) == Boolean.FALSE && !READ_ONLY_ALLOWED_ACTIONS.contains(action)) {
-                log.warn("Tenant {} is not allowed to write (user: {})", requestedTenant, user.getName());
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     /**
      * return Boolean.TRUE to prematurely deny request
      * return Boolean.FALSE to prematurely allow request
@@ -123,7 +99,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final User user,
         final DynamicConfigModel config,
         final Resolved requestedResolved,
-        final Map<String, Boolean> tenants
+        final PrivilegesEvaluationContext context,
+        final TenantPrivileges tenantPrivileges
     ) {
 
         final boolean enabled = config.isDashboardsMultitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
@@ -154,20 +131,28 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername)
             && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
+
+        TenantPrivileges.ActionType actionType = getActionTypeForAction(action);
+
         if (requestedTenant == null || requestedTenant.length() == 0) {
             if (isTraceEnabled) {
                 log.trace("No tenant, will resolve to " + dashboardsIndexName);
             }
 
-            if (dashboardsIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
+            if (dashboardsIndexOnly && !tenantPrivileges.hasTenantPrivilege(context, "global_tenant", actionType)) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
-        if (USER_TENANT.equals(requestedTenant)) {
+        boolean isPrivateTenant;
+
+        if (USER_TENANT.equals(requestedTenant) || user.getName().equals(requestedTenant)) {
             requestedTenant = user.getName();
+            isPrivateTenant = true;
+        } else {
+            isPrivateTenant = false;
         }
 
         if (isDebugEnabled && !user.getName().equals(dashboardsServerUsername)) {
@@ -181,7 +166,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
-                && isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+                && (isPrivateTenant || tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType))) {
                 return ACCESS_GRANTED_REPLACE_RESULT;
             }
         }
@@ -195,7 +180,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("is user tenant: " + requestedTenant.equals(user.getName()));
             }
 
-            if (!isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+            if (!isPrivateTenant && !tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType)) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 
@@ -236,6 +221,14 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         documentAllowList.applyTo(threadPool.getThreadContext());
+    }
+
+    static TenantPrivileges.ActionType getActionTypeForAction(String action) {
+        if (READ_ONLY_ALLOWED_ACTIONS.contains(action)) {
+            return TenantPrivileges.ActionType.READ;
+        } else {
+            return TenantPrivileges.ActionType.WRITE;
+        }
     }
 
     private String getConcreteIndexName(String name, Map<String, IndexAbstraction> indicesLookup) {
