@@ -182,6 +182,14 @@ public final class SSLConfigConstants {
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
 
+    // helper to resolve setting key for CertType namespace
+    public static String getStringAffixKeyForCertType(Setting.AffixSetting<String> affix, CertType certType) {
+        return affix.getConcreteSettingForNamespace(certType.name()).getKey();
+    }
+    public static String getBoolAffixKeyForCertType(Setting.AffixSetting<Boolean> affix, CertType certType) {
+        return affix.getConcreteSettingForNamespace(certType.name()).getKey();
+    }
+
     /**
      * Transport layer (node-to-node) settings.
      * Transport layer acts both as client and server within the cluster.
