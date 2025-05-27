@@ -15,7 +15,7 @@ const yaml = require('yaml')
 function checkPermissionsOrder(file, fix = false) {
   const contents = fs.readFileSync(file, 'utf8')
   const doc = yaml.parseDocument(contents, { keepCstNodes: true })
-  const roles = doc.contents.items
+  const roles = doc.contents?.items || []
   let requiresChanges = false
   roles.forEach(role => {
     const itemsFromRole = role?.value?.items;
@@ -73,14 +73,14 @@ if (args.length === 0) {
 }
 const filePath = args[0]
 const fix = args.includes('--fix')
-const slient = args.includes('--slient')
+const silent = args.includes('--silent')
 if (checkPermissionsOrder(filePath, fix)) {
   if (fix) {
-    if (!slient) { console.log(`${filePath} has been updated.`) }
+    if (!silent) { console.log(`${filePath} has been updated.`) }
   } else {
-    if (!slient) { console.error(`Error: ${filePath} requires changes.`) }
+    if (!silent) { console.error(`Error: ${filePath} requires changes.`) }
     process.exit(1)
   }
 } else {
-  if (!slient) { console.log(`${filePath} is up-to-date.`) }
+  if (!silent) { console.log(`${filePath} is up-to-date.`) }
 }

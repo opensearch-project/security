@@ -27,11 +27,20 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.opensearch.OpenSearchCorruptionException;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
@@ -48,6 +57,49 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public RoleV7() {
 
+    }
+
+    public static RoleV7 fromYamlString(String yamlString) throws IOException {
+        try (Reader yamlReader = new StringReader(yamlString)) {
+            return fromYaml(yamlReader);
+        }
+    }
+
+    /**
+     * Converts any validation error exceptions into runtime exceptions. Only use when you are sure that is safe;
+     * useful for tests.
+     */
+    public static RoleV7 fromYamlStringUnchecked(String yamlString) {
+        try (Reader yamlReader = new StringReader(yamlString)) {
+            return fromYaml(yamlReader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static RoleV7 fromYaml(URL yamlFile) throws IOException {
+        try (InputStream in = yamlFile.openStream(); Reader yamlReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            return fromYaml(yamlReader);
+        }
+    }
+
+    public static RoleV7 fromYaml(Reader yamlReader) throws IOException {
+        return DefaultObjectMapper.YAML_MAPPER.readValue(yamlReader, RoleV7.class);
+    }
+
+    /**
+     * Does additional validations regarding limitiations of plugin permissions files.
+     */
+    public static RoleV7 fromPluginPermissionsFile(URL pluginPermissionsFile) throws IOException {
+        RoleV7 role = fromYaml(pluginPermissionsFile);
+
+        if (role.tenant_permissions != null && !role.tenant_permissions.isEmpty()) {
+            throw new OpenSearchCorruptionException(
+                "Unsupported key tenant_permissions. Only 'cluster_permissions' and 'index_permissions' are allowed."
+            );
+        }
+
+        return role;
     }
 
     public static class Index {

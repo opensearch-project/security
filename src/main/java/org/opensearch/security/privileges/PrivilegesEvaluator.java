@@ -155,7 +155,7 @@ public class PrivilegesEvaluator {
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
-    private final Map<String, Set<String>> pluginToClusterActions;
+    private final Map<String, RoleV7> pluginToRole;
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
 
@@ -180,7 +180,7 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
-        this.pluginToClusterActions = new HashMap<>();
+        this.pluginToRole = new HashMap<>();
         this.clusterStateSupplier = clusterStateSupplier;
         this.settings = settings;
 
@@ -236,7 +236,7 @@ public class PrivilegesEvaluator {
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
                 settings,
-                pluginToClusterActions
+                pluginToRole
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -599,6 +599,9 @@ public class PrivilegesEvaluator {
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
+        if (user.isPluginUser()) {
+            return Set.of(user.getName());
+        }
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
@@ -849,7 +852,7 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableList(ret);
     }
 
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        pluginToClusterActions.put(pluginIdentifier, clusterActions);
+    public void updatePluginToPermissions(String pluginIdentifier, RoleV7 pluginPermissions) {
+        pluginToRole.put(pluginIdentifier, pluginPermissions);
     }
 }

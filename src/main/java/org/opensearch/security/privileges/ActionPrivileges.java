@@ -91,10 +91,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         ImmutableSet<String> wellKnownClusterActions,
         ImmutableSet<String> wellKnownIndexActions,
         ImmutableSet<String> explicitlyRequiredIndexActions,
-        Map<String, Set<String>> pluginToClusterActions
+        Map<String, RoleV7> pluginToRole
     ) {
-        this.cluster = new ClusterPrivileges(roles, actionGroups, wellKnownClusterActions, pluginToClusterActions);
-        this.index = new IndexPrivileges(roles, actionGroups, wellKnownIndexActions, explicitlyRequiredIndexActions);
+        this.cluster = new ClusterPrivileges(roles, actionGroups, wellKnownClusterActions, pluginToRole);
+        this.index = new IndexPrivileges(roles, actionGroups, wellKnownIndexActions, explicitlyRequiredIndexActions, pluginToRole);
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.wellKnownClusterActions = wellKnownClusterActions;
@@ -126,7 +126,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         FlattenedActionGroups actionGroups,
         Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier,
         Settings settings,
-        Map<String, Set<String>> pluginToClusterActions
+        Map<String, RoleV7> pluginToRole
     ) {
         this(
             roles,
@@ -136,7 +136,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             WellKnownActions.CLUSTER_ACTIONS,
             WellKnownActions.INDEX_ACTIONS,
             WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS,
-            pluginToClusterActions
+            pluginToRole
         );
     }
 
@@ -334,7 +334,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             SecurityDynamicConfiguration<RoleV7> roles,
             FlattenedActionGroups actionGroups,
             ImmutableSet<String> wellKnownClusterActions,
-            Map<String, Set<String>> pluginToClusterActions
+            Map<String, RoleV7> pluginToRole
         ) {
             DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
                 roles.getCEntries().keySet()
@@ -392,9 +392,9 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            if (pluginToClusterActions != null) {
-                for (String pluginIdentifier : pluginToClusterActions.keySet()) {
-                    Set<String> clusterActions = pluginToClusterActions.get(pluginIdentifier);
+            if (pluginToRole != null) {
+                for (String pluginIdentifier : pluginToRole.keySet()) {
+                    List<String> clusterActions = pluginToRole.get(pluginIdentifier).getCluster_permissions();
                     WildcardMatcher matcher = WildcardMatcher.from(clusterActions);
                     usersToActionMatcher.put(pluginIdentifier, matcher);
                 }
@@ -603,18 +603,22 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             SecurityDynamicConfiguration<RoleV7> roles,
             FlattenedActionGroups actionGroups,
             ImmutableSet<String> wellKnownIndexActions,
-            ImmutableSet<String> explicitlyRequiredIndexActions
+            ImmutableSet<String> explicitlyRequiredIndexActions,
+            Map<String, RoleV7> pluginToRole
         ) {
-            DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
-                roles.getCEntries().keySet()
-            );
 
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
             Map<String, Map<WildcardMatcher, IndexPattern.Builder>> rolesToActionPatternToIndexPattern = new HashMap<>();
             Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> actionToRolesWithWildcardIndexPrivileges = new HashMap<>();
             Map<String, Map<String, IndexPattern.Builder>> rolesToExplicitActionToIndexPattern = new HashMap<>();
 
-            for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
+            Map<String, RoleV7> permissionEntries = new HashMap<>();
+            permissionEntries.putAll(roles.getCEntries());
+            permissionEntries.putAll(pluginToRole);
+
+            DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(permissionEntries.keySet());
+
+            for (Map.Entry<String, RoleV7> entry : permissionEntries.entrySet()) {
                 try {
                     String roleName = entry.getKey();
                     RoleV7 role = entry.getValue();
