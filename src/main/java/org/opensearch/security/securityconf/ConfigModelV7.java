@@ -1029,9 +1029,11 @@ public class ConfigModelV7 extends ConfigModel {
     private class TenantHolder {
 
         private SetMultimap<String, Tuple<String, Boolean>> tenantsMM = null;
+        private final ImmutableSet<String> allDefinedTenantNames;
 
         public TenantHolder(SecurityDynamicConfiguration<RoleV7> roles, SecurityDynamicConfiguration<TenantV7> definedTenants) {
             final Set<Future<Tuple<String, Set<Tuple<String, Boolean>>>>> futures = new HashSet<>(roles.getCEntries().size());
+            this.allDefinedTenantNames = ImmutableSet.copyOf(definedTenants.getCEntries().keySet());
 
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
@@ -1053,7 +1055,7 @@ public class ConfigModelV7 extends ConfigModel {
 
                                     // find Wildcarded tenant patterns
                                     List<String> matchingTenants = WildcardMatcher.from(tenant.getTenant_patterns())
-                                        .getMatchAny(definedTenants.getCEntries().keySet(), Collectors.toList());
+                                        .getMatchAny(allDefinedTenantNames, Collectors.toList());
                                     for (String matchingTenant : matchingTenants) {
                                         tuples.add(
                                             new Tuple<String, Boolean>(
@@ -1146,7 +1148,7 @@ public class ConfigModelV7 extends ConfigModel {
                         // Indeed, because we don't have control over what will be
                         // passed on as values of users' attributes, we have to make
                         // sure that we don't allow them to select tenants that do not exist.
-                        if (ConfigModelV7.this.tenants.getCEntries().keySet().contains(tenant)) {
+                        if (this.allDefinedTenantNames.contains(tenant)) {
                             result.put(tenant, rw);
                         }
                     }
