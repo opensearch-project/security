@@ -113,10 +113,10 @@ public class RestEndpointPermissionTests {
         }).toArray(String[]::new);
     }
 
-    final ActionPrivileges actionPrivileges;
+    final RoleBasedActionPrivileges actionPrivileges;
 
     public RestEndpointPermissionTests() throws IOException {
-        this.actionPrivileges = new ActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
+        this.actionPrivileges = new RoleBasedActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
     }
 
     @Test
@@ -250,8 +250,18 @@ public class RestEndpointPermissionTests {
         return SecurityDynamicConfiguration.fromNode(rolesNode, CType.ROLES, 2, 0, 0);
     }
 
-    static PrivilegesEvaluationContext ctx(String... roles) {
-        return new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.copyOf(roles), null, null, null, null, null, null);
+    PrivilegesEvaluationContext ctx(String... roles) {
+        return new PrivilegesEvaluationContext(
+            new User("test_user"),
+            ImmutableSet.copyOf(roles),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            actionPrivileges
+        );
     }
 
 }

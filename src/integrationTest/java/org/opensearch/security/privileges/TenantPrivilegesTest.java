@@ -386,7 +386,8 @@ public class TenantPrivilegesTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
+            null,
+            ActionPrivileges.EMPTY
         );
     }
 
@@ -400,7 +401,8 @@ public class TenantPrivilegesTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
+            null,
+            ActionPrivileges.EMPTY
         );
     }
 

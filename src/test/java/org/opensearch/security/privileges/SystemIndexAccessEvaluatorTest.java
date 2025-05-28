@@ -88,7 +88,7 @@ public class SystemIndexAccessEvaluatorTest {
 
     User user;
     IndexNameExpressionResolver indexNameExpressionResolver;
-    ActionPrivileges actionPrivileges;
+    RoleBasedActionPrivileges actionPrivileges;
 
     private ThreadContext createThreadContext() {
         return new ThreadContext(Settings.EMPTY);
@@ -128,7 +128,12 @@ public class SystemIndexAccessEvaluatorTest {
                 CType.ROLES
             );
 
-            this.actionPrivileges = new ActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, () -> indexMetadata, Settings.EMPTY);
+            this.actionPrivileges = new RoleBasedActionPrivileges(
+                rolesConfig,
+                FlattenedActionGroups.EMPTY,
+                () -> indexMetadata,
+                Settings.EMPTY
+            );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -162,7 +167,8 @@ public class SystemIndexAccessEvaluatorTest {
             null,
             null,
             indexNameExpressionResolver,
-            null
+            null,
+            actionPrivileges
         );
     }
 

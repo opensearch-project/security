@@ -170,7 +170,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
             String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
             PrivilegesEvaluationContext context = evaluator.createContext(user, permission);
-            PrivilegesEvaluatorResponse result = evaluator.getActionPrivileges()
+            PrivilegesEvaluatorResponse result = context.getActionPrivileges()
                 .hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
 
             return !result.isAllowed();

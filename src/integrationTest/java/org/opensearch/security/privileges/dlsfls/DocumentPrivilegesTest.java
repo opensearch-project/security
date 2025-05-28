@@ -51,6 +51,7 @@ import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -526,7 +527,8 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                ActionPrivileges.EMPTY
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -841,7 +843,8 @@ public class DocumentPrivilegesTest {
                 null,
                 RESOLVER_REPLACER,
                 INDEX_NAME_EXPRESSION_RESOLVER,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                ActionPrivileges.EMPTY
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1126,7 +1129,8 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                ActionPrivileges.EMPTY
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1146,7 +1150,19 @@ public class DocumentPrivilegesTest {
         @Test(expected = PrivilegesEvaluationException.class)
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
-                .evaluate(new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null));
+                .evaluate(
+                    new PrivilegesEvaluationContext(
+                        new User("test_user"),
+                        ImmutableSet.of(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        ActionPrivileges.EMPTY
+                    )
+                );
         }
 
         @Test
