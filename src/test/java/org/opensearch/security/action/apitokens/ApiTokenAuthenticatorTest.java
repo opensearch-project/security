@@ -91,7 +91,7 @@ public class ApiTokenAuthenticatorTest {
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
+        when(apiTokenRepository.isValidToken("token:" + tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -135,7 +135,7 @@ public class ApiTokenAuthenticatorTest {
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
+        when(apiTokenRepository.isValidToken("token:" + tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
