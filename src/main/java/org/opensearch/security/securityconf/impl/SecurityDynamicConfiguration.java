@@ -46,6 +46,7 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
@@ -413,4 +414,16 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return o instanceof Hideable && ((Hideable) o).isReserved();
     }
 
+    @JsonIgnore
+    public boolean isEmpty() {
+        return centries.isEmpty();
+    }
+
+    /**
+     * Returns a shallow copy of this configuration which additionally contains the static configuration.
+     */
+    @JsonIgnore
+    public SecurityDynamicConfiguration<T> withStaticConfig() {
+        return DynamicConfigFactory.addStatics(this.clone());
+    }
 }

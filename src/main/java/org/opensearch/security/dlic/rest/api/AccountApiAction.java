@@ -32,6 +32,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -127,7 +128,7 @@ public class AccountApiAction extends AbstractApiAction {
         final TransportAddress remoteAddress,
         final SecurityDynamicConfiguration<?> configuration
     ) {
-        final var securityRoles = securityApiDependencies.privilegesEvaluator().mapRoles(user, remoteAddress);
+        PrivilegesEvaluationContext context = securityApiDependencies.privilegesEvaluator().createContext(user, null);
         ok(
             channel,
             (builder, params) -> builder.startObject()
@@ -138,8 +139,8 @@ public class AccountApiAction extends AbstractApiAction {
                 .field("user_requested_tenant", user.getRequestedTenant())
                 .field("backend_roles", user.getRoles())
                 .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                .field("tenants", securityApiDependencies.privilegesEvaluator().mapTenants(user, securityRoles))
-                .field("roles", securityRoles)
+                .field("tenants", securityApiDependencies.privilegesEvaluator().tenantPrivileges().tenantMap(context))
+                .field("roles", context.getMappedRoles())
                 .endObject()
         );
     }

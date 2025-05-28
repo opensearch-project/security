@@ -15,8 +15,8 @@ import java.nio.file.Path;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
-import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 public class DummyAuthorizer implements AuthorizationBackend {
@@ -31,10 +31,9 @@ public class DummyAuthorizer implements AuthorizationBackend {
     }
 
     @Override
-    public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
+    public User addRoles(User user, AuthenticationContext context) throws OpenSearchSecurityException {
         count++;
-        user.addRole("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
-
+        return user.withRoles("role_" + user.getName() + "_" + System.currentTimeMillis() + "_" + count);
     }
 
     public static long getCount() {

@@ -25,9 +25,11 @@ import org.bouncycastle.util.io.pem.PemObject;
 
 public class CertificatesUtils {
 
-    public static void writePemContent(final Path path, final Object pemContent) throws IOException {
-        try (JcaPEMWriter writer = new JcaPEMWriter(Files.newBufferedWriter(path))) {
-            writer.writeObject(pemContent);
+    public static void writePemContent(final Path path, final Object... content) throws IOException {
+        for (final Object c : content) {
+            try (JcaPEMWriter writer = new JcaPEMWriter(Files.newBufferedWriter(path))) {
+                writer.writeObject(c);
+            }
         }
     }
 

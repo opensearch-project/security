@@ -12,13 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Use extendedPlugins in integrationTest framework for sample resource plugin testing ([#5322](https://github.com/opensearch-project/security/pull/5322))
 - [Resource Sharing] Refactor ResourcePermissions to refer to action groups as access levels ([#5335](https://github.com/opensearch-project/security/pull/5335))
+- Introduced new, performance-optimized implementation for tenant privileges ([#5339](https://github.com/opensearch-project/security/pull/5339))
+- Performance improvements: Immutable user object ([#5212])
 - [Resource Sharing] Store resource sharing info in indices that map 1-to-1 with resource index ([#5358](https://github.com/opensearch-project/security/pull/5358))
 
 ### Dependencies
 - Bump `guava_version` from 33.4.6-jre to 33.4.8-jre ([#5284](https://github.com/opensearch-project/security/pull/5284))
 - Bump `spring_version` from 6.2.5 to 6.2.7 ([#5283](https://github.com/opensearch-project/security/pull/5283), [#5345](https://github.com/opensearch-project/security/pull/5345))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.37.0 to 2.38.0 ([#5285](https://github.com/opensearch-project/security/pull/5285))
-- Bump `org.mockito:mockito-core` from 5.15.2 to 5.17.0 ([#5296](https://github.com/opensearch-project/security/pull/5296))
+- Bump `org.mockito:mockito-core` from 5.15.2 to 5.18.0 ([#5296](https://github.com/opensearch-project/security/pull/5296), [#5362](https://github.com/opensearch-project/security/pull/5362))
 - Bump `com.carrotsearch.randomizedtesting:randomizedtesting-runner` from 2.8.2 to 2.8.3 ([#5294](https://github.com/opensearch-project/security/pull/5294))
 - Bump `org.ow2.asm:asm` from 9.7.1 to 9.8 ([#5293](https://github.com/opensearch-project/security/pull/5293))
 - Bump `commons-codec:commons-codec` from 1.16.1 to 1.18.0 ([#5295](https://github.com/opensearch-project/security/pull/5295))
@@ -31,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `io.github.goooler.shadow` from 8.1.7 to 8.1.8 ([#5329](https://github.com/opensearch-project/security/pull/5329))
 - Bump `commons-io:commons-io` from 2.18.0 to 2.19.0 ([#5328](https://github.com/opensearch-project/security/pull/5328))
 - Upgrade kafka_version from 3.7.1 to 4.0.0 ([#5131](https://github.com/opensearch-project/security/pull/5131))
+- Bump `io.dropwizard.metrics:metrics-core` from 4.2.30 to 4.2.32 ([#5361](https://github.com/opensearch-project/security/pull/5361))
 
 ### Deprecated
 

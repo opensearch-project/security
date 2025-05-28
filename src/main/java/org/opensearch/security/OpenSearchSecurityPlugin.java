@@ -211,6 +211,7 @@ import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -1114,6 +1115,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
 
+        UserFactory userFactory = new UserFactory.Caching(settings);
+
         final PrivilegesInterceptor privilegesInterceptor;
 
         namedXContentRegistry.set(xContentRegistry);
@@ -1121,7 +1124,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog = new NullAuditLog();
             privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
         } else {
-            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
+            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, userFactory);
             privilegesInterceptor = new PrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
         }
 
@@ -1222,7 +1225,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(sslExceptionHandler),
             Objects.requireNonNull(cih),
             SSLConfig,
-            OpenSearchSecurityPlugin::isActionTraceEnabled
+            OpenSearchSecurityPlugin::isActionTraceEnabled,
+            userFactory
         );
         components.add(principalExtractor);
 
@@ -2137,6 +2141,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+
+            settings.add(UserFactory.Caching.MAX_SIZE);
+            settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
         }
 
         return settings;

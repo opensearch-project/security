@@ -27,21 +27,21 @@
 
 package org.opensearch.security.securityconf;
 
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public abstract class InternalUsersModel {
 
     public abstract boolean exists(String user);
 
-    public abstract List<String> getBackenRoles(String user);
+    public abstract ImmutableSet<String> getBackendRoles(String user);
 
-    public abstract Map<String, String> getAttributes(String user);
+    public abstract ImmutableMap<String, String> getAttributes(String user);
 
     public abstract String getDescription(String user);
 
     public abstract String getHash(String user);
 
-    public abstract List<String> getSecurityRoles(String user);
+    public abstract ImmutableSet<String> getSecurityRoles(String user);
 
 }
