@@ -2146,12 +2146,31 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Security Config Version Index
             settings.add(
                 Setting.boolSetting(
-                    ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED,
-                    ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT,
+                    ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED,
+                    ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT,
                     Property.NodeScope,
                     Property.Filtered
                 )
             );
+
+            settings.add(
+                Setting.simpleString(
+                    ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
+                    ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT,
+                    ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT,
+                    Property.NodeScope,
+                    Property.Final
+                )
+            );
+
         }
 
         return settings;

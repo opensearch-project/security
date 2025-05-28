@@ -1,19 +1,4 @@
 /*
- * Copyright 2015-2018 _floragunn_ GmbH
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -43,6 +28,10 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
 
+/**
+ * Utility class to load security configuration version documents
+ */
+
 public class SecurityConfigVersionsLoader {
     private static final Logger log = LogManager.getLogger(SecurityConfigVersionsLoader.class);
 
@@ -53,7 +42,7 @@ public class SecurityConfigVersionsLoader {
         this.client = client;
         this.opendistroSecurityConfigVersionsIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
     }
 
@@ -101,7 +90,7 @@ public class SecurityConfigVersionsLoader {
                 if (versions == null || versions.isEmpty()) {
                     listener.onResponse(null);
                 } else {
-                    sortVersionsById(versions);
+                    sortVersionsById(versions); // ensure versions are sorted before accessing the latest one
                     listener.onResponse(versions.get(versions.size() - 1)); // latest
                 }
             }

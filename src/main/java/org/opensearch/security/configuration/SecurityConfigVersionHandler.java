@@ -1,19 +1,4 @@
 /*
- * Copyright 2015-2018 _floragunn_ GmbH
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -61,12 +46,16 @@ import org.opensearch.transport.client.Client;
 
 import org.greenrobot.eventbus.Subscribe;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT;
+
+/**
+ * Manages security configuration versioning in OpenSearch.
+ */
 
 public class SecurityConfigVersionHandler {
 
-    private static final int MAX_VERSIONS_TO_KEEP = 10;
+    private final int maxVersionsToKeep;
 
     private static final Logger log = LogManager.getLogger(SecurityConfigVersionHandler.class);
     private final Client client;
@@ -91,10 +80,14 @@ public class SecurityConfigVersionHandler {
         this.client = client;
         this.SecurityConfigVersionsIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
         this.configVersionsLoader = new SecurityConfigVersionsLoader(client, settings);
         this.threadPool = threadPool;
+        this.maxVersionsToKeep = settings.getAsInt(
+            ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT,
+            ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT
+        );
     }
 
     @Subscribe
@@ -102,7 +95,7 @@ public class SecurityConfigVersionHandler {
         if (!isVersionIndexEnabled(settings)) return;
 
         try {
-            log.info("Initializing version index ({})", ConfigConstants.OPENDISTRO_SECURITY_CONFIG_VERSIONS_INDEX);
+            log.info("Initializing version index ({})", SecurityConfigVersionsIndex);
 
             if (!createOpendistroSecurityConfigVersionsIndexIfAbsent()) {
                 log.info("Version index already exists, skipping initialization.");
@@ -122,7 +115,7 @@ public class SecurityConfigVersionHandler {
         }
     }
 
-    private boolean createOpendistroSecurityConfigVersionsIndexIfAbsent() {
+    boolean createOpendistroSecurityConfigVersionsIndexIfAbsent() {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
 
@@ -163,7 +156,7 @@ public class SecurityConfigVersionHandler {
         }
     }
 
-    private void waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow() {
+    void waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow() {
         log.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
@@ -199,7 +192,7 @@ public class SecurityConfigVersionHandler {
     }
 
     public static boolean isVersionIndexEnabled(Settings settings) {
-        return settings.getAsBoolean(SECURITY_CONFIG_VERSION_INDEX_ENABLED, SECURITY_CONFIG_VERSION_INDEX_ENABLED_DEFAULT);
+        return settings.getAsBoolean(SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT);
     }
 
     @SuppressWarnings("unchecked")
@@ -319,8 +312,8 @@ public class SecurityConfigVersionHandler {
 
         SecurityConfigVersionsLoader.sortVersionsById(versions);
 
-        if (versions.size() > MAX_VERSIONS_TO_KEEP) {
-            int numVersionsToDelete = versions.size() - MAX_VERSIONS_TO_KEEP;
+        if (versions.size() > maxVersionsToKeep) {
+            int numVersionsToDelete = versions.size() - maxVersionsToKeep;
             log.info("Applying retention policy: deleting {} old security config versions", numVersionsToDelete);
 
             for (int i = 0; i < numVersionsToDelete; i++) {
