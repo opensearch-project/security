@@ -31,8 +31,15 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.plugins.NetworkPlugin.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
@@ -52,10 +59,13 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.getBoolAffixKeyForCertType;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.getStringAffixKeyForCertType;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.junit.Assert.assertThrows;
 
@@ -64,10 +74,83 @@ public class SslSettingsManagerTest extends RandomizedTest {
     @ClassRule
     public static CertificatesRule certificatesRule = new CertificatesRule();
 
+    /*
+    Settings for a mock aux transport - foo
+     */
+    private static final String MOCK_AUX_PREFIX_FOO = SSL_AUX_PREFIX + "foo.";
+    private static final CertType MOCK_AUX_CERT_TYPE_FOO = new CertType(MOCK_AUX_PREFIX_FOO);
+    private static final Settings ENABLE_FOO_SETTINGS_BUILDER = Settings.builder()
+            .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_FOO.name()))
+            .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_FOO), true)
+            .build();
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, MOCK_AUX_CERT_TYPE_FOO);
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMCERT_FILEPATH, MOCK_AUX_CERT_TYPE_FOO);
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMKEY_FILEPATH, MOCK_AUX_CERT_TYPE_FOO);
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate_pk.pem";
+
+    /*
+    Settings for a mock aux transport - bar
+     */
+    private static final String MOCK_AUX_PREFIX_BAR = SSL_AUX_PREFIX + "bar.";
+    private static final CertType MOCK_AUX_CERT_TYPE_BAR = new CertType(MOCK_AUX_PREFIX_BAR);
+    private static final Settings ENABLE_BAR_SETTINGS_BUILDER = Settings.builder()
+            .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.name()))
+            .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_BAR), true)
+            .build();
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, MOCK_AUX_CERT_TYPE_BAR);
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMCERT_FILEPATH, MOCK_AUX_CERT_TYPE_BAR);
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_FILEPATH = getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMKEY_FILEPATH, MOCK_AUX_CERT_TYPE_BAR);
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate_pk.pem";
+
+    static Settings.Builder defaultSettingsBuilder() {
+        return Settings.builder()
+                .put(Environment.PATH_HOME_SETTING.getKey(), certificatesRule.configRootFolder().toString())
+                .put("client.type", "node");
+    }
+
+    private void withTransportSslSettings(final Settings.Builder settingsBuilder) {
+        settingsBuilder.put(SECURITY_SSL_TRANSPORT_ENABLED, true)
+                .put(SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, path("ca_transport_certificate.pem"))
+                .put(SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, path("access_transport_certificate.pem"))
+                .put(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, path("access_transport_certificate_pk.pem"));
+    }
+
+    private void withHttpSslSettings(final Settings.Builder settingsBuilder) {
+        settingsBuilder.put(SECURITY_SSL_TRANSPORT_ENABLED, true)
+                .put(SECURITY_SSL_HTTP_ENABLED, true)
+                .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, path("ca_http_certificate.pem"))
+                .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path("access_http_certificate.pem"))
+                .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path("access_http_certificate_pk.pem"));
+    }
+
+    private void withAuxFooSslSettings(final Settings.Builder settingsBuilder) {
+        settingsBuilder.put(ENABLE_FOO_SETTINGS_BUILDER)
+                .put(MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME))
+                .put(MOCK_AUX_CERT_TYPE_FOO_PEMCERT_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME))
+                .put(MOCK_AUX_CERT_TYPE_FOO_PEMKEY_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME));
+    }
+
+    private void withAuxBarSslSettings(final Settings.Builder settingsBuilder) {
+        settingsBuilder.put(ENABLE_BAR_SETTINGS_BUILDER)
+                .put(MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME))
+                .put(MOCK_AUX_CERT_TYPE_BAR_PEMCERT_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME))
+                .put(MOCK_AUX_CERT_TYPE_BAR_PEMKEY_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME));
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
         writeCertificates("ca_http_certificate.pem", "access_http_certificate.pem", "access_http_certificate_pk.pem");
         writeCertificates("ca_transport_certificate.pem", "access_transport_certificate.pem", "access_transport_certificate_pk.pem");
+        writeCertificates("ca_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate.pem",
+                "access_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate.pem",
+                "access_" + MOCK_AUX_CERT_TYPE_FOO.name() + "_certificate_pk.pem");
+        writeCertificates("ca_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate.pem",
+                "access_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate.pem",
+                "access_" + MOCK_AUX_CERT_TYPE_BAR.name() + "_certificate_pk.pem");
     }
 
     static void writeCertificates(final String trustedFileName, final String accessFileName, final String accessPkFileName)
@@ -85,28 +168,21 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void failsIfNoSslSet() throws Exception {
+    public void failsIfNoSslSet() {
         final var settings = defaultSettingsBuilder().build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
     @Test
-    public void transportFailsIfNoConfigDefine() throws Exception {
-        final var noTransportSettings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true).build();
-        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettings)));
+    public void testFailsIfNoConfigDefine() {
+        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true).build())));
+        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true).build())));
+        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(defaultSettingsBuilder().put(ENABLE_FOO_SETTINGS_BUILDER).build())));
+        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(defaultSettingsBuilder().put(ENABLE_BAR_SETTINGS_BUILDER).build())));
     }
 
     @Test
-    public void transportFailsIfConfigEnabledButNotDefined() throws Exception {
-        final var noTransportSettingsButItEnabled = defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true).build();
-        assertThrows(
-            OpenSearchException.class,
-            () -> new SslSettingsManager(TestEnvironment.newEnvironment(noTransportSettingsButItEnabled))
-        );
-    }
-
-    @Test
-    public void transportFailsIfJdkTrustStoreHasNotBeenSet() throws Exception {
+    public void transportFailsIfJdkTrustStoreHasNotBeenSet() {
         final var noTransportSettingsButItEnabled = defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, certificatesRule.configRootFolder().toString())
             .build();
@@ -117,7 +193,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void transportFailsIfExtendedKeyUsageEnabledForJdkKeyStoreButNotConfigured() throws Exception {
+    public void transportFailsIfExtendedKeyUsageEnabledForJdkKeyStoreButNotConfigured() {
         final var noTransportSettingsButItEnabled = defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, certificatesRule.configRootFolder().toString())
             .put(SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, certificatesRule.configRootFolder().toString())
@@ -130,7 +206,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void transportFailsIfExtendedKeyUsageEnabledForPemKeyStoreButNotConfigured() throws Exception {
+    public void transportFailsIfExtendedKeyUsageEnabledForPemKeyStoreButNotConfigured() {
         final var noTransportSettingsButItEnabled = defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, certificatesRule.configRootFolder().toString())
             .put(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, certificatesRule.configRootFolder().toString())
@@ -143,64 +219,119 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void transportFailsIfConfigDisabled() throws Exception {
+    public void transportFailsIfConfigDisabled() {
         Settings settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
             .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
             .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
+    /**
+     * Security plugin enforces common store type for a single transport configuration.
+     * Pem store and JKS (Java KeyStore) cannot both be used for transport.
+     */
+    private void configFailsIfBothPemAndJDKSettingsWereSet(
+        Settings.Builder settingsBuilder,
+        List<String> transportJKSSettings,
+        List<String> transportPemStoreSettings
+    ) {
+        Settings settings = settingsBuilder.put(randomFrom(transportJKSSettings), "aaa")
+            .put(randomFrom(transportPemStoreSettings), "bbb")
+            .build();
+        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    }
+
     @Test
-    public void httpConfigFailsIfBothPemAndJDKSettingsWereSet() throws Exception {
-        final var keyStoreSettings = randomFrom(List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH));
-        final var pemKeyStoreSettings = randomFrom(
+    public void configFailsIfBothPemAndJDKSettingsWereSet() {
+        configFailsIfBothPemAndJDKSettingsWereSet(
+            defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true),
+            List.of(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH),
             List.of(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH)
         );
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(keyStoreSettings, "aaa")
-            .put(pemKeyStoreSettings, "bbb")
+        configFailsIfBothPemAndJDKSettingsWereSet(
+            defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true),
+            List.of(SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
+            List.of(
+                SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
+                SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
+                SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH
+            )
+        );
+        configFailsIfBothPemAndJDKSettingsWereSet(
+                defaultSettingsBuilder().put(ENABLE_FOO_SETTINGS_BUILDER),
+            List.of(getStringAffixKeyForCertType(SECURITY_SSL_AUX_KEYSTORE_FILEPATH, MOCK_AUX_CERT_TYPE_FOO)),
+            List.of(getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMKEY_FILEPATH, MOCK_AUX_CERT_TYPE_FOO),
+                getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMCERT_FILEPATH, MOCK_AUX_CERT_TYPE_FOO),
+                getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH, MOCK_AUX_CERT_TYPE_FOO))
+        );
+    }
+
+    private void configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+        Settings.Builder settingsBuilder,
+        String clientAuthEnabledSetting,
+        String keystorePathSetting
+    ) {
+        Settings settings = settingsBuilder.put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .put(keystorePathSetting, certificatesRule.configRootFolder().toString())
             .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
     @Test
-    public void httpConfigFailsIfHttpEnabledButButNotDefined() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true).build();
-        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    public void serverTransportConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() {
+        configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+            defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true),
+            SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
+            SECURITY_SSL_HTTP_KEYSTORE_FILEPATH
+        );
+        configFailsIfClientAuthRequiredAndJdkTrustStoreNotSet(
+            defaultSettingsBuilder().put(ENABLE_FOO_SETTINGS_BUILDER),
+            getStringAffixKeyForCertType(SECURITY_SSL_AUX_CLIENTAUTH_MODE, MOCK_AUX_CERT_TYPE_FOO),
+            getStringAffixKeyForCertType(SECURITY_SSL_AUX_KEYSTORE_FILEPATH, MOCK_AUX_CERT_TYPE_FOO)
+        );
     }
 
-    @Test
-    public void httpConfigFailsIfClientAuthRequiredAndJdkTrustStoreNotSet() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, certificatesRule.configRootFolder().toString())
+    private void configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+        Settings.Builder settingsBuilder,
+        String clientAuthEnabledSetting,
+        String pemkeyPathSetting,
+        String pemcertPathSetting
+    ) {
+        Settings settings = settingsBuilder.put(clientAuthEnabledSetting, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
+            .put(pemkeyPathSetting, "aaa")
+            .put(pemcertPathSetting, "bbb")
             .build();
         assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
     }
 
     @Test
-    public void httpConfigFailsIfClientAuthRequiredAndPemTrustedCasNotSet() throws Exception {
-        final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_CLIENTAUTH_MODE, ClientAuth.REQUIRE.name().toLowerCase(Locale.ROOT))
-            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "aaa")
-            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "bbb")
-            .build();
-        assertThrows(OpenSearchException.class, () -> new SslSettingsManager(TestEnvironment.newEnvironment(settings)));
+    public void serverTransportConfigFailsIfClientAuthRequiredAndPemTrustedCasNotSet() {
+        configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+            defaultSettingsBuilder().put(SECURITY_SSL_HTTP_ENABLED, true),
+            SECURITY_SSL_HTTP_CLIENTAUTH_MODE,
+            SECURITY_SSL_HTTP_PEMKEY_FILEPATH,
+            SECURITY_SSL_HTTP_PEMCERT_FILEPATH
+        );
+        configFailsIfClientAuthRequiredAndPemTrustedCasNotSet(
+            defaultSettingsBuilder().put(ENABLE_FOO_SETTINGS_BUILDER),
+            getStringAffixKeyForCertType(SECURITY_SSL_AUX_CLIENTAUTH_MODE, MOCK_AUX_CERT_TYPE_FOO),
+            getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMKEY_FILEPATH, MOCK_AUX_CERT_TYPE_FOO),
+            getStringAffixKeyForCertType(SECURITY_SSL_AUX_PEMCERT_FILEPATH, MOCK_AUX_CERT_TYPE_FOO)
+        );
     }
 
     @Test
-    public void loadConfigurationAndBuildHSslContextForSslOnlyMode() throws Exception {
+    public void loadConfigurationAndBuildSslContextForSslOnlyMode() {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
         securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+
         final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings);
-        withTransportSslSettings(
-            settingsBuilder,
-            "ca_transport_certificate.pem",
-            "access_transport_certificate.pem",
-            "access_transport_certificate_pk.pem"
-        );
+        withTransportSslSettings(settingsBuilder);
         withHttpSslSettings(settingsBuilder);
+        withAuxFooSslSettings(settingsBuilder);
+
         final var transportEnabled = randomBoolean();
         final var sslSettingsManager = new SslSettingsManager(
             TestEnvironment.newEnvironment(
@@ -209,6 +340,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         );
 
         assertThat("Loaded HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isPresent());
+        assertThat("Loaded AUX FOO configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isPresent());
         if (transportEnabled) {
             assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
             assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
@@ -219,8 +351,8 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isEmpty()
             );
         }
-
         assertThat("Built HTTP SSL Context", sslSettingsManager.sslContextHandler(CertType.HTTP).isPresent());
+        assertThat("Built AUX FOO SSL Context", sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).isPresent());
         if (transportEnabled) {
             assertThat("Built Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isPresent());
             assertThat("Built Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isPresent());
@@ -228,26 +360,26 @@ public class SslSettingsManagerTest extends RandomizedTest {
             assertThat("Didn't build Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isEmpty());
             assertThat("Didn't build Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isEmpty());
         }
-
         assertThat(
             "Built Server SSL context for HTTP",
             sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
         );
+        assertThat(
+            "Built Server SSL context for AUX FOO",
+            sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+        );
     }
 
     @Test
-    public void loadConfigurationAndBuildSslContextForClientNode() throws Exception {
+    public void loadConfigurationAndBuildSslContextForClientNode() {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
         securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+
         final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings);
-        withTransportSslSettings(
-            settingsBuilder,
-            "ca_transport_certificate.pem",
-            "access_transport_certificate.pem",
-            "access_transport_certificate_pk.pem"
-        );
+        withTransportSslSettings(settingsBuilder);
         withHttpSslSettings(settingsBuilder);
+
         final var sslSettingsManager = new SslSettingsManager(
             TestEnvironment.newEnvironment(
                 settingsBuilder.put("client.type", "client").put(SECURITY_SSL_HTTP_ENABLED, randomBoolean()).build()
@@ -257,11 +389,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat("Didn't load HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isEmpty());
         assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
         assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
-
         assertThat("Didn't build HTTP SSL Context", sslSettingsManager.sslContextHandler(CertType.HTTP).isEmpty());
         assertThat("Built Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isPresent());
         assertThat("Built Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isPresent());
-
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
@@ -280,32 +410,85 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void loadConfigurationAndBuildSslContexts() throws Exception {
+    public void loadConfigurationAndBuildSslContextsMultipleAuxTransports() {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
         securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(MOCK_AUX_CERT_TYPE_BAR.sslSettingPrefix() + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+
         final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings);
-        withTransportSslSettings(
-            settingsBuilder,
-            "ca_transport_certificate.pem",
-            "access_transport_certificate.pem",
-            "access_transport_certificate_pk.pem"
-        );
+        withTransportSslSettings(settingsBuilder);
         withHttpSslSettings(settingsBuilder);
+        withAuxBarSslSettings(settingsBuilder);
+        withAuxFooSslSettings(settingsBuilder);
+        settingsBuilder.put(Settings.builder()
+                .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.name(), MOCK_AUX_CERT_TYPE_FOO.name()))
+                .build());
+
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settingsBuilder.build()));
+
         assertThat("Loaded HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isPresent());
+        assertThat("Loaded AUX FOO configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isPresent());
+        assertThat("Loaded AUX BAR configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_BAR).isPresent());
         assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
         assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
+        assertThat(
+                "Built Server SSL context for HTTP",
+                sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+        );
+        assertThat(
+                "Built Server SSL context for AUX",
+                sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+        );
+        assertThat(
+                "Built Server SSL context for AUX",
+                sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_BAR).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+        );
+        assertThat(
+                "Built Server SSL context for Transport",
+                sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
+                        .map(SslContextHandler::sslContext)
+                        .map(SslContext::isServer)
+                        .orElse(false)
+        );
+        assertThat(
+                "Built Client SSL context for Transport Client",
+                sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
+                        .map(SslContextHandler::sslContext)
+                        .map(SslContext::isClient)
+                        .orElse(false)
 
-        assertThat("Built HTTP SSL Context", sslSettingsManager.sslContextHandler(CertType.HTTP).isPresent());
-        assertThat("Built Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isPresent());
-        assertThat("Built Transport Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isPresent());
+        );
+    }
 
+    @Test
+    public void loadConfigurationAndBuildSslContexts() {
+        final var securitySettings = new MockSecureSettings();
+        securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings);
+        withTransportSslSettings(settingsBuilder);
+        withHttpSslSettings(settingsBuilder);
+        withAuxFooSslSettings(settingsBuilder);
+
+        final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settingsBuilder.build()));
+
+        assertThat("Loaded HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isPresent());
+        assertThat("Loaded AUX FOO configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isPresent());
+        assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
+        assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
         assertThat(
             "Built Server SSL context for HTTP",
             sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
         );
         assertThat(
+            "Built Server SSL context for AUX",
+            sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+        );
+        assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
                 .map(SslContextHandler::sslContext)
@@ -323,19 +506,17 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     @Test
-    public void loadConfigurationAndBuildTransportSslContext() throws Exception {
+    public void loadConfigurationAndBuildTransportSslContext() {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+
         final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings);
-        withTransportSslSettings(
-            settingsBuilder,
-            "ca_transport_certificate.pem",
-            "access_transport_certificate.pem",
-            "access_transport_certificate_pk.pem"
-        );
+        withTransportSslSettings(settingsBuilder);
+
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settingsBuilder.build()));
 
         assertThat("Didn't load HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isEmpty());
+        assertThat("Didn't load AUX configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isEmpty());
         assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
         assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
         assertThat(
@@ -344,11 +525,10 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 .flatMap(t -> sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).map(tc -> tc.equals(t)))
                 .orElse(false)
         );
-
         assertThat("Built HTTP SSL Context", sslSettingsManager.sslContextHandler(CertType.HTTP).isEmpty());
+        assertThat("Built AUX SSL Context", sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).isEmpty());
         assertThat("Built Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isPresent());
         assertThat("Built Transport Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isPresent());
-
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
@@ -389,6 +569,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
             SSL_TRANSPORT_PREFIX + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX + "pemkey_password_secure",
             certificatesRule.privateKeyPassword()
         );
+
         final var sslSettingsManager = new SslSettingsManager(
             TestEnvironment.newEnvironment(
                 defaultSettingsBuilder().put(SECURITY_SSL_TRANSPORT_ENABLED, true)
@@ -405,6 +586,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         );
 
         assertThat("Didn't load HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isEmpty());
+        assertThat("Didn't load AUX configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isEmpty());
         assertThat("Loaded Transport configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT).isPresent());
         assertThat("Loaded Transport Client configuration", sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT).isPresent());
         assertThat(
@@ -414,9 +596,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 .orElse(true)
         );
         assertThat("Built HTTP SSL Context", sslSettingsManager.sslContextHandler(CertType.HTTP).isEmpty());
+        assertThat("Built AUX SSL Context", sslSettingsManager.sslContextHandler(MOCK_AUX_CERT_TYPE_FOO).isEmpty());
         assertThat("Built Transport SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT).isPresent());
         assertThat("Built Transport Client SSL Context", sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).isPresent());
-
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
@@ -434,31 +616,4 @@ public class SslSettingsManagerTest extends RandomizedTest {
 
         );
     }
-
-    private void withTransportSslSettings(
-        final Settings.Builder settingsBuilder,
-        final String caFileName,
-        final String accessFileName,
-        final String accessPkFileName
-    ) {
-        settingsBuilder.put(SECURITY_SSL_TRANSPORT_ENABLED, true)
-            .put(SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, path(caFileName))
-            .put(SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, path(accessFileName))
-            .put(SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, path(accessPkFileName));
-    }
-
-    private void withHttpSslSettings(final Settings.Builder settingsBuilder) {
-        settingsBuilder.put(SECURITY_SSL_TRANSPORT_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, path("ca_http_certificate.pem"))
-            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path("access_http_certificate.pem"))
-            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path("access_http_certificate_pk.pem"));
-    }
-
-    Settings.Builder defaultSettingsBuilder() {
-        return Settings.builder()
-            .put(Environment.PATH_HOME_SETTING.getKey(), certificatesRule.configRootFolder().toString())
-            .put("client.type", "node");
-    }
-
 }
