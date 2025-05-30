@@ -26,78 +26,82 @@
 
 package org.opensearch.security.user;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamField;
+import java.io.Serial;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.security.support.Base64Helper;
 
 /**
- * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
- * <p/>
- * <b>Do not subclass from this class!</b>
+ * An authenticated user and attributes associated to them (like roles, tenant, custom attributes).
+ * <p>
+ * Objects of this class are immutable. Any method that modifies an attribute, returns a modified copy of this object.
+ * As the objects are immutable, all operations on the objects are inherently thread-safe. No external synchronization is required.
+ * <p>
+ * <b>Do not subclass from this class; do not add attributes that can be modified using publicly visible methods!</b>
  *
  */
 public class User implements Serializable, CustomAttributesAware {
 
-    public static final User ANONYMOUS = new User(
-        "opendistro_security_anonymous",
-        Lists.newArrayList("opendistro_security_anonymous_backendrole"),
-        null
-    );
+    public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
     // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is
     // enabled.
     // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information
     // in threadcontext, yet we need the communication to not break between the nodes.
     // Attach the required permissions to either the user or the backend role.
-    public static final User DEFAULT_TRANSPORT_USER = new User(
-        "opendistro_security_default_transport_user",
-        Lists.newArrayList("opendistro_security_default_transport_backendrole"),
-        null
+    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user").withRoles(
+        "opendistro_security_default_transport_backendrole"
     );
+
+    /**
+     * Deserializes the given serialized from of a user object and returns the actual user object.
+     * <p>
+     * Note: Instead of using this method, prefer to use UserFactory.Caching to benefit from already parsed user objects.
+     *
+     * @param serializedBase64 a string with a serialized form of a User object
+     * @return A User object. Never returns null.
+     * @throws OpenSearchException in case the provided string could not be processed.
+     */
+    public static User fromSerializedBase64(String serializedBase64) {
+        User user = (User) Base64Helper.deserializeObject(serializedBase64);
+        user.serializedBase64 = serializedBase64;
+        return user;
+    }
 
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
+
     /**
      * roles == backend_roles
      */
-    private final Set<String> roles = Collections.synchronizedSet(new HashSet<String>());
-    private final Set<String> securityRoles = Collections.synchronizedSet(new HashSet<String>());
-    private String requestedTenant;
-    private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
-    private boolean isInjected = false;
+    private final ImmutableSet<String> roles;
+    private final ImmutableSet<String> securityRoles;
+    private final String requestedTenant;
+    private final ImmutableMap<String, String> attributes;
+    private final boolean isInjected;
+    private final transient int estimatedByteSize;
 
     /**
-     * Create a new authenticated user
-     *
-     * @param name The username (must not be null or empty)
-     * @param roles Roles of which the user is a member off (maybe null)
-     * @param customAttributes Custom attributes associated with this (maybe null)
-     * @throws IllegalArgumentException if name is null or empty
+     * This attribute caches the serialized form of the User object. As the User object is immutable,
+     * this value can be re-used when it is set.
      */
-    public User(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
-        super();
-
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("name must not be null or empty");
-        }
-
-        this.name = name;
-
-        if (roles != null) {
-            this.addRoles(roles);
-        }
-
-        if (customAttributes != null) {
-            this.attributes.putAll(customAttributes.getAttributes());
-        }
-
-    }
+    private volatile transient String serializedBase64;
 
     /**
      * Create a new authenticated user without roles and attributes
@@ -106,7 +110,38 @@ public class User implements Serializable, CustomAttributesAware {
      * @throws IllegalArgumentException if name is null or empty
      */
     public User(final String name) {
-        this(name, null, null);
+        this(name, ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
+    }
+
+    /**
+     * Creates a new User object. This is the main constructor, prefer using this one.
+     *
+     * @param name The username; must not be null or an empty string.
+     * @param roles The backend roles of a user. Must not be null. For empty roles, pass ImmutableSet.of().
+     * @param securityRoles The security roles of a user. Must not be null. For empty roles, pass ImmutableSet.of().
+     * @param requestedTenant The requested tenant property of the user. May be null.
+     * @param attributes The user attributes. Must not be null. For no attributes, pass ImmutableMap.of()
+     * @param isInjected A flag that indicates whether the user was injected.
+     */
+    public User(
+        String name,
+        ImmutableSet<String> roles,
+        ImmutableSet<String> securityRoles,
+        String requestedTenant,
+        ImmutableMap<String, String> attributes,
+        boolean isInjected
+    ) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("name must not be null or empty");
+        }
+
+        this.name = name;
+        this.roles = Objects.requireNonNull(roles);
+        this.securityRoles = Objects.requireNonNull(securityRoles);
+        this.requestedTenant = requestedTenant;
+        this.attributes = Objects.requireNonNull(attributes);
+        this.isInjected = isInjected;
+        this.estimatedByteSize = calcEstimatedByteSize();
     }
 
     public final String getName() {
@@ -117,48 +152,50 @@ public class User implements Serializable, CustomAttributesAware {
      *
      * @return A unmodifiable set of the backend roles this user is a member of
      */
-    public final Set<String> getRoles() {
-        return Collections.unmodifiableSet(roles);
+    public ImmutableSet<String> getRoles() {
+        return this.roles;
     }
 
     /**
-     * Associate this user with a backend role
-     *
-     * @param role The backend role
+     * Returns a new User object that additionally contains the provided backend roles.
      */
-    public final void addRole(final String role) {
-        this.roles.add(role);
+    public User withRoles(String... roles) {
+        return withRoles(Arrays.asList(roles));
     }
 
     /**
-     * Associate this user with a set of backend roles
-     *
-     * @param roles The backend roles
+     * Returns a new User object that additionally contains the provided backend roles.
      */
-    public final void addRoles(final Collection<String> roles) {
-        if (roles != null) {
-            this.roles.addAll(roles);
+    public User withRoles(Collection<String> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return this;
+        } else {
+            return new User(
+                this.name,
+                new ImmutableSet.Builder<String>().addAll(this.roles).addAll(roles).build(),
+                this.securityRoles,
+                this.requestedTenant,
+                this.attributes,
+                this.isInjected
+            );
         }
     }
 
     /**
-     * Check if this user is a member of a backend role
-     *
-     * @param role The backend role
-     * @return true if this user is a member of the backend role, false otherwise
+     * Returns a new User object that additionally contains the provided map of custom attributes
      */
-    public final boolean isUserInRole(final String role) {
-        return this.roles.contains(role);
-    }
-
-    /**
-     * Associate this user with a set of custom attributes
-     *
-     * @param attributes custom attributes
-     */
-    public final void addAttributes(final Map<String, String> attributes) {
-        if (attributes != null) {
-            this.attributes.putAll(attributes);
+    public User withAttributes(Map<String, String> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return this;
+        } else {
+            return new User(
+                this.name,
+                this.roles,
+                this.securityRoles,
+                this.requestedTenant,
+                new ImmutableMap.Builder<String, String>().putAll(this.attributes).putAll(attributes).build(),
+                this.isInjected
+            );
         }
     }
 
@@ -166,16 +203,19 @@ public class User implements Serializable, CustomAttributesAware {
         return requestedTenant;
     }
 
-    public final void setRequestedTenant(String requestedTenant) {
-        this.requestedTenant = requestedTenant;
+    /**
+     * Returns a new User object with the requestedTenant attribute set to the supplied value.
+     */
+    public User withRequestedTenant(String requestedTenant) {
+        if (Objects.equals(requestedTenant, this.requestedTenant)) {
+            return this;
+        } else {
+            return new User(this.name, this.roles, this.securityRoles, requestedTenant, this.attributes, this.isInjected);
+        }
     }
 
     public boolean isInjected() {
         return isInjected;
-    }
-
-    public void setInjected(boolean isInjected) {
-        this.isInjected = isInjected;
     }
 
     public final String toStringWithAttributes() {
@@ -226,38 +266,34 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
-     * Copy all backend roles from another user
+     * Get the custom attributes associated with this user
      *
-     * @param user The user from which the backend roles should be copied over
+     * @return An immutable map with all the current custom attributes associated with this user
      */
-    public final void copyRolesFrom(final User user) {
-        if (user != null) {
-            this.addRoles(user.getRoles());
-        }
+    public ImmutableMap<String, String> getCustomAttributesMap() {
+        return this.attributes;
     }
 
     /**
-     * Get the custom attributes associated with this user
-     *
-     * @return A modifiable map with all the current custom attributes associated with this user
+     * Returns a new user object that additionally contains the given security roles.
      */
-    public synchronized final Map<String, String> getCustomAttributesMap() {
-        if (attributes == null) {
-            attributes = Collections.synchronizedMap(new HashMap<>());
+    public User withSecurityRoles(Collection<String> securityRoles) {
+        if (securityRoles == null || securityRoles.isEmpty()) {
+            return this;
+        } else {
+            return new User(
+                this.name,
+                this.roles,
+                new ImmutableSet.Builder<String>().addAll(this.securityRoles).addAll(securityRoles).build(),
+                this.requestedTenant,
+                this.attributes,
+                this.isInjected
+            );
         }
-        return attributes;
     }
 
-    public final void addSecurityRoles(final Collection<String> securityRoles) {
-        if (securityRoles != null && this.securityRoles != null) {
-            this.securityRoles.addAll(securityRoles);
-        }
-    }
-
-    public final Set<String> getSecurityRoles() {
-        return this.securityRoles == null
-            ? Collections.synchronizedSet(Collections.emptySet())
-            : Collections.unmodifiableSet(this.securityRoles);
+    public ImmutableSet<String> getSecurityRoles() {
+        return this.securityRoles;
     }
 
     /**
@@ -277,5 +313,79 @@ public class User implements Serializable, CustomAttributesAware {
      */
     public boolean isPluginUser() {
         return name != null && name.startsWith("plugin:");
+    }
+
+    /**
+     * Returns a String containing serialized form of this User object. Never returns null.
+     */
+    public String toSerializedBase64() {
+        String result = this.serializedBase64;
+
+        if (result == null) {
+            this.serializedBase64 = result = Base64Helper.serializeObject(this);
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns a rough estimated byte size of this object. Used for cache size control.
+     */
+    public int estimatedByteSize() {
+        return this.estimatedByteSize;
+    }
+
+    private int calcEstimatedByteSize() {
+        int size = 32;
+        size += estimateStringSize(this.name);
+        size += estimateStringSize(this.requestedTenant);
+        size += this.roles.stream().mapToInt(User::estimateStringSize).sum() + 32;
+        size += this.securityRoles.stream().mapToInt(User::estimateStringSize).sum() + 32;
+        size += this.attributes.entrySet()
+            .stream()
+            .mapToInt((entry) -> estimateStringSize(entry.getKey()) + estimateStringSize(entry.getValue()))
+            .sum() + 32;
+        return size;
+    }
+
+    private static int estimateStringSize(String s) {
+        if (s != null) {
+            return 40 + s.length() * 2;
+        } else {
+            return 0;
+        }
+    }
+
+    void readObject(ObjectInputStream stream) throws InvalidObjectException {
+        // This object is not supposed to directly read in order to keep compatibility with older OpenSearch versions
+        throw new InvalidObjectException("Use org.opensearch.security.user.serialized.User");
+    }
+
+    /**
+     * Used for creating a backwards compatible object that can be used for serialization.
+     */
+    @Serial
+    private static final ObjectStreamField[] serialPersistentFields = {
+        new ObjectStreamField("name", String.class),
+        new ObjectStreamField("roles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
+        new ObjectStreamField("securityRoles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
+        new ObjectStreamField("requestedTenant", String.class),
+        new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
+        new ObjectStreamField("isInjected", Boolean.TYPE) };
+
+    /**
+     * Creates a backwards compatible object that can be used for serialization
+     */
+    @Serial
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        ObjectOutputStream.PutField fields = out.putFields();
+        fields.put("name", name);
+        fields.put("roles", Collections.synchronizedSet(new HashSet<>(this.roles)));
+        fields.put("securityRoles", Collections.synchronizedSet(new HashSet<>(this.securityRoles)));
+        fields.put("requestedTenant", requestedTenant);
+        fields.put("attributes", Collections.synchronizedMap(new HashMap<>(this.attributes)));
+        fields.put("isInjected", this.isInjected);
+
+        out.writeFields();
     }
 }

@@ -1191,9 +1191,7 @@ public class DocumentPrivilegesTest {
         }
 
         User buildUser() {
-            User user = new User("test_user_" + description);
-            user.addAttributes(this.attributes);
-            return user;
+            return new User("test_user_" + description).withAttributes(this.attributes);
         }
 
         @Override

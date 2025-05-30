@@ -33,11 +33,5 @@ public class ResourcePluginInfo {
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
     }
-
-    // TODO following should be removed once core test framework allows loading extended classes
-    public Set<ResourceSharingExtension> getResourceSharingExtensionsMutable() {
-        return resourceSharingExtensions;
-    }
-
 }
 // CS-ENFORCE-SINGLE

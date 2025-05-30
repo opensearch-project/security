@@ -15,7 +15,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,9 +23,7 @@ import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.resources.ResourcePluginInfo;
-import org.opensearch.security.spi.resources.ResourceAccessActionGroups;
-import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.ResourceAccessLevels;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -35,6 +32,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -58,9 +56,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginTests {
 
-    ResourcePluginInfo resourcePluginInfo;
-    ResourceSharingExtension resourceSharingExtension;
-
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .plugin(PainlessModulePlugin.class)
@@ -83,18 +78,11 @@ public class SampleResourcePluginTests {
         .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
-    @Before
-    public void setup() {
-        resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
-        resourceSharingExtension = new SampleResourceExtension();
-    }
-
     @After
     public void clearIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
             client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
-            resourcePluginInfo.getResourceSharingExtensionsMutable().remove(resourceSharingExtension);
         }
     }
 
@@ -185,7 +173,7 @@ public class SampleResourcePluginTests {
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessActionGroups.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }
@@ -208,7 +196,7 @@ public class SampleResourcePluginTests {
                 revokeAccessPayload(SHARED_WITH_USER.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
+            assertThat(response.getBody(), not(containsString("resource_sharing_test_user")));
         }
 
         // get sample resource with SHARED_WITH_USER, user no longer has access to resource
@@ -250,8 +238,6 @@ public class SampleResourcePluginTests {
 
     @Test
     public void testDirectAccess() throws Exception {
-        ResourcePluginInfo resourcePluginInfo = cluster.nodes().getFirst().getInjectable(ResourcePluginInfo.class);
-
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -329,7 +315,7 @@ public class SampleResourcePluginTests {
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessActionGroups.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }
@@ -359,7 +345,7 @@ public class SampleResourcePluginTests {
                 revokeAccessPayload(SHARED_WITH_USER.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("share_with").size(), equalTo(0));
+            assertThat(response.getBody(), not(containsString("resource_sharing_test_user")));
         }
 
         // shared_with_user should not be able to access the resource directly nor via sample plugin since access is revoked
