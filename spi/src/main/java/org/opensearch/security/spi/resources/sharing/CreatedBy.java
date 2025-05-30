@@ -24,30 +24,23 @@ import org.opensearch.core.xcontent.XContentParser;
  */
 public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
-    private final Creator creatorType;
-    private final String creator;
+    private final String username;
 
-    public CreatedBy(Creator creatorType, String creator) {
-        this.creatorType = creatorType;
-        this.creator = creator;
+    public CreatedBy(String username) {
+        this.username = username;
     }
 
     public CreatedBy(StreamInput in) throws IOException {
-        this.creatorType = in.readEnum(Creator.class);
-        this.creator = in.readString();
+        this.username = in.readString();
     }
 
-    public String getCreator() {
-        return creator;
-    }
-
-    public Creator getCreatorType() {
-        return creatorType;
+    public String getUsername() {
+        return username;
     }
 
     @Override
     public String toString() {
-        return "CreatedBy {" + this.creatorType.getName() + "='" + this.creator + '\'' + '}';
+        return "CreatedBy {user='" + this.username + '\'' + '}';
     }
 
     @Override
@@ -57,32 +50,32 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(Creator.valueOf(creatorType.name()));
-        out.writeString(creator);
+        out.writeString(username);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject().field(creatorType.getName(), creator).endObject();
+        return builder.startObject().field("user", username).endObject();
     }
 
     public static CreatedBy fromXContent(XContentParser parser) throws IOException {
-        String creator = null;
-        Creator creatorType = null;
+        String username = null;
         XContentParser.Token token;
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
-                creatorType = Creator.fromName(parser.currentName());
+                if (!"user".equals(parser.currentName())) {
+                    throw new IllegalArgumentException("created_by must only contain a single field with user");
+                }
             } else if (token == XContentParser.Token.VALUE_STRING) {
-                creator = parser.text();
+                username = parser.text();
             }
         }
 
-        if (creator == null) {
-            throw new IllegalArgumentException(creatorType + " is required");
+        if (username == null) {
+            throw new IllegalArgumentException("created_by cannot be empty");
         }
 
-        return new CreatedBy(creatorType, creator);
+        return new CreatedBy(username);
     }
 }

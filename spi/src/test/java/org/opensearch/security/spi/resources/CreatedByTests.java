@@ -21,13 +21,11 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Creator;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -39,14 +37,12 @@ import static org.mockito.Mockito.when;
  */
 public class CreatedByTests {
 
-    private static final Creator CREATOR_TYPE = Creator.USER;
-
     @Test
     public void testCreatedByConstructorWithValidUser() {
         String expectedUser = "testUser";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
+        CreatedBy createdBy = new CreatedBy(expectedUser);
 
-        MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getCreator())));
+        MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
     }
 
     @Test
@@ -54,14 +50,13 @@ public class CreatedByTests {
         String expectedUser = "testUser";
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            out.writeEnum(Creator.valueOf(CREATOR_TYPE.name()));
             out.writeString(expectedUser);
 
             StreamInput in = out.bytes().streamInput();
 
             CreatedBy createdBy = new CreatedBy(in);
 
-            MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getCreator())));
+            MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
         }
     }
 
@@ -78,8 +73,8 @@ public class CreatedByTests {
     @Test
     public void testCreatedByWithEmptyUser() {
 
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
-        MatcherAssert.assertThat("", equalTo(createdBy.getCreator()));
+        CreatedBy createdBy = new CreatedBy("");
+        MatcherAssert.assertThat("", equalTo(createdBy.getUsername()));
     }
 
     @Test
@@ -95,15 +90,15 @@ public class CreatedByTests {
     @Test
     public void testCreatedByWithLongUsername() {
         String longUsername = "a".repeat(10000);
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, longUsername);
-        MatcherAssert.assertThat(longUsername, equalTo(createdBy.getCreator()));
+        CreatedBy createdBy = new CreatedBy(longUsername);
+        MatcherAssert.assertThat(longUsername, equalTo(createdBy.getUsername()));
     }
 
     @Test
     public void testCreatedByWithUnicodeCharacters() {
         String unicodeUsername = "用户こんにちは";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, unicodeUsername);
-        MatcherAssert.assertThat(unicodeUsername, equalTo(createdBy.getCreator()));
+        CreatedBy createdBy = new CreatedBy(unicodeUsername);
+        MatcherAssert.assertThat(unicodeUsername, equalTo(createdBy.getUsername()));
     }
 
     @Test
@@ -115,7 +110,7 @@ public class CreatedByTests {
             exception = assertThrows(IllegalArgumentException.class, () -> CreatedBy.fromXContent(parser));
         }
 
-        MatcherAssert.assertThat("null is required", equalTo(exception.getMessage()));
+        MatcherAssert.assertThat("created_by cannot be empty", equalTo(exception.getMessage()));
     }
 
     @Test
@@ -146,7 +141,7 @@ public class CreatedByTests {
 
     @Test
     public void testFromXContentWithEmptyUser() throws IOException {
-        String emptyJson = "{\"" + CREATOR_TYPE + "\": \"\" }";
+        String emptyJson = "{\"user\": \"\" }";
         CreatedBy createdBy;
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, emptyJson)) {
             parser.nextToken();
@@ -154,8 +149,7 @@ public class CreatedByTests {
             createdBy = CreatedBy.fromXContent(parser);
         }
 
-        MatcherAssert.assertThat(CREATOR_TYPE, equalTo(createdBy.getCreatorType()));
-        MatcherAssert.assertThat("", equalTo(createdBy.getCreator()));
+        MatcherAssert.assertThat("", equalTo(createdBy.getUsername()));
     }
 
     @Test
@@ -175,42 +169,35 @@ public class CreatedByTests {
         CreatedBy createdBy = CreatedBy.fromXContent(parser);
 
         MatcherAssert.assertThat(createdBy, notNullValue());
-        MatcherAssert.assertThat("testUser", equalTo(createdBy.getCreator()));
+        MatcherAssert.assertThat("testUser", equalTo(createdBy.getUsername()));
     }
 
     @Test
     public void testGetCreatorReturnsCorrectValue() {
         String expectedUser = "testUser";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
+        CreatedBy createdBy = new CreatedBy(expectedUser);
 
-        String actualUser = createdBy.getCreator();
+        String actualUser = createdBy.getUsername();
 
         MatcherAssert.assertThat(expectedUser, equalTo(actualUser));
     }
 
     @Test
-    public void testGetCreatorWithNullString() {
-
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, null);
-        MatcherAssert.assertThat(createdBy.getCreator(), nullValue());
-    }
-
-    @Test
     public void testGetWriteableNameReturnsCorrectString() {
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "testUser");
+        CreatedBy createdBy = new CreatedBy("testUser");
         MatcherAssert.assertThat("created_by", equalTo(createdBy.getWriteableName()));
     }
 
     @Test
     public void testToStringWithEmptyUser() {
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
+        CreatedBy createdBy = new CreatedBy("");
         String result = createdBy.toString();
         MatcherAssert.assertThat("CreatedBy {user=''}", equalTo(result));
     }
 
     @Test
     public void testToStringWithNullUser() {
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, (String) null);
+        CreatedBy createdBy = new CreatedBy((String) null);
         String result = createdBy.toString();
         MatcherAssert.assertThat("CreatedBy {user='null'}", equalTo(result));
     }
@@ -219,7 +206,7 @@ public class CreatedByTests {
     public void testToStringWithLongUserName() {
 
         String longUserName = "a".repeat(1000);
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, longUserName);
+        CreatedBy createdBy = new CreatedBy(longUserName);
         String result = createdBy.toString();
         MatcherAssert.assertThat(result.startsWith("CreatedBy {user='"), is(true));
         MatcherAssert.assertThat(result.endsWith("'}"), is(true));
@@ -228,7 +215,7 @@ public class CreatedByTests {
 
     @Test
     public void testToXContentWithEmptyUser() throws IOException {
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "");
+        CreatedBy createdBy = new CreatedBy("");
         XContentBuilder builder = JsonXContent.contentBuilder();
 
         createdBy.toXContent(builder, null);
@@ -238,7 +225,7 @@ public class CreatedByTests {
 
     @Test
     public void testWriteToWithExceptionInStreamOutput() throws IOException {
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, "user1");
+        CreatedBy createdBy = new CreatedBy("user1");
         try (StreamOutput failingOutput = new StreamOutput() {
             @Override
             public void writeByte(byte b) throws IOException {
@@ -273,7 +260,7 @@ public class CreatedByTests {
     @Test
     public void testWriteToWithLongUserName() throws IOException {
         String longUserName = "a".repeat(65536);
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, longUserName);
+        CreatedBy createdBy = new CreatedBy(longUserName);
         BytesStreamOutput out = new BytesStreamOutput();
         createdBy.writeTo(out);
         MatcherAssert.assertThat(out.size(), greaterThan(65536));
@@ -282,7 +269,7 @@ public class CreatedByTests {
     @Test
     public void test_createdByToStringReturnsCorrectFormat() {
         String testUser = "testUser";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, testUser);
+        CreatedBy createdBy = new CreatedBy(testUser);
 
         String expected = "CreatedBy {user='" + testUser + "'}";
         String actual = createdBy.toString();
@@ -293,7 +280,7 @@ public class CreatedByTests {
     @Test
     public void test_toXContent_serializesCorrectly() throws IOException {
         String expectedUser = "testUser";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
+        CreatedBy createdBy = new CreatedBy(expectedUser);
         XContentBuilder builder = XContentFactory.jsonBuilder();
 
         createdBy.toXContent(builder, null);
@@ -305,13 +292,12 @@ public class CreatedByTests {
     @Test
     public void test_writeTo_writesUserCorrectly() throws IOException {
         String expectedUser = "testUser";
-        CreatedBy createdBy = new CreatedBy(CREATOR_TYPE, expectedUser);
+        CreatedBy createdBy = new CreatedBy(expectedUser);
 
         BytesStreamOutput out = new BytesStreamOutput();
         createdBy.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        in.readString();
         String actualUser = in.readString();
 
         MatcherAssert.assertThat(expectedUser, equalTo(actualUser));
