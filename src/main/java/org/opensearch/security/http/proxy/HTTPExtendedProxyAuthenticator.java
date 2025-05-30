@@ -54,8 +54,8 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
-        AuthCredentials credentials = super.extractCredentials(request, context);
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context, final boolean isChallenge) {
+        AuthCredentials credentials = super.extractCredentials(request, context, isChallenge);
         if (credentials == null) {
             return null;
         }
