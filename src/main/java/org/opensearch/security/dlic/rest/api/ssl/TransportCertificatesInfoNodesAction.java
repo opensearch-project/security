@@ -100,7 +100,7 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
     protected CertificatesInfo loadCertificates(final Optional<String> loadCertType) {
         Map<CertType, List<CertificateInfo>> certInfos = new HashMap<>();
         for (CertType certType : CertType.REGISTERED_CERT_TYPES) {
-            if (loadCertType.isEmpty() || loadCertType.get().equalsIgnoreCase(certType.name())) {
+            if (loadCertType.isEmpty() || loadCertType.get().equalsIgnoreCase(certType.certID())) {
                 List<CertificateInfo> certs = sslSettingsManager.sslContextHandler(certType)
                     .map(SslContextHandler::certificates)
                     .map(this::certificatesDetails)
