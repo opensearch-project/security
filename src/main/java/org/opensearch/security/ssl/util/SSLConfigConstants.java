@@ -164,6 +164,7 @@ public final class SSLConfigConstants {
     public static String getStringAffixKeyForCertType(Setting.AffixSetting<String> affix, CertType certType) {
         return affix.getConcreteSettingForNamespace(certType.certID()).getKey();
     }
+
     public static String getBoolAffixKeyForCertType(Setting.AffixSetting<Boolean> affix, CertType certType) {
         return affix.getConcreteSettingForNamespace(certType.certID()).getKey();
     }

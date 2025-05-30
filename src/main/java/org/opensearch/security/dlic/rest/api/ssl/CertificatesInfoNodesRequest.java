@@ -56,9 +56,7 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
     public ActionRequestValidationException validate() {
         if (!Strings.isEmpty(certTypeID) && !CertType.CERT_TYPE_REGISTRY.contains(certTypeID)) {
             final var errorMessage = new ActionRequestValidationException();
-            errorMessage.addValidationError(
-                "wrong certificate type " + certTypeID + ". Please use one of " + CertType.CERT_TYPE_REGISTRY
-            );
+            errorMessage.addValidationError("wrong certificate type " + certTypeID + ". Please use one of " + CertType.CERT_TYPE_REGISTRY);
             return errorMessage;
         }
         return super.validate();
