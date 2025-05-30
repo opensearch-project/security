@@ -147,14 +147,7 @@ import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.configuration.CompatConfig;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.configuration.DlsFlsRequestValve;
-import org.opensearch.security.configuration.DlsFlsValveImpl;
-import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
-import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
+import org.opensearch.security.configuration.*;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
@@ -286,6 +279,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile IndexResolverReplacer irr;
     private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
+    private volatile SettingsPermissionValve settingsPermissionValve = null;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
@@ -1168,6 +1162,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         if (SSLConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+            settingsPermissionValve = new SettingsPermissionValve.NoopSettingsPermissionValve();
         } else {
             dlsFlsValve = new DlsFlsValveImpl(
                 settings,
@@ -1178,10 +1173,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 threadPool,
                 dlsFlsBaseContext
             );
+            settingsPermissionValve = new SettingsPermissionValveImpl(clusterService, threadPool, adminDns, auditLog);
+            cr.subscribeOnChange(configMap -> { ((SettingsPermissionValveImpl) settingsPermissionValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
+        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver, settingsPermissionValve);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 

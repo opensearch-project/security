@@ -187,6 +187,7 @@ public class RolesApiAction extends AbstractApiAction {
                         return allowedKeys.put("cluster_permissions", DataType.ARRAY)
                             .put("tenant_permissions", DataType.ARRAY)
                             .put("index_permissions", DataType.ARRAY)
+                            .put("allowed_cluster_settings", DataType.ARRAY)
                             .put("description", DataType.STRING)
                             .build();
                     }
