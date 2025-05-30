@@ -43,7 +43,7 @@ public class CertificatesInfo implements Writeable, ToXContent {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject("certificates");
         for (Map.Entry<CertType, List<CertificateInfo>> entry : certificates.entrySet()) {
-            builder.field(entry.getKey().name(), certificates.get(entry.getKey()));
+            builder.field(entry.getKey().certID(), certificates.get(entry.getKey()));
         }
         return builder.endObject();
     }

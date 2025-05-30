@@ -14,6 +14,7 @@ package org.opensearch.security.ssl.config;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
@@ -28,10 +29,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 /**
  * CertTypes have a 1-to-1 relationship with ssl context configurations and identify
  * the setting prefix under which configuration settings are located.
+ *
+ * CertTypes are uniquely identified by their `certID` (the last element of their setting prefix)
+ * as this is how users identify certs in the certificates info API.
  */
 public class CertType implements Writeable {
     private final String sslConfigSettingPrefix;
-    private final String certTypeKey;
 
     public static CertType HTTP = new CertType(SSL_HTTP_PREFIX);
     public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX);
@@ -43,30 +46,42 @@ public class CertType implements Writeable {
      * Disabled or invalid cert configurations are still registered here.
      */
     public static final Set<CertType> REGISTERED_CERT_TYPES = new HashSet<>(Arrays.asList(HTTP, TRANSPORT, TRANSPORT_CLIENT));
+    public static boolean certRegistered(String certID){
+        for (CertType certType : REGISTERED_CERT_TYPES) {
+            if (Objects.equals(certType.certID(), certID)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public CertType(String sslConfigSettingPrefix) {
         this.sslConfigSettingPrefix = sslConfigSettingPrefix;
-        String[] parts = sslConfigSettingPrefix.split("\\.");
-        this.certTypeKey = parts[parts.length - 1];
+
     }
 
     public CertType(final StreamInput in) throws IOException {
         this.sslConfigSettingPrefix = in.readString();
-        this.certTypeKey = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(sslConfigSettingPrefix);
-        out.writeString(certTypeKey);
     }
 
     public String sslSettingPrefix() {
         return sslConfigSettingPrefix;
     }
 
-    public String name() {
-        return certTypeKey;
+    public String certID() {
+        String[] parts = sslConfigSettingPrefix.split("\\.");
+        String id = parts[parts.length - 1];
+        return id.toLowerCase(Locale.ROOT);
+    }
+
+    @Override
+    public String toString() {
+        return this.certID();
     }
 
     @Override
@@ -74,11 +89,11 @@ public class CertType implements Writeable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CertType certType = (CertType) o;
-        return sslConfigSettingPrefix.equals(certType.sslConfigSettingPrefix);
+        return this.certID().equals(certType.certID());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sslConfigSettingPrefix);
+        return Objects.hash(this.certID());
     }
 }

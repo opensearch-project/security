@@ -21,26 +21,26 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.ssl.config.CertType;
 
+import static org.opensearch.security.ssl.config.CertType.certRegistered;
+
 public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesInfoNodesRequest> {
-
-    private final String certificateType;
-
+    private final String certTypeID;
     private final boolean inMemory;
 
-    public CertificatesInfoNodesRequest(String certificateType, boolean inMemory, String... nodesIds) {
+    public CertificatesInfoNodesRequest(String certTypeID, boolean inMemory, String... nodesIds) {
         super(nodesIds);
-        this.certificateType = certificateType;
+        this.certTypeID = certTypeID;
         this.inMemory = inMemory;
     }
 
     public CertificatesInfoNodesRequest(final StreamInput in) throws IOException {
         super(in);
-        certificateType = in.readOptionalString();
+        certTypeID = in.readOptionalString();
         inMemory = in.readBoolean();
     }
 
     public Optional<String> certificateType() {
-        return Optional.ofNullable(certificateType);
+        return Optional.ofNullable(certTypeID);
     }
 
     public boolean inMemory() {
@@ -50,16 +50,16 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalString(certificateType);
+        out.writeOptionalString(certTypeID);
         out.writeBoolean(inMemory);
     }
 
     @Override
     public ActionRequestValidationException validate() {
-        if (!Strings.isEmpty(certificateType) && !CertType.REGISTERED_CERT_TYPES.contains(certificateType)) {
+        if (!Strings.isEmpty(certTypeID) && !certRegistered(certTypeID)) {
             final var errorMessage = new ActionRequestValidationException();
             errorMessage.addValidationError(
-                "wrong certificate type " + certificateType + ". Please use one of " + CertType.REGISTERED_CERT_TYPES
+                "wrong certificate type " + certTypeID + ". Please use one of " + CertType.REGISTERED_CERT_TYPES
             );
             return errorMessage;
         }
