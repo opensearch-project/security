@@ -74,6 +74,23 @@ public class SslContextHandlerTest {
     }
 
     @Test
+    public void skipInvalidCaCertificateValidation() throws Exception {
+        final var caCertificate = certificatesRule.caCertificateHolder();
+
+        final var invalidCertKeys = certificatesRule.generateKeyPair();
+        var invalidCaCertificate = certificatesRule.generateCaCertificate(
+            invalidCertKeys,
+            "CN=not_default_subject,OU=client,O=client,L=test,C=de",
+            caCertificate.getNotAfter().toInstant().minus(20, ChronoUnit.DAYS),
+            caCertificate.getNotAfter().toInstant().minus(10, ChronoUnit.DAYS)
+        );
+
+        writePemContent(caCertificatePath, caCertificate, invalidCaCertificate);
+
+        sslContextHandler();
+    }
+
+    @Test
     public void doesNothingIfCertificatesAreSame() throws Exception {
         final var sslContextHandler = sslContextHandler();
 

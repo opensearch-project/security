@@ -27,11 +27,11 @@
 package org.opensearch.security.rest;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -48,6 +48,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
@@ -121,7 +122,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                     final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
-                    final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
+                    PrivilegesEvaluationContext context = evaluator.createContext(user, null);
 
                     builder.startObject();
                     builder.field("user", user == null ? null : user.toString());
@@ -130,8 +131,8 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("remote_address", remoteAddress);
                     builder.field("backend_roles", user == null ? null : user.getRoles());
                     builder.field("custom_attribute_names", user == null ? null : user.getCustomAttributesMap().keySet());
-                    builder.field("roles", securityRoles);
-                    builder.field("tenants", evaluator.mapTenants(user, securityRoles));
+                    builder.field("roles", context.getMappedRoles());
+                    builder.field("tenants", evaluator.tenantPrivileges().tenantMap(context));
                     builder.field("principal", (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String) threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
@@ -145,14 +146,14 @@ public class SecurityInfoAction extends BaseRestHandler {
                             builder.field(
                                 "size_of_custom_attributes",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap())
+                                    Base64Helper.serializeObject(new HashMap<>(user.getCustomAttributesMap()))
                                         .getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                             builder.field(
                                 "size_of_backendroles",
                                 RamUsageEstimator.humanReadableUnits(
-                                    Base64Helper.serializeObject((Serializable) user.getRoles()).getBytes(StandardCharsets.UTF_8).length
+                                    Base64Helper.serializeObject(new HashSet<>(user.getRoles())).getBytes(StandardCharsets.UTF_8).length
                                 )
                             );
                         } catch (Throwable e) {
