@@ -18,16 +18,15 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
 
-import javax.annotation.Nonnull;
-
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_PREFIX;
 
 /**
@@ -43,24 +42,28 @@ public class CertType implements Writeable {
     public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX);
     public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX) {
         @Override
-        public String certID() { return "transport_client"; }
+        public String certID() {
+            return "transport_client";
+        }
     };
     public static CertType TRANSPORT_SERVER = new CertType(SSL_TRANSPORT_SERVER_PREFIX) {
         @Override
-        public String certID() { return "transport_server"; }
+        public String certID() {
+            return "transport_server";
+        }
     };
 
     public static class NodeCertTypeRegistry implements Iterable<CertType> {
         private final Set<CertType> RegisteredCertType = new HashSet<>();
 
         public NodeCertTypeRegistry(CertType... initialCertTypes) {
-            for (CertType certType : initialCertTypes){
+            for (CertType certType : initialCertTypes) {
                 register(certType);
             }
         }
 
         public void register(CertType certType) {
-            if(RegisteredCertType.contains(certType)){
+            if (RegisteredCertType.contains(certType)) {
                 throw new IllegalArgumentException("Cert type " + certType + " is already registered in CertType registry");
             }
             RegisteredCertType.add(certType);
@@ -91,10 +94,10 @@ public class CertType implements Writeable {
     Not all ssl context configurations are known at compile time, so we track newly discovered CertTypes here.
     */
     public static final NodeCertTypeRegistry CERT_TYPE_REGISTRY = new NodeCertTypeRegistry(
-            HTTP,
-            TRANSPORT,
-            TRANSPORT_CLIENT,
-            TRANSPORT_SERVER
+        HTTP,
+        TRANSPORT,
+        TRANSPORT_CLIENT,
+        TRANSPORT_SERVER
     );
 
     public CertType(String sslConfigSettingPrefix) {
