@@ -43,7 +43,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import io.netty.handler.ssl.ClientAuth;
 
 import static org.opensearch.plugins.NetworkPlugin.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
-import static org.opensearch.security.ssl.config.CertType.REGISTERED_CERT_TYPES;
+import static org.opensearch.security.ssl.config.CertType.CERT_TYPE_REGISTRY;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.EXTENDED_KEY_USAGE_ENABLED;
@@ -153,7 +153,7 @@ public class SslSettingsManager {
         for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(environment.settings())) {
             final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType + ".");
             final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(auxType);
-            REGISTERED_CERT_TYPES.add(auxCert);
+            CERT_TYPE_REGISTRY.register(auxCert);
             if (auxEnabled.get(settings) && !clientNode(settings)) {
                 validateSettings(auxCert, settings, false);
                 final SslParameters auxSslParameters = SslParameters.loader(auxCert, settings).load();
