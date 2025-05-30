@@ -279,13 +279,13 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user) {
+    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
             joiner.add(escapePipe(user.getName()));
             joiner.add(escapePipe(String.join(",", user.getRoles())));
-            joiner.add(escapePipe(String.join(",", user.getSecurityRoles())));
+            joiner.add(escapePipe(String.join(",", mappedRoles)));
 
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
@@ -357,7 +357,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        setUserInfoInThreadContext(user);
+        setUserInfoInThreadContext(user, mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
