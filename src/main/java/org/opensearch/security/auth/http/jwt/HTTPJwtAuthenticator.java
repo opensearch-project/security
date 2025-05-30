@@ -309,11 +309,16 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         if (node instanceof String str) {
             Arrays.stream(str.split(","))                            // "admin,dev"
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(Predicate.not(String::isEmpty))
                 .forEach(collected::add);
 
         } else if (node instanceof Collection<?> col) {
-            col.stream().filter(Objects::nonNull).map(Object::toString).map(String::trim).filter(s -> !s.isEmpty()).forEach(collected::add);
+            col.stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .map(String::trim)
+                .filter(Predicate.not(String::isEmpty))
+                .forEach(collected::add);
 
         } else {                                                     // something odd
             log.warn(
