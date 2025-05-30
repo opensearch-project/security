@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -108,23 +107,27 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {
-        assertSSLCertsInfo(localCluster.nodes(), CertType.REGISTERED_CERT_TYPES, ok(() -> client.get(sslCertsPath())));
+        List<CertType> certTypes = new ArrayList<>();
+        for (CertType cert : CertType.CERT_TYPE_REGISTRY) {
+            certTypes.add(cert);
+        }
+        assertSSLCertsInfo(localCluster.nodes(), certTypes, ok(() -> client.get(sslCertsPath())));
         if (localCluster.nodes().size() > 1) {
             final var randomNodes = randomNodes();
             final var nodeIds = randomNodes.stream().map(n -> n.esNode().getNodeEnvironment().nodeId()).collect(Collectors.joining(","));
-            assertSSLCertsInfo(randomNodes, CertType.REGISTERED_CERT_TYPES, ok(() -> client.get(sslCertsPath(nodeIds))));
+            assertSSLCertsInfo(randomNodes, certTypes, ok(() -> client.get(sslCertsPath(nodeIds))));
         }
-        final var randomCertType = randomFrom(List.copyOf(CertType.REGISTERED_CERT_TYPES));
+        final var randomCertType = randomFrom(certTypes);
         assertSSLCertsInfo(
             localCluster.nodes(),
-            Set.of(randomCertType),
+            List.of(randomCertType),
             ok(() -> client.get(String.format("%s?cert_type=%s", sslCertsPath(), randomCertType)))
         );
     }
 
     private void assertSSLCertsInfo(
         final List<LocalOpenSearchCluster.Node> expectedNode,
-        final Set<CertType> expectedCertTypes,
+        final List<CertType> expectedCertTypes,
         final TestRestClient.HttpResponse response
     ) {
         final var body = response.bodyAsJsonNode();

@@ -21,8 +21,6 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.ssl.config.CertType;
 
-import static org.opensearch.security.ssl.config.CertType.certRegistered;
-
 public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesInfoNodesRequest> {
     private final String certTypeID;
     private final boolean inMemory;
@@ -56,10 +54,10 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
 
     @Override
     public ActionRequestValidationException validate() {
-        if (!Strings.isEmpty(certTypeID) && !certRegistered(certTypeID)) {
+        if (!Strings.isEmpty(certTypeID) && !CertType.CERT_TYPE_REGISTRY.contains(certTypeID)) {
             final var errorMessage = new ActionRequestValidationException();
             errorMessage.addValidationError(
-                "wrong certificate type " + certTypeID + ". Please use one of " + CertType.REGISTERED_CERT_TYPES
+                "wrong certificate type " + certTypeID + ". Please use one of " + CertType.CERT_TYPE_REGISTRY
             );
             return errorMessage;
         }
