@@ -50,7 +50,7 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class WebhookSink extends AuditLogSink {
 

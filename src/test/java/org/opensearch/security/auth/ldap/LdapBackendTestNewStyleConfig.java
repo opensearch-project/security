@@ -110,7 +110,7 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put("users.u1.base", "ou=people,o=TEST")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
-            .put(ConfigConstants.LDAP_PASSWORD, "spocksecret")
+            .put(ConfigConstants.LDAP_PASSWORD.insecurePropertyName, "spocksecret")
             .build();
 
         User user = new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));
@@ -126,7 +126,7 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put("users.u1.base", "ou=people,o=TEST")
             .put(ConfigConstants.LDAP_BIND_DN, "cn=Captain Spock,ou=people,o=TEST")
-            .put(ConfigConstants.LDAP_PASSWORD, "wrong")
+            .put(ConfigConstants.LDAP_PASSWORD.insecurePropertyName, "wrong")
             .build();
 
         new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));

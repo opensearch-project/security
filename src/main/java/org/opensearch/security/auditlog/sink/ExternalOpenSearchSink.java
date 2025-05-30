@@ -31,8 +31,8 @@ import org.opensearch.security.support.PemKeyReader;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public final class ExternalOpenSearchSink extends AuditLogSink {
 
