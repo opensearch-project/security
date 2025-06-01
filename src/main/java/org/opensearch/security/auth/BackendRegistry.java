@@ -61,6 +61,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
@@ -101,6 +102,7 @@ public class BackendRegistry {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
+    private final ClusterInfoHolder clusterInfoHolder;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
@@ -152,13 +154,15 @@ public class BackendRegistry {
         final AdminDNs adminDns,
         final XFFResolver xffResolver,
         final AuditLog auditLog,
-        final ThreadPool threadPool
+        final ThreadPool threadPool,
+        final ClusterInfoHolder clusterInfoHolder
     ) {
         this.adminDns = adminDns;
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        this.clusterInfoHolder = clusterInfoHolder;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.restAuthDomains = Collections.emptySortedSet();
         this.ipAuthFailureListeners = Collections.emptyList();
@@ -275,8 +279,12 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            log.error("Not yet initialized (you may need to run securityadmin)");
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
+            StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            log.error("{} (you may need to run securityadmin)", error.toString());
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, error.toString()));
             return false;
         }
 
