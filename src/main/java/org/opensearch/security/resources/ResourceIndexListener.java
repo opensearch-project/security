@@ -40,11 +40,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
     public ResourceIndexListener(ThreadPool threadPool, Client client) {
         this.threadPool = threadPool;
-        this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
-            ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
-            client,
-            threadPool
-        );
+        this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(client, threadPool);
     }
 
     /**

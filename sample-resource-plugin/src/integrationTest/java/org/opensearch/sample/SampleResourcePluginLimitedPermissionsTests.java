@@ -43,7 +43,7 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_U
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -82,7 +82,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
     public void clearIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
-            client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
+            client.delete(getSharingIndex(RESOURCE_INDEX_NAME));
         }
     }
 
@@ -116,7 +116,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(1)
                 );
         }
@@ -139,7 +139,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(1)
                 );
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
@@ -176,7 +176,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(1)
                 );
         }
@@ -249,7 +249,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is updated")
                 .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(0)
                 );
         }
@@ -287,7 +287,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
+                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
                     equalTo(1)
                 );
         }
