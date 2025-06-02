@@ -29,6 +29,7 @@ package org.opensearch.security;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -167,6 +168,7 @@ import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.ContextProvidingPluginSubject;
+import org.opensearch.security.identity.NoopPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -189,6 +191,7 @@ import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
@@ -1070,7 +1073,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-
         SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         if (SSLConfig.isSslOnlyMode()) {
             return super.createComponents(
@@ -2262,10 +2264,28 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        Set<String> clusterActions = new HashSet<>();
-        clusterActions.add(BulkAction.NAME);
-        PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
-        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        PluginSubject subject;
+        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+            subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+            String pluginPrincipal = subject.getPrincipal().getName();
+            URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
+            RoleV7 pluginPermissions;
+            if (resource == null) {
+                log.warn("plugin-permissions.yml not found on classpath");
+                pluginPermissions = new RoleV7();
+                pluginPermissions.setCluster_permissions(new ArrayList<>());
+            } else {
+                try {
+                    pluginPermissions = RoleV7.fromPluginPermissionsFile(resource);
+                } catch (IOException e) {
+                    throw new OpenSearchSecurityException(e.getMessage(), e);
+                }
+            }
+            pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
+            sf.updatePluginToPermissions(pluginPrincipal, pluginPermissions);
+        } else {
+            subject = new NoopPluginSubject(threadPool);
+        }
         return subject;
     }
 

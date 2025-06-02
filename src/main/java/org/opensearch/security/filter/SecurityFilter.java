@@ -86,6 +86,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -522,8 +523,8 @@ public class SecurityFilter implements ActionFilter {
         return false;
     }
 
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        evalp.updatePluginToClusterActions(pluginIdentifier, clusterActions);
+    public void updatePluginToPermissions(String pluginIdentifier, RoleV7 pluginPermissions) {
+        evalp.updatePluginToPermissions(pluginIdentifier, pluginPermissions);
     }
 
     private boolean isRequestIndexImmutable(Object request) {
