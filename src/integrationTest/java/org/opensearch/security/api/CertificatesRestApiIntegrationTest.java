@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
@@ -151,7 +150,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
             Expect each node transport configured with root and issued cert.
             */
             for (CertType expectCert : expectedCertTypes) {
-                final JsonNode transportCertificates = certificates.get(expectCert.certID());
+                final JsonNode transportCertificates = certificates.get(expectCert.id());
                 assertThat(prettyStringBody, transportCertificates.isArray());
                 assertThat(prettyStringBody, transportCertificates.size(), is(2));
                 verifyCertsJson(n.nodeNumber(), transportCertificates.get(0));
