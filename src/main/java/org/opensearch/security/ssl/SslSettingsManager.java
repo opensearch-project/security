@@ -119,7 +119,7 @@ public class SslSettingsManager {
             Optional.ofNullable(configurations.get(cert))
                 .ifPresentOrElse(
                     sslConfiguration -> contexts.put(cert, new SslContextHandler(sslConfiguration)),
-                    () -> LOGGER.warn("SSL Configuration for {} Layer hasn't been set", cert.certID())
+                    () -> LOGGER.warn("SSL Configuration for {} Layer hasn't been set", cert.id())
                 );
         });
         return contexts.build();
@@ -129,12 +129,12 @@ public class SslSettingsManager {
         sslContextHandler(certType).ifPresentOrElse(sscContextHandler -> {
             try {
                 if (sscContextHandler.reloadSslContext()) {
-                    LOGGER.info("{} SSL context reloaded", certType.certID());
+                    LOGGER.info("{} SSL context reloaded", certType.id());
                 }
             } catch (CertificateException e) {
                 throw new OpenSearchException(e);
             }
-        }, () -> LOGGER.error("Missing SSL Context for {}", certType.certID()));
+        }, () -> LOGGER.error("Missing SSL Context for {}", certType.id()));
     }
 
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
@@ -164,8 +164,8 @@ public class SslSettingsManager {
                     auxCert,
                     new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
                 );
-                LOGGER.info("TLS {} Provider                    : {}", auxCert.certID(), auxSslParameters.provider());
-                LOGGER.info("Enabled TLS protocols for {} layer : {}", auxCert.certID(), auxSslParameters.allowedProtocols());
+                LOGGER.info("TLS {} Provider                    : {}", auxCert.id(), auxSslParameters.provider());
+                LOGGER.info("Enabled TLS protocols for {} layer : {}", auxCert.id(), auxSslParameters.allowedProtocols());
             }
         }
 
@@ -291,10 +291,10 @@ public class SslSettingsManager {
         } else {
             throw new OpenSearchException(
                 "Wrong "
-                    + certType.certID()
+                    + certType.id()
                     + " SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
                     + "PKCS#8 keys groups should be set to configure "
-                    + certType.certID()
+                    + certType.id()
                     + " layer"
             );
         }
@@ -316,7 +316,7 @@ public class SslSettingsManager {
         if (!transportSettings.hasValue(PEM_CERT_FILEPATH) || !transportSettings.hasValue(PEM_KEY_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
-                    + transportType.certID().toLowerCase(Locale.ROOT)
+                    + transportType.id().toLowerCase(Locale.ROOT)
                     + " SSL configuration. "
                     + String.join(", ", transportSettings.get(PEM_CERT_FILEPATH), transportSettings.get(PEM_KEY_FILEPATH))
                     + " must be set"
@@ -325,7 +325,7 @@ public class SslSettingsManager {
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
-                    + transportType.certID().toLowerCase(Locale.ROOT)
+                    + transportType.id().toLowerCase(Locale.ROOT)
                     + " SSL configuration. "
                     + PEM_TRUSTED_CAS_FILEPATH
                     + " must be set if client auth is required"
@@ -349,7 +349,7 @@ public class SslSettingsManager {
         if (!transportSettings.hasValue(KEYSTORE_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
-                    + transportType.certID().toLowerCase(Locale.ROOT)
+                    + transportType.id().toLowerCase(Locale.ROOT)
                     + " SSL configuration. "
                     + transportSettings.get(KEYSTORE_FILEPATH)
                     + " must be set"
@@ -358,7 +358,7 @@ public class SslSettingsManager {
         if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
-                    + transportType.certID().toLowerCase(Locale.ROOT)
+                    + transportType.id().toLowerCase(Locale.ROOT)
                     + " SSL configuration. "
                     + TRUSTSTORE_FILEPATH
                     + " must be set if client auth is required"
