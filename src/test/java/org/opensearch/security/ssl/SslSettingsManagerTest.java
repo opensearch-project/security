@@ -80,7 +80,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     private static final String MOCK_AUX_PREFIX_FOO = SSL_AUX_PREFIX + "foo.";
     private static final CertType MOCK_AUX_CERT_TYPE_FOO = new CertType(MOCK_AUX_PREFIX_FOO);
     private static final Settings ENABLE_FOO_SETTINGS_BUILDER = Settings.builder()
-        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_FOO.certID()))
+        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_FOO.id()))
         .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_FOO), true)
         .build();
     private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(
@@ -95,9 +95,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
         SECURITY_SSL_AUX_PEMKEY_FILEPATH,
         MOCK_AUX_CERT_TYPE_FOO
     );
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate_pk.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate_pk.pem";
 
     /*
     Settings for a mock aux transport - bar
@@ -105,7 +105,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     private static final String MOCK_AUX_PREFIX_BAR = SSL_AUX_PREFIX + "bar.";
     private static final CertType MOCK_AUX_CERT_TYPE_BAR = new CertType(MOCK_AUX_PREFIX_BAR);
     private static final Settings ENABLE_BAR_SETTINGS_BUILDER = Settings.builder()
-        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.certID()))
+        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.id()))
         .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_BAR), true)
         .build();
     private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(
@@ -120,9 +120,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
         SECURITY_SSL_AUX_PEMKEY_FILEPATH,
         MOCK_AUX_CERT_TYPE_BAR
     );
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate_pk.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate_pk.pem";
 
     static Settings.Builder defaultSettingsBuilder() {
         return Settings.builder()
@@ -164,14 +164,14 @@ public class SslSettingsManagerTest extends RandomizedTest {
         writeCertificates("ca_http_certificate.pem", "access_http_certificate.pem", "access_http_certificate_pk.pem");
         writeCertificates("ca_transport_certificate.pem", "access_transport_certificate.pem", "access_transport_certificate_pk.pem");
         writeCertificates(
-            "ca_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate.pem",
-            "access_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate.pem",
-            "access_" + MOCK_AUX_CERT_TYPE_FOO.certID() + "_certificate_pk.pem"
+            "ca_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem",
+            "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem",
+            "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate_pk.pem"
         );
         writeCertificates(
-            "ca_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate.pem",
-            "access_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate.pem",
-            "access_" + MOCK_AUX_CERT_TYPE_BAR.certID() + "_certificate_pk.pem"
+            "ca_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem",
+            "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem",
+            "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate_pk.pem"
         );
     }
 
@@ -476,7 +476,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         withAuxFooSslSettings(settingsBuilder);
         settingsBuilder.put(
             Settings.builder()
-                .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.certID(), MOCK_AUX_CERT_TYPE_FOO.certID()))
+                .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.id(), MOCK_AUX_CERT_TYPE_FOO.id()))
                 .build()
         );
 

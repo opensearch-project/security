@@ -107,7 +107,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
     public void testReloadsSslContextOnPemStoreFilesChangedForAux() throws Exception {
         Settings.Builder settings = defaultSettingsBuilder().putList(
             AUX_TRANSPORT_TYPES_SETTING.getKey(),
-            List.of(MOCK_AUX_CERT_TYPE_FOO.certID())
+            List.of(MOCK_AUX_CERT_TYPE_FOO.id())
         ).put(MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + ENABLED, true);
         reloadSslContextOnPemFilesChangedForTransportType(MOCK_AUX_CERT_TYPE_FOO, settings);
     }
@@ -126,7 +126,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
     public void testReloadsSslContextOnJdkStoreFilesChangedForAux() throws Exception {
         Settings.Builder settings = defaultSettingsBuilder().putList(
             AUX_TRANSPORT_TYPES_SETTING.getKey(),
-            List.of(MOCK_AUX_CERT_TYPE_FOO.certID())
+            List.of(MOCK_AUX_CERT_TYPE_FOO.id())
         ).put(MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + ENABLED, true);
         reloadSslContextOnJdkStoreFilesChangedForTransportType(MOCK_AUX_CERT_TYPE_FOO, settings);
     }
@@ -143,7 +143,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         final String trustStoreTypeSetting = settingPrefix + TRUSTSTORE_TYPE;
         final String keyStorePathSetting = settingPrefix + KEYSTORE_FILEPATH;
         final String keyStoreTypeSetting = settingPrefix + KEYSTORE_TYPE;
-        final String certTypeFilePrefix = certType.certID().toLowerCase(Locale.ROOT);
+        final String certTypeFilePrefix = certType.id().toLowerCase(Locale.ROOT);
         final var keyStorePassword = randomAsciiAlphanumOfLength(10);
         final var secureSettings = new MockSecureSettings();
         secureSettings.setString(settingPrefix + "truststore_password_secure", keyStorePassword);
@@ -186,7 +186,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         final String pemTrustCasPathSetting = settingPrefix + PEM_TRUSTED_CAS_FILEPATH;
         final String pemCertPathSetting = settingPrefix + PEM_CERT_FILEPATH;
         final String pemKeyPathSetting = settingPrefix + PEM_KEY_FILEPATH;
-        final String certTypeFilePrefix = certType.certID().toLowerCase(Locale.ROOT);
+        final String certTypeFilePrefix = certType.id().toLowerCase(Locale.ROOT);
         MockSecureSettings secureSettings = new MockSecureSettings();
         secureSettings.setString(settingPrefix + "pemkey_password_secure", certificatesRule.privateKeyPassword());
         reloadSslContextOnFilesChanged(
@@ -214,7 +214,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
 
     private void reloadSslContextOnFilesChanged(CertType certType, final Settings settings, final CertificatesWriter certificatesWriter)
         throws Exception {
-        final String certNamePrefix = certType.certID().toLowerCase(Locale.ROOT);
+        final String certNamePrefix = certType.id().toLowerCase(Locale.ROOT);
         final var defaultCertificates = generateCertificates();
         var defaultKeyPair = defaultCertificates.v1();
         var caCertificate = defaultCertificates.v2().v1();
