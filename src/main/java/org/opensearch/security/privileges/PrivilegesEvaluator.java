@@ -91,6 +91,8 @@ import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -229,7 +231,7 @@ public class PrivilegesEvaluator {
             clusterService.addListener(event -> {
                 RoleBasedActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
                 if (actionPrivileges != null) {
-                    actionPrivileges.updateClusterStateMetadataAsync(clusterService, threadPool);
+                    actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
         }
@@ -256,7 +258,7 @@ public class PrivilegesEvaluator {
             RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
 
             if (oldInstance != null) {
-                oldInstance.shutdown();
+                oldInstance.clusterStateMetadataDependentPrivileges().shutdown();
             }
         } catch (Exception e) {
             log.error("Error while updating ActionPrivileges", e);
@@ -882,8 +884,8 @@ public class PrivilegesEvaluator {
     }
 
     public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        pluginToClusterActions.put(pluginIdentifier, clusterActions);
-    public void updatePluginToPermissions(String pluginIdentifier, RoleV7 pluginPermissions) {
+        RoleV7 pluginPermissions = new RoleV7();
+        pluginPermissions.setCluster_permissions(ImmutableList.copyOf(clusterActions));
         this.pluginIdToActionPrivileges.put(
             pluginIdentifier,
             new SubjectBasedActionPrivileges(pluginPermissions, this.staticActionGroups, this.indexMetadataSupplier)

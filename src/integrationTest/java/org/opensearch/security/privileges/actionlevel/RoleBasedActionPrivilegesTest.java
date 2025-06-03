@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +38,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -72,17 +74,6 @@ import static org.junit.Assert.assertTrue;
     RoleBasedActionPrivilegesTest.Misc.class,
     RoleBasedActionPrivilegesTest.StatefulIndexPrivilegesHeapSize.class })
 public class RoleBasedActionPrivilegesTest {
-    // TODO Create unlimited role statically here
-    private static final RoleV7 UNLIMITED_ROLE = RoleV7.fromYamlStringUnchecked("""
-        cluster_permissions:
-          - "*"
-        index_permissions:
-          - index_patterns:
-              - "*"
-            allowed_actions:
-              - "*"
-                    """);
-
     public static class ClusterPrivileges {
         @Test
         public void wellKnown() throws Exception {
@@ -466,10 +457,7 @@ public class RoleBasedActionPrivilegesTest {
                     roles,
                     FlattenedActionGroups.EMPTY,
                     () -> INDEX_METADATA,
-                    settings,
-                    WellKnownActions.CLUSTER_ACTIONS,
-                    WellKnownActions.INDEX_ACTIONS,
-                    WellKnownActions.INDEX_ACTIONS
+                    settings
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {

@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +27,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.IndexPattern;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -34,87 +39,54 @@ import org.opensearch.security.support.WildcardMatcher;
 
 import com.selectivem.collections.CheckTable;
 
+import static org.opensearch.security.privileges.actionlevel.WellKnownActions.allWellKnownIndexActions;
+
 /**
- * An ActionPrivileges implementation that is valid only for a single subject.
- * This means that individual instances of this class must be created for individual subjects. The mapped roles
+ * An ActionPrivileges implementation that is valid only for a single entity.
+ * This means that individual instances of this class must be created for individual entities. The mapped roles
  * from the context are not regarded by this method.
  * <p>
  * The method PrivilegesEvaluator.createContext() is responsible for making sure that the correct class is used.
  * <p>
  * This class is useful for plugin users and API tokens.
+ * <p>
+ *
  */
-public class SubjectBasedActionPrivileges implements ActionPrivileges {
+public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges implements ActionPrivileges {
     private static final Logger log = LogManager.getLogger(SubjectBasedActionPrivileges.class);
 
-    private final ClusterPrivileges cluster;
-    private final IndexPrivileges index;
-    private final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
-
+    /**
+     * Creates a new immutable instance from the given parameters.
+     *
+     * @param role defines the privileges configuration. This is not a role per se, but the existing class has a
+     *             suitable structure to carry the information. At one point, it might make sense to define an
+     *             abstract interface.
+     * @param actionGroups The FlattenedActionGroups instance that shall be used to resolve the action groups
+     *                     specified in the roles configuration.
+     * @param indexMetadataSupplier A supplier for the cluster's current index meta data. This is used during privileges
+     *                              evaluation to gain information about alias and data stream members.
+     */
     public SubjectBasedActionPrivileges(
         RoleV7 role,
         FlattenedActionGroups actionGroups,
         Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier
     ) {
-        this.cluster = new ClusterPrivileges(role, actionGroups, WellKnownActions.CLUSTER_ACTIONS);
-        this.index = new IndexPrivileges(
-            role,
-            actionGroups,
-            WellKnownActions.INDEX_ACTIONS,
-            WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
-        );
-        this.indexMetadataSupplier = indexMetadataSupplier;
+        super(new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())), new IndexPrivileges(
+                role,
+                actionGroups,
+                WellKnownActions.INDEX_ACTIONS,
+                WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
+        ), indexMetadataSupplier);
     }
 
+    /**
+     * At the moment, this class does not provide StatefulIndexPrivileges.
+     * Thus, always the slightly slower index matching code path will be used. For plugins, however,
+     * that should be okay, as they likely request specific indices without patterns.
+     */
     @Override
-    public PrivilegesEvaluatorResponse hasClusterPrivilege(PrivilegesEvaluationContext context, String action) {
-        return cluster.providesPrivilege(context, action);
-    }
-
-    @Override
-    public PrivilegesEvaluatorResponse hasAnyClusterPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
-        return cluster.providesAnyPrivilege(context, actions);
-    }
-
-    @Override
-    public PrivilegesEvaluatorResponse hasExplicitClusterPrivilege(PrivilegesEvaluationContext context, String action) {
-        return cluster.providesExplicitPrivilege(context, action);
-    }
-
-    @Override
-    public PrivilegesEvaluatorResponse hasIndexPrivilege(
-        PrivilegesEvaluationContext context,
-        Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
-    ) {
-        PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
-        if (response != null) {
-            return response;
-        }
-
-        if (!resolvedIndices.isLocalAll() && resolvedIndices.getAllIndices().isEmpty()) {
-            // This is necessary for requests which operate on remote indices.
-            // Access control for the remote indices will be performed on the remote cluster.
-            log.debug("No local indices; grant the request");
-            return PrivilegesEvaluatorResponse.ok();
-        }
-
-        CheckTable<String, String> checkTable = CheckTable.create(
-            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
-            actions
-        );
-        Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
-
-        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, indexMetadata);
-    }
-
-    @Override
-    public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-        PrivilegesEvaluationContext context,
-        Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
-    ) {
-        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
-        return this.index.providesExplicitPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
+    protected StatefulIndexPrivileges currentStatefulIndexPrivileges() {
+        return null;
     }
 
     /**
@@ -125,7 +97,7 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
      * <p>
      * The check will be possible in time O(1) for "well-known" actions when the user actually has the privileges.
      */
-    static class ClusterPrivileges {
+    static class ClusterPrivileges extends RuntimeOptimizedActionPrivileges.ClusterPrivileges {
 
         /**
          * Maps names of actions to the roles that provide a privilege for the respective action.
@@ -141,7 +113,7 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
          * This contains all role names that provide wildcard (*) privileges for cluster actions.
          * This avoids a blow-up of the actionToRoles object by such roles.
          */
-        private final boolean hasWildcardPermission;
+        private final boolean providesWildcardPrivilege;
 
         /**
          * This maps role names to a matcher which matches the action names this role provides privileges for.
@@ -154,22 +126,22 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
          */
         private final WildcardMatcher grantedActionMatcher;
 
-        private final ImmutableSet<String> wellKnownClusterActions;
-
         /**
-         * Creates pre-computed cluster privileges based on the given parameters.
+         * Creates pre-computed cluster privileges based on the given permission patterns.
          * <p>
          * This constructor will not throw an exception if it encounters any invalid configuration (that is,
          * in particular, unparseable regular expressions). Rather, it will just log an error. This is okay, as it
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
+         *
+         * @param permissionPatterns a collection of strings representing WildcardMatcher patterns that can match
+         *                           on action names. Any action groups must have been already resolved before these
+         *                           are passed here.
          */
-        ClusterPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, ImmutableSet<String> wellKnownClusterActions) {
+        ClusterPrivileges(ImmutableSet<String> permissionPatterns) {
             Set<String> grantedActions = new HashSet<>();
             boolean hasWildcardPermission = false;
             List<WildcardMatcher> wildcardMatchers = new ArrayList<>();
-
-            ImmutableSet<String> permissionPatterns = actionGroups.resolve(role.getCluster_permissions());
 
             for (String permission : permissionPatterns) {
                 // If we have a permission which does not use any pattern, we just simply add it to the
@@ -186,105 +158,30 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
                     hasWildcardPermission = true;
                 } else {
                     WildcardMatcher wildcardMatcher = WildcardMatcher.from(permission);
-                    Set<String> matchedActions = wildcardMatcher.getMatchAny(wellKnownClusterActions, Collectors.toUnmodifiableSet());
+                    Set<String> matchedActions = wildcardMatcher.getMatchAny(WellKnownActions.CLUSTER_ACTIONS, Collectors.toUnmodifiableSet());
                     grantedActions.addAll(matchedActions);
                     wildcardMatchers.add(wildcardMatcher);
                 }
             }
 
             this.grantedActions = ImmutableSet.copyOf(grantedActions);
-            this.hasWildcardPermission = hasWildcardPermission;
+            this.providesWildcardPrivilege = hasWildcardPermission;
             this.grantedActionMatcher = WildcardMatcher.from(wildcardMatchers);
-            this.wellKnownClusterActions = wellKnownClusterActions;
         }
 
-        /**
-         * Checks whether this instance provides privileges for the combination of the provided action and the
-         * provided roles. Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
-         * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
-         */
-        PrivilegesEvaluatorResponse providesPrivilege(PrivilegesEvaluationContext context, String action) {
-
-            // 1: Check roles with wildcards
-            if (this.hasWildcardPermission) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // 2: Check well-known actions - this should cover most cases
-            if (this.grantedActions.contains(action)) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // 3: Only if everything else fails: Check the matchers in case we have a non-well-known action
-            if (!this.wellKnownClusterActions.contains(action)) {
-                if (this.grantedActionMatcher.test(action)) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            return PrivilegesEvaluatorResponse.insufficient(action);
+        @Override
+        protected boolean checkWildcardPrivilege(PrivilegesEvaluationContext context) {
+            return this.providesWildcardPrivilege;
         }
 
-        /**
-         * Checks whether this instance provides explicit privileges for the combination of the provided action and the
-         * provided roles.
-         * <p>
-         * Explicit means here that the privilege is not granted via a "*" action privilege wildcard. Other patterns
-         * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
-         * <p>
-         * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
-         * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
-         */
-        PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, String action) {
-
-            // 1: Check well-known actions - this should cover most cases
-            if (this.grantedActions.contains(action)) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // 2: Only if everything else fails: Check the matchers in case we have a non-well-known action
-            if (!this.wellKnownClusterActions.contains(action)) {
-                if (this.grantedActionMatcher.test(action)) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            return PrivilegesEvaluatorResponse.insufficient(action);
+        @Override
+        protected boolean checkPrivilegeForWellKnownAction(PrivilegesEvaluationContext context, String action) {
+            return this.grantedActions.contains(action);
         }
 
-        /**
-         * Checks whether this instance provides privileges for the combination of any of the provided actions and the
-         * provided roles. Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
-         * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
-         */
-        PrivilegesEvaluatorResponse providesAnyPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
-
-            // 1: Check roles with wildcards
-            if (this.hasWildcardPermission) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            // 2: Check well-known actions - this should cover most cases
-            for (String action : actions) {
-                if (this.grantedActions.contains(action)) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            // 3: Only if everything else fails: Check the matchers in case we have a non-well-known action
-            for (String action : actions) {
-                if (!this.wellKnownClusterActions.contains(action)) {
-                    if (this.grantedActionMatcher.test(action)) {
-                        return PrivilegesEvaluatorResponse.ok();
-                    }
-                }
-            }
-
-            if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
-            } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-            }
+        @Override
+        protected boolean checkPrivilegeViaActionMatcher(PrivilegesEvaluationContext context, String action) {
+            return this.grantedActionMatcher.test(action);
         }
     }
 
@@ -306,7 +203,7 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
      * c) The index patterns use placeholders like "${user.name}" - these can be only resolved when the User object is present.
      * d) The action is not among the "well known" actions.
      */
-    static class IndexPrivileges {
+    static class IndexPrivileges extends RuntimeOptimizedActionPrivileges.StaticIndexPrivileges {
         /**
          * Maps role names to concrete action names to IndexPattern objects which define the indices the privileges apply to.
          */
@@ -429,6 +326,7 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
+
         /**
          * Checks whether this instance provides privileges for the combination of the provided action,
          * the provided indices and the provided roles.
@@ -445,7 +343,8 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
          * As a side-effect, this method will further mark the available index/action combinations in the provided
          * checkTable instance as checked.
          */
-        PrivilegesEvaluatorResponse providesPrivilege(
+        @Override
+        protected PrivilegesEvaluatorResponse providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
@@ -454,85 +353,34 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
-            for (String action : actions) {
-                IndexPattern indexPattern = actionToIndexPattern.get(action);
-
-                if (indexPattern != null) {
-                    for (String index : checkTable.iterateUncheckedRows(action)) {
-                        try {
-                            if (indexPattern.matches(index, context, indexMetadata) && checkTable.check(index, action)) {
-                                return PrivilegesEvaluatorResponse.ok();
-                            }
-                        } catch (PrivilegesEvaluationException e) {
-                            // We can ignore these errors, as this max leads to fewer privileges than available
-                            log.error("Error while evaluating index pattern of {}. Ignoring entry", this, e);
-                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + this, e));
-                        }
-                    }
-                }
+            checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, indexMetadata, actionToIndexPattern, exceptions);
+            if (checkTable.isComplete()) {
+                return PrivilegesEvaluatorResponse.ok();
             }
 
             // If all actions are well-known, the index.rolesToActionToIndexPattern data structure that was evaluated above,
             // would have contained all the actions if privileges are provided. If there are non-well-known actions among the
             // actions, we also have to evaluate action patterns to check the authorization
 
-            boolean allActionsWellKnown = this.wellKnownIndexActions.containsAll(actions);
-
-            if (!checkTable.isComplete() && !allActionsWellKnown) {
-
-                for (String action : actions) {
-                    if (this.wellKnownIndexActions.contains(action)) {
-                        continue;
-                    }
-
-                    for (Map.Entry<WildcardMatcher, IndexPattern> entry : actionPatternToIndexPattern.entrySet()) {
-                        WildcardMatcher actionMatcher = entry.getKey();
-                        IndexPattern indexPattern = entry.getValue();
-
-                        if (actionMatcher.test(action)) {
-                            for (String index : checkTable.iterateUncheckedRows(action)) {
-                                try {
-                                    if (indexPattern.matches(index, context, indexMetadata) && checkTable.check(index, action)) {
-                                        break;
-                                    }
-                                } catch (PrivilegesEvaluationException e) {
-                                    // We can ignore these errors, as this max leads to fewer privileges than available
-                                    log.error("Error while evaluating index pattern of role {}. Ignoring entry", this, e);
-                                    exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + this, e));
-                                }
-                            }
-                        }
-                    }
+            if (!checkTable.isComplete() && !allWellKnownIndexActions(actions)) {
+                checkPrivilegesForNonWellKnownActions(context, actions, checkTable, indexMetadata, this.actionPatternToIndexPattern, exceptions);
+                if (checkTable.isComplete()) {
+                    return PrivilegesEvaluatorResponse.ok();
                 }
-
             }
 
-            if (checkTable.isComplete()) {
-                return PrivilegesEvaluatorResponse.ok();
-            }
-
-            Set<String> availableIndices = checkTable.getCompleteRows();
-
-            if (!availableIndices.isEmpty()) {
-                return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable).evaluationExceptions(exceptions);
-            }
-
-            return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                .reason(
-                    resolvedIndices.getAllIndices().size() == 1
-                        ? "Insufficient permissions for the referenced index"
-                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
-                )
-                .evaluationExceptions(exceptions);
+            return responseForIncompletePrivileges(context, checkTable, exceptions);
         }
+
+
 
         /**
          * Returns PrivilegesEvaluatorResponse.ok() if the user identified in the context object has privileges for all
          * indices (using *) for the given actions. Returns null otherwise. Then, further checks must be done to check
          * the user's privileges.
          */
-        PrivilegesEvaluatorResponse providesWildcardPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
-
+        @Override
+        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions) {
             for (String action : actions) {
                 if (!this.actionsWithWildcardIndexPrivileges.contains(action)) {
                     return null;
@@ -549,13 +397,8 @@ public class SubjectBasedActionPrivileges implements ActionPrivileges {
          * Explicit means here that the privilege is not granted via a "*" action privilege wildcard. Other patterns
          * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
          */
-        PrivilegesEvaluatorResponse providesExplicitPrivilege(
-            PrivilegesEvaluationContext context,
-            Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
-            CheckTable<String, String> checkTable,
-            Map<String, IndexAbstraction> indexMetadata
-        ) {
+        @Override
+        protected PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, Set<String> actions, CheckTable<String, String> checkTable, Map<String, IndexAbstraction> indexMetadata) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {

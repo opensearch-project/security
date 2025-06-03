@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -40,6 +40,8 @@ import org.opensearch.action.update.UpdateAction;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.UpdateByQueryAction;
 import org.opensearch.security.support.ConfigConstants;
+
+import java.util.Collection;
 
 /**
  * This class lists so-called "well-known actions". These are taken into account when creating the pre-computed
@@ -85,4 +87,18 @@ public class WellKnownActions {
      * Compare https://github.com/opensearch-project/security/pull/2887
      */
     public static final ImmutableSet<String> EXPLICITLY_REQUIRED_INDEX_ACTIONS = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
+
+    public static boolean isWellKnownClusterAction(String action) {
+        return CLUSTER_ACTIONS.contains(action);
+    }
+
+    public static boolean isWellKnownIndexAction(String action) {
+        return INDEX_ACTIONS.contains(action);
+    }
+
+    public static boolean allWellKnownIndexActions(Collection<String> actions) {
+       return actions.stream().allMatch(WellKnownActions::isWellKnownIndexAction);
+    }
+
+
 }

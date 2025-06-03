@@ -208,12 +208,12 @@ public class IndexPattern {
         return hashCode;
     }
 
-    static class Builder {
+    public static class Builder {
         private List<WildcardMatcher> constantPatterns = new ArrayList<>();
         private List<String> patternTemplates = new ArrayList<>();
         private List<String> dateMathExpressions = new ArrayList<>();
 
-        void add(List<String> source) {
+        public void add(List<String> source) {
             for (int i = 0; i < source.size(); i++) {
                 try {
                     String indexPattern = source.get(i);
@@ -232,7 +232,7 @@ public class IndexPattern {
             }
         }
 
-        IndexPattern build() {
+        public IndexPattern build() {
             return new IndexPattern(
                 constantPatterns.size() != 0 ? WildcardMatcher.from(constantPatterns) : WildcardMatcher.NONE,
                 ImmutableList.copyOf(patternTemplates),
