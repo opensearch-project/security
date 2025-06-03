@@ -166,10 +166,10 @@ public class SslParameters {
                 validateCertDNsOnReload(sslConfigSettings)
             );
             if (sslParameters.allowedProtocols().isEmpty()) {
-                throw new OpenSearchSecurityException("No ssl protocols for " + certType.certID() + " layer");
+                throw new OpenSearchSecurityException("No ssl protocols for " + certType.id() + " layer");
             }
             if (sslParameters.allowedCiphers().isEmpty()) {
-                throw new OpenSearchSecurityException("No valid cipher suites for " + certType.certID() + " layer");
+                throw new OpenSearchSecurityException("No valid cipher suites for " + certType.id() + " layer");
             }
             return sslParameters;
         }
