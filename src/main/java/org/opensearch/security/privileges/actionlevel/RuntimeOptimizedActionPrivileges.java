@@ -11,12 +11,16 @@
 
 package org.opensearch.security.privileges.actionlevel;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.selectivem.collections.CheckTable;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
@@ -26,10 +30,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
+import com.selectivem.collections.CheckTable;
 
 import static org.opensearch.security.privileges.actionlevel.WellKnownActions.*;
 
@@ -47,12 +48,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
     protected final ClusterPrivileges cluster;
     protected final StaticIndexPrivileges index;
-    protected final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
 
-    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index, Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier) {
+    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index) {
         this.cluster = cluster;
         this.index = index;
-        this.indexMetadataSupplier = indexMetadataSupplier;
     }
 
     @Override
@@ -82,9 +81,9 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      */
     @Override
     public PrivilegesEvaluatorResponse hasIndexPrivilege(
-            PrivilegesEvaluationContext context,
-            Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        IndexResolverReplacer.Resolved resolvedIndices
     ) {
         PrivilegesEvaluatorResponse response = this.index.checkWildcardIndexPrivilegesOnWellKnownActions(context, actions);
         if (response != null) {
@@ -101,17 +100,15 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
         CheckTable<String, String> checkTable = CheckTable.create(
-                resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
-                actions
+            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
+            actions
         );
-
-        Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
 
         StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
 
         if (statefulIndex != null) {
-            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable, indexMetadata);
+            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable);
 
             if (resultFromStatefulIndex != null) {
                 // If we get a result from statefulIndex, we are done.
@@ -123,7 +120,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             // We can carry on using this as an intermediate result and further complete checkTable below.
         }
 
-        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, indexMetadata);
+        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable);
     }
 
     /**
@@ -135,16 +132,16 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      */
     @Override
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-            PrivilegesEvaluationContext context,
-            Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        IndexResolverReplacer.Resolved resolvedIndices
     ) {
         if (!CollectionUtils.containsAny(actions, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
             return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
         }
 
         CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
-        return this.index.providesExplicitPrivilege(context, actions,  checkTable, this.indexMetadataSupplier.get());
+        return this.index.providesExplicitPrivilege(context, actions, checkTable);
     }
 
     /**
@@ -263,14 +260,12 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          */
         protected abstract boolean checkPrivilegeViaActionMatcher(PrivilegesEvaluationContext context, String action);
 
-
     }
 
     /**
      * Base class for evaluating index permissions which evaluates index patterns at privilege evaluation time.
      */
     protected abstract static class StaticIndexPrivileges {
-
 
         /**
          * Checks whether this instance provides privileges for the combination of the provided action,
@@ -289,11 +284,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * checkTable instance as checked.
          */
         protected abstract PrivilegesEvaluatorResponse providesPrivilege(
-                PrivilegesEvaluationContext context,
-                Set<String> actions,
-                IndexResolverReplacer.Resolved resolvedIndices,
-                CheckTable<String, String> checkTable,
-                Map<String, IndexAbstraction> indexMetadata
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            IndexResolverReplacer.Resolved resolvedIndices,
+            CheckTable<String, String> checkTable
         );
 
         /**
@@ -304,10 +298,9 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
          */
         protected abstract PrivilegesEvaluatorResponse providesExplicitPrivilege(
-                PrivilegesEvaluationContext context,
-                Set<String> actions,
-                CheckTable<String, String> checkTable,
-                Map<String, IndexAbstraction> indexMetadata
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            CheckTable<String, String> checkTable
         );
 
         /**
@@ -317,8 +310,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * Implementations of this class may interpret the context data differently; they can check the mapped roles
          * or just the subject.
          */
-        protected abstract PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions);
-
+        protected abstract PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+            PrivilegesEvaluationContext context,
+            Set<String> actions
+        );
 
         /**
          * Tests whether the current user (according to the context data) has index privileges for the given well known
@@ -330,7 +325,15 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          *     <li>In case of any PrivilegeEvaluationException, it is added to the given list
          * </ul>
          */
-        protected void checkPrivilegeWithIndexPatternOnWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions, CheckTable<String, String> checkTable, Map<String, IndexAbstraction> indexMetadata, ImmutableMap<String, IndexPattern> actionToIndexPattern, List<PrivilegesEvaluationException> exceptions) {
+        protected void checkPrivilegeWithIndexPatternOnWellKnownActions(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            CheckTable<String, String> checkTable,
+            ImmutableMap<String, IndexPattern> actionToIndexPattern,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
+
             for (String action : actions) {
                 IndexPattern indexPattern = actionToIndexPattern.get(action);
 
@@ -359,7 +362,15 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          *     <li>In case of any PrivilegeEvaluationException, it is added to the given list
          * </ul>
          */
-        protected void checkPrivilegesForNonWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions, CheckTable<String, String> checkTable, Map<String, IndexAbstraction> indexMetadata, ImmutableMap<WildcardMatcher, IndexPattern> actionPatternToIndexPattern, List<PrivilegesEvaluationException> exceptions) {
+        protected void checkPrivilegesForNonWellKnownActions(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            CheckTable<String, String> checkTable,
+            ImmutableMap<WildcardMatcher, IndexPattern> actionPatternToIndexPattern,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
+
             for (String action : actions) {
                 if (isWellKnownIndexAction(action)) {
                     continue;
@@ -378,7 +389,9 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                             } catch (PrivilegesEvaluationException e) {
                                 // We can ignore these errors, as this max leads to fewer privileges than available
                                 log.error("Error while evaluating index pattern {}. Ignoring entry", indexPattern, e);
-                                exceptions.add(new PrivilegesEvaluationException("Error while evaluating index pattern " + indexPattern, e));
+                                exceptions.add(
+                                    new PrivilegesEvaluationException("Error while evaluating index pattern " + indexPattern, e)
+                                );
                             }
                         }
                     }
@@ -395,7 +408,12 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          *     object will carry a list of the indices for which we have privileges. This can be used for the DNFOF mode.</li>
          * </ul>
          */
-        protected PrivilegesEvaluatorResponse responseForIncompletePrivileges(PrivilegesEvaluationContext context,  CheckTable<String, String> checkTable, List<PrivilegesEvaluationException> exceptions) {
+        protected PrivilegesEvaluatorResponse responseForIncompletePrivileges(
+            PrivilegesEvaluationContext context,
+            IndexResolverReplacer.Resolved resolvedIndices,
+            CheckTable<String, String> checkTable,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
             Set<String> availableIndices = checkTable.getCompleteRows();
 
             if (!availableIndices.isEmpty()) {
@@ -403,12 +421,12 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             }
 
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                    .reason(
-                            context.getResolvedRequest().getAllIndices().size() == 1
-                                    ? "Insufficient permissions for the referenced index"
-                                    : "None of " + context.getResolvedRequest().getAllIndices().size() + " referenced indices has sufficient permissions"
-                    )
-                    .evaluationExceptions(exceptions);
+                .reason(
+                    resolvedIndices.getAllIndices().size() == 1
+                        ? "Insufficient permissions for the referenced index"
+                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
+                )
+                .evaluationExceptions(exceptions);
         }
     }
 
@@ -437,11 +455,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * @return PrivilegesEvaluatorResponse.ok() or null.
          */
         protected abstract PrivilegesEvaluatorResponse providesPrivilege(
-                Set<String> actions,
-                IndexResolverReplacer.Resolved resolvedIndices,
-                PrivilegesEvaluationContext context,
-                CheckTable<String, String> checkTable,
-                Map<String, IndexAbstraction> indexMetadata
+            Set<String> actions,
+            IndexResolverReplacer.Resolved resolvedIndices,
+            PrivilegesEvaluationContext context,
+            CheckTable<String, String> checkTable
         );
     }
 

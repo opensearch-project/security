@@ -117,7 +117,7 @@ public class RestEndpointPermissionTests {
     final RoleBasedActionPrivileges actionPrivileges;
 
     public RestEndpointPermissionTests() throws IOException {
-        this.actionPrivileges = new RoleBasedActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
+        this.actionPrivileges = new RoleBasedActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, Settings.EMPTY);
     }
 
     @Test

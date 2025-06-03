@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -49,8 +48,6 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
  * The method PrivilegesEvaluator.createContext() is responsible for making sure that the correct class is used.
  * <p>
  * This class is useful for plugin users and API tokens.
- * <p>
- *
  */
 public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges implements ActionPrivileges {
     private static final Logger log = LogManager.getLogger(SubjectBasedActionPrivileges.class);
@@ -63,20 +60,12 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      *             abstract interface.
      * @param actionGroups The FlattenedActionGroups instance that shall be used to resolve the action groups
      *                     specified in the roles configuration.
-     * @param indexMetadataSupplier A supplier for the cluster's current index meta data. This is used during privileges
-     *                              evaluation to gain information about alias and data stream members.
      */
-    public SubjectBasedActionPrivileges(
-        RoleV7 role,
-        FlattenedActionGroups actionGroups,
-        Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier
-    ) {
-        super(new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())), new IndexPrivileges(
-                role,
-                actionGroups,
-                WellKnownActions.INDEX_ACTIONS,
-                WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
-        ), indexMetadataSupplier);
+    public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
+        super(
+            new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
+            new IndexPrivileges(role, actionGroups, WellKnownActions.INDEX_ACTIONS, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)
+        );
     }
 
     /**
@@ -158,7 +147,10 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                     hasWildcardPermission = true;
                 } else {
                     WildcardMatcher wildcardMatcher = WildcardMatcher.from(permission);
-                    Set<String> matchedActions = wildcardMatcher.getMatchAny(WellKnownActions.CLUSTER_ACTIONS, Collectors.toUnmodifiableSet());
+                    Set<String> matchedActions = wildcardMatcher.getMatchAny(
+                        WellKnownActions.CLUSTER_ACTIONS,
+                        Collectors.toUnmodifiableSet()
+                    );
                     grantedActions.addAll(matchedActions);
                     wildcardMatchers.add(wildcardMatcher);
                 }
@@ -326,7 +318,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
-
         /**
          * Checks whether this instance provides privileges for the combination of the provided action,
          * the provided indices and the provided roles.
@@ -348,12 +339,11 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             PrivilegesEvaluationContext context,
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
-            CheckTable<String, String> checkTable,
-            Map<String, IndexAbstraction> indexMetadata
+            CheckTable<String, String> checkTable
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
-            checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, indexMetadata, actionToIndexPattern, exceptions);
+            checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, actionToIndexPattern, exceptions);
             if (checkTable.isComplete()) {
                 return PrivilegesEvaluatorResponse.ok();
             }
@@ -363,16 +353,14 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             // actions, we also have to evaluate action patterns to check the authorization
 
             if (!checkTable.isComplete() && !allWellKnownIndexActions(actions)) {
-                checkPrivilegesForNonWellKnownActions(context, actions, checkTable, indexMetadata, this.actionPatternToIndexPattern, exceptions);
+                checkPrivilegesForNonWellKnownActions(context, actions, checkTable, this.actionPatternToIndexPattern, exceptions);
                 if (checkTable.isComplete()) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }
 
-            return responseForIncompletePrivileges(context, checkTable, exceptions);
+            return responseForIncompletePrivileges(context, resolvedIndices, checkTable, exceptions);
         }
-
-
 
         /**
          * Returns PrivilegesEvaluatorResponse.ok() if the user identified in the context object has privileges for all
@@ -380,7 +368,10 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          * the user's privileges.
          */
         @Override
-        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions) {
+        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+            PrivilegesEvaluationContext context,
+            Set<String> actions
+        ) {
             for (String action : actions) {
                 if (!this.actionsWithWildcardIndexPrivileges.contains(action)) {
                     return null;
@@ -398,7 +389,12 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
          */
         @Override
-        protected PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, Set<String> actions, CheckTable<String, String> checkTable, Map<String, IndexAbstraction> indexMetadata) {
+        protected PrivilegesEvaluatorResponse providesExplicitPrivilege(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            CheckTable<String, String> checkTable
+        ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {

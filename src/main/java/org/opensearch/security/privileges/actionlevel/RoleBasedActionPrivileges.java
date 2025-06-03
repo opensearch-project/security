@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -53,6 +52,7 @@ import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
 import com.selectivem.collections.ImmutableCompactSubSet;
 
 import static org.opensearch.security.privileges.actionlevel.WellKnownActions.*;
+
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
  * <p>
@@ -85,13 +85,8 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
-    public RoleBasedActionPrivileges(
-        SecurityDynamicConfiguration<RoleV7> roles,
-        FlattenedActionGroups actionGroups,
-        Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier,
-        Settings settings
-    ) {
-        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups), indexMetadataSupplier);
+    public RoleBasedActionPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups, Settings settings) {
+        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups));
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
@@ -108,9 +103,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
         if (statefulIndex == null || !statefulIndex.indices.equals(indices)) {
             long start = System.currentTimeMillis();
-            this.statefulIndex.set(
-                new StatefulIndexPrivileges(roles, actionGroups, indices, metadataVersion, statefulIndexMaxHeapSize)
-            );
+            this.statefulIndex.set(new StatefulIndexPrivileges(roles, actionGroups, indices, metadataVersion, statefulIndexMaxHeapSize));
             long duration = System.currentTimeMillis() - start;
             log.debug("Updating StatefulIndexPrivileges took {} ms", duration);
         } else {
@@ -180,8 +173,6 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          */
         private final ImmutableMap<String, WildcardMatcher> rolesToActionMatcher;
 
-        private final ImmutableMap<String, WildcardMatcher> usersToActionMatcher;
-
         /**
          * Creates pre-computed cluster privileges based on the given parameters.
          * <p>
@@ -190,17 +181,13 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
          */
-        ClusterPrivileges(
-            SecurityDynamicConfiguration<RoleV7> roles,
-            FlattenedActionGroups actionGroups
-        ) {
+        ClusterPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups) {
             DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
                 roles.getCEntries().keySet()
             );
             Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> actionToRoles = new HashMap<>();
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
-            ImmutableMap.Builder<String, WildcardMatcher> usersToActionMatcher = ImmutableMap.builder();
 
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
@@ -257,7 +244,6 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().build(completedRoleSetBuilder)));
             this.rolesWithWildcardPermissions = rolesWithWildcardPermissions.build();
             this.rolesToActionMatcher = rolesToActionMatcher.build();
-            this.usersToActionMatcher = usersToActionMatcher.build();
         }
 
         @Override
@@ -340,10 +326,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
          */
-        IndexPrivileges(
-            SecurityDynamicConfiguration<RoleV7> roles,
-            FlattenedActionGroups actionGroups
-        ) {
+        IndexPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups) {
 
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
             Map<String, Map<WildcardMatcher, IndexPattern.Builder>> rolesToActionPatternToIndexPattern = new HashMap<>();
@@ -410,7 +393,9 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                                     .add(indexPermissions.getIndex_patterns());
 
                                 if (actionMatcher != WildcardMatcher.ANY) {
-                                    for (String action : actionMatcher.iterateMatching(WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
+                                    for (String action : actionMatcher.iterateMatching(
+                                        WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
+                                    )) {
                                         rolesToExplicitActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                             .computeIfAbsent(action, k -> new IndexPattern.Builder())
                                             .add(indexPermissions.getIndex_patterns());
@@ -468,8 +453,6 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
         }
 
-
-
         /**
          * Checks whether this instance provides privileges for the combination of the provided action,
          * the provided indices and the provided roles.
@@ -491,15 +474,14 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             PrivilegesEvaluationContext context,
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
-            CheckTable<String, String> checkTable,
-            Map<String, IndexAbstraction> indexMetadata
+            CheckTable<String, String> checkTable
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             for (String role : context.getMappedRoles()) {
                 ImmutableMap<String, IndexPattern> actionToIndexPattern = this.rolesToActionToIndexPattern.get(role);
                 if (actionToIndexPattern != null) {
-                    checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, indexMetadata, actionToIndexPattern, exceptions);
+                    checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, actionToIndexPattern, exceptions);
                     if (checkTable.isComplete()) {
                         return PrivilegesEvaluatorResponse.ok();
                     }
@@ -517,7 +499,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                     );
 
                     if (actionPatternToIndexPattern != null) {
-                        checkPrivilegesForNonWellKnownActions(context, actions, checkTable, indexMetadata, actionPatternToIndexPattern, exceptions);
+                        checkPrivilegesForNonWellKnownActions(context, actions, checkTable, actionPatternToIndexPattern, exceptions);
                         if (checkTable.isComplete()) {
                             return PrivilegesEvaluatorResponse.ok();
                         }
@@ -525,7 +507,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                 }
             }
 
-            return responseForIncompletePrivileges(context, checkTable, exceptions);
+            return responseForIncompletePrivileges(context, resolvedIndices, checkTable, exceptions);
         }
 
         /**
@@ -534,7 +516,10 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * the user's privileges.
          */
         @Override
-        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(PrivilegesEvaluationContext context, Set<String> actions) {
+        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+            PrivilegesEvaluationContext context,
+            Set<String> actions
+        ) {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
             for (String action : actions) {
@@ -559,9 +544,9 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         protected PrivilegesEvaluatorResponse providesExplicitPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            CheckTable<String, String> checkTable,
-            Map<String, IndexAbstraction> indexMetadata
+            CheckTable<String, String> checkTable
         ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             for (String role : context.getMappedRoles()) {
@@ -689,7 +674,10 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
                         for (String permission : permissions) {
                             WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
-                            Collection<String> matchedActions = actionMatcher.getMatchAny(WellKnownActions.INDEX_ACTIONS, Collectors.toList());
+                            Collection<String> matchedActions = actionMatcher.getMatchAny(
+                                WellKnownActions.INDEX_ACTIONS,
+                                Collectors.toList()
+                            );
 
                             for (Map.Entry<String, IndexAbstraction> indicesEntry : indexMatcher.iterateMatching(
                                 indices.entrySet(),
@@ -786,9 +774,9 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
             PrivilegesEvaluationContext context,
-            CheckTable<String, String> checkTable,
-            Map<String, IndexAbstraction> indexMetadata
+            CheckTable<String, String> checkTable
         ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
             for (String action : actions) {

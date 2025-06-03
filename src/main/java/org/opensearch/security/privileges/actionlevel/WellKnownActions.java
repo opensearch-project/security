@@ -10,6 +10,8 @@
  */
 package org.opensearch.security.privileges.actionlevel;
 
+import java.util.Collection;
+
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthAction;
@@ -40,8 +42,6 @@ import org.opensearch.action.update.UpdateAction;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.UpdateByQueryAction;
 import org.opensearch.security.support.ConfigConstants;
-
-import java.util.Collection;
 
 /**
  * This class lists so-called "well-known actions". These are taken into account when creating the pre-computed
@@ -97,8 +97,7 @@ public class WellKnownActions {
     }
 
     public static boolean allWellKnownIndexActions(Collection<String> actions) {
-       return actions.stream().allMatch(WellKnownActions::isWellKnownIndexAction);
+        return actions.stream().allMatch(WellKnownActions::isWellKnownIndexAction);
     }
-
 
 }

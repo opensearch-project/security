@@ -247,12 +247,7 @@ public class PrivilegesEvaluator {
         rolesConfiguration = rolesConfiguration.withStaticConfig();
         tenantConfiguration = tenantConfiguration.withStaticConfig();
         try {
-            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(
-                rolesConfiguration,
-                flattenedActionGroups,
-                indexMetadataSupplier,
-                settings
-            );
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(rolesConfiguration, flattenedActionGroups, settings);
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
             RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
@@ -886,9 +881,6 @@ public class PrivilegesEvaluator {
     public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
         RoleV7 pluginPermissions = new RoleV7();
         pluginPermissions.setCluster_permissions(ImmutableList.copyOf(clusterActions));
-        this.pluginIdToActionPrivileges.put(
-            pluginIdentifier,
-            new SubjectBasedActionPrivileges(pluginPermissions, this.staticActionGroups, this.indexMetadataSupplier)
-        );
+        this.pluginIdToActionPrivileges.put(pluginIdentifier, new SubjectBasedActionPrivileges(pluginPermissions, this.staticActionGroups));
     }
 }
