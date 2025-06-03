@@ -30,6 +30,8 @@ import org.opensearch.transport.client.Client;
 
 /**
  * Utility class to load security configuration version documents
+ *
+ * @opensearch.experimental
  */
 
 public class SecurityConfigVersionsLoader {
@@ -148,7 +150,6 @@ public class SecurityConfigVersionsLoader {
             @Override
             public void onResponse(SecurityConfigVersionDocument doc) {
                 result.set(doc);
-                ;
                 latch.countDown();
             }
 

@@ -46,11 +46,13 @@ import org.opensearch.transport.client.Client;
 
 import org.greenrobot.eventbus.Subscribe;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT;
+import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT;
 
 /**
  * Manages security configuration versioning in OpenSearch.
+ *
+ * @opensearch.experimental
  */
 
 public class SecurityConfigVersionHandler {
@@ -105,7 +107,7 @@ public class SecurityConfigVersionHandler {
 
             String nextVersionId = fetchNextVersionId();
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            String userinfo = (user != null) ? user.getName() : ("v1".equals(nextVersionId) ? "system" : "unknown");
+            String userinfo = (user != null) ? user.getName() : "system";
 
             Version<?> version = buildVersionFromSecurityIndex(nextVersionId, userinfo);
             saveCurrentVersionToSystemIndex(version);
@@ -192,7 +194,10 @@ public class SecurityConfigVersionHandler {
     }
 
     public static boolean isVersionIndexEnabled(Settings settings) {
-        return settings.getAsBoolean(SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT);
+        return settings.getAsBoolean(
+            EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED,
+            EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT
+        );
     }
 
     @SuppressWarnings("unchecked")

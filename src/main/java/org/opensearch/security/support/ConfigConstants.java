@@ -378,8 +378,9 @@ public class ConfigConstants {
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     // Security Config Version Index feature flag
-    public static final String SECURITY_CONFIGURATIONS_VERSIONS_ENABLED = SECURITY_SETTINGS_PREFIX + "configurations_versions.enabled";
-    public static final boolean SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT = false;
+    public static final String EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED = SECURITY_SETTINGS_PREFIX
+        + "configurations_versions.enabled";
+    public static final boolean EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT = false;
 
     public static final String SECURITY_CONFIG_VERSION_RETENTION_COUNT = SECURITY_SETTINGS_PREFIX + "config_version.retention_count";
     public static final int SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT = 10;

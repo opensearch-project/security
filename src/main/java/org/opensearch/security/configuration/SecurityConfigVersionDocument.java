@@ -24,6 +24,8 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 /**
  * Represents the document structure for the .opendistro_security_config_versions system index
+ *
+ * @opensearch.experimental
  */
 
 public class SecurityConfigVersionDocument {

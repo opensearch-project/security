@@ -90,7 +90,7 @@ public class SecurityConfigVersionHandlerTest {
             .put("node.name", "test-node")
             .put("request.headers.default", "1")
             .put("cluster.name", "test-cluster")
-            .put(ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true)
+            .put(ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true)
             .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX)
             .put(ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT, ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT)
             .build();

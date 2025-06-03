@@ -27,6 +27,8 @@ import com.flipkart.zjsonpatch.JsonDiff;
 
 /**
  * Utility class to compute differences between two versions of security configurations
+ *
+ * @opensearch.experimental
  */
 
 public class SecurityConfigDiffCalculator {

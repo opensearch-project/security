@@ -2146,15 +2146,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
             // Security Config Version Index
             settings.add(
                 Setting.boolSetting(
-                    ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED,
-                    ConfigConstants.SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT,
+                    ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED,
+                    ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT,
                     Property.NodeScope,
                     Property.Filtered
                 )
