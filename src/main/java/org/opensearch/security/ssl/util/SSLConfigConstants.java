@@ -162,11 +162,11 @@ public final class SSLConfigConstants {
 
     // helper to resolve setting key for CertType namespace
     public static String getStringAffixKeyForCertType(Setting.AffixSetting<String> affix, CertType certType) {
-        return affix.getConcreteSettingForNamespace(certType.certID()).getKey();
+        return affix.getConcreteSettingForNamespace(certType.id()).getKey();
     }
 
     public static String getBoolAffixKeyForCertType(Setting.AffixSetting<Boolean> affix, CertType certType) {
-        return affix.getConcreteSettingForNamespace(certType.certID()).getKey();
+        return affix.getConcreteSettingForNamespace(certType.id()).getKey();
     }
 
     /**
