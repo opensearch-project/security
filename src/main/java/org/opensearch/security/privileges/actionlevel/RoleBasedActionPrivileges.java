@@ -11,21 +11,15 @@
 
 package org.opensearch.security.privileges.actionlevel;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.selectivem.collections.CheckTable;
+import com.selectivem.collections.CompactMapGroupBuilder;
+import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
+import com.selectivem.collections.ImmutableCompactSubSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
@@ -46,12 +40,16 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
-import com.selectivem.collections.CheckTable;
-import com.selectivem.collections.CompactMapGroupBuilder;
-import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
-import com.selectivem.collections.ImmutableCompactSubSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-import static org.opensearch.security.privileges.actionlevel.WellKnownActions.*;
+import static org.opensearch.security.privileges.actionlevel.WellKnownActions.allWellKnownIndexActions;
 
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
