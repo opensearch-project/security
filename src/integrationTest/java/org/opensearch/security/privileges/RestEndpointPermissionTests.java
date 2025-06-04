@@ -51,7 +51,7 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -252,17 +252,7 @@ public class RestEndpointPermissionTests {
     }
 
     PrivilegesEvaluationContext ctx(String... roles) {
-        return new PrivilegesEvaluationContext(
-            new User("test_user"),
-            ImmutableSet.copyOf(roles),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            actionPrivileges
-        );
+        return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).actionPrivileges(actionPrivileges).get();
     }
 
 }

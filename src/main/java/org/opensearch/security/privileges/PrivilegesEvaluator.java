@@ -76,7 +76,6 @@ import org.opensearch.action.termvectors.MultiTermVectorsAction;
 import org.opensearch.action.update.UpdateAction;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
@@ -85,7 +84,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -157,12 +155,10 @@ public class PrivilegesEvaluator {
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
-    private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
     private final Map<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges = new HashMap<>();
-    private final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
 
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
@@ -183,8 +179,7 @@ public class PrivilegesEvaluator {
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry
+        final IndexResolverReplacer irr
     ) {
 
         super();
@@ -208,12 +203,10 @@ public class PrivilegesEvaluator {
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
-        this.namedXContentRegistry = namedXContentRegistry;
         this.configurationRepository = configurationRepository;
         this.staticActionGroups = new FlattenedActionGroups(
             DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS))
         );
-        this.indexMetadataSupplier = () -> clusterStateSupplier.get().metadata().getIndicesLookup();
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {

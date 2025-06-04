@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,10 +61,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      *                     specified in the roles configuration.
      */
     public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
-        super(
-            new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
-            new IndexPrivileges(role, actionGroups, WellKnownActions.INDEX_ACTIONS, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)
-        );
+        super(new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())), new IndexPrivileges(role, actionGroups));
     }
 
     /**
@@ -215,16 +211,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         private final ImmutableSet<String> actionsWithWildcardIndexPrivileges;
 
         /**
-         * A pre-defined set of action names that is used to pre-compute the result of action patterns.
-         */
-        private final ImmutableSet<String> wellKnownIndexActions;
-
-        /**
-         * A pre-defined set of action names that is included in the rolesToExplicitActionToIndexPattern data structure
-         */
-        private final ImmutableSet<String> explicitlyRequiredIndexActions;
-
-        /**
          * Maps role names to concrete action names to IndexPattern objects which define the indices the privileges apply to.
          * The action names are only explicitly granted privileges which are listed in explicitlyRequiredIndexActions.
          * <p>
@@ -240,12 +226,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
          */
-        IndexPrivileges(
-            RoleV7 role,
-            FlattenedActionGroups actionGroups,
-            ImmutableSet<String> wellKnownIndexActions,
-            ImmutableSet<String> explicitlyRequiredIndexActions
-        ) {
+        IndexPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
 
             Map<String, IndexPattern.Builder> actionToIndexPattern = new HashMap<>();
             Map<WildcardMatcher, IndexPattern.Builder> actionPatternToIndexPattern = new HashMap<>();
@@ -267,7 +248,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                         actionToIndexPattern.computeIfAbsent(permission, k -> new IndexPattern.Builder())
                             .add(indexPermissions.getIndex_patterns());
 
-                        if (explicitlyRequiredIndexActions.contains(permission)) {
+                        if (WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS.contains(permission)) {
                             explicitActionToIndexPattern.computeIfAbsent(permission, k -> new IndexPattern.Builder())
                                 .add(indexPermissions.getIndex_patterns());
                         }
@@ -278,7 +259,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                     } else {
                         WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
 
-                        for (String action : actionMatcher.iterateMatching(wellKnownIndexActions)) {
+                        for (String action : actionMatcher.iterateMatching(WellKnownActions.INDEX_ACTIONS)) {
                             actionToIndexPattern.computeIfAbsent(action, k -> new IndexPattern.Builder())
                                 .add(indexPermissions.getIndex_patterns());
 
@@ -291,7 +272,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                             .add(indexPermissions.getIndex_patterns());
 
                         if (actionMatcher != WildcardMatcher.ANY) {
-                            for (String action : actionMatcher.iterateMatching(explicitlyRequiredIndexActions)) {
+                            for (String action : actionMatcher.iterateMatching(WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
                                 explicitActionToIndexPattern.computeIfAbsent(action, k -> new IndexPattern.Builder())
                                     .add(indexPermissions.getIndex_patterns());
                             }
@@ -313,9 +294,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             this.explicitActionToIndexPattern = explicitActionToIndexPattern.entrySet()
                 .stream()
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().build()));
-
-            this.wellKnownIndexActions = wellKnownIndexActions;
-            this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
         /**
@@ -352,7 +330,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             // would have contained all the actions if privileges are provided. If there are non-well-known actions among the
             // actions, we also have to evaluate action patterns to check the authorization
 
-            if (!checkTable.isComplete() && !allWellKnownIndexActions(actions)) {
+            if (!allWellKnownIndexActions(actions)) {
                 checkPrivilegesForNonWellKnownActions(context, actions, checkTable, this.actionPatternToIndexPattern, exceptions);
                 if (checkTable.isComplete()) {
                     return PrivilegesEvaluatorResponse.ok();
@@ -397,10 +375,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
-            if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {
-                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
-            }
-
             for (String action : actions) {
                 IndexPattern indexPattern = this.explicitActionToIndexPattern.get(action);
 
@@ -412,8 +386,8 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                             }
                         } catch (PrivilegesEvaluationException e) {
                             // We can ignore these errors, as this max leads to fewer privileges than available
-                            log.error("Error while evaluating index pattern of {}. Ignoring entry", this, e);
-                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + this, e));
+                            log.error("Error while evaluating {}. Ignoring entry", indexPattern, e);
+                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + indexPattern, e));
                         }
                     }
                 }

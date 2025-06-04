@@ -52,8 +52,8 @@ public class RoleV7 implements Hideable, StaticDefinable {
      * useful for tests.
      */
     public static RoleV7 fromYamlStringUnchecked(String yamlString) {
-        try (Reader yamlReader = new StringReader(yamlString)) {
-            return fromYaml(yamlReader);
+        try {
+            return fromYamlString(yamlString);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

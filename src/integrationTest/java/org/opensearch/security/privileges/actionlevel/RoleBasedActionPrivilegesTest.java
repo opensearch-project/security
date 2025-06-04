@@ -30,7 +30,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
 import org.opensearch.action.support.IndicesOptions;
-import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Metadata;
@@ -648,12 +647,6 @@ public class RoleBasedActionPrivilegesTest {
             final static Metadata INDEX_METADATA = //
                 dataStreams("data_stream_a11", "data_stream_a12", "data_stream_a21", "data_stream_a22", "data_stream_b1", "data_stream_b2")
                     .build();
-
-            /**
-             * A mock cluster state; this transports the INDEX_METADATA via PrivilegeEvaluationContext to the
-             * actual privileges evaluation implementation.
-             */
-            final static ClusterState CLUSTER_STATE = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(INDEX_METADATA).build();
 
             static IndexResolverReplacer.Resolved resolved(String... indices) {
                 ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();

@@ -25,6 +25,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
@@ -45,6 +46,7 @@ public class MockPrivilegeEvaluationContextBuilder {
     private Map<String, String> attributes = new HashMap<>();
     private Set<String> roles = new HashSet<>();
     private ClusterState clusterState = EMPTY_CLUSTER_STATE;
+    private ActionPrivileges actionPrivileges = ActionPrivileges.EMPTY;
 
     public MockPrivilegeEvaluationContextBuilder attr(String key, String value) {
         this.attributes.put(key, value);
@@ -65,6 +67,11 @@ public class MockPrivilegeEvaluationContextBuilder {
         return this;
     }
 
+    public MockPrivilegeEvaluationContextBuilder actionPrivileges(ActionPrivileges actionPrivileges) {
+        this.actionPrivileges = actionPrivileges;
+        return this;
+    }
+
     public PrivilegesEvaluationContext get() {
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
 
@@ -78,7 +85,7 @@ public class MockPrivilegeEvaluationContextBuilder {
             new IndexResolverReplacer(indexNameExpressionResolver, () -> clusterState, null),
             indexNameExpressionResolver,
             () -> clusterState,
-            null
+            this.actionPrivileges
         );
     }
 }

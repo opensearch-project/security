@@ -59,6 +59,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -1150,19 +1151,7 @@ public class DocumentPrivilegesTest {
         @Test(expected = PrivilegesEvaluationException.class)
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
-                .evaluate(
-                    new PrivilegesEvaluationContext(
-                        new User("test_user"),
-                        ImmutableSet.of(),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        ActionPrivileges.EMPTY
-                    )
-                );
+                .evaluate(MockPrivilegeEvaluationContextBuilder.ctx().get());
         }
 
         @Test

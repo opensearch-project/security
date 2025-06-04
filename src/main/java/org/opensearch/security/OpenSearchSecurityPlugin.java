@@ -1160,8 +1160,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings,
             privilegesInterceptor,
             cih,
-            irr,
-            namedXContentRegistry.get()
+            irr
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);

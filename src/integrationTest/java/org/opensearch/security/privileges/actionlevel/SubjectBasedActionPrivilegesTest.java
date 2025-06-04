@@ -47,6 +47,7 @@ import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatch
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder.ctx;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for SubjectBasedActionPrivilegesTest. As the ActionPrivileges provides quite a few different code paths for checking
@@ -685,6 +686,29 @@ public class SubjectBasedActionPrivilegesTest {
             );
             assertThat(result, isForbidden());
         }
+
+        @Test
+        public void hasExplicitIndexPrivilege_errors() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['/invalid_regex${user.name}\\/']
+                  allowed_actions: ['system:admin/system*']
+                """);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+
+            PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
+                ctx().get(),
+                Set.of("system:admin/system_index"),
+                IndexResolverReplacer.Resolved.ofIndex("test_index")
+            );
+            assertThat(result, isForbidden());
+            assertTrue(result.hasEvaluationExceptions());
+            assertTrue(
+                "Result contains exception info: " + result.getEvaluationExceptionInfo(),
+                result.getEvaluationExceptionInfo().startsWith("Exceptions encountered during privilege evaluation:")
+            );
+        }
+
     }
 
     static RoleV7 config(String config) {
