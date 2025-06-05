@@ -38,7 +38,9 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
 
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(Method.DELETE, "/cache")));
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(Method.DELETE, "/cache"), new Route(Method.DELETE, "/cache/user/{username}"))
+    );
 
     private static final List<DeprecatedRoute> deprecatedRoutes = addLegacyRoutesPrefix(
         ImmutableList.of(new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE))
@@ -65,37 +67,49 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented()
-            .override(
-                Method.DELETE,
-                (channel, request, client) -> client.execute(
-                    ConfigUpdateAction.INSTANCE,
-                    new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
-                    new ActionListener<>() {
-
-                        @Override
-                        public void onResponse(ConfigUpdateResponse configUpdateResponse) {
-                            if (configUpdateResponse.hasFailures()) {
-                                LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                                internalServerError(
-                                    channel,
-                                    "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
-                                );
-                                return;
-                            }
-                            LOGGER.debug("cache flushed successfully");
-                            ok(channel, "Cache flushed successfully.");
-                        }
-
-                        @Override
-                        public void onFailure(final Exception e) {
-                            LOGGER.error("Cannot flush cache due to", e);
-                            internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                        }
-
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
+            final ConfigUpdateRequest configUpdateRequest;
+            final String username = request.path().contains("/user/") ? request.param("username") : null;
+            LOGGER.debug("cache flush requested for {}", username);
+            if (request.path().contains("/user/")) {
+                // Extract the username from the request
+                if (username == null || username.isEmpty()) {
+                    internalServerError(channel, "No username provided for cache invalidation.");
+                    return;
+                }
+                // Validate and handle user-specific cache invalidation
+                configUpdateRequest = new ConfigUpdateRequest(CType.INTERNALUSERS.toLCString(), new String[] { username });
+            } else {
+                configUpdateRequest = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+            }
+            client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(ConfigUpdateResponse configUpdateResponse) {
+                    if (configUpdateResponse.hasFailures()) {
+                        LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
+                        internalServerError(
+                            channel,
+                            "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
+                        );
+                        return;
                     }
-                )
-            );
+                    if (username != null) {
+                        LOGGER.debug("Cache invalidated for user: " + username);
+                        ok(channel, "Cache invalidated for user: " + username);
+                    } else {
+                        LOGGER.debug("cache flushed successfully");
+                        ok(channel, "Cache flushed successfully.");
+                    }
+                }
+
+                @Override
+                public void onFailure(final Exception e) {
+                    LOGGER.error("Cannot flush cache due to", e);
+                    internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                }
+
+            });
+        });
     }
 
     @Override
@@ -105,6 +119,6 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        // not needed
+        request.param("username");
     }
 }
