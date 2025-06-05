@@ -102,7 +102,8 @@ public class SecurityRestApiActions {
                 certificatesReloadEnabled,
                 securityApiDependencies
             ),
-            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies)
+            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
+            new ImpactAnalysisApiAction(clusterService, threadPool, securityApiDependencies)
         );
     }
 
