@@ -42,8 +42,6 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
-import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
-
 //TODO FUTURE allow only if protocol==https
 public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
@@ -63,10 +61,6 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
         }
 
         final String authorizationHeader = request.header("Authorization");
-
-        if (request.path().endsWith(API_AUTHTOKEN_SUFFIX)) {
-            return null;
-        }
 
         return HTTPHelper.extractCredentials(authorizationHeader, log);
     }
