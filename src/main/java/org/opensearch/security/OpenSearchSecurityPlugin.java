@@ -2163,7 +2163,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.simpleString(
                     ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
-                    ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX,
+                    ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX,
                     Property.NodeScope,
                     Property.Filtered
                 )

@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -36,9 +37,8 @@ import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.configuration.SecurityConfigVersionDocument.SecurityConfig;
+import org.opensearch.security.configuration.SecurityConfigVersionDocument.HistoricSecurityConfig;
 import org.opensearch.security.configuration.SecurityConfigVersionDocument.Version;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -74,6 +74,9 @@ public class SecurityConfigVersionHandlerTest {
     @Mock
     private SecurityConfigVersionsLoader configVersionsLoader;
 
+    @Mock
+    private ClusterInfoHolder clusterInfoHolder;
+
     private ThreadContext threadContext;
     private Settings settings;
     private SecurityConfigVersionHandler handler;
@@ -91,13 +94,15 @@ public class SecurityConfigVersionHandlerTest {
             .put("request.headers.default", "1")
             .put("cluster.name", "test-cluster")
             .put(ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true)
-            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX)
+            .put(ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME, ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX)
             .put(ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT, ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT)
             .build();
 
         threadContext = new ThreadContext(Settings.EMPTY);
 
-        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client);
+        when(clusterInfoHolder.isLocalNodeElectedClusterManager()).thenReturn(Boolean.TRUE);
+
+        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client, clusterInfoHolder);
         injectMockConfigLoader(handler, configVersionsLoader);
     }
 
@@ -115,7 +120,7 @@ public class SecurityConfigVersionHandlerTest {
         CreateIndexResponse createResponse = new CreateIndexResponse(
             true,
             true,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
+            ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
         ClusterHealthResponse healthResponse = mock(ClusterHealthResponse.class);
         when(healthResponse.isTimedOut()).thenReturn(false);
@@ -132,10 +137,7 @@ public class SecurityConfigVersionHandlerTest {
 
         when(configVersionsLoader.loadLatestVersion()).thenReturn(null);
 
-        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client);
-        injectMockConfigLoader(handler, configVersionsLoader);
-
-        handler.onConfigInitialized(new DynamicConfigFactory.SecurityConfigChangeEvent());
+        handler.onChange(ConfigurationMap.EMPTY);
 
         verify(indicesAdminClient, times(1)).create(any(CreateIndexRequest.class));
         verify(clusterAdminClient, times(1)).health(any(ClusterHealthRequest.class));
@@ -162,8 +164,8 @@ public class SecurityConfigVersionHandlerTest {
         existingDoc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "test_user"));
         when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
 
-        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_CONFIG_MAP));
+        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
+        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
         var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "test_user");
 
         when(threadPool.generic()).thenReturn(mock(ExecutorService.class));
@@ -176,8 +178,8 @@ public class SecurityConfigVersionHandlerTest {
 
     @Test
     public void testSaveCurrentVersionToSystemIndex_shouldSkipWriteIfNoChanges() throws IOException {
-        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> configs = new HashMap<>();
-        configs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_CONFIG_MAP));
+        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> configs = new HashMap<>();
+        configs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
 
         var existingDoc = new SecurityConfigVersionDocument();
         existingDoc.addVersion(new Version<>("v1", Instant.now().toString(), configs, "test_user"));
@@ -252,14 +254,14 @@ public class SecurityConfigVersionHandlerTest {
         handler.fetchNextVersionId();
     }
 
-    @Test
+    @Test(expected = OpenSearchException.class)
     public void testSaveCurrentVersion_shouldCatchVersionConflict() throws IOException {
         SecurityConfigVersionDocument doc = new SecurityConfigVersionDocument();
         doc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "user"));
         when(configVersionsLoader.loadFullDocument()).thenReturn(doc);
 
-        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_CONFIG_MAP));
+        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
+        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
         var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "user");
 
         when(client.index(any())).thenThrow(new org.opensearch.index.engine.VersionConflictEngineException(null, "conflict", null));
@@ -273,8 +275,8 @@ public class SecurityConfigVersionHandlerTest {
         doc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "user"));
         when(configVersionsLoader.loadFullDocument()).thenReturn(doc);
 
-        Map<String, SecurityConfigVersionDocument.SecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.SecurityConfig<>("time", EMPTY_CONFIG_MAP));
+        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
+        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
         var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "user");
 
         when(client.index(any())).thenThrow(new RuntimeException("save failed"));
@@ -305,7 +307,7 @@ public class SecurityConfigVersionHandlerTest {
         when(clusterAdminClient.health(any())).thenThrow(new RuntimeException("simulated"))
             .thenReturn(mockClusterHealthFuture(mockHealthyResponse()));
 
-        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client);
+        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client, clusterInfoHolder);
         injectMockConfigLoader(handler, configVersionsLoader);
 
         handler.waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow();
@@ -365,7 +367,7 @@ public class SecurityConfigVersionHandlerTest {
         when(adminClient.cluster()).thenReturn(clusterAdminClient);
         when(clusterAdminClient.health(any(ClusterHealthRequest.class))).thenReturn(healthFuture);
 
-        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client);
+        handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client, clusterInfoHolder);
         injectMockConfigLoader(handler, configVersionsLoader);
 
         handler.waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow();
@@ -463,8 +465,8 @@ public class SecurityConfigVersionHandlerTest {
 
     @Test
     public void testHasSecurityConfigChanged_whenConfigsAreSame_shouldReturnFalse() {
-        Map<String, SecurityConfig<?>> oldConfig = new HashMap<>();
-        Map<String, SecurityConfig<?>> newConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> oldConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> newConfig = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<Object> dynConf = mock(SecurityDynamicConfiguration.class);
@@ -472,7 +474,7 @@ public class SecurityConfigVersionHandlerTest {
         when(dynConf.getCEntries()).thenReturn(entries);
 
         Map<String, SecurityDynamicConfiguration<Object>> configData = Map.of("entry", dynConf);
-        SecurityConfig<Object> config = new SecurityConfig<>("timestamp", configData);
+        HistoricSecurityConfig<Object> config = new HistoricSecurityConfig<>("timestamp", configData);
 
         oldConfig.put("type", config);
         newConfig.put("type", config);
@@ -483,8 +485,8 @@ public class SecurityConfigVersionHandlerTest {
 
     @Test
     public void testHasSecurityConfigChanged_whenConfigsAreDifferent_shouldReturnTrue() {
-        Map<String, SecurityConfig<?>> oldConfig = new HashMap<>();
-        Map<String, SecurityConfig<?>> newConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> oldConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> newConfig = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<Object> dynConf1 = mock(SecurityDynamicConfiguration.class);
@@ -500,8 +502,8 @@ public class SecurityConfigVersionHandlerTest {
         Map<String, SecurityDynamicConfiguration<Object>> configData1 = Map.of("entry", dynConf1);
         Map<String, SecurityDynamicConfiguration<Object>> configData2 = Map.of("entry", dynConf2);
 
-        SecurityConfig<Object> config1 = new SecurityConfig<>("timestamp", configData1);
-        SecurityConfig<Object> config2 = new SecurityConfig<>("timestamp", configData2);
+        HistoricSecurityConfig<Object> config1 = new HistoricSecurityConfig<>("timestamp", configData1);
+        HistoricSecurityConfig<Object> config2 = new HistoricSecurityConfig<>("timestamp", configData2);
 
         oldConfig.put("type", config1);
         newConfig.put("type", config2);
@@ -512,8 +514,8 @@ public class SecurityConfigVersionHandlerTest {
 
     @Test
     public void testHasSecurityConfigChanged_whenExceptionOccurs_shouldReturnFalse() {
-        Map<String, SecurityConfig<?>> oldConfig = new HashMap<>();
-        Map<String, SecurityConfig<?>> newConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> oldConfig = new HashMap<>();
+        Map<String, HistoricSecurityConfig<?>> newConfig = new HashMap<>();
 
         Object badObject = new Object() {
             @Override
@@ -528,7 +530,7 @@ public class SecurityConfigVersionHandlerTest {
         when(badDynConf.getCEntries()).thenReturn(badEntries);
 
         Map<String, SecurityDynamicConfiguration<Object>> configData = Map.of("entry", badDynConf);
-        SecurityConfig<Object> badConfig = new SecurityConfig<>("timestamp", configData);
+        HistoricSecurityConfig<Object> badConfig = new HistoricSecurityConfig<>("timestamp", configData);
 
         oldConfig.put("type", badConfig);
         newConfig.put("type", badConfig);

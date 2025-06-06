@@ -160,7 +160,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         ThreadContext threadContext = threadPool.getThreadContext();
-        registerDCFListener(new SecurityConfigVersionHandler(cr, opensearchSettings, threadContext, threadPool, client));
+        SecurityConfigVersionHandler versionHandler = new SecurityConfigVersionHandler(
+            cr,
+            opensearchSettings,
+            threadContext,
+            threadPool,
+            client,
+            this.cih
+        );
+        cr.subscribeOnChange(versionHandler);
 
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
@@ -282,12 +290,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             eventBus.post(audit == null ? defaultAuditConfig : audit);
         }
 
-        eventBus.post(new SecurityConfigChangeEvent());
-
         initialized.set(true);
     }
-
-    public static class SecurityConfigChangeEvent {}
 
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")

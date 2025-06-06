@@ -20,7 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.configuration.SecurityConfigVersionDocument.SecurityConfig;
+import org.opensearch.security.configuration.SecurityConfigVersionDocument.HistoricSecurityConfig;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 import com.flipkart.zjsonpatch.JsonDiff;
@@ -36,7 +36,10 @@ public class SecurityConfigDiffCalculator {
 
     private static final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
 
-    public static boolean hasSecurityConfigChanged(Map<String, SecurityConfig<?>> oldConfig, Map<String, SecurityConfig<?>> newConfig) {
+    public static boolean hasSecurityConfigChanged(
+        Map<String, HistoricSecurityConfig<?>> oldConfig,
+        Map<String, HistoricSecurityConfig<?>> newConfig
+    ) {
         try {
             if (oldConfig == null || oldConfig.isEmpty()) {
                 LOGGER.info("Old configuration is empty. Treating as a new configuration.");
@@ -61,16 +64,16 @@ public class SecurityConfigDiffCalculator {
         }
     }
 
-    private static JsonNode buildConfigDataNode(Map<String, SecurityConfig<?>> configMap) {
+    private static JsonNode buildConfigDataNode(Map<String, HistoricSecurityConfig<?>> configMap) {
         Map<String, Map<String, ?>> structuredConfigData = new TreeMap<>();
 
         if (configMap == null) {
             return objectMapper.createObjectNode();
         }
 
-        for (Map.Entry<String, SecurityConfig<?>> configEntry : configMap.entrySet()) {
+        for (Map.Entry<String, HistoricSecurityConfig<?>> configEntry : configMap.entrySet()) {
             String type = configEntry.getKey();
-            SecurityConfig<?> securityConfig = configEntry.getValue();
+            HistoricSecurityConfig<?> securityConfig = configEntry.getValue();
 
             if (securityConfig == null) {
                 continue;

@@ -34,17 +34,14 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.configuration.SecurityConfigVersionDocument.SecurityConfig;
+import org.opensearch.security.configuration.SecurityConfigVersionDocument.HistoricSecurityConfig;
 import org.opensearch.security.configuration.SecurityConfigVersionDocument.Version;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
-
-import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT;
@@ -55,34 +52,38 @@ import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECUR
  * @opensearch.experimental
  */
 
-public class SecurityConfigVersionHandler {
+public class SecurityConfigVersionHandler implements ConfigurationChangeListener {
 
     private final int maxVersionsToKeep;
+    private static final int MAX_RETRIES = 3;
+    private static final long BASE_DELAY_MS = 200L;
 
     private static final Logger log = LogManager.getLogger(SecurityConfigVersionHandler.class);
     private final Client client;
     private final String SecurityConfigVersionsIndex;
     private final SecurityConfigVersionsLoader configVersionsLoader;
+    private final ClusterInfoHolder clusterInfoHolder;
 
-    private final ConfigurationRepository cr;
+    private final ConfigurationRepository configurationRepository;
     private final Settings settings;
     private final ThreadContext threadContext;
     private final ThreadPool threadPool;
 
     public SecurityConfigVersionHandler(
-        ConfigurationRepository cr,
+        ConfigurationRepository configurationRepository,
         Settings settings,
         ThreadContext threadContext,
         ThreadPool threadPool,
-        Client client
+        Client client,
+        ClusterInfoHolder clusterInfoHolder
     ) {
-        this.cr = cr;
+        this.configurationRepository = configurationRepository;
         this.settings = settings;
         this.threadContext = threadContext;
         this.client = client;
         this.SecurityConfigVersionsIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
+            ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
         this.configVersionsLoader = new SecurityConfigVersionsLoader(client, settings);
         this.threadPool = threadPool;
@@ -90,10 +91,14 @@ public class SecurityConfigVersionHandler {
             ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT,
             ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT
         );
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
-    @Subscribe
-    public void onConfigInitialized(DynamicConfigFactory.SecurityConfigChangeEvent event) {
+    @Override
+    public void onChange(ConfigurationMap typeToConfig) {
+        if (!Boolean.TRUE.equals(clusterInfoHolder.isLocalNodeElectedClusterManager())) return; // Update version index only for cluster
+                                                                                                // manager node
+
         if (!isVersionIndexEnabled(settings)) return;
 
         try {
@@ -227,7 +232,7 @@ public class SecurityConfigVersionHandler {
             modified_by
         );
 
-        ConfigurationMap allConfigs = cr.getConfigurationsFromIndex(CType.values(), false);
+        ConfigurationMap allConfigs = configurationRepository.getConfigurationsFromIndex(CType.values(), false);
 
         for (CType<?> cType : CType.values()) {
             SecurityDynamicConfiguration<?> dynamicConfig = allConfigs.get(cType);
@@ -235,12 +240,12 @@ public class SecurityConfigVersionHandler {
             if (dynamicConfig == null || dynamicConfig.getCEntries() == null || dynamicConfig.getCEntries().isEmpty()) {
                 version.addSecurityConfig(
                     cType.toLCString(),
-                    new SecurityConfigVersionDocument.SecurityConfig<>(timestamp, new HashMap<>())
+                    new SecurityConfigVersionDocument.HistoricSecurityConfig<>(timestamp, new HashMap<>())
                 );
             } else {
                 version.addSecurityConfig(
                     cType.toLCString(),
-                    new SecurityConfigVersionDocument.SecurityConfig(timestamp, new TreeMap<>(dynamicConfig.getCEntries()))
+                    new SecurityConfigVersionDocument.HistoricSecurityConfig(timestamp, new TreeMap<>(dynamicConfig.getCEntries()))
                 );
             }
         }
@@ -282,8 +287,8 @@ public class SecurityConfigVersionHandler {
 
         if (!document.getVersions().isEmpty()) {
             SecurityConfigVersionDocument.Version<?> latestVersion = document.getVersions().get(document.getVersions().size() - 1);
-            Map<String, SecurityConfig<?>> latestConfigMap = latestVersion.getSecurity_configs();
-            Map<String, SecurityConfig<?>> newConfigMap = newVersion.getSecurity_configs();
+            Map<String, HistoricSecurityConfig<?>> latestConfigMap = latestVersion.getSecurity_configs();
+            Map<String, HistoricSecurityConfig<?>> newConfigMap = newVersion.getSecurity_configs();
 
             if (!SecurityConfigDiffCalculator.hasSecurityConfigChanged(latestConfigMap, newConfigMap)) {
                 log.info("No changes detected in security configuration. Skipping version update.");
@@ -308,7 +313,27 @@ public class SecurityConfigVersionHandler {
             indexRequest.setIfPrimaryTerm(currentPrimaryTerm);
         }
 
-        client.index(indexRequest).actionGet();
+        int attempt = 0;
+        while (true) {
+            try {
+                client.index(indexRequest).actionGet();
+                return;
+            } catch (Exception e) {
+                if (attempt >= MAX_RETRIES) {
+                    throw new IOException(e);
+                }
+                attempt++;
+
+                long delay = BASE_DELAY_MS;
+
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(ie);
+                }
+            }
+        }
     }
 
     public void applySecurityConfigVersionIndexRetentionPolicy() {
