@@ -322,9 +322,7 @@ public class BackendRegistry {
                         // saml will always hit this to re-request authentication
                         if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
                             auditLog.logFailedLogin("<NONE>", false, null, request);
-                        }
-                        if (isTraceEnabled) {
-                            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                            log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
