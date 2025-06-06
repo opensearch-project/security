@@ -15,13 +15,17 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpStatus;
@@ -60,7 +64,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String jwtHeaderName;
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
-    private final String rolesKey;
+    private final List<String> rolesKey;
     private final String subjectKey;
     private final List<String> requiredAudience;
     private final String requireIssuer;
@@ -74,7 +78,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
-        rolesKey = settings.get("roles_key");
+        rolesKey = settings.getAsList("roles_key");
         subjectKey = settings.get("subject_key");
         requiredAudience = settings.getAsList("required_audience");
         requireIssuer = settings.get("required_issuer");
@@ -181,7 +185,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                     return null;
                 }
 
-                final String[] roles = extractRoles(claims, request);
+                final String[] roles = extractRoles(claims);
 
                 final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
@@ -273,40 +277,61 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
-        // no roles key specified
-        if (rolesKey == null) {
-            return new String[0];
-        }
-        // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-        final Object rolesObject = claims.get(rolesKey, Object.class);
-        if (rolesObject == null) {
-            log.warn(
-                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
-                rolesKey
-            );
+    protected String[] extractRoles(final Claims claims) {
+
+        // Nothing configured → nothing to extract
+        if (rolesKey == null || rolesKey.isEmpty()) {
             return new String[0];
         }
 
-        String[] roles = String.valueOf(rolesObject).split(",");
+        // ── 1. Traverse the nested structure ───────────────────────────────────────
+        Object node = claims;                                        // start at root
+        for (String key : rolesKey) {
+            if (!(node instanceof Map<?, ?> map)) {                  // unexpected shape
+                log.warn(
+                    "While following roles_key path {}, expected a JSON object before '{}', " + "but found '{}' ({}).",
+                    rolesKey,
+                    key,
+                    node,
+                    node.getClass()
+                );
+                return new String[0];
+            }
+            node = map.get(key);
+            if (node == null) {                                      // key missing
+                log.warn("Failed to find '{}' in JWT claims while following roles_key path {}.", key, rolesKey);
+                return new String[0];
+            }
+        }
 
-        // We expect a String or Collection. If we find something else, convert to String but issue a warning
-        if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
+        // ── 2. Interpret the leaf value ────────────────────────────────────────────
+        Set<String> collected = new LinkedHashSet<>();               // dedupe + keep order
+
+        if (node instanceof String str) {
+            Arrays.stream(str.split(","))                            // "admin,dev"
+                .map(String::trim)
+                .filter(Predicate.not(String::isEmpty))
+                .forEach(collected::add);
+
+        } else if (node instanceof Collection<?> col) {
+            col.stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .map(String::trim)
+                .filter(Predicate.not(String::isEmpty))
+                .forEach(collected::add);
+
+        } else {                                                     // something odd
             log.warn(
-                "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
+                "Expected a String or Collection at the end of roles_key path {}, " + "but found '{}' ({}). Converting to String.",
                 rolesKey,
-                rolesObject,
-                rolesObject.getClass()
+                node,
+                node.getClass()
             );
-        } else if (rolesObject instanceof Collection<?>) {
-            roles = ((Collection<String>) rolesObject).toArray(new String[0]);
+            collected.add(node.toString().trim());
         }
 
-        for (int i = 0; i < roles.length; i++) {
-            roles[i] = roles[i].trim();
-        }
-
-        return roles;
+        return collected.toArray(new String[0]);
     }
 
 }
