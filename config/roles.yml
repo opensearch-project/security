@@ -471,3 +471,24 @@ ltr_full_access:
     reserved: true
     cluster_permissions:
       - cluster:admin/ltr/*
+
+# Allow users to use all Search Relevance functionalities
+search_relevance_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/search_relevance/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/mappings/get'
+        - 'indices:data/read/search*'
+
+# Allow users to read Search Relevance resources
+search_relevance_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/search_relevance/experiment/get'
+    - 'cluster:admin/opensearch/search_relevance/judgment/get'
+    - 'cluster:admin/opensearch/search_relevance/queryset/get'
+    - 'cluster:admin/opensearch/search_relevance/search_configuration/get'
