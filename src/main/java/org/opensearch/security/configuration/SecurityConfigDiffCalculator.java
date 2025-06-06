@@ -1,0 +1,125 @@
+/*
+ * Copyright 2015-2018 _floragunn_ GmbH
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+package org.opensearch.security.configuration;
+
+import java.util.Map;
+import java.util.TreeMap;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.SecurityConfigVersionDocument.SecurityConfig;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+
+import com.flipkart.zjsonpatch.JsonDiff;
+
+public class SecurityConfigDiffCalculator {
+    private static final Logger LOGGER = LogManager.getLogger(SecurityConfigDiffCalculator.class);
+
+    private static final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+
+    public static boolean hasSecurityConfigChanged(Map<String, SecurityConfig<?>> oldConfig, Map<String, SecurityConfig<?>> newConfig) {
+        try {
+            if (oldConfig == null || oldConfig.isEmpty()) {
+                LOGGER.info("Old configuration is empty. Treating as a new configuration.");
+                return true;
+            }
+
+            JsonNode oldNode = buildConfigDataNode(oldConfig);
+            JsonNode newNode = buildConfigDataNode(newConfig);
+
+            JsonNode diff = JsonDiff.asJson(oldNode, newNode);
+
+            if (diff.isEmpty()) {
+                LOGGER.info("No changes detected in security configuration.");
+                return false;
+            } else {
+                LOGGER.info("Detected changes in security configuration: {}", diff.toString());
+                return true;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error while comparing security configurations", e);
+            return false;
+        }
+    }
+
+    private static JsonNode buildConfigDataNode(Map<String, SecurityConfig<?>> configMap) {
+        Map<String, Map<String, ?>> structuredConfigData = new TreeMap<>();
+
+        if (configMap == null) {
+            return objectMapper.createObjectNode();
+        }
+
+        for (Map.Entry<String, SecurityConfig<?>> configEntry : configMap.entrySet()) {
+            String type = configEntry.getKey();
+            SecurityConfig<?> securityConfig = configEntry.getValue();
+
+            if (securityConfig == null) {
+                continue;
+            }
+
+            Map<String, ?> configData = securityConfig.getConfigData();
+            if (configData == null) {
+                continue;
+            }
+
+            Map<String, Map<String, ?>> extractedCEntriesPerType = new TreeMap<>();
+
+            for (Map.Entry<String, ?> configDataEntry : configData.entrySet()) {
+                String configName = configDataEntry.getKey();
+                Object dynamicConfig = configDataEntry.getValue();
+
+                if (dynamicConfig instanceof SecurityDynamicConfiguration<?>) {
+                    SecurityDynamicConfiguration<?> dynConf = (SecurityDynamicConfiguration<?>) dynamicConfig;
+                    if (dynConf.getCEntries() != null) {
+                        extractedCEntriesPerType.put(configName, new TreeMap<>(dynConf.getCEntries()));
+                    }
+                } else {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> serializedMap = objectMapper.convertValue(dynamicConfig, Map.class);
+                        extractedCEntriesPerType.put(configName, new TreeMap<>(serializedMap));
+                    } catch (Exception e) {
+                        LOGGER.error(
+                            "Failed to serialize unexpected config type for {}: {}",
+                            configName,
+                            dynamicConfig.getClass().getName(),
+                            e
+                        );
+                    }
+                }
+            }
+
+            structuredConfigData.put(type, extractedCEntriesPerType);
+        }
+
+        return objectMapper.valueToTree(structuredConfigData);
+    }
+}
