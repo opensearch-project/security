@@ -52,7 +52,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext, final boolean isChallenge) {
 
         final boolean forceLogin = Boolean.getBoolean(request.params().get("force_login"));
 
@@ -62,7 +62,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
         final String authorizationHeader = request.header("Authorization");
 
-        return HTTPHelper.extractCredentials(authorizationHeader, log);
+        return HTTPHelper.extractCredentials(authorizationHeader, log, isChallenge);
     }
 
     @Override
