@@ -77,16 +77,16 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      * Pre-computed, optimized cluster privilege maps. Instances of this class are immutable.
      * <p>
      * The data structures in this class are optimized for answering the question
-     * "I have action A and roles [x,y,z]. Do I have authorization to execute the action?".
+     * "I have action A. Do I have authorization to execute the action?".
      * <p>
      * The check will be possible in time O(1) for "well-known" actions when the user actually has the privileges.
      */
     static class ClusterPrivileges extends RuntimeOptimizedActionPrivileges.ClusterPrivileges {
 
         /**
-         * Maps names of actions to the roles that provide a privilege for the respective action.
-         * Note that the mapping is not comprehensive, additionally the data structures rolesWithWildcardPermissions
-         * and rolesToActionMatcher need to be considered for a full view of the privileges.
+         * A set of action names for which the subject has been granted a privilege.
+         * Note that the mapping is not comprehensive, additionally the attribute providesWildcardPrivilege
+         * and grantedActionMatcher need to be considered for a full view of the privileges.
          * <p>
          * This does not include privileges obtained via "*" action patterns. This is both meant as a
          * optimization and to support explicit privileges.
@@ -94,14 +94,14 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         private final ImmutableSet<String> grantedActions;
 
         /**
-         * This contains all role names that provide wildcard (*) privileges for cluster actions.
-         * This avoids a blow-up of the actionToRoles object by such roles.
+         * This is true if the current subject was granted wildcard (*) privileges for cluster actions.
+         * This avoids a blow-up of the grantedActions object by such configurations.
          */
         private final boolean providesWildcardPrivilege;
 
         /**
-         * This maps role names to a matcher which matches the action names this role provides privileges for.
-         * This is only used as a last resort if the test with actionToRole and rolesWithWildcardPermissions failed.
+         * This WildcardMatcher matches the privileges of the current subject against action names this.
+         * This is only used as a last resort if the test with grantedActions and providesWildcardPrivilege failed.
          * This is only necessary for actions which are not contained in the list of "well-known" actions provided
          * during construction.
          *
@@ -112,11 +112,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
 
         /**
          * Creates pre-computed cluster privileges based on the given permission patterns.
-         * <p>
-         * This constructor will not throw an exception if it encounters any invalid configuration (that is,
-         * in particular, unparseable regular expressions). Rather, it will just log an error. This is okay, as it
-         * just results in fewer available privileges. However, having a proper error reporting mechanism would be
-         * kind of nice.
          *
          * @param permissionPatterns a collection of strings representing WildcardMatcher patterns that can match
          *                           on action names. Any action groups must have been already resolved before these
@@ -129,16 +124,16 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
 
             for (String permission : permissionPatterns) {
                 // If we have a permission which does not use any pattern, we just simply add it to the
-                // "actionToRoles" map.
+                // "grantedActions" set.
                 // Otherwise, we match the pattern against the provided well-known cluster actions and add
-                // these to the "actionToRoles" map. Additionally, for the case that the well-known cluster
+                // these to the "grantedActions" set. Additionally, for the case that the well-known cluster
                 // actions are not complete, we also collect the matcher to be used as a last resort later.
 
                 if (WildcardMatcher.isExact(permission)) {
                     grantedActions.add(permission);
                 } else if (permission.equals("*")) {
-                    // Special case: Roles with a wildcard "*" giving privileges for all actions. We will not resolve
-                    // this stuff, but just note separately that this role just gets all the cluster privileges.
+                    // Special case: Configurations with a wildcard "*" giving privileges for all actions. We will not resolve
+                    // this stuff, but just note separately that this subject just gets all the cluster privileges.
                     hasWildcardPermission = true;
                 } else {
                     WildcardMatcher wildcardMatcher = WildcardMatcher.from(permission);
@@ -180,7 +175,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      * <p>
      * Purposes of this class:
      * <p>
-     * 1. Answer the question "given an action and a set of roles, do I have wildcard index privileges" in O(1)
+     * 1. Answer the question "given an action, do I have wildcard index privileges" in O(1)
      * <p>
      * 2. Pre-compute the data structures as far as possible in cases that StatefulIndexPermissions cannot check the
      * permissions. This is the case when:
@@ -192,25 +187,25 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      */
     static class IndexPrivileges extends RuntimeOptimizedActionPrivileges.StaticIndexPrivileges {
         /**
-         * Maps role names to concrete action names to IndexPattern objects which define the indices the privileges apply to.
+         * Maps concrete action names to IndexPattern objects which define the indices the privileges apply to.
          */
         private final ImmutableMap<String, IndexPattern> actionToIndexPattern;
 
         /**
-         * Maps role names to action names matchers to IndexPattern objects which define the indices the privileges apply to.
+         * Maps action names matchers to IndexPattern objects which define the indices the privileges apply to.
          * This is especially for "non-well-known" actions.
          */
         private final ImmutableMap<WildcardMatcher, IndexPattern> actionPatternToIndexPattern;
 
         /**
-         * Maps action names to the roles which provide wildcard ("*") index privileges for the respective action.
-         * This allows to answer the question "given an action and a set of roles, do I have wildcard index privileges"
+         * A set of action names for which the subject has wildcard ("*") index privileges.
+         * This allows to answer the question "given an action, do I have wildcard index privileges"
          * in O(1)
          */
         private final ImmutableSet<String> actionsWithWildcardIndexPrivileges;
 
         /**
-         * Maps role names to concrete action names to IndexPattern objects which define the indices the privileges apply to.
+         * Maps concrete action names to IndexPattern objects which define the indices the privileges apply to.
          * The action names are only explicitly granted privileges which are listed in explicitlyRequiredIndexActions.
          * <p>
          * Compare https://github.com/opensearch-project/security/pull/2887
@@ -219,11 +214,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
 
         /**
          * Creates pre-computed index privileges based on the given parameters.
-         * <p>
-         * This constructor will not throw an exception if it encounters any invalid configuration (that is,
-         * in particular, unparseable regular expressions). Rather, it will just log an error. This is okay, as it
-         * just results in fewer available privileges. However, having a proper error reporting mechanism would be
-         * kind of nice.
          */
         IndexPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
 
@@ -296,8 +286,8 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         }
 
         /**
-         * Checks whether this instance provides privileges for the combination of the provided action,
-         * the provided indices and the provided roles.
+         * Checks whether this instance provides privileges for the combination of the provided action and
+         * the provided indices.
          * <p>
          * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
          * <p>
@@ -325,7 +315,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                 return PrivilegesEvaluatorResponse.ok();
             }
 
-            // If all actions are well-known, the index.rolesToActionToIndexPattern data structure that was evaluated above,
+            // If all actions are well-known, the index.actionToIndexPattern data structure that was evaluated above,
             // would have contained all the actions if privileges are provided. If there are non-well-known actions among the
             // actions, we also have to evaluate action patterns to check the authorization
 
@@ -359,8 +349,8 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         }
 
         /**
-         * Checks whether this instance provides explicit privileges for the combination of the provided action,
-         * the provided indices and the provided roles.
+         * Checks whether this instance provides explicit privileges for the combination of the provided action and
+         * the provided indices.
          * <p>
          * Explicit means here that the privilege is not granted via a "*" action privilege wildcard. Other patterns
          * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
