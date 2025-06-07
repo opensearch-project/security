@@ -27,15 +27,41 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class RoleV7 implements Hideable, StaticDefinable {
+
+    public static RoleV7 fromYamlString(String yamlString) throws IOException {
+        try (Reader yamlReader = new StringReader(yamlString)) {
+            return fromYaml(yamlReader);
+        }
+    }
+
+    /**
+     * Converts any validation error exceptions into runtime exceptions. Only use when you are sure that is safe;
+     * useful for tests.
+     */
+    public static RoleV7 fromYamlStringUnchecked(String yamlString) {
+        try {
+            return fromYamlString(yamlString);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static RoleV7 fromYaml(Reader yamlReader) throws IOException {
+        return DefaultObjectMapper.YAML_MAPPER.readValue(yamlReader, RoleV7.class);
+    }
 
     private boolean reserved;
     private boolean hidden;

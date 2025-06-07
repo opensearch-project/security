@@ -22,6 +22,7 @@ import org.junit.runners.Suite;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -124,7 +125,8 @@ public class FieldMaskingTest {
                 null,
                 null,
                 null,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                ActionPrivileges.EMPTY
             );
         }
     }
