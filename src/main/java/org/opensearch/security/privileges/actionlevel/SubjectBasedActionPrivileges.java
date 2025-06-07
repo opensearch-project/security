@@ -25,7 +25,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -42,13 +41,13 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
 /**
  * An ActionPrivileges implementation that is valid only for a single entity.
  * This means that individual instances of this class must be created for individual entities. The mapped roles
- * from the context are not regarded by this method.
+ * from the context are not regarded by this class.
  * <p>
  * The method PrivilegesEvaluator.createContext() is responsible for making sure that the correct class is used.
  * <p>
  * This class is useful for plugin users and API tokens.
  */
-public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges implements ActionPrivileges {
+public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges {
     private static final Logger log = LogManager.getLogger(SubjectBasedActionPrivileges.class);
 
     /**

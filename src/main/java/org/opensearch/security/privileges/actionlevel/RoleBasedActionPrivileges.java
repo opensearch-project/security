@@ -34,7 +34,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.ClusterStateMetadataDependentPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -60,7 +59,7 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
  * instance of this class corresponds to the life-cycle of the role and action group configuration. If the role or
  * action group configuration is changed, a new instance needs to be built.
  */
-public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges implements ActionPrivileges {
+public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges {
 
     /**
      * This setting controls the allowed heap size of the precomputed index privileges (in the inner class StatefulIndexPrivileges).
@@ -93,8 +92,13 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
     }
 
     /**
-     * Updates the stateful index configuration with the given indices. Should be normally only called by
-     * updateStatefulIndexPrivilegesAsync(). Package visible for testing.
+     * Updates the stateful index configuration with the given indices. This should be only used in two situations:
+     * <ul>
+     *     <li>A new instance of RoleBasedActionPrivileges is created</li>
+     *     <li>The cluster state changes</li>
+     * </ul>
+     * On large clusters this update can take a time in the magnitude of 1000 ms to complete. Thus, calling
+     * the async method updateStatefulIndexPrivilegesAsync(). Should be preferred.
      */
     public void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices, long metadataVersion) {
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
