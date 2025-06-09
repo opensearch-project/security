@@ -74,7 +74,9 @@ public class SecuritySettingsConfigurer {
         ".geospatial-ip2geo-data*",
         ".plugins-flow-framework-config",
         ".plugins-flow-framework-templates",
-        ".plugins-flow-framework-state"
+        ".plugins-flow-framework-state",
+        ".plugins-search-relevance-experiment",
+        ".plugins-search-relevance-judgment-cache"
     );
     static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
     static String ADMIN_PASSWORD = "";
