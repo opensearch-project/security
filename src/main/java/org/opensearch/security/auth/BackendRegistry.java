@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -184,6 +185,31 @@ public class BackendRegistry {
         userCache.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
+    }
+
+    public void invalidateUserCache(String[] usernames) {
+        if (usernames == null || usernames.length == 0) {
+            log.warn("No usernames given, not invalidating user cache.");
+            return;
+        }
+
+        Set<String> usernamesAsSet = new HashSet<>(Arrays.asList(usernames));
+
+        // Invalidate entries in the userCache by iterating over the keys and matching the username.
+        userCache.asMap()
+            .keySet()
+            .stream()
+            .filter(authCreds -> usernamesAsSet.contains(authCreds.getUsername()))
+            .forEach(userCache::invalidate);
+
+        // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
+        restImpersonationCache.invalidateAll(usernamesAsSet);
+
+        // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
+        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsSet.contains(user.getName())).forEach(restRoleCache::invalidate);
+
+        // If the user isn't found it still says this, which could be bad
+        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernamesAsSet));
     }
 
     @Subscribe

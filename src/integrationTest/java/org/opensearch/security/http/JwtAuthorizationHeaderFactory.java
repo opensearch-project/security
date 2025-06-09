@@ -10,11 +10,10 @@
 package org.opensearch.security.http;
 
 import java.security.PrivateKey;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -33,11 +32,11 @@ class JwtAuthorizationHeaderFactory {
 
     private final String usernameClaimName;
 
-    private final String rolesClaimName;
+    private final List<String> rolesClaimName;
 
     private final String headerName;
 
-    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, String usernameClaimName, String rolesClaimName, String headerName) {
+    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, String usernameClaimName, List<String> rolesClaimName, String headerName) {
         this.privateKey = requireNonNull(privateKey, "Private key is required");
         this.usernameClaimName = requireNonNull(usernameClaimName, "Username claim name is required");
         this.rolesClaimName = requireNonNull(rolesClaimName, "Roles claim name is required.");
@@ -64,8 +63,28 @@ class JwtAuthorizationHeaderFactory {
         if (StringUtils.isNoneEmpty(username)) {
             builder.put(usernameClaimName, username);
         }
-        if ((roles != null) && (roles.length > 0)) {
-            builder.put(rolesClaimName, Arrays.stream(roles).collect(Collectors.joining(",")));
+        if (roles != null && roles.length > 0) {
+            if (rolesClaimName.size() == 1) {
+                // Simple case - no nesting
+                builder.put(rolesClaimName.get(0), String.join(",", roles));
+            } else {
+                // Handle nested claims
+                Map<String, Object> nestedMap = new HashMap<>();
+                Map<String, Object> currentMap = nestedMap;
+
+                // Build the nested structure
+                for (int i = 0; i < rolesClaimName.size() - 1; i++) {
+                    Map<String, Object> nextMap = new HashMap<>();
+                    currentMap.put(rolesClaimName.get(i), nextMap);
+                    currentMap = nextMap;
+                }
+
+                // Add the roles array at the deepest level
+                currentMap.put(rolesClaimName.get(rolesClaimName.size() - 1), String.join(",", roles));
+
+                // Add the entire nested structure to the builder
+                builder.putAll(nestedMap);
+            }
         }
         return builder.build();
     }
