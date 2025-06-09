@@ -48,6 +48,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginFeatureDisabledTests {
 
+    private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .plugin(SampleResourcePlugin.class, PainlessModulePlugin.class)
@@ -90,7 +92,7 @@ public class SampleResourcePluginFeatureDisabledTests {
 
         // assert that resource-sharing index doesn't exist
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search");
+            HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
 

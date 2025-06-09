@@ -56,6 +56,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginLimitedPermissionsTests {
 
+    private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .plugin(PainlessModulePlugin.class)
@@ -82,7 +84,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
     public void clearIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
-            client.delete(getSharingIndex(RESOURCE_INDEX_NAME));
+            client.delete(RESOURCE_SHARING_INDEX);
         }
     }
 
@@ -115,10 +117,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
             // Wait until resource-sharing entry is successfully created
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // Update sample resource (admin should be able to update resource)
@@ -138,10 +137,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
             TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
@@ -175,10 +171,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // share resource with shared_with user
@@ -248,10 +241,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is updated")
-                .until(
-                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(0)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
         }
 
         // get sample resource with SHARED_WITH_USER_LIMITED_PERMISSIONS
@@ -286,10 +276,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(getSharingIndex(RESOURCE_INDEX_NAME) + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // user should be able to get its own resource as it has get API access
