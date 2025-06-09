@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Upgrade kafka_version from 3.7.1 to 4.0.0 ([#5131](https://github.com/opensearch-project/security/pull/5131))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.30 to 4.2.32 ([#5361](https://github.com/opensearch-project/security/pull/5361))
 - Bump `org.junit.jupiter:junit-jupiter` from 5.12.2 to 5.13.0 ([#5371](https://github.com/opensearch-project/security/pull/5371))
+- Bump `bouncycastle_version` from 1.80 to 1.81 ([#5380](https://github.com/opensearch-project/security/pull/5380))
 
 ### Deprecated
 
