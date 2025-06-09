@@ -203,7 +203,6 @@ public abstract class AbstractDefaultConfigurationTests {
                 "_plugins/_security/api/_upgrade_check?configs=roles&entities=flow_framework_read_access"
             );
             upgradeCheckAfterChanges.assertStatusCode(200);
-            System.out.println("upgradeCheckAfterChanges.getBody() = " + upgradeCheckAfterChanges.getBody());
             assertThat(upgradeCheckAfterChanges.getTextArrayFromJsonBody("/upgradeActions/roles/add"), is(empty()));
             assertThat(
                 upgradeCheckAfterChanges.getTextArrayFromJsonBody("/upgradeActions/roles/modify"),
