@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.junit.jupiter:junit-jupiter` from 5.12.2 to 5.13.1 ([#5371](https://github.com/opensearch-project/security/pull/5371), [#5382](https://github.com/opensearch-project/security/pull/5382))
 - Bump `bouncycastle_version` from 1.80 to 1.81 ([#5380](https://github.com/opensearch-project/security/pull/5380))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.13.0 to 5.13.1 ([#5383](https://github.com/opensearch-project/security/pull/5383))
+- Bump `org.checkerframework:checker-qual` from 3.49.3 to 3.49.4 ([#5381](https://github.com/opensearch-project/security/pull/5381))
 
 ### Deprecated
 
