@@ -9,8 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Github workflow for changelog verification ([#5318](https://github.com/opensearch-project/security/pull/5318))
 - Register cluster settings listener for `plugins.security.cache.ttl_minutes` ([#5324](https://github.com/opensearch-project/security/pull/5324))
 - Add flush cache endpoint for individual user ([#5337](https://github.com/opensearch-project/security/pull/5337))
+- Handle roles in nested claim for JWT auth backends ([#5355](https://github.com/opensearch-project/security/pull/5355))
+- Integrate search-relevance functionalities with security plugin ([#5376](https://github.com/opensearch-project/security/pull/5376))
 - Introduced support for versioned security configurations via a new security configurations version index ([#5357] (https://github.com/opensearch-project/security/pull/5357))
-
 
 ### Changed
 - Use extendedPlugins in integrationTest framework for sample resource plugin testing ([#5322](https://github.com/opensearch-project/security/pull/5322))
