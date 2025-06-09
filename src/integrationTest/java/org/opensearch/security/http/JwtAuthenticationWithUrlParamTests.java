@@ -51,7 +51,7 @@ import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuth
 public class JwtAuthenticationWithUrlParamTests {
 
     public static final String CLAIM_USERNAME = "preferred-username";
-    public static final String CLAIM_ROLES = "backend-user-roles";
+    public static final List<String> CLAIM_ROLES = List.of("backend-user-roles");
     public static final String POINTER_USERNAME = "/user_name";
 
     private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
