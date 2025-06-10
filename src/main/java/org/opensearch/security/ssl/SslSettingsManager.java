@@ -42,7 +42,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.ClientAuth;
 
-import static org.opensearch.plugins.NetworkPlugin.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 import static org.opensearch.security.ssl.config.CertType.CERT_TYPE_REGISTRY;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
@@ -75,6 +74,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FILEPATH;
+import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 
 public class SslSettingsManager {
 
