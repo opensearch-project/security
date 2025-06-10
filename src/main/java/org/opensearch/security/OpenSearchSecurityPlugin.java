@@ -1139,7 +1139,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         userService = new UserService(cs, cr, passwordHasher, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
-        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
+        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
@@ -1177,7 +1177,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
+        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, cih, compatConfig, irr, xffResolver);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
