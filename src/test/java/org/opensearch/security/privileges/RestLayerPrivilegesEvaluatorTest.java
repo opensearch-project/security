@@ -170,8 +170,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             new NullAuditLog(),
             Settings.EMPTY,
             null,
-            clusterInfoHolder,
-            null
+            clusterInfoHolder
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);

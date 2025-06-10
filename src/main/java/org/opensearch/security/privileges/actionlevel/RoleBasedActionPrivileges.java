@@ -39,7 +39,6 @@ import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -495,7 +494,6 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         protected PrivilegesEvaluatorResponse providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
             CheckTable<String, String> checkTable
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
@@ -529,7 +527,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                 }
             }
 
-            return responseForIncompletePrivileges(context, resolvedIndices, checkTable, exceptions);
+            return responseForIncompletePrivileges(context, checkTable, exceptions);
         }
 
         /**
@@ -798,7 +796,6 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * is returned, because then the remaining logic needs only to check for the unchecked cases.
          *
          * @param actions         the actions the user needs to have privileges for
-         * @param resolvedIndices the index the user needs to have privileges for
          * @param context         context information like user, resolved roles, etc.
          * @param checkTable      An action/index matrix. This method will modify the table as a side effect and check the cells where privileges are present.
          * @return PrivilegesEvaluatorResponse.ok() or null.
@@ -806,18 +803,18 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         @Override
         protected PrivilegesEvaluatorResponse providesPrivilege(
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
             PrivilegesEvaluationContext context,
             CheckTable<String, String> checkTable
         ) {
             Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
+            Set<String> indices = checkTable.getRows();
 
             for (String action : actions) {
                 Map<String, ImmutableCompactSubSet<String>> indexToRoles = actionToIndexToRoles.get(action);
 
                 if (indexToRoles != null) {
-                    for (String index : resolvedIndices.getAllIndices()) {
+                    for (String index : indices) {
                         String lookupIndex = index;
 
                         if (index.startsWith(DataStream.BACKING_INDEX_PREFIX)) {

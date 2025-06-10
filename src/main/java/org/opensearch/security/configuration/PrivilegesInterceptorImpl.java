@@ -44,12 +44,12 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.TenantPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -98,7 +98,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final String action,
         final User user,
         final DynamicConfigModel config,
-        final Resolved requestedResolved,
+        final ResolvedIndices requestedResolved,
         final PrivilegesEvaluationContext context,
         final TenantPrivileges tenantPrivileges
     ) {
@@ -161,8 +161,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         // request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
-            final Set<String> indices = requestedResolved.getAllIndices();
+        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.local().isAll()) {
+            final Set<String> indices = requestedResolved.local().names();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
@@ -393,15 +393,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return originalDashboardsIndex + "_" + tenant.hashCode() + "_" + tenant.toLowerCase().replaceAll("[^a-z0-9]+", EMPTY_STRING);
     }
 
-    private static boolean resolveToDashboardsIndexOrAlias(final Resolved requestedResolved, final String dashboardsIndexName) {
-        if (requestedResolved.isLocalAll()) {
+    private static boolean resolveToDashboardsIndexOrAlias(final ResolvedIndices requestedResolved, final String dashboardsIndexName) {
+        if (requestedResolved.local().isAll()) {
             return false;
         }
-        final Set<String> allIndices = requestedResolved.getAllIndices();
-        if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
-            return true;
-        }
-        final Set<String> aliases = requestedResolved.getAliases();
-        return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
+        return requestedResolved.local().names().size() == 1 && requestedResolved.local().names().contains(dashboardsIndexName);
     }
 }

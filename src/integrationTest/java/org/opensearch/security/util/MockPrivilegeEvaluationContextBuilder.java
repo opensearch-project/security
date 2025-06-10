@@ -20,14 +20,16 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.IndicesRequestResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
 /**
@@ -47,6 +49,8 @@ public class MockPrivilegeEvaluationContextBuilder {
     private Set<String> roles = new HashSet<>();
     private ClusterState clusterState = EMPTY_CLUSTER_STATE;
     private ActionPrivileges actionPrivileges = ActionPrivileges.EMPTY;
+    private String action;
+    private ActionRequest request;
 
     public MockPrivilegeEvaluationContextBuilder attr(String key, String value) {
         this.attributes.put(key, value);
@@ -72,6 +76,16 @@ public class MockPrivilegeEvaluationContextBuilder {
         return this;
     }
 
+    public MockPrivilegeEvaluationContextBuilder action(String action) {
+        this.action = action;
+        return this;
+    }
+
+    public MockPrivilegeEvaluationContextBuilder request(ActionRequest request) {
+        this.request = request;
+        return this;
+    }
+
     public PrivilegesEvaluationContext get() {
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
 
@@ -79,11 +93,12 @@ public class MockPrivilegeEvaluationContextBuilder {
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
+            action,
+            request,
+            ActionRequestMetadata.empty(),
             null,
-            null,
-            null,
-            new IndexResolverReplacer(indexNameExpressionResolver, () -> clusterState, null),
             indexNameExpressionResolver,
+            new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
             this.actionPrivileges
         );

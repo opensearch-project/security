@@ -24,11 +24,9 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
@@ -144,12 +142,6 @@ public class PrivilegesEvaluatorUnitTest {
     private ClusterInfoHolder clusterInfoHolder;
 
     @Mock
-    private IndexResolverReplacer irr;
-
-    @Mock
-    private NamedXContentRegistry namedXContentRegistry;
-
-    @Mock
     private ClusterState clusterState;
 
     private Settings settings;
@@ -177,8 +169,7 @@ public class PrivilegesEvaluatorUnitTest {
             auditLog,
             settings,
             privilegesInterceptor,
-            clusterInfoHolder,
-            irr
+            clusterInfoHolder
         );
     }
 

@@ -13,7 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.Set;
 
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 
 /**
  * Defines the general interface for evaluating privileges on actions. References to ActionPrivileges instances
@@ -77,7 +77,7 @@ public interface ActionPrivileges {
     PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        ResolvedIndices resolvedIndices
     );
 
     /**
@@ -90,7 +90,7 @@ public interface ActionPrivileges {
     PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        ResolvedIndices resolvedIndices
     );
 
     ActionPrivileges EMPTY = new ActionPrivileges() {
@@ -113,7 +113,7 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+            ResolvedIndices resolvedIndices
         ) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }
@@ -122,7 +122,7 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+            ResolvedIndices resolvedIndices
         ) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }

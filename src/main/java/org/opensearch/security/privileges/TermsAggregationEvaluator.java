@@ -27,7 +27,7 @@
 package org.opensearch.security.privileges;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,12 +38,12 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 
 public class TermsAggregationEvaluator {
 
@@ -62,7 +62,7 @@ public class TermsAggregationEvaluator {
     public TermsAggregationEvaluator() {}
 
     public PrivilegesEvaluatorResponse evaluate(
-        final Resolved resolved,
+        final ResolvedIndices resolved,
         final ActionRequest request,
         PrivilegesEvaluationContext context,
         ActionPrivileges actionPrivileges,
@@ -87,7 +87,7 @@ public class TermsAggregationEvaluator {
                             PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
                                 context,
                                 READ_ACTIONS,
-                                Resolved._LOCAL_ALL
+                                ResolvedIndices.all()
                             );
 
                             if (subResponse.isPartiallyOk()) {
@@ -95,7 +95,10 @@ public class TermsAggregationEvaluator {
                                     .query(
                                         new TermsQueryBuilder(
                                             "_index",
-                                            Sets.union(subResponse.getAvailableIndices(), resolved.getRemoteIndices())
+                                            Streams.concat(
+                                                subResponse.getAvailableIndices().stream(),
+                                                resolved.remote().asRawExpressions().stream()
+                                            ).toArray(String[]::new)
                                         )
                                     );
                             } else if (!subResponse.isAllowed()) {

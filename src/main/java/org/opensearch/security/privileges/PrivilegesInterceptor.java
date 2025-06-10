@@ -29,9 +29,9 @@ package org.opensearch.security.privileges;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -81,7 +81,7 @@ public class PrivilegesInterceptor {
         final String action,
         final User user,
         final DynamicConfigModel config,
-        final Resolved requestedResolved,
+        final ResolvedIndices requestedResolved,
         final PrivilegesEvaluationContext context,
         final TenantPrivileges tenantPrivileges
     ) {

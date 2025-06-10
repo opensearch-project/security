@@ -13,6 +13,7 @@ package org.opensearch.security.privileges.actionlevel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,12 +28,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
+import org.opensearch.action.OriginalIndices;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -224,13 +226,13 @@ public class SubjectBasedActionPrivilegesTest {
 
             @Test
             public void positive_noLocal() throws Exception {
-                IndexResolverReplacer.Resolved resolved = new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of("remote:a"),
-                    ImmutableSet.of("remote:a"),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+                ResolvedIndices resolved = ResolvedIndices.of(Collections.emptySet())
+                    .withRemoteIndices(
+                        Map.of(
+                            "remote",
+                            new OriginalIndices(new String[] { "a" }, IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED)
+                        )
+                    );
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
                     ctx().indexMetadata(INDEX_METADATA).get(),
                     requiredActions,
@@ -330,14 +332,8 @@ public class SubjectBasedActionPrivilegesTest {
                     .of("index_b1", "index_b2")//
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
             }
 
         }
@@ -473,7 +469,9 @@ public class SubjectBasedActionPrivilegesTest {
                 dataStreams("data_stream_a11", "data_stream_a12", "data_stream_a21", "data_stream_a22", "data_stream_b1", "data_stream_b2")
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
+                /* TODO CHECK
                 ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
 
                 for (String index : indices) {
@@ -495,6 +493,8 @@ public class SubjectBasedActionPrivilegesTest {
                     ImmutableSet.of(),
                     IndicesOptions.LENIENT_EXPAND_OPEN
                 );
+
+                 */
             }
         }
 
@@ -630,7 +630,7 @@ public class SubjectBasedActionPrivilegesTest {
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -648,7 +648,7 @@ public class SubjectBasedActionPrivilegesTest {
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -665,7 +665,7 @@ public class SubjectBasedActionPrivilegesTest {
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -682,7 +682,7 @@ public class SubjectBasedActionPrivilegesTest {
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_foo"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -699,7 +699,7 @@ public class SubjectBasedActionPrivilegesTest {
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
             assertTrue(result.hasEvaluationExceptions());
