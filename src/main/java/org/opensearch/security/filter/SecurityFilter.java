@@ -81,6 +81,7 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.configuration.SettingsPermissionValve;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -113,6 +114,7 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
+    private final SettingsPermissionValve settingsPermissionValve;
 
     public SecurityFilter(
         final Settings settings,
@@ -124,7 +126,8 @@ public class SecurityFilter implements ActionFilter {
         ClusterService cs,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
-        final XFFResolver xffResolver
+        final XFFResolver xffResolver,
+        final SettingsPermissionValve settingsPermissionValve
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -140,6 +143,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.settingsPermissionValve = settingsPermissionValve;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -383,9 +387,16 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
+                
+                // Add settings permission check
+                if (!settingsPermissionValve.invoke(context, listener)) {
+                    return;
+                }
+                
                 if (!dlsFlsValve.invoke(context, listener)) {
                     return;
                 }
+
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
                 if (createIndexRequestBuilder == null) {
                     chain.proceed(task, action, request, listener);

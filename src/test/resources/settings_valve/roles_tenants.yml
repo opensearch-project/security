@@ -1,0 +1,28 @@
+---
+_meta:
+  type: "tenants"
+  config_version: 2
+admin_1:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+praxisrw:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+abcdef_2_2:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+kltentro:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+praxisro:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"
+kltentrw:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6"

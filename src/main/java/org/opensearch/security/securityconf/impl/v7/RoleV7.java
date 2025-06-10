@@ -29,6 +29,7 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -44,6 +45,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
     private String description;
     private List<String> cluster_permissions = Collections.emptyList();
     private List<Index> index_permissions = Collections.emptyList();
+    private Set<String> allowed_cluster_settings = Collections.emptySet();
     private List<Tenant> tenant_permissions = Collections.emptyList();
 
     public RoleV7() {
@@ -57,6 +59,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         private List<String> fls = Collections.emptyList();
         private List<String> masked_fields = Collections.emptyList();
         private List<String> allowed_actions = Collections.emptyList();
+        private Set<String> allowed_settings = Collections.emptySet();
 
         public Index() {
             super();
@@ -102,6 +105,14 @@ public class RoleV7 implements Hideable, StaticDefinable {
             this.allowed_actions = allowed_actions;
         }
 
+        public Set<String> getAllowed_settings() {
+            return allowed_settings;
+        }
+
+        public void setAllowed_settings(Set<String> allowed_settings) {
+            this.allowed_settings = allowed_settings;
+        }
+
         @Override
         public String toString() {
             return "Index [index_patterns="
@@ -114,6 +125,8 @@ public class RoleV7 implements Hideable, StaticDefinable {
                 + masked_fields
                 + ", allowed_actions="
                 + allowed_actions
+                + ", allowed_settings="
+                + allowed_settings
                 + "]";
         }
     }
@@ -219,6 +232,14 @@ public class RoleV7 implements Hideable, StaticDefinable {
     @JsonProperty(value = "static")
     public void setStatic(boolean _static) {
         this._static = _static;
+    }
+
+    public Set<String> getAllowed_cluster_settings() {
+        return allowed_cluster_settings;
+    }
+
+    public void setAllowed_cluster_settings(Set<String> allowed_cluster_settings) {
+        this.allowed_cluster_settings = allowed_cluster_settings;
     }
 
     @Override
