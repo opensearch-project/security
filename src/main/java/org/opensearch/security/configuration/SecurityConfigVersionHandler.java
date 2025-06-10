@@ -60,7 +60,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
 
     private static final Logger log = LogManager.getLogger(SecurityConfigVersionHandler.class);
     private final Client client;
-    private final String SecurityConfigVersionsIndex;
+    private final String securityConfigVersionsIndex;
     private final SecurityConfigVersionsLoader configVersionsLoader;
     private final ClusterInfoHolder clusterInfoHolder;
 
@@ -81,7 +81,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         this.settings = settings;
         this.threadContext = threadContext;
         this.client = client;
-        this.SecurityConfigVersionsIndex = settings.get(
+        this.securityConfigVersionsIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
             ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
@@ -102,10 +102,10 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         if (!isVersionIndexEnabled(settings)) return;
 
         try {
-            log.info("Initializing version index ({})", SecurityConfigVersionsIndex);
+            log.debug("Initializing version index ({})", securityConfigVersionsIndex);
 
             if (!createOpendistroSecurityConfigVersionsIndexIfAbsent()) {
-                log.info("Version index already exists, skipping initialization.");
+                log.debug("Version index already exists, skipping initialization.");
             }
 
             waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow();
@@ -147,18 +147,18 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
                     )
                 )
             );
-            log.info("Index request for {}", SecurityConfigVersionsIndex);
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(SecurityConfigVersionsIndex).settings(indexSettings)
+            log.debug("Index request for {}", securityConfigVersionsIndex);
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityConfigVersionsIndex).settings(indexSettings)
                 .mapping(mappings);
 
             final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-            log.info("Index {} created?: {}", SecurityConfigVersionsIndex, ok);
+            log.info("Index {} created?: {}", securityConfigVersionsIndex, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            log.info("Index {} already exists", SecurityConfigVersionsIndex);
+            log.debug("Index {} already exists", securityConfigVersionsIndex);
             return false;
         } catch (Exception e) {
-            log.error("Failed to create index {}", SecurityConfigVersionsIndex, e);
+            log.error("Failed to create index {}", securityConfigVersionsIndex, e);
             throw e;
         }
     }
@@ -169,7 +169,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         try {
             response = client.admin()
                 .cluster()
-                .health(new ClusterHealthRequest(SecurityConfigVersionsIndex).waitForActiveShards(1).waitForYellowStatus())
+                .health(new ClusterHealthRequest(securityConfigVersionsIndex).waitForActiveShards(1).waitForYellowStatus())
                 .actionGet();
         } catch (Exception e) {
             log.debug("Caught a {} but we just try again ...", e.toString());
@@ -178,7 +178,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         while (response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
             log.debug(
                 "index '{}' not healthy yet, we try again ... (Reason: {})",
-                SecurityConfigVersionsIndex,
+                securityConfigVersionsIndex,
                 response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster")
             );
             try {
@@ -190,7 +190,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
             try {
                 response = client.admin()
                     .cluster()
-                    .health(new ClusterHealthRequest(SecurityConfigVersionsIndex).waitForYellowStatus())
+                    .health(new ClusterHealthRequest(securityConfigVersionsIndex).waitForYellowStatus())
                     .actionGet();
             } catch (Exception e) {
                 log.debug("Caught again a {} but we just try again ...", e.toString());
@@ -215,7 +215,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
             int currentVersionNumber = Integer.parseInt(latestVersion.getVersion_id().substring(1));
             return "v" + (currentVersionNumber + 1);
         } catch (Exception e) {
-            log.error("Failed to fetch latest version from {}", SecurityConfigVersionsIndex, e);
+            log.error("Failed to fetch latest version from {}", securityConfigVersionsIndex, e);
             throw new RuntimeException("Failed to fetch next version id", e);
         }
     }
@@ -237,17 +237,20 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         for (CType<?> cType : CType.values()) {
             SecurityDynamicConfiguration<?> dynamicConfig = allConfigs.get(cType);
 
-            if (dynamicConfig == null || dynamicConfig.getCEntries() == null || dynamicConfig.getCEntries().isEmpty()) {
-                version.addSecurityConfig(
-                    cType.toLCString(),
-                    new SecurityConfigVersionDocument.HistoricSecurityConfig<>(timestamp, new HashMap<>())
-                );
-            } else {
-                version.addSecurityConfig(
-                    cType.toLCString(),
-                    new SecurityConfigVersionDocument.HistoricSecurityConfig(timestamp, new TreeMap<>(dynamicConfig.getCEntries()))
-                );
+            Map<String, Object> configData = new TreeMap<>();
+
+            if (dynamicConfig != null) {
+                if (dynamicConfig.getCEntries() != null) {
+                    configData.putAll((Map) dynamicConfig.getCEntries());
+                }
+
+                if (dynamicConfig.get_meta() != null) {
+                    Map<String, Object> metaMap = DefaultObjectMapper.objectMapper.convertValue(dynamicConfig.get_meta(), Map.class);
+                    configData.put("_meta", metaMap);
+                }
             }
+
+            version.addSecurityConfig(cType.toLCString(), new HistoricSecurityConfig<Object>(timestamp, (Map) configData));
         }
 
         return version;
@@ -263,7 +266,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
             document.addVersion(version);
             writeSecurityConfigVersion(document, document.getSeqNo(), document.getPrimaryTerm());
 
-            log.info("Successfully saved version {} to {}", version.getVersion_id(), SecurityConfigVersionsIndex);
+            log.info("Successfully saved version {} to {}", version.getVersion_id(), securityConfigVersionsIndex);
 
             // Async retention task
             threadPool.generic().submit(() -> {
@@ -275,9 +278,9 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
             });
 
         } catch (org.opensearch.index.engine.VersionConflictEngineException conflictEx) {
-            log.warn("Concurrent update detected on {}", SecurityConfigVersionsIndex);
+            log.warn("Concurrent update detected on {}", securityConfigVersionsIndex);
         } catch (Exception e) {
-            log.error("Failed to save version to {}", SecurityConfigVersionsIndex, e);
+            log.error("Failed to save version to {}", securityConfigVersionsIndex, e);
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
@@ -304,7 +307,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         Map<String, Object> updatedDocMap = document.toMap();
         String json = DefaultObjectMapper.objectMapper.writeValueAsString(updatedDocMap);
 
-        var indexRequest = new org.opensearch.action.index.IndexRequest(SecurityConfigVersionsIndex).id(
+        var indexRequest = new org.opensearch.action.index.IndexRequest(securityConfigVersionsIndex).id(
             "opendistro_security_config_versions"
         ).source(json, XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 
@@ -323,6 +326,8 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
                     throw new IOException(e);
                 }
                 attempt++;
+
+                log.debug("writeSecurityConfigVersion failed, retrying again");
 
                 long delay = BASE_DELAY_MS;
 

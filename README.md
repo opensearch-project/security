@@ -66,20 +66,6 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 ### OpenSearch Dashboards multi-tenancy
 * True OpenSearch Dashboards multi-tenancy
 
-### Versioned Security Configuration Management
-* Automatically maintains a version history of security configurations
-* Stores each security configuration version in a dedicated system index
-* Each version includes metadata such as timestamp, and `modified_by` field
-* Applies a configurable retention policy to limit the number of saved versions (default: 10)
-* To enable this feature, add the following setting to your `opensearch.yml` file:
-```bash
-plugins.security.configurations_versions.enabled: true
-```
-* Optional: Control how many versions are retained using:
-```bash
-plugins.security.config_version.retention_count: 10
-```
-
 ## Installation
 
 OpenSearch Security Plugin comes bundled by default as part of the OpenSearch distribution. Please refer to the [installation guide](https://opensearch.org/docs/latest/opensearch/install/index/) and  [technical documentation](https://opensearch.org/docs/latest/security-plugin/index/) for detailed information on installing and configuring the OpenSearch Security Plugin.
