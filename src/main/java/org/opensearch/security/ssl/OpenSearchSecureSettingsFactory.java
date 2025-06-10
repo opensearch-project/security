@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
@@ -23,6 +24,7 @@ import javax.net.ssl.TrustManagerFactory;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
+import org.opensearch.plugins.NetworkPlugin;
 import org.opensearch.plugins.SecureAuxTransportSettingsProvider;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
@@ -34,6 +36,7 @@ import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.AuxTransport;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportAdapterProvider;
 
@@ -189,6 +192,28 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
 
     @Override
     public Optional<SecureAuxTransportSettingsProvider> getSecureAuxTransportSettingsProvider(Settings settings) {
-        return Optional.empty();
+        return Optional.of(new SecureAuxTransportSettingsProvider() {
+
+            @Override
+            public Optional<SSLContext> buildSecureAuxServerTransportContext(Settings settings, AuxTransport transport) throws SSLException {
+                CertType auxTransportCertType = new CertType(transport.settingKey());
+                return sslSettingsManager.sslContextHandler(auxTransportCertType).map(SslContextHandler::sslContext);
+            }
+
+            @Override
+            public Optional<SecureAuxTransportParameters> parameters() {
+                return Optional.of(new SecureAuxTransportParameters() {
+                    @Override
+                    public Optional<String> clientAuth() {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Collection<String> cipherSuites() {
+                        return List.of();
+                    }
+                });
+            }
+        });
     }
 }
