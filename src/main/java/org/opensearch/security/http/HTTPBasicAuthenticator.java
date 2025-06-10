@@ -47,6 +47,8 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
+    public static final String BASIC_TYPE = "basic";
+
     public HTTPBasicAuthenticator(final Settings settings, final Path configPath) {
 
     }
@@ -78,6 +80,6 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
     @Override
     public String getType() {
-        return "basic";
+        return BASIC_TYPE;
     }
 }

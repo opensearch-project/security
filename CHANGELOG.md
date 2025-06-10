@@ -55,7 +55,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix issue computing diffs in compliance audit log when writing to security index ([#5279](https://github.com/opensearch-project/security/pull/5279))
 - Fixing dependabot broken pull_request workflow for changelog update ([#5331](https://github.com/opensearch-project/security/pull/5331))
 - Fixes assemble workflow failure during Jenkins build ([#5334](https://github.com/opensearch-project/security/pull/5334))
-- Fixes security index stale cache issue post snapshot restore([#5307](https://github.com/opensearch-project/security/pull/5307))
+- Fixes security index stale cache issue post snapshot restore ([#5307](https://github.com/opensearch-project/security/pull/5307))
+- Only log Invalid Authentication header when HTTP Basic auth challenge is called ([#5377](https://github.com/opensearch-project/security/pull/5377))
 
 ### Security
 
