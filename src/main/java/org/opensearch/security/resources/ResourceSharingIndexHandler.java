@@ -158,7 +158,7 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             ResourceSharing entry = new ResourceSharing(resourceId, createdBy, shareWith);
 
-            IndexRequest ir = client.prepareIndex()
+            IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
