@@ -76,6 +76,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
@@ -311,8 +312,8 @@ public class BackendRegistry {
                         if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
                             auditLog.logFailedLogin("<NONE>", false, null, request);
                         }
-                        if (isTraceEnabled) {
-                            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                        if (authDomain.getHttpAuthenticator().getType().equals(BASIC_TYPE)) {
+                            log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
