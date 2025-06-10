@@ -12,14 +12,17 @@ package org.opensearch.security.privileges;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -38,13 +41,14 @@ public class PrivilegesEvaluationContext {
     private final User user;
     private final String action;
     private final ActionRequest request;
-    private IndexResolverReplacer.Resolved resolvedRequest;
+    private ResolvedIndices resolvedIndices;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
+    private final ActionRequestMetadata<?, ?> actionRequestMetadata;
 
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
@@ -58,6 +62,7 @@ public class PrivilegesEvaluationContext {
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
         IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
@@ -71,6 +76,7 @@ public class PrivilegesEvaluationContext {
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
+        this.actionRequestMetadata = actionRequestMetadata;
     }
 
     public User getUser() {
@@ -110,12 +116,21 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
-    public IndexResolverReplacer.Resolved getResolvedRequest() {
-        IndexResolverReplacer.Resolved result = this.resolvedRequest;
+    public ResolvedIndices getResolvedRequest() {
+        if (PrivilegesEvaluator.isClusterPerm(action)) {
+            return ResolvedIndices.all();
+        }
+
+        ResolvedIndices result = this.resolvedIndices;
 
         if (result == null) {
-            result = indexResolverReplacer.resolveRequest(request);
-            this.resolvedRequest = result;
+            Optional<ResolvedIndices> providedIndices = this.actionRequestMetadata.resolvedIndices();
+            if (providedIndices.isPresent()) {
+                result = this.resolvedIndices = providedIndices.get();
+            } else {
+                // The action does not implement the resolution mechanism; we have to do it by ourselves
+                // TODO
+            }
         }
 
         return result;
@@ -166,8 +181,8 @@ public class PrivilegesEvaluationContext {
             + '\''
             + ", request="
             + request
-            + ", resolvedRequest="
-            + resolvedRequest
+            + ", resolvedIndices="
+            + resolvedIndices
             + ", mappedRoles="
             + mappedRoles
             + '}';

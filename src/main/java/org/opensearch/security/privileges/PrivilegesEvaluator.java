@@ -71,6 +71,7 @@ import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.termvectors.MultiTermVectorsAction;
 import org.opensearch.action.update.UpdateAction;
@@ -79,6 +80,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -296,13 +298,14 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluationContext createContext(User user, String action) {
-        return createContext(user, action, null, null, null);
+        return createContext(user, action, null, ActionRequestMetadata.empty(), null, null);
     }
 
     public PrivilegesEvaluationContext createContext(
         User user,
         String action0,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
         Set<String> injectedRoles
     ) {
@@ -313,7 +316,7 @@ public class PrivilegesEvaluator {
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, actionRequestMetadata, task, irr, resolver, clusterStateSupplier);
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
@@ -393,10 +396,10 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        final Resolved requestedResolved = context.getResolvedRequest();
+        ResolvedIndices resolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
-            log.debug("RequestedResolved : {}", requestedResolved);
+            log.debug("RequestedResolved : {}", resolvedIndices);
         }
 
         // check snapshot/restore requests
@@ -405,13 +408,13 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
+        if (systemIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -440,7 +443,7 @@ public class PrivilegesEvaluator {
                 log.info(
                     "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
-                    requestedResolved,
+                        resolvedIndices,
                     action0,
                     mappedRoles,
                     presponse.getMissingPrivileges()
@@ -460,7 +463,7 @@ public class PrivilegesEvaluator {
                             action0,
                             user,
                             dcm,
-                            requestedResolved,
+                                resolvedIndices,
                             context,
                             this.tenantPrivileges.get()
                         );
@@ -495,7 +498,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate(resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
             return presponse;
         }
 
@@ -510,7 +513,7 @@ public class PrivilegesEvaluator {
         }
 
         if (isDebugEnabled) {
-            log.debug("Requested resolved index types: {}", requestedResolved);
+            log.debug("Requested resolved index types: {}", resolvedIndices);
             log.debug("Security roles: {}", mappedRoles);
         }
 
@@ -523,7 +526,7 @@ public class PrivilegesEvaluator {
                 action0,
                 user,
                 dcm,
-                requestedResolved,
+                    resolvedIndices,
                 context,
                 this.tenantPrivileges.get()
             );
@@ -546,7 +549,7 @@ public class PrivilegesEvaluator {
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
-        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, requestedResolved);
+        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, resolvedIndices);
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
@@ -571,7 +574,7 @@ public class PrivilegesEvaluator {
         }
 
         if (presponse.isAllowed()) {
-            if (checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
+            if (checkFilteredAliases(resolvedIndices, action0, isDebugEnabled)) {
                 presponse.allowed = false;
                 return presponse;
             }
@@ -584,7 +587,7 @@ public class PrivilegesEvaluator {
                 "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
                 "index",
                 user,
-                requestedResolved,
+                    resolvedIndices,
                 presponse.getReason(),
                 action0,
                 mappedRoles
