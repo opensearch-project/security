@@ -28,18 +28,17 @@ import org.junit.runner.RunWith;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -67,8 +66,6 @@ public class SystemIndexAccessEvaluatorTest {
 
     @Mock
     private AuditLog auditLog;
-    @Mock
-    private IndexResolverReplacer irr;
     @Mock
     private ActionRequest request;
     @Mock
@@ -154,8 +151,7 @@ public class SystemIndexAccessEvaluatorTest {
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, isSystemIndexEnabled)
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionsEnabled)
                 .build(),
-            auditLog,
-            irr
+            auditLog
         );
         evaluator.log = log;
 
@@ -171,9 +167,10 @@ public class SystemIndexAccessEvaluatorTest {
             ImmutableSet.of("role_a"),
             action,
             request,
-            null,
+            ActionRequestMetadata.empty(),
             null,
             indexNameExpressionResolver,
+            null,
             () -> clusterState,
             actionPrivileges
         );
@@ -181,13 +178,13 @@ public class SystemIndexAccessEvaluatorTest {
 
     @After
     public void after() {
-        verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
+        verifyNoMoreInteractions(auditLog, request, task, presponse, log);
     }
 
     @Test
     public void testUnprotectedActionOnRegularIndex_systemIndexDisabled() {
         setup(false, false, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -208,7 +205,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnRegularIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -228,7 +225,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnRegularIndex_systemIndexPermissionEnabled() {
         setup(true, true, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -248,7 +245,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnSystemIndex_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -268,7 +265,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -288,7 +285,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnSystemIndex_systemIndexPermissionEnabled_WithoutSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -317,7 +314,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testUnprotectedActionOnSystemIndex_systemIndexPermissionEnabled_WithSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, true);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -341,7 +338,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         final SearchRequest searchRequest = mock(SearchRequest.class);
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
@@ -357,7 +354,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         final SearchRequest searchRequest = mock(SearchRequest.class);
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
@@ -378,7 +375,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         final SearchRequest searchRequest = mock(SearchRequest.class);
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
@@ -413,7 +410,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         final SearchRequest searchRequest = mock(SearchRequest.class);
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
@@ -431,7 +428,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionLocalAll_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = Resolved._LOCAL_ALL;
+        final ResolvedIndices resolved = ResolvedIndices.all();
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -445,7 +442,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionLocalAll_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = Resolved._LOCAL_ALL;
+        final ResolvedIndices resolved = ResolvedIndices.all();
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -459,7 +456,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionLocalAll_systemIndexPermissionEnabled() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = Resolved._LOCAL_ALL;
+        final ResolvedIndices resolved = ResolvedIndices.all();
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -473,7 +470,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexDisabled() {
         setup(false, false, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -484,7 +481,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -495,7 +492,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexPermissionEnabled() {
         setup(true, true, TEST_INDEX, false);
-        final Resolved resolved = createResolved(TEST_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -506,7 +503,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnSystemIndex_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -517,7 +514,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -531,7 +528,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnSystemIndex_systemIndexPermissionEnabled_withoutSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -552,7 +549,7 @@ public class SystemIndexAccessEvaluatorTest {
     public void testProtectedActionOnSystemIndex_systemIndexPermissionEnabled_withSystemIndexPermission() {
 
         setup(true, true, TEST_SYSTEM_INDEX, true);
-        final Resolved resolved = createResolved(TEST_SYSTEM_INDEX);
+        final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -563,7 +560,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnProtectedSystemIndex_systemIndexDisabled() {
         setup(false, false, SECURITY_INDEX, false);
-        final Resolved resolved = createResolved(SECURITY_INDEX);
+        final ResolvedIndices resolved = createResolved(SECURITY_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -578,7 +575,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnProtectedSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, SECURITY_INDEX, false);
-        final Resolved resolved = createResolved(SECURITY_INDEX);
+        final ResolvedIndices resolved = createResolved(SECURITY_INDEX);
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
@@ -613,7 +610,7 @@ public class SystemIndexAccessEvaluatorTest {
     private void testSecurityIndexAccess(String action) {
         setup(true, true, SECURITY_INDEX, true);
 
-        final Resolved resolved = createResolved(SECURITY_INDEX);
+        final ResolvedIndices resolved = createResolved(SECURITY_INDEX);
 
         // Action
         evaluator.evaluate(request, task, action, resolved, presponse, ctx(action), actionPrivileges, user);
@@ -631,13 +628,7 @@ public class SystemIndexAccessEvaluatorTest {
         );
     }
 
-    private Resolved createResolved(final String... indexes) {
-        return new Resolved(
-            ImmutableSet.of(),
-            ImmutableSet.copyOf(indexes),
-            ImmutableSet.copyOf(indexes),
-            ImmutableSet.of(),
-            IndicesOptions.STRICT_EXPAND_OPEN
-        );
+    private ResolvedIndices createResolved(final String... indexes) {
+        return ResolvedIndices.of(indexes);
     }
 }

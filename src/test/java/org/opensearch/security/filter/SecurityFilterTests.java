@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
@@ -89,7 +90,6 @@ public class SecurityFilterTests {
             mock(ClusterService.class),
             mock(ClusterInfoHolder.class),
             mock(CompatConfig.class),
-            mock(IndexResolverReplacer.class),
             mock(XFFResolver.class),
             Set.of(),
             mock(ResourceAccessHandler.class)
@@ -115,14 +115,13 @@ public class SecurityFilterTests {
             mock(ClusterService.class),
             mock(ClusterInfoHolder.class),
             mock(CompatConfig.class),
-            mock(IndexResolverReplacer.class),
             mock(XFFResolver.class),
             Set.of(),
             mock(ResourceAccessHandler.class)
         );
 
         // Act
-        filter.apply(null, null, null, listener, null);
+        filter.apply(null, null, null, ActionRequestMetadata.empty(), listener, null);
 
         // Verify
         verify(auditLog).getComplianceConfig(); // Make sure the exception was thrown
