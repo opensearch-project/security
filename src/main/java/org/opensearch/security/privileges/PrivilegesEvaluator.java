@@ -71,6 +71,7 @@ import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.termvectors.MultiTermVectorsAction;
 import org.opensearch.action.update.UpdateAction;
@@ -79,6 +80,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -92,8 +94,6 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -160,17 +160,17 @@ public class PrivilegesEvaluator {
     private final ClusterInfoHolder clusterInfoHolder;
     private final ConfigurationRepository configurationRepository;
     private ConfigModel configModel;
-    private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final SystemIndexAccessEvaluator systemIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
-    private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
     private final Map<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges = new HashMap<>();
+    private final IndicesRequestResolver indicesRequestResolver;
+    private final IndicesRequestModifier indicesRequestModifier = new IndicesRequestModifier();
 
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
@@ -190,8 +190,7 @@ public class PrivilegesEvaluator {
         AuditLog auditLog,
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
-        final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr
+        final ClusterInfoHolder clusterInfoHolder
     ) {
 
         super();
@@ -213,13 +212,13 @@ public class PrivilegesEvaluator {
         );
 
         this.clusterInfoHolder = clusterInfoHolder;
-        this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr);
+        systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.configurationRepository = configurationRepository;
+        this.indicesRequestResolver = new IndicesRequestResolver(resolver);
+
         this.staticActionGroups = new FlattenedActionGroups(
             DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS))
         );
@@ -332,7 +331,7 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluationContext createContext(User user, String action) {
-        return createContext(user, action, null, null, null);
+        return createContext(user, action, null, ActionRequestMetadata.empty(), null, null);
     }
 
     private String getTenancyAccess(PrivilegesEvaluationContext context) {
@@ -351,6 +350,7 @@ public class PrivilegesEvaluator {
         User user,
         String action0,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
         Set<String> injectedRoles
     ) {
@@ -383,9 +383,10 @@ public class PrivilegesEvaluator {
             mappedRoles,
             action0,
             request,
+            actionRequestMetadata,
             task,
-            irr,
             resolver,
+            indicesRequestResolver,
             clusterStateSupplier,
             actionPrivileges
         );
@@ -472,10 +473,10 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        final Resolved requestedResolved = context.getResolvedRequest();
+        ResolvedIndices resolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
-            log.debug("RequestedResolved : {}", requestedResolved);
+            log.debug("RequestedResolved : {}", resolvedIndices);
         }
 
         // check snapshot/restore requests
@@ -486,18 +487,13 @@ public class PrivilegesEvaluator {
         }
 
         // System index access
-        if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
+        if (systemIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
-            return presponse;
-        }
-
-        // check access for point in time requests
-        if (pitPrivilegesEvaluator.evaluate(request, context, actionPrivileges, action0, presponse, irr).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -521,7 +517,7 @@ public class PrivilegesEvaluator {
                 log.info(
                     "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
-                    requestedResolved,
+                    resolvedIndices,
                     action0,
                     mappedRoles,
                     presponse.getMissingPrivileges()
@@ -541,7 +537,7 @@ public class PrivilegesEvaluator {
                             action0,
                             user,
                             dcm,
-                            requestedResolved,
+                            resolvedIndices,
                             context,
                             this.tenantPrivileges.get()
                         );
@@ -576,7 +572,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate(resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
             return presponse;
         }
 
@@ -591,7 +587,7 @@ public class PrivilegesEvaluator {
         }
 
         if (isDebugEnabled) {
-            log.debug("Requested resolved index types: {}", requestedResolved);
+            log.debug("Requested resolved index types: {}", resolvedIndices);
             log.debug("Security roles: {}", mappedRoles);
         }
 
@@ -604,7 +600,7 @@ public class PrivilegesEvaluator {
                 action0,
                 user,
                 dcm,
-                requestedResolved,
+                resolvedIndices,
                 context,
                 this.tenantPrivileges.get()
             );
@@ -627,11 +623,11 @@ public class PrivilegesEvaluator {
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
-        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, requestedResolved);
+        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, resolvedIndices);
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
-                if (irr.replace(request, true, presponse.getAvailableIndices())) {
+                if (this.indicesRequestModifier.reduceLocalIndices(request, resolvedIndices, presponse.getAvailableIndices())) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }
@@ -652,7 +648,7 @@ public class PrivilegesEvaluator {
         }
 
         if (presponse.isAllowed()) {
-            if (checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
+            if (checkFilteredAliases(resolvedIndices, action0, isDebugEnabled)) {
                 presponse.allowed = false;
                 return presponse;
             }
@@ -665,7 +661,7 @@ public class PrivilegesEvaluator {
                 "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
                 "index",
                 user,
-                requestedResolved,
+                resolvedIndices,
                 presponse.getReason(),
                 action0,
                 mappedRoles
@@ -801,7 +797,7 @@ public class PrivilegesEvaluator {
     }
 
     @SuppressWarnings("unchecked")
-    private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
+    private boolean checkFilteredAliases(ResolvedIndices requestedResolved, String action, boolean isDebugEnabled) {
         final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
         if (!"disallow".equals(faMode)) {
@@ -814,30 +810,22 @@ public class PrivilegesEvaluator {
 
         Iterable<IndexMetadata> indexMetaDataCollection;
 
-        if (requestedResolved.isLocalAll()) {
-            indexMetaDataCollection = new Iterable<IndexMetadata>() {
-                @Override
-                public Iterator<IndexMetadata> iterator() {
-                    return clusterStateSupplier.get().getMetadata().getIndices().values().iterator();
-                }
-            };
-        } else {
-            Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.getAllIndices().size());
+        Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.local().names().size());
 
-            for (String requestAliasOrIndex : requestedResolved.getAllIndices()) {
-                IndexMetadata indexMetaData = clusterStateSupplier.get().getMetadata().getIndices().get(requestAliasOrIndex);
-                if (indexMetaData == null) {
-                    if (isDebugEnabled) {
-                        log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
-                    }
-                    continue;
+        for (String requestAliasOrIndex : requestedResolved.local().names()) {
+            IndexMetadata indexMetaData = clusterStateSupplier.get().getMetadata().getIndices().get(requestAliasOrIndex);
+            if (indexMetaData == null) {
+                if (isDebugEnabled) {
+                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
                 }
-
-                indexMetaDataSet.add(indexMetaData);
+                continue;
             }
 
-            indexMetaDataCollection = indexMetaDataSet;
+            indexMetaDataSet.add(indexMetaData);
         }
+
+        indexMetaDataCollection = indexMetaDataSet;
+
         // check filtered aliases
         for (IndexMetadata indexMetaData : indexMetaDataCollection) {
 
