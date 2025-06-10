@@ -17,10 +17,11 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -38,13 +39,14 @@ public class PrivilegesEvaluationContext {
     private final User user;
     private final String action;
     private final ActionRequest request;
-    private IndexResolverReplacer.Resolved resolvedRequest;
+    private ResolvedIndices resolvedIndices;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
-    private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final IndicesRequestResolver indicesRequestResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
+    private final ActionRequestMetadata<?, ?> actionRequestMetadata;
 
     /**
      * Stores the ActionPrivileges instance to be used for this request. Plugin system users or users created from
@@ -64,9 +66,10 @@ public class PrivilegesEvaluationContext {
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
-        IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
+        IndicesRequestResolver indicesRequestResolver,
         Supplier<ClusterState> clusterStateSupplier,
         ActionPrivileges actionPrivileges
     ) {
@@ -75,9 +78,10 @@ public class PrivilegesEvaluationContext {
         this.action = action;
         this.request = request;
         this.clusterStateSupplier = clusterStateSupplier;
-        this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.indicesRequestResolver = indicesRequestResolver;
         this.task = task;
+        this.actionRequestMetadata = actionRequestMetadata;
         this.actionPrivileges = actionPrivileges;
     }
 
@@ -118,12 +122,14 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
-    public IndexResolverReplacer.Resolved getResolvedRequest() {
-        IndexResolverReplacer.Resolved result = this.resolvedRequest;
+    public ResolvedIndices getResolvedRequest() {
+        if (PrivilegesEvaluator.isClusterPerm(action)) {
+            return ResolvedIndices.all();
+        }
 
+        ResolvedIndices result = this.resolvedIndices;
         if (result == null) {
-            result = indexResolverReplacer.resolveRequest(request);
-            this.resolvedRequest = result;
+            result = this.indicesRequestResolver.resolve(this.request, this.actionRequestMetadata, this.clusterStateSupplier);
         }
 
         return result;
@@ -149,8 +155,8 @@ public class PrivilegesEvaluationContext {
         this.mappedRoles = mappedRoles;
     }
 
-    public Supplier<ClusterState> getClusterStateSupplier() {
-        return clusterStateSupplier;
+    public ClusterState clusterState() {
+        return clusterStateSupplier.get();
     }
 
     public Map<String, IndexAbstraction> getIndicesLookup() {
@@ -182,8 +188,8 @@ public class PrivilegesEvaluationContext {
             + '\''
             + ", request="
             + request
-            + ", resolvedRequest="
-            + resolvedRequest
+            + ", resolvedIndices="
+            + resolvedIndices
             + ", mappedRoles="
             + mappedRoles
             + '}';
