@@ -218,7 +218,6 @@ public class PrivilegesEvaluatorUnitTest {
         assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized."));
 
         when(clusterInfoHolder.hasClusterManager()).thenReturn(false);
-        when(ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT).thenReturn("Cluster manager not present");
         exception = assertThrows(
                 OpenSearchSecurityException.class,
                 () -> privilegesEvaluator.evaluate(null)
