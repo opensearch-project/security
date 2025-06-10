@@ -40,7 +40,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ImpactAnalysisApiAction extends AbstractApiAction {
 
-    private static final List<Route> routes = addRoutesPrefix(List.of(new Route(RestRequest.Method.POST, "/impact_analysis")));
+    private static final List<Route> routes = addRoutesPrefix(List.of(new Route(RestRequest.Method.POST, "/security_analyzer")));
 
     public ImpactAnalysisApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies) {
         super(Endpoint.IMPACT_ANALYSIS, clusterService, threadPool, securityApiDependencies);
