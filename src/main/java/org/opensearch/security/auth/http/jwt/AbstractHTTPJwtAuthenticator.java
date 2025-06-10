@@ -61,7 +61,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
     private final String subjectKey;
-    private final String rolesKey;
+    private final List<String> rolesKey;
     private final List<String> requiredAudience;
     private final String requiredIssuer;
 
@@ -72,7 +72,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
-        rolesKey = settings.get("roles_key");
+        rolesKey = settings.getAsList("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
@@ -219,7 +219,21 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return new String[0];
         }
 
-        Object rolesObject = claims.getClaim(rolesKey);
+        Object rolesObject = null;
+        Map<String, Object> claimsMap = claims.getClaims();
+        for (int i = 0; i < rolesKey.size(); i++) {
+            if (i == rolesKey.size() - 1) {
+                rolesObject = claimsMap.get(rolesKey.get(i));
+            } else if (claimsMap.get(rolesKey.get(i)) instanceof Map) {
+                claimsMap = (Map<String, Object>) claimsMap.get(rolesKey.get(i));
+            } else {
+                log.warn(
+                    "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                    rolesKey
+                );
+                return new String[0];
+            }
+        }
 
         if (rolesObject == null) {
             log.warn(

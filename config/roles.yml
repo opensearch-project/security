@@ -460,14 +460,77 @@ query_insights_full_access:
 
 # Allow users to execute read only LTR actions
 ltr_read_access:
-    reserved: true
-    cluster_permissions:
-      - cluster:admin/ltr/caches/stats
-      - cluster:admin/ltr/featurestore/list
-      - cluster:admin/ltr/stats
+  reserved: true
+  cluster_permissions:
+    - cluster:admin/ltr/caches/stats
+    - cluster:admin/ltr/featurestore/list
+    - cluster:admin/ltr/stats
 
 # Allow users to execute all LTR actions
 ltr_full_access:
-    reserved: true
-    cluster_permissions:
-      - cluster:admin/ltr/*
+  reserved: true
+  cluster_permissions:
+    - cluster:admin/ltr/*
+
+# Allow users to use all Search Relevance functionalities
+search_relevance_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/search_relevance/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/mappings/get'
+        - 'indices:data/read/search*'
+
+# Allow users to read Search Relevance resources
+search_relevance_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/search_relevance/experiment/get'
+    - 'cluster:admin/opensearch/search_relevance/judgment/get'
+    - 'cluster:admin/opensearch/search_relevance/queryset/get'
+    - 'cluster:admin/opensearch/search_relevance/search_configuration/get'
+
+# Allow users to read Forecast resources
+forecast_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/plugin/forecast/forecaster/info'
+    - 'cluster:admin/plugin/forecast/forecaster/stats'
+    - 'cluster:admin/plugin/forecast/forecaster/suggest'
+    - 'cluster:admin/plugin/forecast/forecaster/validate'
+    - 'cluster:admin/plugin/forecast/forecasters/get'
+    - 'cluster:admin/plugin/forecast/forecasters/info'
+    - 'cluster:admin/plugin/forecast/forecasters/search'
+    - 'cluster:admin/plugin/forecast/result/topForecasts'
+    - 'cluster:admin/plugin/forecast/tasks/search'
+  index_permissions:
+    - index_patterns:
+        - 'opensearch-forecast-result*'
+      allowed_actions:
+        - 'indices:admin/mappings/fields/get*'
+        - 'indices:admin/resolve/index'
+        - 'indices:data/read*'
+
+# Allows users to use all Forecasting functionality
+forecast_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/plugin/forecast/*'
+    - 'cluster:admin/settings/update'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mapping/get'
+        - 'indices:admin/mapping/put'
+        - 'indices:admin/mappings/fields/get*'
+        - 'indices:admin/resolve/index'
+        - 'indices:data/read*'
+        - 'indices:data/read/field_caps*'
+        - 'indices:data/read/search'
+        - 'indices:data/write*'
+        - 'indices_monitor'
