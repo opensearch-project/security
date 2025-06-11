@@ -39,10 +39,8 @@ import org.opensearch.security.user.AuthCredentials;
 public class HTTPHelper {
 
     public static AuthCredentials extractCredentials(String authorizationHeader, Logger log) {
-
         if (authorizationHeader != null) {
             if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
-                log.warn("No 'Basic Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                 return null;
             } else {
 
@@ -75,7 +73,7 @@ public class HTTPHelper {
                 }
 
                 if (username == null || password == null) {
-                    log.warn("Invalid 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                    log.warn("Invalid 'Authorization' header for HTTP Basic auth");
                     return null;
                 } else {
                     return new AuthCredentials(username, password.getBytes(StandardCharsets.UTF_8)).markComplete();

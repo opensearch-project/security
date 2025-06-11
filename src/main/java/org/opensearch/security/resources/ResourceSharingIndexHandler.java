@@ -20,9 +20,14 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -41,11 +46,8 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.index.reindex.BulkByScrollResponse;
-import org.opensearch.index.reindex.DeleteByQueryAction;
-import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
@@ -73,12 +75,9 @@ public class ResourceSharingIndexHandler {
 
     private final Client client;
 
-    private final String resourceSharingIndex;
-
     private final ThreadPool threadPool;
 
-    public ResourceSharingIndexHandler(final String indexName, final Client client, final ThreadPool threadPool) {
-        this.resourceSharingIndex = indexName;
+    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
         this.client = client;
         this.threadPool = threadPool;
     }
@@ -111,19 +110,25 @@ public class ResourceSharingIndexHandler {
      *                          or communicating with the cluster
      */
 
-    public void createResourceSharingIndexIfAbsent() {
+    public void createResourceSharingIndicesIfAbsent(Set<String> resourceIndices) {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-
-            CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
-            ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
-                LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
-            }, (failResponse) -> {
-                /* Index already exists, ignore and continue */
-                LOGGER.info("Index {} already exists.", resourceSharingIndex);
-            });
-            this.client.admin().indices().create(cir, cirListener);
+            for (String resourceIndex : resourceIndices) {
+                String resourceSharingIndex = getSharingIndex(resourceIndex);
+                CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
+                ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
+                    LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
+                }, (failResponse) -> {
+                    /* Index already exists, ignore and continue */
+                    LOGGER.info("Index {} already exists.", resourceSharingIndex);
+                });
+                this.client.admin().indices().create(cir, cirListener);
+            }
         }
+    }
+
+    public static String getSharingIndex(String resourceIndex) {
+        return resourceIndex + "-sharing";
     }
 
     /**
@@ -149,13 +154,15 @@ public class ResourceSharingIndexHandler {
     public ResourceSharing indexResourceSharing(String resourceId, String resourceIndex, CreatedBy createdBy, ShareWith shareWith)
         throws IOException {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            ResourceSharing entry = new ResourceSharing(resourceIndex, resourceId, createdBy, shareWith);
+            ResourceSharing entry = new ResourceSharing(resourceId, createdBy, shareWith);
 
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
+                .setId(resourceId)
                 .request();
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(
@@ -213,23 +220,22 @@ public class ResourceSharingIndexHandler {
      * </ul>
      */
     public void fetchAllResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
-        LOGGER.debug("Fetching all documents asynchronously from {} where source_idx = {}", resourceSharingIndex, resourceIndex);
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        LOGGER.debug("Fetching all documents asynchronously from {}", resourceSharingIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            TermQueryBuilder query = QueryBuilders.termQuery("source_idx.keyword", resourceIndex);
+            MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
 
             executeSearchRequest(scroll, searchRequest, query, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
-
             }, exception -> {
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
-
             }));
         } catch (Exception e) {
             listener.onFailure(e);
@@ -263,12 +269,12 @@ public class ResourceSharingIndexHandler {
         ActionListener<Set<String>> listener
     ) {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
             boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
 
@@ -350,6 +356,7 @@ public class ResourceSharingIndexHandler {
             listener.onFailure(new IllegalArgumentException("resourceIndex and resourceId must not be null or empty"));
             return;
         }
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug(
             "Fetching document from {}, matching source_idx: {}, resource_id: {}",
             resourceSharingIndex,
@@ -358,21 +365,13 @@ public class ResourceSharingIndexHandler {
         );
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex))
-                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
+            GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // There is only one document for
-            // a single resource
-
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex).source(searchSourceBuilder);
-
-            client.search(searchRequest, new ActionListener<>() {
+            client.get(getRequest, new ActionListener<>() {
                 @Override
-                public void onResponse(SearchResponse searchResponse) {
+                public void onResponse(GetResponse getResponse) {
                     try {
-                        SearchHit[] hits = searchResponse.getHits().getHits();
-                        if (hits.length == 0) {
+                        if (!getResponse.isExists()) {
                             LOGGER.debug(
                                 "No document found in {} matching resource_id: {} and source_idx: {}",
                                 resourceSharingIndex,
@@ -382,15 +381,17 @@ public class ResourceSharingIndexHandler {
                             listener.onResponse(null);
                             return;
                         }
-
-                        SearchHit hit = hits[0];
                         try (
                             XContentParser parser = XContentType.JSON.xContent()
-                                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hit.getSourceAsString())
+                                .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    LoggingDeprecationHandler.INSTANCE,
+                                    getResponse.getSourceAsString()
+                                )
                         ) {
                             parser.nextToken();
                             ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
-                            resourceSharing.setDocId(hit.getId());
+                            resourceSharing.setResourceId(getResponse.getId());
 
                             LOGGER.debug(
                                 "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
@@ -519,12 +520,15 @@ public class ResourceSharingIndexHandler {
 
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
+                assert sharingInfo != null;
                 sharingInfo.share(accessLevel, target);
             }
 
+            String resourceSharingIndex = getSharingIndex(resourceIndex);
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                assert sharingInfo != null;
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(sharingInfo.getDocId())
+                    .setId(sharingInfo.getResourceId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
@@ -598,7 +602,7 @@ public class ResourceSharingIndexHandler {
             listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
             return;
         }
-
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
@@ -628,10 +632,12 @@ public class ResourceSharingIndexHandler {
                         accessLevel
                     );
 
+                    assert sharingInfo != null;
                     sharingInfo.revoke(accessLevel, target);
                 }
+                assert sharingInfo != null;
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(sharingInfo.getDocId())
+                    .setId(sharingInfo.getResourceId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
@@ -694,6 +700,7 @@ public class ResourceSharingIndexHandler {
      * </pre>
      */
     public void deleteResourceSharingRecord(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug(
             "Deleting documents asynchronously from {} where source_idx = {} and resource_id = {}",
             resourceSharingIndex,
@@ -702,18 +709,14 @@ public class ResourceSharingIndexHandler {
         );
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
-                QueryBuilders.boolQuery()
-                    .must(QueryBuilders.termQuery("source_idx.keyword", resourceIndex))
-                    .must(QueryBuilders.termQuery("resource_id.keyword", resourceId))
-            ).setRefresh(true);
+            DeleteRequest deleteRequest = new DeleteRequest(resourceSharingIndex, resourceId);
 
-            client.execute(DeleteByQueryAction.INSTANCE, dbq, new ActionListener<>() {
+            client.delete(deleteRequest, new ActionListener<>() {
                 @Override
-                public void onResponse(BulkByScrollResponse response) {
+                public void onResponse(DeleteResponse response) {
 
-                    long deleted = response.getDeleted();
-                    if (deleted > 0) {
+                    boolean deleted = DocWriteResponse.Result.DELETED.equals(response.getResult());
+                    if (deleted) {
                         LOGGER.debug("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
                         listener.onResponse(true);
                     } else {
