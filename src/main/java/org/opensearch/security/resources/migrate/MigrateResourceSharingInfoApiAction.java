@@ -14,11 +14,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,6 +29,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -45,6 +49,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -119,14 +124,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Pulls "source_index" from the request body
      *      2. Does a match_all search (up to 10k) in the "source_index"
      *      3. Create a SourceDoc for each raw doc
-     *      3. Returns the list of source docs.
+     *      3. Returns a triple of the source index name, the default access level and the list of source docs.
      */
-    private ValidationResult<List<SourceDoc>> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
+    private ValidationResult<Triple<String, String, List<SourceDoc>>> loadCurrentSharingInfo(RestRequest request, Client client)
+        throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
         String sourceIndex = body.get("source_index").asText();
-        String userNamePath = body.get("user.name").asText();
-        String backendRolesPath = body.get("user.backend_roles").asText();
+        String userNamePath = body.get("user_name_path").asText();
+        String backendRolesPath = body.get("backend_roles_path").asText();
+        String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : PLACE_HOLDER;
 
         SearchRequest sr = new SearchRequest(sourceIndex);
         sr.source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10_000)); // TODO verify
@@ -150,10 +157,10 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     backendRoles.add(br.asText());
                 }
             }
-            results.add(new SourceDoc(id, sourceIndex, username, backendRoles));
+            results.add(new SourceDoc(id, username, backendRoles));
         }
 
-        return ValidationResult.success(results);
+        return ValidationResult.success(Triple.of(sourceIndex, defaultAccessLevel, results));
     }
 
     /**
@@ -161,24 +168,31 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Parses existing sharing info to a new ResourceSharing records
      *      2. Indexes the new record into corresponding resource-sharing index
      */
-    private ValidationResult<String> createNewSharingRecords(List<SourceDoc> sourceDocs) throws IOException {
-        int migratedCount = 0;
-        int skippedNoUser = 0;
-        int failureCount = 0;
+    private ValidationResult<String> createNewSharingRecords(Triple<String, String, List<SourceDoc>> sourceInfo) throws IOException {
+        AtomicInteger migratedCount = new AtomicInteger();
+        AtomicInteger skippedNoUser = new AtomicInteger();
+        AtomicInteger failureCount = new AtomicInteger();
 
-        for (SourceDoc doc : sourceDocs) {
+        List<SourceDoc> docs = sourceInfo.getRight();
+        int total = docs.size();
+
+        CountDownLatch latch = new CountDownLatch(total);
+
+        for (SourceDoc doc : docs) {
             // 1) get resource ID
             String resourceId = doc.resourceId;
             if (resourceId == null) {
-                failureCount++;
+                failureCount.getAndIncrement();
+                latch.countDown();
                 continue;
             }
 
             // 2) skip if no username node
             String username = doc.username;
             if (username == null || username.isEmpty()) {
-                LOGGER.warn("Record without associate user, skipping entirely: {}", doc.resourceId);
-                skippedNoUser++;
+                LOGGER.warn("Record without associated user, skipping entirely: {}", doc.resourceId);
+                skippedNoUser.incrementAndGet();
+                latch.countDown();
                 continue;
             }
 
@@ -191,23 +205,45 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 ShareWith shareWith = null;
                 if (!backendRoles.isEmpty()) {
                     Recipients recipients = new Recipients(Map.of(Recipient.BACKEND_ROLES, new HashSet<>(backendRoles)));
-                    shareWith = new ShareWith(Map.of(PLACE_HOLDER, recipients));
+                    shareWith = new ShareWith(Map.of(sourceInfo.getMiddle(), recipients));
                 }
 
                 // 5) index the new record
-                sharingIndexHandler.indexResourceSharing(resourceId, doc.sourceIndex, createdBy, shareWith);
-                migratedCount++;
+                ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
+                    LOGGER.debug(
+                        "Successfully migrate a resource sharing entry {} for resource {} within index {}",
+                        entry,
+                        resourceId,
+                        sourceInfo.getLeft()
+                    );
+                    migratedCount.getAndIncrement();
+                    latch.countDown();
+                }, e -> {
+                    LOGGER.debug(e.getMessage());
+                    failureCount.getAndIncrement();
+                    latch.countDown();
+                });
+                sharingIndexHandler.indexResourceSharing(resourceId, sourceInfo.getLeft(), createdBy, shareWith, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
-                failureCount++;
+                failureCount.getAndIncrement();
+                latch.countDown();
             }
+        }
+
+        // wait for all records to be addresses
+        try {
+            latch.await();
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for migration to finish", ie);
         }
 
         String summary = String.format(
             "Migration complete. migrated %d; skippedNoUser %d; failed %d",
-            migratedCount,
-            skippedNoUser,
-            failureCount
+            migratedCount.get(),
+            skippedNoUser.get(),
+            failureCount.get()
         );
         return ValidationResult.success(summary);
     }
@@ -240,15 +276,17 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "user.name", "user.backend_roles");
+                        return ImmutableSet.of("source_index", "user_name_path", "backend_roles_path");
                     }
 
                     @Override
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         return ImmutableMap.<String, RequestContentValidator.DataType>builder()
                             .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
-                            .put("user.name", RequestContentValidator.DataType.STRING) // path to resource creator's name
-                            .put("user.backend_roles", RequestContentValidator.DataType.STRING) // path to backend_roles
+                            .put("user_name_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
+                            .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
+                            .put("default_access_level", RequestContentValidator.DataType.STRING) // default access level for the new
+                                                                                                  // structure
                             .build();
                     }
                 });
@@ -258,13 +296,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
     static class SourceDoc {
         String resourceId;
-        String sourceIndex;
         String username;
         List<String> backendRoles;
 
-        public SourceDoc(String id, String sourceIndex, String username, List<String> backendRoles) {
+        public SourceDoc(String id, String username, List<String> backendRoles) {
             this.resourceId = id;
-            this.sourceIndex = sourceIndex;
             this.username = username;
             this.backendRoles = backendRoles;
         }
