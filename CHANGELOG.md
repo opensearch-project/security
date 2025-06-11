@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Include mapped roles when setting userInfo in ThreadContext ([#5369](https://github.com/opensearch-project/security/pull/5369))
 - Adds details for debugging Security not initialized error([#5370](https://github.com/opensearch-project/security/pull/5370))
 - [Resource Sharing] Store resource sharing info in indices that map 1-to-1 with resource index ([#5358](https://github.com/opensearch-project/security/pull/5358))
+- Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5385](https://github.com/opensearch-project/security/pull/5385))
 
 ### Dependencies
 - Bump `guava_version` from 33.4.6-jre to 33.4.8-jre ([#5284](https://github.com/opensearch-project/security/pull/5284))

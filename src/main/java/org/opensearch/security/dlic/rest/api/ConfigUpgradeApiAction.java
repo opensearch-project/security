@@ -45,6 +45,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -53,9 +54,11 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
@@ -74,6 +77,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     private final static Set<CType<?>> SUPPORTED_CTYPES = ImmutableSet.of(CType.ROLES);
 
     private final static String REQUEST_PARAM_CONFIGS_KEY = "configs";
+    private final static String REQUEST_PARAM_ENTITIES_KEY = "entities";
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(Method.GET, "/_upgrade_check"), new Route(Method.POST, "/_upgrade_perform"))
@@ -96,6 +100,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         this.requestHandlersBuilder.configureRequestHandlers(rhb -> {
             rhb.allMethodsNotImplemented().add(Method.GET, this::canUpgrade).add(Method.POST, this::performUpgrade);
         });
+    }
+
+    @Override
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        request.param(REQUEST_PARAM_CONFIGS_KEY);
+        request.param(REQUEST_PARAM_ENTITIES_KEY);
+        return super.prepareRequest(request, client);
     }
 
     void canUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
@@ -192,11 +203,15 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ValidationResult.success(diffs);
     }
 
-    private ValidationResult<List<Tuple<CType<?>, JsonNode>>> configurationDifferences(final Set<CType<?>> configurations) {
+    private ValidationResult<List<Tuple<CType<?>, JsonNode>>> configurationDifferences(final Map<CType<?>, List<String>> configurations) {
         try {
             final var differences = new ArrayList<ValidationResult<Tuple<CType<?>, JsonNode>>>();
-            for (final var configuration : configurations) {
-                differences.add(computeDifferenceToUpdate(configuration));
+            for (final var cType : configurations.keySet()) {
+                if (configurations.get(cType).size() == 1 && configurations.get(cType).get(0).equals("*")) {
+                    differences.add(computeDifferenceToUpdate(cType));
+                } else {
+                    differences.add(computeDifferenceToUpdate(cType, configurations.get(cType)));
+                }
             }
             return ValidationResult.merge(differences);
         } catch (final UncheckedIOException ioe) {
@@ -217,7 +232,22 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }));
     }
 
-    private ValidationResult<Set<CType<?>>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
+    ValidationResult<Tuple<CType<?>, JsonNode>> computeDifferenceToUpdate(final CType<?> configType, List<String> entities) {
+        return withIOException(() -> loadConfiguration(configType, false, false).map(activeRoles -> {
+            Map<String, RoleV7> filteredRoles = new HashMap<>();
+            for (String entity : entities) {
+                if (activeRoles.exists(entity)) {
+                    filteredRoles.put(entity, (RoleV7) activeRoles.getCEntry(entity));
+                }
+            }
+            final var filteredRolesJson = DefaultObjectMapper.objectMapper.valueToTree(filteredRoles);
+            final var defaultRolesJson = loadEntitiesFromConfigFileAsJson(configType, entities);
+            final var rawDiff = JsonDiff.asJson(filteredRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
+            return ValidationResult.success(new Tuple<>(configType, filterRemoveOperations(rawDiff)));
+        }));
+    }
+
+    private ValidationResult<Map<CType<?>, List<String>>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray(REQUEST_PARAM_CONFIGS_KEY, null);
 
         final Set<CType<?>> configurations;
@@ -239,7 +269,18 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             );
         }
 
-        return ValidationResult.success(configurations);
+        Map<CType<?>, List<String>> configsToUpdate = new HashMap<>();
+        for (final var config : configurations) {
+            final String[] entities = request.paramAsStringArray(REQUEST_PARAM_ENTITIES_KEY, null);
+            if (entities != null) {
+                configsToUpdate.put(config, ImmutableList.copyOf(entities));
+            } else {
+                // Upgrade all entities
+                configsToUpdate.put(config, ImmutableList.of("*"));
+            }
+        }
+
+        return ValidationResult.success(configsToUpdate);
     }
 
     private JsonNode filterRemoveOperations(final JsonNode diff) {
@@ -282,6 +323,27 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
                 final var loadedConfiguration = loadYamlFile(filepath, cType);
                 return Utils.convertJsonToJackson(loadedConfiguration, true);
+            });
+        } catch (final PrivilegedActionException e) {
+            LOGGER.error("Error when loading configuration from file", e);
+            throw (IOException) e.getCause();
+        }
+    }
+
+    @SuppressWarnings("removal")
+    JsonNode loadEntitiesFromConfigFileAsJson(final CType<?> cType, final List<String> entities) throws IOException {
+        final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
+        final var filepath = cType.configFile(Path.of(cd)).toString();
+        try {
+            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
+                final var loadedConfiguration = loadYamlFile(filepath, cType);
+                Map<String, Object> filteredEntities = new HashMap<>();
+                for (String entity : entities) {
+                    if (loadedConfiguration.exists(entity)) {
+                        filteredEntities.put(entity, loadedConfiguration.getCEntry(entity));
+                    }
+                }
+                return DefaultObjectMapper.objectMapper.valueToTree(filteredEntities);
             });
         } catch (final PrivilegedActionException e) {
             LOGGER.error("Error when loading configuration from file", e);
@@ -345,7 +407,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, DataType> allowedKeys() {
-                        return Map.of(REQUEST_PARAM_CONFIGS_KEY, DataType.ARRAY);
+                        return Map.of(REQUEST_PARAM_CONFIGS_KEY, DataType.ARRAY, REQUEST_PARAM_ENTITIES_KEY, DataType.ARRAY);
                     }
                 });
             }
