@@ -32,6 +32,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
@@ -59,6 +60,8 @@ public class RestLayerPrivilegesEvaluatorTest {
     private ConfigModel configModel;
     @Mock
     private DynamicConfigModel dynamicConfigModel;
+    @Mock
+    private ClusterInfoHolder clusterInfoHolder;
 
     private static final User TEST_USER = new User("test_user");
 
@@ -104,11 +107,16 @@ public class RestLayerPrivilegesEvaluatorTest {
     public void testEvaluate_NotInitialized_NullModel_ExceptionThrown() {
         PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(null);
         RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
-        final OpenSearchSecurityException exception = assertThrows(
+        when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
+        OpenSearchSecurityException exception = assertThrows(
             OpenSearchSecurityException.class,
             () -> restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", null)
         );
         assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized."));
+
+        when(clusterInfoHolder.hasClusterManager()).thenReturn(false);
+        exception = assertThrows(OpenSearchSecurityException.class, () -> restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", null));
+        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized. Cluster manager not present"));
     }
 
     @Test
@@ -158,7 +166,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             new NullAuditLog(),
             Settings.EMPTY,
             null,
-            null,
+            clusterInfoHolder,
             null
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model

@@ -306,7 +306,11 @@ public class PrivilegesEvaluator {
         Set<String> injectedRoles
     ) {
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
+            StringBuilder error = new StringBuilder("OpenSearch Security is not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            throw new OpenSearchSecurityException(error.toString());
         }
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
@@ -341,7 +345,11 @@ public class PrivilegesEvaluator {
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
 
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
+            StringBuilder error = new StringBuilder("OpenSearch Security is not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            throw new OpenSearchSecurityException(error.toString());
         }
 
         String action0 = context.getAction();
