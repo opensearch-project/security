@@ -70,17 +70,28 @@ public abstract class SampleResourcePluginTestHelper {
         return """
             {
             "source_index": "%s",
-            "user.name": "%s",
-            "user.backend_roles": "%s"
+            "user_name_path": "%s",
+            "backend_roles_path": "%s"
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+    }
+
+    protected static String migrationPayload_valid_withSpecifiedAccessLevel() {
+        return """
+            {
+            "source_index": "%s",
+            "user_name_path": "%s",
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
     }
 
     protected static String migrationPayload_missingSourceIndex() {
         return """
             {
-            "user.name": "%s",
-            "user.backend_roles": "%s"
+            "user_name_path": "%s",
+            "backend_roles_path": "%s"
             }
             """.formatted("user/name", "user/backend_roles");
     }
@@ -89,17 +100,17 @@ public abstract class SampleResourcePluginTestHelper {
         return """
             {
             "source_index": "%s",
-            "user.backend_roles": "%s"
+            "backend_roles_path": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name");
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
     }
 
     protected static String migrationPayload_missingBackendRoles() {
         return """
             {
             "source_index": "%s",
-            "user.name": "%s"
+            "user_name_path": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 }

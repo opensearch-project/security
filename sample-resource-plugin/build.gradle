@@ -51,7 +51,8 @@ ext {
         opensearch_build += "-SNAPSHOT"
     }
 
-    common_utils_version = System.getProperty("common_utils.version", opensearch_build)
+//    common_utils_version = System.getProperty("common_utils.version", opensearch_build)
+    common_utils_version = System.getProperty("common_utils.version", "3.0.0.0")
 }
 
 repositories {
