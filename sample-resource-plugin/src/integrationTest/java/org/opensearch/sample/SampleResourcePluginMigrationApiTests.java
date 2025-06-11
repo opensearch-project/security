@@ -142,7 +142,7 @@ public class SampleResourcePluginMigrationApiTests {
                 migrationPayload_missingUserName()
             );
             migrateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(migrateResponse.bodyAsJsonNode().get("missing_mandatory_keys").get("keys").asText(), equalTo("user_name_path"));
+            assertThat(migrateResponse.bodyAsJsonNode().get("missing_mandatory_keys").get("keys").asText(), equalTo("username_path"));
         }
     }
 

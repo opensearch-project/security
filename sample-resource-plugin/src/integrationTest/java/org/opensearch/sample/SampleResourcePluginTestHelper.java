@@ -70,7 +70,7 @@ public abstract class SampleResourcePluginTestHelper {
         return """
             {
             "source_index": "%s",
-            "user_name_path": "%s",
+            "username_path": "%s",
             "backend_roles_path": "%s"
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
@@ -80,7 +80,7 @@ public abstract class SampleResourcePluginTestHelper {
         return """
             {
             "source_index": "%s",
-            "user_name_path": "%s",
+            "username_path": "%s",
             "backend_roles_path": "%s",
             "default_access_level": "%s"
             }
@@ -90,7 +90,7 @@ public abstract class SampleResourcePluginTestHelper {
     protected static String migrationPayload_missingSourceIndex() {
         return """
             {
-            "user_name_path": "%s",
+            "username_path": "%s",
             "backend_roles_path": "%s"
             }
             """.formatted("user/name", "user/backend_roles");
@@ -109,7 +109,7 @@ public abstract class SampleResourcePluginTestHelper {
         return """
             {
             "source_index": "%s",
-            "user_name_path": "%s"
+            "username_path": "%s"
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }

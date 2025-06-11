@@ -25,14 +25,18 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.dlic.rest.api.AbstractApiAction;
@@ -65,10 +69,10 @@ import static org.opensearch.security.spi.resources.ResourceAccessLevels.PLACE_H
  * @apiNote Only super-admins or REST admins can invoke this api.
  * We skip migration of records with no valid creator(user).
  * Defines:
- *  - POST `/resources/migrate`
+ *  - POST `_plugins/_security/api/resources/migrate`
  *      {
  *          source_index: "abc",                                    // name of plugin index
- *          user_name_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
+ *          username_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
  *          default_access_level: "<some-default-access-level>"     // default value that should replace the otherwise ResourceAccessLevels.PLACE_HOLDER assigned to the new ResourceSharing object
  *      }
@@ -125,41 +129,62 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Pulls "source_index" from the request body
      *      2. Does a match_all search (up to 10k) in the "source_index"
      *      3. Create a SourceDoc for each raw doc
-     *      3. Returns a triple of the source index name, the default access level and the list of source docs.
+     *      4. Returns a triple of the source index name, the default access level and the list of source docs.
      */
     private ValidationResult<Triple<String, String, List<SourceDoc>>> loadCurrentSharingInfo(RestRequest request, Client client)
         throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
         String sourceIndex = body.get("source_index").asText();
-        String userNamePath = body.get("user_name_path").asText();
+        String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
         String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : PLACE_HOLDER;
 
-        SearchRequest sr = new SearchRequest(sourceIndex);
-        sr.source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(10_000)); // TODO verify
-                                                                                                // this limit
-        SearchResponse resp = client.search(sr).actionGet();
-
-        // build a SourceDoc object of id, sourceIndex, username and backendRoles
         List<SourceDoc> results = new ArrayList<>();
-        for (SearchHit hit : resp.getHits().getHits()) {
-            JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
 
-            String id = hit.getId();
+        // 1) configure a 1-minute scroll
+        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+        SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
+            .source(
+                new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
+            );
 
-            String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
+        // 2) execute first search
+        SearchResponse searchResponse = client.search(searchRequest).actionGet();
+        String scrollId = searchResponse.getScrollId();
 
-            // backend_roles → split CSV into a List<String>
-            JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
-            List<String> backendRoles = new ArrayList<>();
-            if (backendRolesNode.isArray() && !backendRolesNode.isEmpty()) {
-                for (JsonNode br : backendRolesNode) {
-                    backendRoles.add(br.asText());
-                }
+        // 3) page through until no hits
+        while (true) {
+            SearchHit[] hits = searchResponse.getHits().getHits();
+            if (hits == null || hits.length == 0) {
+                break;
             }
-            results.add(new SourceDoc(id, username, backendRoles));
+            for (SearchHit hit : hits) {
+                JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
+                String id = hit.getId();
+                String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
+
+                // backend_roles as an actual array
+                JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
+                List<String> backendRoles = new ArrayList<>();
+                if (backendRolesNode.isArray()) {
+                    for (JsonNode br : backendRolesNode) {
+                        backendRoles.add(br.asText());
+                    }
+                }
+
+                results.add(new SourceDoc(id, username, backendRoles));
+            }
+            // 4) fetch next batch
+            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+            searchResponse = client.searchScroll(scrollRequest).actionGet();
+            scrollId = searchResponse.getScrollId();
         }
+
+        // 5) clear the scroll context to free resources
+        ClearScrollRequest clear = new ClearScrollRequest();
+        clear.addScrollId(scrollId);
+        client.clearScroll(clear).actionGet();
 
         return ValidationResult.success(Triple.of(sourceIndex, defaultAccessLevel, results));
     }
@@ -277,14 +302,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "user_name_path", "backend_roles_path");
+                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path");
                     }
 
                     @Override
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         return ImmutableMap.<String, RequestContentValidator.DataType>builder()
                             .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
-                            .put("user_name_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
+                            .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
                             .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
                             .put("default_access_level", RequestContentValidator.DataType.STRING) // default access level for the new
                                                                                                   // structure
