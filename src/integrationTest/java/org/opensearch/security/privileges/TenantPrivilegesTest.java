@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -30,9 +29,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -40,7 +36,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -377,31 +373,11 @@ public class TenantPrivilegesTest {
     }
 
     static PrivilegesEvaluationContext ctx(String... roles) {
-        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.dept_no", "a1"));
-        return new PrivilegesEvaluationContext(
-            user,
-            ImmutableSet.copyOf(roles),
-            null,
-            null,
-            null,
-            null,
-            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
-        );
+        return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).attr("attrs.dept_no", "a1").get();
     }
 
     static PrivilegesEvaluationContext ctxWithDifferentUserAttr(String... roles) {
-        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.dept_no", "a10"));
-        return new PrivilegesEvaluationContext(
-            user,
-            ImmutableSet.copyOf(roles),
-            null,
-            null,
-            null,
-            null,
-            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
-        );
+        return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).attr("attrs.dept_no", "a10").get();
     }
 
     static String testResource(String fileName) throws IOException {
