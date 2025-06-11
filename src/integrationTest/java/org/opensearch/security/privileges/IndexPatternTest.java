@@ -234,10 +234,7 @@ public class IndexPatternTest {
     private static PrivilegesEvaluationContext ctx() {
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
         IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, () -> CLUSTER_STATE, null);
-        User user = new User("test_user");
-        user.addAttributes(ImmutableMap.of("attrs.a11", "a11"));
-        user.addAttributes(ImmutableMap.of("attrs.year", "year"));
-
+        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.a11", "a11", "attrs.year", "year"));
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.of(),
@@ -246,7 +243,8 @@ public class IndexPatternTest {
             null,
             indexResolverReplacer,
             indexNameExpressionResolver,
-            () -> CLUSTER_STATE
+            () -> CLUSTER_STATE,
+            ActionPrivileges.EMPTY
         );
     }
 }

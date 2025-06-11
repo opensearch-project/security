@@ -47,6 +47,12 @@ public class PrivilegesEvaluationContext {
     private final Supplier<ClusterState> clusterStateSupplier;
 
     /**
+     * Stores the ActionPrivileges instance to be used for this request. Plugin system users or users created from
+     * API tokens might use ActionPrivileges instances which do not correspond to the normal role configuration.
+     */
+    private final ActionPrivileges actionPrivileges;
+
+    /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
      * to be executed several times per request (for example first for action privileges, later for DLS). Thus,
      * it makes sense to cache and later re-use these.
@@ -61,7 +67,8 @@ public class PrivilegesEvaluationContext {
         Task task,
         IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<ClusterState> clusterStateSupplier
+        Supplier<ClusterState> clusterStateSupplier,
+        ActionPrivileges actionPrivileges
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
@@ -71,6 +78,7 @@ public class PrivilegesEvaluationContext {
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
+        this.actionPrivileges = actionPrivileges;
     }
 
     public User getUser() {
@@ -154,6 +162,14 @@ public class PrivilegesEvaluationContext {
 
     public IndexNameExpressionResolver getIndexNameExpressionResolver() {
         return indexNameExpressionResolver;
+    }
+
+    /**
+     * Returns the ActionPrivileges instance to be used for this request. Plugin system users or users created from
+     * API tokens might use ActionPrivileges instances which do not correspond to the normal role configuration.
+     */
+    public ActionPrivileges getActionPrivileges() {
+        return actionPrivileges;
     }
 
     @Override

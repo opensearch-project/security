@@ -63,6 +63,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
@@ -86,6 +87,7 @@ public class SecurityInterceptor {
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
     private final Supplier<Boolean> actionTraceEnabled;
+    private final UserFactory userFactory;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -98,7 +100,8 @@ public class SecurityInterceptor {
         final SslExceptionHandler sslExceptionHandler,
         final ClusterInfoHolder clusterInfoHolder,
         final SSLConfig SSLConfig,
-        final Supplier<Boolean> actionTraceSupplier
+        final Supplier<Boolean> actionTraceSupplier,
+        final UserFactory userFactory
     ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
@@ -111,6 +114,7 @@ public class SecurityInterceptor {
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
         this.actionTraceEnabled = actionTraceSupplier;
+        this.userFactory = userFactory;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -123,7 +127,8 @@ public class SecurityInterceptor {
             requestEvalProvider,
             cs,
             SSLConfig,
-            sslExceptionHandler
+            sslExceptionHandler,
+            userFactory
         );
     }
 
@@ -311,7 +316,7 @@ public class SecurityInterceptor {
             if (userHeader == null) {
                 // put as headers for other requests
                 if (origUser != null) {
-                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, origUser.toSerializedBase64());
                 } else if (StringUtils.isNotEmpty(injectedRolesString)) {
                     getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
                 } else if (StringUtils.isNotEmpty(injectedUserString)) {

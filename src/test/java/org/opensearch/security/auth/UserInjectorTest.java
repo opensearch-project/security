@@ -23,7 +23,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -60,9 +59,9 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
-        User injectedUser = userInjector.getInjectedUser();
-        assertThat("user", is(injectedUser.getName()));
-        assertThat(roles, is(injectedUser.getRoles()));
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
+        assertThat("user", is(injectedUser.getUser().getName()));
+        assertThat(roles, is(injectedUser.getUser().getRoles()));
     }
 
     @Test
@@ -73,8 +72,8 @@ public class UserInjectorTest {
             ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
             "user|role1,role2|2001:db8:3333:4444:5555:6666:7777:8888:9200"
         );
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
-        assertThat(injectedUser.getName(), is("user"));
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getUser().getName(), is("user"));
         assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
         assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8:3333:4444:5555:6666:7777:8888"));
     }
@@ -84,8 +83,8 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|2001:db8::1:9200");
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
-        assertThat(injectedUser.getName(), is("user"));
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getUser().getName(), is("user"));
         assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
         assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8::1"));
     }
@@ -98,7 +97,7 @@ public class UserInjectorTest {
             ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
             "user|role1,role2|2001:db8:3333:5555:6666:7777:8888:9200"
         );
-        User injectedUser = userInjector.getInjectedUser();
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
 
@@ -110,9 +109,9 @@ public class UserInjectorTest {
             ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
             "user|role1,role2|[2001:db8:3333:4444:5555:6666:7777:8888]:9200"
         );
-        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
-        assertThat(injectedUser.getName(), is("user"));
-        assertThat(injectedUser.getRoles(), is(roles));
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getUser().getName(), is("user"));
+        assertThat(injectedUser.getUser().getRoles(), is(roles));
         assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
         assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8:3333:4444:5555:6666:7777:8888"));
     }
@@ -122,13 +121,13 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|role1,role2");
-        User injectedUser = userInjector.getInjectedUser();
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
 
     @Test
     public void testEmptyInjectUserHeader() {
-        User injectedUser = userInjector.getInjectedUser();
+        UserInjector.Result injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
 

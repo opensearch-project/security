@@ -29,12 +29,14 @@ package org.opensearch.security.user;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchSecurityException;
 
@@ -213,16 +215,16 @@ public final class AuthCredentials {
      *
      * @return Defensive copy of the roles this user is member of.
      */
-    public Set<String> getBackendRoles() {
-        return new HashSet<String>(backendRoles);
+    public ImmutableSet<String> getBackendRoles() {
+        return ImmutableSet.copyOf(backendRoles);
     }
 
     /**
      *
      * @return Defensive copy of the security roles this user is member of.
      */
-    public Set<String> getSecurityRoles() {
-        return Set.copyOf(securityRoles);
+    public ImmutableSet<String> getSecurityRoles() {
+        return ImmutableSet.copyOf(securityRoles);
     }
 
     public boolean isComplete() {
@@ -248,7 +250,7 @@ public final class AuthCredentials {
         }
     }
 
-    public Map<String, String> getAttributes() {
-        return Collections.unmodifiableMap(this.attributes);
+    public ImmutableMap<String, String> getAttributes() {
+        return ImmutableMap.copyOf(this.attributes);
     }
 }

@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import org.junit.After;
 import org.junit.Test;
 
-import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
@@ -47,7 +46,6 @@ public class SafeSerializationUtilsTest {
         assertTrue(SafeSerializationUtils.isSafeClass(InetSocketAddress.class));
         assertTrue(SafeSerializationUtils.isSafeClass(Pattern.class));
         assertTrue(SafeSerializationUtils.isSafeClass(User.class));
-        assertTrue(SafeSerializationUtils.isSafeClass(UserInjector.InjectedUser.class));
         assertTrue(SafeSerializationUtils.isSafeClass(SourceFieldsContext.class));
         assertTrue(SafeSerializationUtils.isSafeClass(LdapUser.class));
         assertTrue(SafeSerializationUtils.isSafeClass(SearchEntry.class));

@@ -46,11 +46,12 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.PermissionBuilder;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -113,10 +114,10 @@ public class RestEndpointPermissionTests {
         }).toArray(String[]::new);
     }
 
-    final ActionPrivileges actionPrivileges;
+    final RoleBasedActionPrivileges actionPrivileges;
 
     public RestEndpointPermissionTests() throws IOException {
-        this.actionPrivileges = new ActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
+        this.actionPrivileges = new RoleBasedActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, Settings.EMPTY);
     }
 
     @Test
@@ -250,8 +251,8 @@ public class RestEndpointPermissionTests {
         return SecurityDynamicConfiguration.fromNode(rolesNode, CType.ROLES, 2, 0, 0);
     }
 
-    static PrivilegesEvaluationContext ctx(String... roles) {
-        return new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.copyOf(roles), null, null, null, null, null, null);
+    PrivilegesEvaluationContext ctx(String... roles) {
+        return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).actionPrivileges(actionPrivileges).get();
     }
 
 }

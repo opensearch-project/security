@@ -29,7 +29,6 @@ package org.opensearch.security.transport;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,7 +54,7 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
@@ -70,6 +69,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
+    private final UserFactory userFactory;
 
     SecurityRequestHandler(
         String action,
@@ -80,12 +80,14 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final InterClusterRequestEvaluator requestEvalProvider,
         final ClusterService cs,
         final SSLConfig SSLConfig,
-        final SslExceptionHandler sslExceptionHandler
+        final SslExceptionHandler sslExceptionHandler,
+        final UserFactory userFactory
     ) {
         super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
+        this.userFactory = userFactory;
     }
 
     @Override
@@ -181,7 +183,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 } else {
                     getThreadContext().putTransient(
                         ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader))
+                        this.userFactory.fromSerializedBase64(userHeader)
                     );
                 }
 

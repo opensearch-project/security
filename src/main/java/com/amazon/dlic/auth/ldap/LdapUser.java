@@ -11,91 +11,42 @@
 
 package com.amazon.dlic.auth.ldap;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.opensearch.security.auth.ldap.util.Utils;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
-
-import org.ldaptive.LdapAttribute;
-import org.ldaptive.LdapEntry;
-
 /**
  * This class intentionally remains in the com.amazon.dlic.auth.ldap package
  * to maintain compatibility with serialization/deserialization in mixed cluster
  * environments (nodes running different versions). The class is serialized and
  * passed between nodes, and changing the package would break backward compatibility.
  *
- * Note: This class is planned to be replaced as part of making the User object
- * immutable in a future release or reconsidering java serialization.
+ * This class is only used for deserialization. During deserialization, the readResolve()
+ * method will automatically convert it to a org.opensearch.security.user.User user object.
+ * It will never be used for serialization, only the org.opensearch.security.user.User user object
+ * will be serialized. This is possible because the additional attributes of LdapUser were only
+ * needed during the auth/auth phase, where no inter-node communication is necessary. Afterwards,
+ * the user object is never used as LdapUser, but just as a plain User object.
+ *
+ * This class can be removed as soon as it is no longer possible that a mixed cluster can contain
+ * nodes which send serialized LdapUser objects. This will be the case for OpenSearch 4.0.
  *
  * @see https://github.com/opensearch-project/security/pull/5223
  */
-public class LdapUser extends User {
+public class LdapUser extends org.opensearch.security.user.serialized.User {
 
     private static final long serialVersionUID = 1L;
-    private final transient LdapEntry userEntry;
     private final String originalUsername;
 
-    public LdapUser(
-        final String name,
-        String originalUsername,
-        final LdapEntry userEntry,
-        final AuthCredentials credentials,
-        int customAttrMaxValueLen,
-        WildcardMatcher allowlistedCustomLdapAttrMatcher
-    ) {
-        super(name, null, credentials);
-        this.originalUsername = originalUsername;
-        this.userEntry = userEntry;
-        Map<String, String> attributes = getCustomAttributesMap();
-        attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
+    public LdapUser() {
+        this.originalUsername = null;
     }
 
     /**
-     * May return null because ldapEntry is transient
-     *
-     * @return ldapEntry or null if object was deserialized
+     * Converts this objects back to User, just after deserialization.
+     * <p>
+     * Note: We do not convert back to LdapUser, but just to User. The additional attributes of
+     * LdapUser were only needed during the auth/auth phase, where no inter-node communication
+     * is necessary. Afterwards, the user object is never used as LdapUser, but just as a plain User
+     * object.
      */
-    public LdapEntry getUserEntry() {
-        return userEntry;
-    }
-
-    public String getDn() {
-        return userEntry.getDn();
-    }
-
-    public String getOriginalUsername() {
-        return originalUsername;
-    }
-
-    public static Map<String, String> extractLdapAttributes(
-        String originalUsername,
-        final LdapEntry userEntry,
-        int customAttrMaxValueLen,
-        WildcardMatcher allowlistedCustomLdapAttrMatcher
-    ) {
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("ldap.original.username", originalUsername);
-        attributes.put("ldap.dn", userEntry.getDn());
-
-        if (customAttrMaxValueLen > 0) {
-            for (LdapAttribute attr : userEntry.getAttributes()) {
-                if (attr != null && !attr.isBinary() && !attr.getName().toLowerCase().contains("password")) {
-                    final String val = Utils.getSingleStringValue(attr);
-                    // only consider attributes which are not binary and where its value is not
-                    // longer than customAttrMaxValueLen characters
-                    if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
-                        if (allowlistedCustomLdapAttrMatcher.test(attr.getName())) {
-                            attributes.put("attr.ldap." + attr.getName(), val);
-                        }
-                    }
-                }
-            }
-        }
-        return Collections.unmodifiableMap(attributes);
+    protected Object readResolve() {
+        return super.readResolve();
     }
 }

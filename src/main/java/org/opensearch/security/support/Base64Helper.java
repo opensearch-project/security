@@ -42,6 +42,7 @@ import com.google.common.io.BaseEncoding;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.common.Strings;
+import org.opensearch.security.user.User;
 
 import static org.opensearch.security.support.SafeSerializationUtils.isSafeClass;
 
@@ -106,8 +107,12 @@ public class Base64Helper {
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-
             Class<?> clazz = super.resolveClass(desc);
+
+            if (clazz.equals(User.class)) {
+                return org.opensearch.security.user.serialized.User.class;
+            }
+
             if (isSafeClass(clazz)) {
                 return clazz;
             }

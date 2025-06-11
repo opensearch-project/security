@@ -79,6 +79,7 @@ import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -86,7 +87,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -108,6 +108,7 @@ public class SecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
+    private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
     private final XFFResolver xffResolver;
@@ -123,6 +124,7 @@ public class SecurityFilter implements ActionFilter {
         AuditLog auditLog,
         ThreadPool threadPool,
         ClusterService cs,
+        final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver
@@ -133,6 +135,7 @@ public class SecurityFilter implements ActionFilter {
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
+        this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.xffResolver = xffResolver;
@@ -191,8 +194,12 @@ public class SecurityFilter implements ActionFilter {
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user == null && (user = userInjector.getInjectedUser()) != null) {
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+            if (user == null) {
+                UserInjector.Result injectedUser = userInjector.getInjectedUser();
+                if (injectedUser != null) {
+                    user = injectedUser.getUser();
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                }
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -359,10 +366,14 @@ public class SecurityFilter implements ActionFilter {
             final PrivilegesEvaluator eval = evalp;
 
             if (!eval.isInitialized()) {
-                log.error("OpenSearch Security not initialized for {}", action);
-                listener.onFailure(
-                    new OpenSearchSecurityException("OpenSearch Security not initialized for " + action, RestStatus.SERVICE_UNAVAILABLE)
-                );
+                StringBuilder error = new StringBuilder("OpenSearch Security not initialized for ");
+                error.append(action);
+                if (!clusterInfoHolder.hasClusterManager()) {
+                    error.append(String.format(". %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+                }
+
+                log.error(error.toString());
+                listener.onFailure(new OpenSearchSecurityException(error.toString(), RestStatus.SERVICE_UNAVAILABLE));
                 return;
             }
 
@@ -517,10 +528,6 @@ public class SecurityFilter implements ActionFilter {
         }
 
         return false;
-    }
-
-    public void updatePluginToPermissions(String pluginIdentifier, RoleV7 pluginPermissions) {
-        evalp.updatePluginToPermissions(pluginIdentifier, pluginPermissions);
     }
 
     private boolean isRequestIndexImmutable(Object request) {

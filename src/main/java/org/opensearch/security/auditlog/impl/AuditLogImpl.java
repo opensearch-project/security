@@ -31,6 +31,7 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -46,6 +47,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
     private volatile boolean enabled;
     private final Thread shutdownHook;
 
+    /**
+     * Only used for testing.
+     */
     public AuditLogImpl(
         final Settings settings,
         final Path configPath,
@@ -54,7 +58,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
         final IndexNameExpressionResolver resolver,
         final ClusterService clusterService
     ) {
-        this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null);
+        this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null, new UserFactory.Simple());
     }
 
     @SuppressWarnings("removal")
@@ -65,9 +69,10 @@ public final class AuditLogImpl extends AbstractAuditLog {
         final ThreadPool threadPool,
         final IndexNameExpressionResolver resolver,
         final ClusterService clusterService,
-        final Environment environment
+        final Environment environment,
+        final UserFactory userFactory
     ) {
-        super(settings, threadPool, resolver, clusterService, environment);
+        super(settings, threadPool, resolver, clusterService, environment, userFactory);
         this.settings = settings;
         this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath, clusterService);
         this.messageRouterEnabled = this.messageRouter.isEnabled();

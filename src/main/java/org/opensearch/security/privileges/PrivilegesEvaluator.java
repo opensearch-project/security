@@ -84,12 +84,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -101,6 +102,7 @@ import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -153,10 +155,18 @@ public class PrivilegesEvaluator {
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
-    private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
-    private final Map<String, RoleV7> pluginToRole;
-    private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
+    private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
+    private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
+    private final Map<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges = new HashMap<>();
+
+    /**
+     * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
+     * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
+     * use the action groups derived from the dynamic configuration (which is always computed on the fly on
+     * configuration updates).
+     */
+    private final FlattenedActionGroups staticActionGroups;
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
@@ -169,8 +179,7 @@ public class PrivilegesEvaluator {
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry
+        final IndexResolverReplacer irr
     ) {
 
         super();
@@ -179,7 +188,6 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
-        this.pluginToRole = new HashMap<>();
         this.clusterStateSupplier = clusterStateSupplier;
         this.settings = settings;
 
@@ -195,29 +203,28 @@ public class PrivilegesEvaluator {
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
-        this.namedXContentRegistry = namedXContentRegistry;
         this.configurationRepository = configurationRepository;
+        this.staticActionGroups = new FlattenedActionGroups(
+            DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS))
+        );
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
-                try {
-                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
-                        CType.ACTIONGROUPS
-                    );
-                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
 
-                    this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
-                } catch (Exception e) {
-                    log.error("Error while updating ActionPrivileges object with {}", configMap, e);
-                }
+                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
             });
         }
 
         if (clusterService != null) {
             clusterService.addListener(event -> {
-                ActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
+                RoleBasedActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
                 if (actionPrivileges != null) {
-                    actionPrivileges.updateClusterStateMetadataAsync(clusterService, threadPool);
+                    actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
         }
@@ -226,27 +233,29 @@ public class PrivilegesEvaluator {
 
     void updateConfiguration(
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration
+        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+        SecurityDynamicConfiguration<TenantV7> tenantConfiguration
     ) {
-        if (rolesConfiguration != null) {
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                ? DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
-                : DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS));
-            FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
-            ActionPrivileges actionPrivileges = new ActionPrivileges(
-                DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
-                flattenedActionGroups,
-                () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                settings,
-                pluginToRole
-            );
+        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+        rolesConfiguration = rolesConfiguration.withStaticConfig();
+        tenantConfiguration = tenantConfiguration.withStaticConfig();
+        try {
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(rolesConfiguration, flattenedActionGroups, settings);
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
-            ActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
+            RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
 
             if (oldInstance != null) {
-                oldInstance.shutdown();
+                oldInstance.clusterStateMetadataDependentPrivileges().shutdown();
             }
+        } catch (Exception e) {
+            log.error("Error while updating ActionPrivileges", e);
+        }
+
+        try {
+            this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
+        } catch (Exception e) {
+            log.error("Error while updating TenantPrivileges", e);
         }
     }
 
@@ -260,26 +269,22 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    public ActionPrivileges getActionPrivileges() {
-        return this.actionPrivileges.get();
-    }
-
     public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permission) {
         PrivilegesEvaluationContext context = createContext(user, permission);
-        return this.actionPrivileges.get().hasExplicitClusterPrivilege(context, permission).isAllowed();
+        return context.getActionPrivileges().hasExplicitClusterPrivilege(context, permission).isAllowed();
     }
 
     public boolean isInitialized() {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user) {
+    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
             joiner.add(escapePipe(user.getName()));
             joiner.add(escapePipe(String.join(",", user.getRoles())));
-            joiner.add(escapePipe(String.join(",", user.getSecurityRoles())));
+            joiner.add(escapePipe(String.join(",", mappedRoles)));
 
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
@@ -301,19 +306,50 @@ public class PrivilegesEvaluator {
         Set<String> injectedRoles
     ) {
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
+            StringBuilder error = new StringBuilder("OpenSearch Security is not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            throw new OpenSearchSecurityException(error.toString());
         }
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+        ActionPrivileges actionPrivileges;
+        ImmutableSet<String> mappedRoles;
+
+        if (user.isPluginUser()) {
+            mappedRoles = ImmutableSet.of();
+            actionPrivileges = this.pluginIdToActionPrivileges.get(user.getName());
+            if (actionPrivileges == null) {
+                actionPrivileges = ActionPrivileges.EMPTY;
+            }
+        } else {
+            mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
+            actionPrivileges = this.actionPrivileges.get();
+        }
+
+        return new PrivilegesEvaluationContext(
+            user,
+            mappedRoles,
+            action0,
+            request,
+            task,
+            irr,
+            resolver,
+            clusterStateSupplier,
+            actionPrivileges
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
 
         if (!isInitialized()) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
+            StringBuilder error = new StringBuilder("OpenSearch Security is not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            throw new OpenSearchSecurityException(error.toString());
         }
 
         String action0 = context.getAction();
@@ -351,9 +387,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
-        setUserInfoInThreadContext(user);
+        setUserInfoInThreadContext(user, mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
@@ -362,7 +396,7 @@ public class PrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        ActionPrivileges actionPrivileges = this.actionPrivileges.get();
+        ActionPrivileges actionPrivileges = context.getActionPrivileges();
         if (actionPrivileges == null) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
@@ -457,7 +491,8 @@ public class PrivilegesEvaluator {
                             user,
                             dcm,
                             requestedResolved,
-                            mapTenants(user, mappedRoles)
+                            context,
+                            this.tenantPrivileges.get()
                         );
 
                         if (isDebugEnabled) {
@@ -519,7 +554,8 @@ public class PrivilegesEvaluator {
                 user,
                 dcm,
                 requestedResolved,
-                mapTenants(user, mappedRoles)
+                context,
+                this.tenantPrivileges.get()
             );
 
             if (isDebugEnabled) {
@@ -599,13 +635,8 @@ public class PrivilegesEvaluator {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public Map<String, Boolean> mapTenants(final User user, Set<String> roles) {
-        return this.configModel.mapTenants(user, roles);
-    }
-
-    public Set<String> getAllConfiguredTenantNames() {
-
-        return configModel.getAllConfiguredTenantNames();
+    public TenantPrivileges tenantPrivileges() {
+        return this.tenantPrivileges.get();
     }
 
     public boolean multitenancyEnabled() {
@@ -851,7 +882,7 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableList(ret);
     }
 
-    public void updatePluginToPermissions(String pluginIdentifier, RoleV7 pluginPermissions) {
-        pluginToRole.put(pluginIdentifier, pluginPermissions);
+    public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
+        pluginIdToActionPrivileges.put(pluginIdentifier, new SubjectBasedActionPrivileges(pluginPermissions, staticActionGroups));
     }
 }

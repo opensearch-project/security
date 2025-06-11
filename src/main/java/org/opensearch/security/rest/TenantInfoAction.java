@@ -215,7 +215,7 @@ public class TenantInfoAction extends BaseRestHandler {
             final int expectedHash = Integer.parseInt(indexParts[1]);
             final String sanitizedName = indexParts[2];
 
-            for (String tenant : evaluator.getAllConfiguredTenantNames()) {
+            for (String tenant : evaluator.tenantPrivileges().allTenantNames()) {
                 if (tenant.hashCode() == expectedHash && sanitizedName.equals(tenant.toLowerCase().replaceAll("[^a-z0-9]+", ""))) {
                     return tenant;
                 }

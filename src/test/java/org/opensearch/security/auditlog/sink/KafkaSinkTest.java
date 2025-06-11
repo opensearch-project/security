@@ -19,8 +19,9 @@ import java.util.Random;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.ClassRule;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -30,58 +31,65 @@ import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.test.helper.file.FileHelper;
 
-import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
+import org.springframework.kafka.test.EmbeddedKafkaKraftBroker;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class KafkaSinkTest extends AbstractAuditlogUnitTest {
 
-    @ClassRule
-    public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, true, 1, "compliance") {
-        // Prevents test exceptions from randomized runner, see https://bit.ly/3y17IkI
-        private UncaughtExceptionHandler currentHandler;
+    private static EmbeddedKafkaBroker embeddedKafka;
+    private static UncaughtExceptionHandler origHandler;
 
-        @Override
-        public void before() {
-            currentHandler = Thread.getDefaultUncaughtExceptionHandler();
-            super.before();
-        }
+    @BeforeClass
+    public static void startKafka() throws Exception {
+        // Preserve the runner’s default handler (see https://bit.ly/3y17IkI)
+        origHandler = Thread.getDefaultUncaughtExceptionHandler();
 
-        @Override
-        public void after() {
-            super.after();
-            Thread.setDefaultUncaughtExceptionHandler(currentHandler);
+        // 1 broker, 1 partition per topic, create topic “compliance”
+        embeddedKafka = new EmbeddedKafkaKraftBroker(1, 1, "compliance");
+        embeddedKafka.afterPropertiesSet();   // <— starts the broker
+    }
+
+    @AfterClass
+    public static void stopKafka() {
+        if (embeddedKafka != null) {
+            embeddedKafka.destroy();
         }
-    };
+        Thread.setDefaultUncaughtExceptionHandler(origHandler);
+    }
 
     @Test
     public void testKafka() throws Exception {
-        String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml");
-        configYml = configYml.replace("_RPLC_BOOTSTRAP_SERVERS_", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
+        String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml")
+            .replace("_RPLC_BOOTSTRAP_SERVERS_", embeddedKafka.getBrokersAsString());
+
         Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.mediaType());
+
         try (KafkaConsumer<Long, String> consumer = createConsumer()) {
             consumer.subscribe(Arrays.asList("compliance"));
 
             Settings settings = settingsBuilder.put("path.home", ".").build();
             SinkProvider provider = new SinkProvider(settings, null, null, null, null);
             AuditLogSink sink = provider.getDefaultSink();
+
             try {
                 assertThat(sink.getClass(), is(KafkaSink.class));
                 boolean success = sink.doStore(MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES));
                 Assert.assertTrue(success);
+
                 ConsumerRecords<Long, String> records = consumer.poll(Duration.ofSeconds(10));
                 assertThat(records.count(), is(1));
             } finally {
                 sink.close();
             }
         }
-
     }
 
     private KafkaConsumer<Long, String> createConsumer() {
         Properties props = new Properties();
-        props.put("bootstrap.servers", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
+        props.put("bootstrap.servers", embeddedKafka.getBrokersAsString());
         props.put("auto.offset.reset", "earliest");
         props.put("group.id", "mygroup" + System.currentTimeMillis() + "_" + new Random().nextDouble());
         props.put("key.deserializer", "org.apache.kafka.common.serialization.LongDeserializer");

@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,6 +61,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
@@ -78,6 +80,7 @@ import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
+import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 
 public class BackendRegistry {
 
@@ -100,6 +103,7 @@ public class BackendRegistry {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
+    private final ClusterInfoHolder clusterInfoHolder;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
@@ -151,13 +155,15 @@ public class BackendRegistry {
         final AdminDNs adminDns,
         final XFFResolver xffResolver,
         final AuditLog auditLog,
-        final ThreadPool threadPool
+        final ThreadPool threadPool,
+        final ClusterInfoHolder clusterInfoHolder
     ) {
         this.adminDns = adminDns;
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        this.clusterInfoHolder = clusterInfoHolder;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.restAuthDomains = Collections.emptySortedSet();
         this.ipAuthFailureListeners = Collections.emptyList();
@@ -183,6 +189,31 @@ public class BackendRegistry {
         userCache.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
+    }
+
+    public void invalidateUserCache(String[] usernames) {
+        if (usernames == null || usernames.length == 0) {
+            log.warn("No usernames given, not invalidating user cache.");
+            return;
+        }
+
+        Set<String> usernamesAsSet = new HashSet<>(Arrays.asList(usernames));
+
+        // Invalidate entries in the userCache by iterating over the keys and matching the username.
+        userCache.asMap()
+            .keySet()
+            .stream()
+            .filter(authCreds -> usernamesAsSet.contains(authCreds.getUsername()))
+            .forEach(userCache::invalidate);
+
+        // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
+        restImpersonationCache.invalidateAll(usernamesAsSet);
+
+        // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
+        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsSet.contains(user.getName())).forEach(restRoleCache::invalidate);
+
+        // If the user isn't found it still says this, which could be bad
+        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernamesAsSet));
     }
 
     @Subscribe
@@ -249,8 +280,12 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            log.error("Not yet initialized (you may need to run securityadmin)");
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
+            StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            log.error("{} (you may need to run securityadmin)", error.toString());
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, error.toString()));
             return false;
         }
 
@@ -323,8 +358,8 @@ public class BackendRegistry {
                         if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
                             auditLog.logFailedLogin("<NONE>", false, null, request);
                         }
-                        if (isTraceEnabled) {
-                            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                        if (authDomain.getHttpAuthenticator().getType().equals(BASIC_TYPE)) {
+                            log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
@@ -395,7 +430,10 @@ public class BackendRegistry {
                 log.debug("securitytenant '{}'", tenant);
             }
 
-            authenticatedUser.setRequestedTenant(tenant);
+            if (tenant != null) {
+                authenticatedUser = authenticatedUser.withRequestedTenant(tenant);
+            }
+
             authenticated = true;
             break;
         }// end looping auth domains
@@ -430,9 +468,12 @@ public class BackendRegistry {
             }
 
             if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
+                User anonymousUser = User.ANONYMOUS;
+
                 final String tenant = resolveTenantFrom(request);
-                User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
-                anonymousUser.setRequestedTenant(tenant);
+                if (tenant != null) {
+                    anonymousUser = anonymousUser.withRequestedTenant(tenant);
+                }
 
                 UserSubject subject = new UserSubjectImpl(threadPool, anonymousUser);
 
@@ -498,7 +539,7 @@ public class BackendRegistry {
     private User checkExistsAndAuthz(
         final Cache<String, User> cache,
         final User user,
-        final AuthenticationBackend authenticationBackend,
+        final ImpersonationBackend impersonationBackend,
         final Set<AuthorizationBackend> authorizers
     ) {
         if (user == null) {
@@ -516,16 +557,19 @@ public class BackendRegistry {
                         log.trace(
                             "Credentials for user {} not cached, return from {} backend directly",
                             user.getName(),
-                            authenticationBackend.getType()
+                            impersonationBackend.getType()
                         );
                     }
-                    if (authenticationBackend.exists(user)) {
-                        authz(user, null, authorizers); // no role cache because no miss here in case of noop
-                        return user;
+
+                    Optional<User> impersonatedUser = impersonationBackend.impersonate(user);
+                    if (impersonatedUser.isPresent()) {
+                        AuthenticationContext context = new AuthenticationContext(new AuthCredentials(user.getName()));
+                        return authz(context, impersonatedUser.get(), null, authorizers); // no role cache because no miss here in case of
+                                                                                          // noop
                     }
 
                     if (isDebugEnabled) {
-                        log.debug("User {} does not exist in {}", user.getName(), authenticationBackend.getType());
+                        log.debug("User {} does not exist in {}", user.getName(), impersonationBackend.getType());
                     }
                     return null;
                 }
@@ -538,10 +582,15 @@ public class BackendRegistry {
         }
     }
 
-    private void authz(User authenticatedUser, Cache<User, Set<String>> roleCache, final Set<AuthorizationBackend> authorizers) {
+    private User authz(
+        AuthenticationContext context,
+        User authenticatedUser,
+        Cache<User, Set<String>> roleCache,
+        final Set<AuthorizationBackend> authorizers
+    ) {
 
         if (authenticatedUser == null) {
-            return;
+            return authenticatedUser;
         }
 
         if (roleCache != null) {
@@ -549,13 +598,12 @@ public class BackendRegistry {
             final Set<String> cachedBackendRoles = roleCache.getIfPresent(authenticatedUser);
 
             if (cachedBackendRoles != null) {
-                authenticatedUser.addRoles(new HashSet<String>(cachedBackendRoles));
-                return;
+                return authenticatedUser.withRoles(cachedBackendRoles);
             }
         }
 
         if (authorizers == null || authorizers.isEmpty()) {
-            return;
+            return authenticatedUser;
         }
 
         final boolean isTraceEnabled = log.isTraceEnabled();
@@ -568,7 +616,8 @@ public class BackendRegistry {
                         ab.getType()
                     );
                 }
-                ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
+
+                authenticatedUser = ab.addRoles(authenticatedUser, context);
             } catch (Exception e) {
                 log.error("Cannot retrieve roles for {} from {} due to {}", authenticatedUser, ab.getType(), e.toString(), e);
             }
@@ -577,6 +626,8 @@ public class BackendRegistry {
         if (roleCache != null) {
             roleCache.put(authenticatedUser, new HashSet<String>(authenticatedUser.getRoles()));
         }
+
+        return authenticatedUser;
     }
 
     /**
@@ -594,13 +645,16 @@ public class BackendRegistry {
         if (ac == null) {
             return null;
         }
+
+        AuthenticationContext context = new AuthenticationContext(ac);
+
         try {
 
             // noop backend configured and no authorizers
             // that mean authc and authz was completely done via HTTP (like JWT or PKI)
             if (authBackend.getClass() == NoOpAuthenticationBackend.class && authorizers.isEmpty()) {
                 // no cache
-                return authBackend.authenticate(ac);
+                return authBackend.authenticate(context);
             }
 
             return cache.get(ac, new Callable<User>() {
@@ -613,9 +667,8 @@ public class BackendRegistry {
                             authBackend.getType()
                         );
                     }
-                    final User authenticatedUser = authBackend.authenticate(ac);
-                    authz(authenticatedUser, roleCache, authorizers);
-                    return authenticatedUser;
+                    final User authenticatedUser = authBackend.authenticate(context);
+                    return authz(context, authenticatedUser, roleCache, authorizers);
                 }
             });
         } catch (Exception e) {
@@ -656,16 +709,18 @@ public class BackendRegistry {
             final boolean isDebugEnabled = log.isDebugEnabled();
             // loop over all http/rest auth domains
             for (final AuthDomain authDomain : restAuthDomains) {
-                final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                if (!(authDomain.getBackend() instanceof ImpersonationBackend impersonationBackend)) {
+                    continue;
+                }
 
                 if (!authDomain.getHttpAuthenticator().supportsImpersonation()) {
                     continue;
                 }
 
-                final User impersonatedUser = checkExistsAndAuthz(
+                User impersonatedUser = checkExistsAndAuthz(
                     restImpersonationCache,
                     new User(impersonatedUserHeader),
-                    authenticationBackend,
+                    impersonationBackend,
                     restAuthorizers
                 );
 
@@ -674,7 +729,7 @@ public class BackendRegistry {
                         "Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
                         originalUser.getName(),
                         impersonatedUserHeader,
-                        authenticationBackend.getType()
+                        impersonationBackend.getType()
                     );
                     continue;
                 }
@@ -687,7 +742,10 @@ public class BackendRegistry {
                     );
                 }
 
-                impersonatedUser.setRequestedTenant(originalUser.getRequestedTenant());
+                if (originalUser.getRequestedTenant() != null) {
+                    impersonatedUser = impersonatedUser.withRequestedTenant(originalUser.getRequestedTenant());
+                }
+
                 return impersonatedUser;
             }
 
