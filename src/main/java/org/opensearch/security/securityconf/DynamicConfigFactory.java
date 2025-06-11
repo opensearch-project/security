@@ -290,6 +290,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             eventBus.post(audit == null ? defaultAuditConfig : audit);
         }
 
+        log.debug("Dispatched config update notification to different subscribers");
+
         initialized.set(true);
     }
 

@@ -11,14 +11,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add flush cache endpoint for individual user ([#5337](https://github.com/opensearch-project/security/pull/5337))
 - Handle roles in nested claim for JWT auth backends ([#5355](https://github.com/opensearch-project/security/pull/5355))
 - Integrate search-relevance functionalities with security plugin ([#5376](https://github.com/opensearch-project/security/pull/5376))
+- Add forecast roles and permissions ([#5386](https://github.com/opensearch-project/security/pull/5386))
 - Introduced support for versioned security configurations via a new security configurations version index ([#5357] (https://github.com/opensearch-project/security/pull/5357))
 
 ### Changed
 - Use extendedPlugins in integrationTest framework for sample resource plugin testing ([#5322](https://github.com/opensearch-project/security/pull/5322))
-- Refactor ResourcePermissions to refer to action groups as access levels ([#5335](https://github.com/opensearch-project/security/pull/5335))
+- [Resource Sharing] Refactor ResourcePermissions to refer to action groups as access levels ([#5335](https://github.com/opensearch-project/security/pull/5335))
 - Introduced new, performance-optimized implementation for tenant privileges ([#5339](https://github.com/opensearch-project/security/pull/5339))
 - Performance improvements: Immutable user object ([#5212](https://github.com/opensearch-project/security/pull/5212))
 - Include mapped roles when setting userInfo in ThreadContext ([#5369](https://github.com/opensearch-project/security/pull/5369))
+- Adds details for debugging Security not initialized error([#5370](https://github.com/opensearch-project/security/pull/5370))
+- [Resource Sharing] Store resource sharing info in indices that map 1-to-1 with resource index ([#5358](https://github.com/opensearch-project/security/pull/5358))
 
 ### Dependencies
 - Bump `guava_version` from 33.4.6-jre to 33.4.8-jre ([#5284](https://github.com/opensearch-project/security/pull/5284))
@@ -54,7 +57,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix issue computing diffs in compliance audit log when writing to security index ([#5279](https://github.com/opensearch-project/security/pull/5279))
 - Fixing dependabot broken pull_request workflow for changelog update ([#5331](https://github.com/opensearch-project/security/pull/5331))
 - Fixes assemble workflow failure during Jenkins build ([#5334](https://github.com/opensearch-project/security/pull/5334))
-- Fixes security index stale cache issue post snapshot restore([#5307](https://github.com/opensearch-project/security/pull/5307))
+- Fixes security index stale cache issue post snapshot restore ([#5307](https://github.com/opensearch-project/security/pull/5307))
+- Only log Invalid Authentication header when HTTP Basic auth challenge is called ([#5377](https://github.com/opensearch-project/security/pull/5377))
 
 ### Security
 
