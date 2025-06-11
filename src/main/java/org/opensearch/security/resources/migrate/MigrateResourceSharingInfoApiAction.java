@@ -68,8 +68,9 @@ import static org.opensearch.security.spi.resources.ResourceAccessLevels.PLACE_H
  *  - POST `/resources/migrate`
  *      {
  *          source_index: "abc",                                    // name of plugin index
- *          user.name: "/path/to/username/node",                    // path to user-name in resource document in the plugin index
- *          user.backend_roles: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
+ *          user_name_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
+ *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
+ *          default_access_level: "<some-default-access-level>"     // default value that should replace the otherwise ResourceAccessLevels.PLACE_HOLDER assigned to the new ResourceSharing object
  *      }
  *   - Response:
  *      200 OK Migration Complete. migrate X, skippedNoUser Y, failed Z    // migrate -> successful migration count, skippedNoUser -> records with no creator info, failed -> records that failed to migrate
