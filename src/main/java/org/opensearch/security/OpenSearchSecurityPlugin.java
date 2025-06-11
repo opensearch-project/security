@@ -678,7 +678,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         sslSettingsManager,
                         Objects.requireNonNull(userService),
                         sslCertReloadEnabled,
-                        passwordHasher
+                        passwordHasher,
+                        rsIndexHandler
                     )
                 );
 
