@@ -2271,7 +2271,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
             RoleV7 pluginPermissions;
             if (resource == null) {
-                log.warn("plugin-permissions.yml not found on classpath");
+                log.info("plugin-permissions.yml not found on classpath for plugin {}, using empty permissions", pluginPrincipal);
                 pluginPermissions = new RoleV7();
                 pluginPermissions.setCluster_permissions(new ArrayList<>());
             } else {

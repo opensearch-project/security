@@ -629,9 +629,6 @@ public class PrivilegesEvaluator {
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
-        if (user.isPluginUser()) {
-            return Set.of(user.getName());
-        }
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
