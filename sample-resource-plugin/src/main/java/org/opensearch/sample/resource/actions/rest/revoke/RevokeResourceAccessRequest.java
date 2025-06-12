@@ -14,14 +14,17 @@ import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+
 /**
  * Request object for revoking access to a sample resource
  */
-public class RevokeResourceAccessRequest extends ActionRequest {
+public class RevokeResourceAccessRequest extends ActionRequest implements DocRequest {
 
     String resourceId;
     Map<Recipient, Set<String>> entitiesToRevoke;
@@ -57,5 +60,15 @@ public class RevokeResourceAccessRequest extends ActionRequest {
 
     public Map<Recipient, Set<String>> getEntitiesToRevoke() {
         return entitiesToRevoke;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String id() {
+        return resourceId;
     }
 }

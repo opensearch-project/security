@@ -14,14 +14,17 @@ import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+
 /**
  * Request object for sharing sample resource transport action
  */
-public class ShareResourceRequest extends ActionRequest {
+public class ShareResourceRequest extends ActionRequest implements DocRequest {
 
     private final String resourceId;
 
@@ -58,5 +61,15 @@ public class ShareResourceRequest extends ActionRequest {
 
     public Map<Recipient, Set<String>> getRecipients() {
         return recipients;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String id() {
+        return resourceId;
     }
 }
