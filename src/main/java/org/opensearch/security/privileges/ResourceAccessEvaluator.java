@@ -54,13 +54,19 @@ public class ResourceAccessEvaluator {
             return presponse.markComplete();
         }
 
+        DocRequest req = (DocRequest) request;
+
         // If user was super-admin, the request would have already been granted. So no need to check whether user is admin
 
-        if (request instanceof DocWriteRequest<?>) {
-            // check write permissions <- maybe punt it to the regular evaluator since it requires write permissions to the index
+        // Creation Request
+        // TODO Check if following is the correct way to identify the create request
+        if (request instanceof DocWriteRequest<?> && req.id() == null) {
+            // check write permissions
+            // TODO verif that this can be punted to the regular evaluator since it requires write permissions to the index
+            return presponse;
         }
 
-        DocRequest req = (DocRequest) request;
+
 
         // if requested index is not a resource sharing index, move on to the next evaluator
         if (!resourceIndices.contains(req.index())) {
