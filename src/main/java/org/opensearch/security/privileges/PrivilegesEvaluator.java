@@ -26,6 +26,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -93,6 +94,7 @@ import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -154,6 +156,7 @@ public class PrivilegesEvaluator {
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
+    private final ResourceAccessEvaluator resourceAccessEvaluator;
     private DynamicConfigModel dcm;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
@@ -179,7 +182,9 @@ public class PrivilegesEvaluator {
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr
+        final IndexResolverReplacer irr,
+        Set<String> resourceIndices,
+        final ResourceSharingIndexHandler resourceSharingIndexHandler
     ) {
 
         super();
@@ -228,6 +233,7 @@ public class PrivilegesEvaluator {
                 }
             });
         }
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, resourceSharingIndexHandler);
 
     }
 
@@ -401,6 +407,15 @@ public class PrivilegesEvaluator {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
 
+        final Resolved requestedResolved = context.getResolvedRequest();
+        try {
+            if (resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
+                return presponse;
+            }
+        } catch (IOException e) {
+            // Do nothing
+        }
+
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
             // indices:data/write/bulk[s]).
@@ -422,8 +437,6 @@ public class PrivilegesEvaluator {
             }
             return presponse;
         }
-
-        final Resolved requestedResolved = context.getResolvedRequest();
 
         if (isDebugEnabled) {
             log.debug("RequestedResolved : {}", requestedResolved);

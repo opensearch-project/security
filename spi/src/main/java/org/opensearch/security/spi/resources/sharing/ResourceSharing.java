@@ -9,6 +9,7 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -215,5 +216,27 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
 
         return shareWith.atAccessLevel(accessLevel).isSharedWithAny(recipientType, targets);
+    }
+
+    /**
+     * Fetches all access-levels where at-least 1 recipient matches the given set of targets
+     * @param recipientType the type of recipient to be matched against
+     * @param entities targets to look for
+     * @return set of access-levels which contain given nay of the targets
+     */
+    public Set<String> fetchAccessLevels(Recipient recipientType, Set<String> entities) {
+        Set<String> matchingGroups = new HashSet<>();
+        for (Map.Entry<String, Recipients> entry : shareWith.getSharingInfo().entrySet()) {
+            String accessLevel = entry.getKey();
+            Recipients recipients = entry.getValue();
+
+            Set<String> sharingRecipients = new HashSet<>(recipients.getRecipients().getOrDefault(recipientType, Set.of()));
+
+            // if there was at-least 1 element in common then add the access level to final list
+            if (sharingRecipients.removeAll(entities)) {
+                matchingGroups.add(accessLevel);
+            }
+        }
+        return matchingGroups;
     }
 }

@@ -68,6 +68,10 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         return sharingInfo.keySet();
     }
 
+    public Map<String, Recipients> getSharingInfo() {
+        return sharingInfo;
+    }
+
     public Recipients atAccessLevel(String accessLevel) {
         return sharingInfo.get(accessLevel);
     }
