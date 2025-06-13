@@ -27,9 +27,12 @@
 package org.opensearch.security.transport;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -64,6 +67,7 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
@@ -158,6 +162,14 @@ public class SecurityInterceptor {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+        final Set<String> requestHeadersToCopy = new HashSet<>();
+        if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS) != null) {
+            Collections.addAll(
+                requestHeadersToCopy,
+                getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS).split(",")
+            );
+            requestHeadersToCopy.remove(Task.X_OPAQUE_ID); // Special case where this header is preserved during stashContext.
+        }
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
@@ -178,11 +190,13 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS)
                             || (k.equals("_opendistro_security_source_field_context")
                                 && !(request instanceof SearchRequest)
                                 && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER))
+                        || requestHeadersToCopy.contains(k)
                 )
             );
 
