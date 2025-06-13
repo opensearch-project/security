@@ -96,12 +96,12 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
         if (type == null) {
             throw new IllegalArgumentException("Argon2 type can't be null");
         }
-        switch (type.toLowerCase()) {
-            case "argon2id":
+        switch (type.toUpperCase()) {
+            case "ARGON2ID":
                 return Argon2.ID;
-            case "argon2i":
+            case "ARGON2I":
                 return Argon2.I;
-            case "argon2d":
+            case "ARGON2D":
                 return Argon2.D;
             default:
                 throw new IllegalArgumentException("Unknown Argon2 type: " + type);
