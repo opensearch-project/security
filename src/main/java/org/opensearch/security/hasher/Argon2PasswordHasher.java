@@ -23,7 +23,7 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
     private static final int DEFAULT_SALT_LENGTH = 128;
 
     @SuppressWarnings("removal")
-    Argon2PasswordHasher(String type, int iterations, int memory, int parallelism, int length, int version) {
+    Argon2PasswordHasher(int iterations, int memory, int parallelism, int length, String type, int version) {
         this.iterations = iterations;
         this.memory = memory;
         this.parallelization = parallelism;
@@ -94,7 +94,7 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
 
     private Argon2 parseType(String type) {
         if (type == null) {
-            throw new IllegalArgumentException("Argon2 type cannot be null");
+            throw new IllegalArgumentException("Argon2 type can't be null");
         }
         switch (type.toLowerCase()) {
             case "argon2id":
