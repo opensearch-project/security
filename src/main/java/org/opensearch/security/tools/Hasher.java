@@ -28,8 +28,13 @@ package org.opensearch.security.tools;
 
 import java.io.Console;
 
-import org.apache.commons.cli.*;
-
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
@@ -46,6 +51,11 @@ public class Hasher {
     private static final String ITERATIONS_OPTION = "i";
     private static final String MINOR_OPTION = "min";
     private static final String HELP_OPTION = "h";
+
+    private static final String MEMORY_OPTION = "m";
+    private static final String PARALLELISM_OPTION = "par";
+    private static final String TYPE_OPTION = "t";
+    private static final String VERSION_OPTION = "v";
 
     public static void main(final String[] args) {
         final HelpFormatter formatter = new HelpFormatter();
@@ -85,6 +95,9 @@ public class Hasher {
                         break;
                     case ConfigConstants.PBKDF2:
                         settings = getPBKDF2Settings(line);
+                        break;
+                    case ConfigConstants.ARGON2:
+                        settings = getARGON2Settings(line);
                         break;
                     default:
                         throw new Exception("Unsupported hashing algorithm: " + algorithm);
@@ -146,6 +159,42 @@ public class Hasher {
         return settings.build();
     }
 
+    private static Settings getARGON2Settings(CommandLine line) throws ParseException {
+        Settings.Builder settings = Settings.builder();
+        settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2);
+        if (line.hasOption(MEMORY_OPTION)) {
+            settings.put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+                ((Number) line.getParsedOptionValue(MEMORY_OPTION)).intValue()
+            );
+        }
+        if (line.hasOption(ITERATIONS_OPTION)) {
+            settings.put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                ((Number) line.getParsedOptionValue(ITERATIONS_OPTION)).intValue()
+            );
+        }
+        if (line.hasOption(PARALLELISM_OPTION)) {
+            settings.put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                ((Number) line.getParsedOptionValue(PARALLELISM_OPTION)).intValue()
+            );
+        }
+        if (line.hasOption(LENGTH_OPTION)) {
+            settings.put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+                ((Number) line.getParsedOptionValue(LENGTH_OPTION)).intValue()
+            );
+        }
+        if (line.hasOption(TYPE_OPTION)) {
+            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE, line.getOptionValue(TYPE_OPTION).toUpperCase());
+        }
+        if (line.hasOption(VERSION_OPTION)) {
+            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, line.getOptionValue(VERSION_OPTION));
+        }
+        return settings.build();
+    }
+
     private static Options buildOptions() {
         final Options options = new Options();
         options.addOption(Option.builder(HELP_OPTION).longOpt("help").desc("Display the help information").argName("help").build());
@@ -189,7 +238,7 @@ public class Hasher {
                 .longOpt("length")
                 .desc("Desired length of the final derived key. Default: 256")
                 .hasArg()
-                .argName("length (PBKDF2)")
+                .argName("length (PBKDF2/Argon2)")
                 .type(Number.class)
                 .build()
         );
@@ -210,6 +259,41 @@ public class Hasher {
                 .hasArg()
                 .argName("iterations (PBKDF2)")
                 .type(Number.class)
+                .build()
+        );
+        options.addOption(
+            Option.builder(MEMORY_OPTION)
+                .longOpt("memory")
+                .desc("Amount of memory to use for Argon2 hashing in KB. Default: 65536")
+                .hasArg()
+                .argName("memory (Argon2)")
+                .type(Number.class)
+                .build()
+        );
+        options.addOption(
+            Option.builder(PARALLELISM_OPTION)
+                .longOpt("parallelism")
+                .desc("Number of parallel threads to use for Argon2 hashing. Default: 1")
+                .hasArg()
+                .argName("parallelism (Argon2)")
+                .type(Number.class)
+                .build()
+        );
+        options.addOption(
+            Option.builder(TYPE_OPTION)
+                .longOpt("type")
+                .desc("Type of Argon2 algorithm to use. Valid values are: ARGON2I | ARGON2D | ARGON2ID. Default: ARGON2ID")
+                .hasArg()
+                .argName("type (Argon2)")
+                .build()
+        );
+        options.addOption(
+            Option.builder(VERSION_OPTION)
+                .longOpt("version")
+                .desc("Version of Argon2 algorithm to use. Default: 0x13")
+                .hasArg()
+                .argName("version (Argon2)")
+                .type(String.class)
                 .build()
         );
         return options;
