@@ -18,6 +18,7 @@ import org.opensearch.security.support.ConfigConstants;
 
 import static org.opensearch.security.support.ConfigConstants.BCRYPT;
 import static org.opensearch.security.support.ConfigConstants.PBKDF2;
+import static org.opensearch.security.support.ConfigConstants.ARGON2;
 
 public class PasswordHasherFactory {
 
