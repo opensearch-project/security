@@ -530,10 +530,6 @@ public class SecurityFilter implements ActionFilter {
         return false;
     }
 
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        evalp.updatePluginToClusterActions(pluginIdentifier, clusterActions);
-    }
-
     private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         if (resolved.isLocalAll()) {

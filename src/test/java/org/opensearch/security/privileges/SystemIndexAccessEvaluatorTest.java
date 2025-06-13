@@ -14,6 +14,8 @@ package org.opensearch.security.privileges;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -27,12 +29,15 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -74,6 +79,10 @@ public class SystemIndexAccessEvaluatorTest {
     private Logger log;
     @Mock
     ClusterService cs;
+    @Mock
+    Metadata metadata;
+    @Mock
+    ClusterState clusterState;
 
     private SystemIndexAccessEvaluator evaluator;
     private static final String UNPROTECTED_ACTION = "indices:data/read";
@@ -83,12 +92,13 @@ public class SystemIndexAccessEvaluatorTest {
     private static final String TEST_INDEX = ".test";
     private static final String SECURITY_INDEX = ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
 
-    ImmutableMap<String, IndexAbstraction> indexMetadata = MockIndexMetadataBuilder.indices(TEST_INDEX, TEST_SYSTEM_INDEX, SECURITY_INDEX)
-        .build();
+    static final SortedMap<String, IndexAbstraction> indexMetadata = new TreeMap<>(
+        MockIndexMetadataBuilder.indices(TEST_INDEX, TEST_SYSTEM_INDEX, SECURITY_INDEX).build()
+    );
 
     User user;
     IndexNameExpressionResolver indexNameExpressionResolver;
-    ActionPrivileges actionPrivileges;
+    RoleBasedActionPrivileges actionPrivileges;
 
     private ThreadContext createThreadContext() {
         return new ThreadContext(Settings.EMPTY);
@@ -128,7 +138,7 @@ public class SystemIndexAccessEvaluatorTest {
                 CType.ROLES
             );
 
-            this.actionPrivileges = new ActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, () -> indexMetadata, Settings.EMPTY);
+            this.actionPrivileges = new RoleBasedActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, Settings.EMPTY);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -151,6 +161,8 @@ public class SystemIndexAccessEvaluatorTest {
 
         when(log.isDebugEnabled()).thenReturn(true);
         when(log.isInfoEnabled()).thenReturn(true);
+        when(clusterState.metadata()).thenReturn(metadata);
+        when(metadata.getIndicesLookup()).thenReturn(indexMetadata);
     }
 
     PrivilegesEvaluationContext ctx(String action) {
@@ -162,7 +174,8 @@ public class SystemIndexAccessEvaluatorTest {
             null,
             null,
             indexNameExpressionResolver,
-            null
+            () -> clusterState,
+            actionPrivileges
         );
     }
 

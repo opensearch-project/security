@@ -171,8 +171,7 @@ public class PrivilegesEvaluatorUnitTest {
             settings,
             privilegesInterceptor,
             clusterInfoHolder,
-            irr,
-            namedXContentRegistry
+            irr
         );
     }
 
