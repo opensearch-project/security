@@ -37,6 +37,9 @@ public class PasswordHasherFactory {
             case PBKDF2:
                 passwordHasher = getPBKDF2Hasher(settings);
                 break;
+            case ARGON2:
+                passwordHasher = new Argon2PasswordHasher(settings);
+                break;
             default:
                 throw new IllegalArgumentException(String.format("Password hashing algorithm '%s' not supported.", algorithm));
         }
@@ -89,5 +92,25 @@ public class PasswordHasherFactory {
             throw new IllegalArgumentException(String.format("PBKDF2 length must be a positive integer. Got: %d", length));
         }
         return new PBKDF2PasswordHasher(pbkdf2Function, iterations, length);
+    }
+
+    // Literally just copy and pasted for now, need to refactor later
+    private static PasswordHasher getArgon2Hasher(Settings settings) {
+        int rounds = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+        );
+        String minor = settings.get(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT
+        ).toUpperCase();
+
+        if (rounds < 4 || rounds > 31) {
+            throw new IllegalArgumentException(String.format("BCrypt rounds must be between 4 and 31. Got: %d", rounds));
+        }
+        if (!ALLOWED_BCRYPT_MINORS.contains(minor)) {
+            throw new IllegalArgumentException(String.format("BCrypt minor must be 'A', 'B', or 'Y'. Got: %s", minor));
+        }
+        return new Argon2PasswordHasher(minor, rounds);
     }
 }
