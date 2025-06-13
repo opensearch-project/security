@@ -29,6 +29,7 @@ package org.opensearch.security.filter;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -63,7 +64,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -72,6 +72,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS;
 
 public class SecurityRestFilter {
 
@@ -138,10 +139,13 @@ public class SecurityRestFilter {
 
             NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
                 // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
-                final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
+                final Map<String, String> tmpHeaders = threadContext.getHeaders();
                 storedContext.restore();
-                if (xOpaqueId != null) {
-                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+                for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
+                    threadContext.putHeader(header.getKey(), header.getValue());
+                }
+                if (!tmpHeaders.isEmpty()) {
+                    threadContext.putHeader(OPENDISTRO_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
 
