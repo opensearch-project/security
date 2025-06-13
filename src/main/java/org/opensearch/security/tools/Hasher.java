@@ -213,7 +213,7 @@ public class Hasher {
                 .longOpt("algorithm")
                 .argName("hashing algorithm")
                 .hasArg()
-                .desc("Algorithm to use for password hashing. Valid values are: BCrypt | PBKDF2. Default: BCrypt")
+                .desc("Algorithm to use for password hashing. Valid values are: BCrypt | PBKDF2 | Argon2. Default: BCrypt")
                 .build()
         );
         options.addOption(
@@ -236,7 +236,7 @@ public class Hasher {
         options.addOption(
             Option.builder(LENGTH_OPTION)
                 .longOpt("length")
-                .desc("Desired length of the final derived key. Default: 256")
+                .desc("Desired length of the final derived key. Default: 256 (PKBDF2), 32 (Argon2)")
                 .hasArg()
                 .argName("length (PBKDF2/Argon2)")
                 .type(Number.class)
@@ -257,7 +257,7 @@ public class Hasher {
                 .longOpt("iterations")
                 .desc("Number of times the pseudo-random function is applied to the password. Default: 600000")
                 .hasArg()
-                .argName("iterations (PBKDF2)")
+                .argName("iterations (PBKDF2/Argon2)")
                 .type(Number.class)
                 .build()
         );
