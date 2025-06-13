@@ -63,12 +63,12 @@ import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 @SuppressWarnings({ "resource", "unchecked" })
 public class SSLTest extends SingleClusterTest {
