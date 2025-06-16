@@ -473,7 +473,7 @@ configurations {
 
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.0"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
