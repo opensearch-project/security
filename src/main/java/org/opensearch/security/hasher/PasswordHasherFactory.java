@@ -97,14 +97,30 @@ public class PasswordHasherFactory {
 
     // Literally just copy and pasted for now, need to refactor later
     private static PasswordHasher getArgon2Hasher(Settings settings) {
-        int rounds = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+        int memory = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT
         );
-        String minor = settings.get(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT
+        int iterations = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT
+        );
+        int parallelism = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT
+        );
+        int length = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT
+        );
+        String type = settings.get(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT
         ).toUpperCase();
+        int version = settings.getAsInt(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+        );
 
         if (rounds < 4 || rounds > 31) {
             throw new IllegalArgumentException(String.format("BCrypt rounds must be between 4 and 31. Got: %d", rounds));
