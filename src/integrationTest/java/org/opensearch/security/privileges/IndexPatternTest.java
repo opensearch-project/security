@@ -243,7 +243,8 @@ public class IndexPatternTest {
             null,
             indexResolverReplacer,
             indexNameExpressionResolver,
-            () -> CLUSTER_STATE
+            () -> CLUSTER_STATE,
+            ActionPrivileges.EMPTY
         );
     }
 }

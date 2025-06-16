@@ -168,11 +168,11 @@ import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourceAccessControlClient;
@@ -1156,8 +1156,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings,
             privilegesInterceptor,
             cih,
-            irr,
-            namedXContentRegistry.get()
+            irr
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -2130,7 +2129,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             // Privileges evaluation
-            settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+            settings.add(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
 
             // Resource Sharing
             settings.add(
@@ -2294,7 +2293,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         Set<String> clusterActions = new HashSet<>();
         clusterActions.add(BulkAction.NAME);
         PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
-        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        evaluator.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
         return subject;
     }
 
