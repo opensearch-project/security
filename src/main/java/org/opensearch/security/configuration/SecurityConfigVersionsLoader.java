@@ -38,25 +38,25 @@ public class SecurityConfigVersionsLoader {
     private static final Logger log = LogManager.getLogger(SecurityConfigVersionsLoader.class);
 
     private final Client client;
-    private final String opendistroSecurityConfigVersionsIndex;
+    private final String opensearchSecurityConfigVersionsIndex;
 
     public SecurityConfigVersionsLoader(Client client, Settings settings) {
         this.client = client;
-        this.opendistroSecurityConfigVersionsIndex = settings.get(
+        this.opensearchSecurityConfigVersionsIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
             ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
         );
     }
 
     private void getSecurityConfigVersionDocAsync(ActionListener<SecurityConfigVersionDocument> listener) {
-        GetRequest getRequest = new GetRequest(opendistroSecurityConfigVersionsIndex, "opendistro_security_config_versions");
+        GetRequest getRequest = new GetRequest(opensearchSecurityConfigVersionsIndex, "opensearch_security_config_versions");
 
         client.get(getRequest, new ActionListener<>() {
             @Override
             public void onResponse(GetResponse getResponse) {
                 try {
                     if (!getResponse.isExists()) {
-                        log.warn("Config versions document not found in {}", opendistroSecurityConfigVersionsIndex);
+                        log.warn("Config versions document not found in {}", opensearchSecurityConfigVersionsIndex);
                         listener.onResponse(new SecurityConfigVersionDocument()); // return empty doc
                         return;
                     }
@@ -78,7 +78,7 @@ public class SecurityConfigVersionsLoader {
 
             @Override
             public void onFailure(Exception e) {
-                log.error("Failed to load config versions doc from {}", opendistroSecurityConfigVersionsIndex, e);
+                log.error("Failed to load config versions doc from {}", opensearchSecurityConfigVersionsIndex, e);
                 listener.onFailure(e);
             }
         });

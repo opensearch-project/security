@@ -308,7 +308,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         String json = DefaultObjectMapper.objectMapper.writeValueAsString(updatedDocMap);
 
         var indexRequest = new org.opensearch.action.index.IndexRequest(securityConfigVersionsIndex).id(
-            "opendistro_security_config_versions"
+            "opensearch_security_config_versions"
         ).source(json, XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 
         if (currentSeqNo >= 0 && currentPrimaryTerm > 0) {
