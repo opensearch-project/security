@@ -499,6 +499,10 @@ public class IndexResolverReplacer {
             return allIndices;
         }
 
+        public Set<String> getOriginalRequested() {
+            return originalRequested;
+        }
+
         public Set<String> getAllIndicesResolved(ClusterService clusterService, IndexNameExpressionResolver resolver) {
             return getAllIndicesResolved(clusterService::state, resolver);
         }
