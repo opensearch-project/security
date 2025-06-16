@@ -19,6 +19,7 @@ import org.opensearch.security.support.ConfigConstants;
 import static org.opensearch.security.support.ConfigConstants.BCRYPT;
 import static org.opensearch.security.support.ConfigConstants.PBKDF2;
 import static org.opensearch.security.support.ConfigConstants.ARGON2;
+import com.password4j.types.Argon2;
 
 public class PasswordHasherFactory {
 
@@ -39,7 +40,7 @@ public class PasswordHasherFactory {
                 passwordHasher = getPBKDF2Hasher(settings);
                 break;
             case ARGON2:
-                passwordHasher = new Argon2PasswordHasher(settings);
+                passwordHasher = Argon2PasswordHasher(settings);
                 break;
             default:
                 throw new IllegalArgumentException(String.format("Password hashing algorithm '%s' not supported.", algorithm));
@@ -95,7 +96,6 @@ public class PasswordHasherFactory {
         return new PBKDF2PasswordHasher(pbkdf2Function, iterations, length);
     }
 
-    // Literally just copy and pasted for now, need to refactor later
     private static PasswordHasher getArgon2Hasher(Settings settings) {
         int memory = settings.getAsInt(
             ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
@@ -116,18 +116,31 @@ public class PasswordHasherFactory {
         String type = settings.get(
             ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
             ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT
-        ).toUpperCase();
+        );
         int version = settings.getAsInt(
             ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
             ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
         );
 
-        if (rounds < 4 || rounds > 31) {
-            throw new IllegalArgumentException(String.format("BCrypt rounds must be between 4 and 31. Got: %d", rounds));
+        if (memory <= 0) {
+            throw new IllegalArgumentException(String.format("Argon2 memory must be a positive integer. Got: %d", memory));
         }
-        if (!ALLOWED_BCRYPT_MINORS.contains(minor)) {
-            throw new IllegalArgumentException(String.format("BCrypt minor must be 'A', 'B', or 'Y'. Got: %s", minor));
+        if (iterations <= 0) {
+            throw new IllegalArgumentException(String.format("Argon2 iterations must be a positive integer. Got: %d", iterations));
         }
-        return new Argon2PasswordHasher(minor, rounds);
+        if (parallelism <= 0) {
+            throw new IllegalArgumentException(String.format("Argon2 parallelism must be a positive integer. Got: %d", parallelism));
+        }
+        if (length <= 0) {
+            throw new IllegalArgumentException(String.format("Argon2 length must be a positive integer. Got: %d", length));
+        }
+        String typeUpper = type.toUpperCase();
+        if (!typeUpper.equals("ARGON2ID") && !typeUpper.equals("ARGON2I") && !typeUpper.equals("ARGON2D")) {
+            throw new IllegalArgumentException(String.format("Argon2 type must be one of argon2id, argon2i, or argon2d. Got: %s", type));
+        }
+        if (version != 16 && version != 19) {
+            throw new IllegalArgumentException(String.format("Argon2 version must be either 16 or 19. Got: %d", version));
+        }
+        return new Argon2PasswordHasher(memory, iterations, parallelism, length, type, version);
     }
 }
