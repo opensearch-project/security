@@ -1,0 +1,18 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+admin:
+  hash: "$argon2id$v=19$m=65536,t=3,p=1$...$..." #placeholder for actual hash
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with Argon2id with standard configuration"
+user1:
+  hash: "$argon2id$v=19$m=65536,t=2,p=1$...$..."
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with Argon2id with: 2 iterations | 65536 KB memory | 1 parallelism"
