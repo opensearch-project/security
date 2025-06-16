@@ -13,23 +13,23 @@ package org.opensearch.security.hash;
 
 import java.nio.CharBuffer;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import org.junit.runner.RunWith;
-
 import org.opensearch.test.framework.TestSecurityConfig;
+import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.password4j.Argon2Function;
 import com.password4j.BcryptFunction;
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.Password;
+import com.password4j.types.Argon2;
 import com.password4j.types.Bcrypt;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -75,6 +75,18 @@ public class HashingTests extends RandomizedTest {
     public static String generatePBKDF2Hash(String password, String algorithm, int iterations, int length) {
         return Password.hash(CharBuffer.wrap(password.toCharArray()))
             .with(CompressedPBKDF2Function.getInstance(algorithm, iterations, length))
+            .getResult();
+    }
+
+    public static String generateArgon2Hash(String password, int memory, int iterations, int parallelism, int length, String type, int version) {
+        Argon2 argon2Type = switch (type.toUpperCase()) {
+            case "ARGON2ID" -> Argon2.ID;
+            case "ARGON2I"  -> Argon2.I;
+            case "ARGON2D"  -> Argon2.D;
+            default -> throw new IllegalArgumentException("Unknown Argon2 type: " + type);
+        };
+        return Password.hash(CharBuffer.wrap(password.toCharArray()))
+            .with(Argon2Function.getInstance(memory, iterations, parallelism, length, argon2Type, version))
             .getResult();
     }
 
