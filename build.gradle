@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.12.6'
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.7'
+        spring_version = '6.2.8'
         bouncycastle_version = '1.81'
 
         if (buildVersionQualifier) {
@@ -472,8 +472,8 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.0"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.0"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
