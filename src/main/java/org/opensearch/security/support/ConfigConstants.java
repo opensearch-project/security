@@ -190,7 +190,7 @@ public class ConfigConstants {
     public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.type";
     public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT = "argon2id";
     public static final String SECURITY_PASSWORD_HASHING_ARGON2_VERSION = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.version";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 0x13;
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";
