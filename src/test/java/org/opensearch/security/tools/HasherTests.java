@@ -16,13 +16,13 @@ import java.io.InputStream;
 import java.io.PrintStream;
 
 import org.junit.After;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.password4j.Argon2Function;
 import com.password4j.CompressedPBKDF2Function;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class HasherTests {
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -46,6 +46,7 @@ public class HasherTests {
         assertTrue("should return a valid BCrypt hash with the default BCrypt configuration", out.toString().startsWith("$2y$12"));
     }
 
+    //BCRYPT
     @Test
     public void testWithBCryptRoundsArgument() {
         Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
@@ -77,6 +78,7 @@ public class HasherTests {
         assertTrue("should return a valid BCrypt hash with the correct configuration", out.toString().startsWith("$2a$05"));
     }
 
+    //PBKDF2
     @Test
     public void testWithPBKDF2DefaultArguments() {
         Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
@@ -141,5 +143,162 @@ public class HasherTests {
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA384");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 150000);
         assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 250);
+    }
+
+    //ARGON2
+    @Test
+    public void testWithArgon2DefaultArguments() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2MemoryArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "47104" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 47104);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "19456" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 19456);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2IterationsArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-i", "1" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-i", "5" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 5);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2ParallelismArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-p", "2" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 2);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-p", "1" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2LengthArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-l", "64" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"length\"", argon2Function.getOutputLength(), 64);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-l", "12" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"length\"", argon2Function.getOutputLength(), 12);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2TypeArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-t", "argon2i" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"type\"", argon2Function.getVariant(), "argon2i");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-t", "argon2d" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"type\"", argon2Function.getVariant(), "argon2d");
+        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2VersionArgument() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-v", "16" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the correct value for \"version\"", argon2Function.getVersion(), 16);
+        out.reset();
+
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-v", "19" });
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
+        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
+        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
+        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the correct value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    @Test
+    public void testWithArgon2AllArguments() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "47104", "-i", "1", "-p", "2", "-l", "64", "-t", "argon2d", "-v", "19" });
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 47104);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 1);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 2);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"length\"", argon2Function.getOutputLength(), 64);
+        assertEquals("should return a valid Argon2 hash with the correct value for \"type\"", argon2Function.getVariant(), "argon2d");
+        assertEquals("should return a valid Argon2 hash with the correct value for \"version\"", argon2Function.getVersion(), 19);
     }
 }
