@@ -1,0 +1,63 @@
+apply plugin: 'com.gradleup.shadow'
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'jacoco'
+apply plugin: 'maven-publish'
+
+buildscript {
+    ext {
+        open_saml_version = '5.1.4'
+        open_saml_shib_version = "9.1.4"
+    }
+}
+repositories {
+    maven { url "build.shibboleth.net/maven/releases"}
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set 'sources'
+    from sourceSets.main.allJava
+}
+
+dependencies {
+    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+
+    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
+    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
+
+
+    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+
+    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
+    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
+        exclude(group: 'org.apache.velocity', module: 'velocity')
+    }
+    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+
+    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
+
+    runtimeOnly "org.apache.httpcomponents.client5:httpclient5:5.4.4"
+    runtimeOnly "org.apache.httpcomponents.client5:httpclient5-cache:5.4.4"
+}
+
+tasks.shadowJar {
+    mergeServiceFiles()
+    exclude 'com/**'
+    exclude 'org/apache/**'
+    exclude 'org/bouncycastle/**'
+    exclude 'org/checkerframework/**'
+    exclude 'org/cryptacular/**'
+    exclude 'org/publicsuffix/**'
+    exclude 'org/slf4j/**'
+    exclude 'javax/**'
+    exclude 'META-INF/versions/**/org/bouncycastle/**'
+    exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
+}
