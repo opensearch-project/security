@@ -2,10 +2,9 @@ package org.opensearch.security.hasher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-
 import org.junit.Before;
 import org.junit.Test;
-import org.opensearch.commons.ConfigConstants;
+import org.opensearch.security.support.ConfigConstants;
 
 public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
 
