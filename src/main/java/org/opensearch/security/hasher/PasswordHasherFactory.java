@@ -15,11 +15,9 @@ import java.util.Set;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
-
+import static org.opensearch.security.support.ConfigConstants.ARGON2;
 import static org.opensearch.security.support.ConfigConstants.BCRYPT;
 import static org.opensearch.security.support.ConfigConstants.PBKDF2;
-import static org.opensearch.security.support.ConfigConstants.ARGON2;
-import com.password4j.types.Argon2;
 
 public class PasswordHasherFactory {
 
@@ -40,7 +38,7 @@ public class PasswordHasherFactory {
                 passwordHasher = getPBKDF2Hasher(settings);
                 break;
             case ARGON2:
-                passwordHasher = Argon2PasswordHasher(settings);
+                passwordHasher = getArgon2Hasher(settings);
                 break;
             default:
                 throw new IllegalArgumentException(String.format("Password hashing algorithm '%s' not supported.", algorithm));
