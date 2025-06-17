@@ -34,6 +34,7 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOUR
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.sampleReadOnlyAG;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
@@ -76,7 +77,7 @@ public class SampleResourcePluginFeatureDisabledTests {
     }
 
     @Test
-    public void testNoResourceRestrictions() throws Exception {
+    public void testNoResourceRestrictions() {
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -133,7 +134,7 @@ public class SampleResourcePluginFeatureDisabledTests {
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse updateResponse = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER.getName())
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             updateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
         }
@@ -142,7 +143,7 @@ public class SampleResourcePluginFeatureDisabledTests {
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse updateResponse = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(SHARED_WITH_USER.getName())
+                revokeAccessPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             updateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
         }

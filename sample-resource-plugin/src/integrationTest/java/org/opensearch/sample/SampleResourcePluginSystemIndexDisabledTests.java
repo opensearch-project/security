@@ -23,7 +23,6 @@ import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.spi.resources.ResourceAccessLevels;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -41,6 +40,8 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOUR
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.sampleAllAG;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.sampleReadOnlyAG;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
@@ -76,6 +77,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
+        .actionGroups(sampleReadOnlyAG, sampleAllAG)
         .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
@@ -97,7 +99,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
     }
 
     @Test
-    public void testCreateUpdateDeleteSampleResource() throws Exception {
+    public void testCreateUpdateDeleteSampleResource() {
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -158,13 +160,9 @@ public class SampleResourcePluginSystemIndexDisabledTests {
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER.getName())
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-            assertThat(
-                response.bodyAsJsonNode().get("error").get("root_cause").get(0).get("reason").asText(),
-                containsString("User " + SHARED_WITH_USER.getName() + " is not authorized")
-            );
         }
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
@@ -177,11 +175,11 @@ public class SampleResourcePluginSystemIndexDisabledTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER.getName())
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(sampleReadOnlyAG.name()).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }
@@ -208,7 +206,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(SHARED_WITH_USER.getName())
+                revokeAccessPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), not(containsString("resource_sharing_test_user")));
@@ -257,7 +255,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
     }
 
     @Test
-    public void testDirectAccess() throws Exception {
+    public void testDirectAccess() {
         String resourceId;
         // create sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -287,17 +285,16 @@ public class SampleResourcePluginSystemIndexDisabledTests {
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // shared_with_user will be able to access resource directly since system index protection is disabled even-though resource is not
-        // shared with this user, but cannot access via sample plugin APIs
+        // shared_with_user will not be able to access resource directly or via sample plugin APIs
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // Update sample resource shared_with_user will be able to update admin's resource because system index protection is disabled
+        // Update sample resource shared_with_user will not be able to update admin's resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             String sampleResourceUpdated = """
                 {"name":"sampleUpdated"}
@@ -307,7 +304,7 @@ public class SampleResourcePluginSystemIndexDisabledTests {
                 RESOURCE_INDEX_NAME + "/_doc/" + resourceId,
                 sampleResourceUpdated
             );
-            updateResponse.assertStatusCode(HttpStatus.SC_OK);
+            updateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // share resource with shared_with user
@@ -318,17 +315,16 @@ public class SampleResourcePluginSystemIndexDisabledTests {
 
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER.getName())
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
-                response.bodyAsJsonNode().get("share_with").get(ResourceAccessLevels.PLACE_HOLDER).get("users").get(0).asText(),
+                response.bodyAsJsonNode().get("share_with").get(sampleReadOnlyAG.name()).get("users").get(0).asText(),
                 containsString(SHARED_WITH_USER.getName())
             );
         }
 
-        // shared_with_user will still be able to access resource directly since system index protection is enabled, but can also access via
-        // sample plugin
+        // shared_with_user will be able to access resource directly anc via sample plugin
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -344,22 +340,39 @@ public class SampleResourcePluginSystemIndexDisabledTests {
                 .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(SHARED_WITH_USER.getName())
+                revokeAccessPayload(SHARED_WITH_USER.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), not(containsString("resource_sharing_test_user")));
         }
 
-        // shared_with_user will still be able to access the resource directly but not via sample plugin since access is revoked
+        // shared_with_user will not be able to access the resource
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // shared_with_user should be able to delete the resource since system index protection is disabled
+        // shared_with_user should not be able to delete the resource even when system index protection is disabled
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+        }
+
+        // if we grant shared_with_user full access to the resource, they should be able to delete it
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            Awaitility.await()
+                .alias("Wait until resource-sharing data is populated")
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
+
+            HttpResponse response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleAllAG.name())
+            );
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);

@@ -84,10 +84,16 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
             response = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload(USER_ADMIN.getName()));
+            response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+            );
             assertNotImplementedResponse(response);
 
-            response = client.postJson(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, revokeAccessPayload(USER_ADMIN.getName()));
+            response = client.postJson(
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
+                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+            );
             assertNotImplementedResponse(response);
 
             response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
