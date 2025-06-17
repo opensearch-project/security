@@ -477,6 +477,7 @@ configurations {
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
+            force "org.codehaus.plexus:plexus-utils:3.3.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
