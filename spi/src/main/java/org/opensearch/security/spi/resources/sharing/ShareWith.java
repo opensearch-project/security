@@ -76,6 +76,14 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         return sharingInfo.get(accessLevel);
     }
 
+    /**
+     * Adds a new entry in the sharingInfo map and returns the current object
+     */
+    public ShareWith updateSharingInfo(String accessLevel, Recipients target) {
+        sharingInfo.put(accessLevel, target);
+        return this;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();

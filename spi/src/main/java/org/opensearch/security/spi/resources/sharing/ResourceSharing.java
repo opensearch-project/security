@@ -9,10 +9,14 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamOutput;
@@ -36,6 +40,7 @@ import org.opensearch.core.xcontent.XContentParser;
  * @see org.opensearch.security.spi.resources.sharing.ShareWith
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
+    private final Logger log = LogManager.getLogger(this.getClass());
 
     /**
      * The unique identifier of the resource and the resource sharing entry
@@ -77,18 +82,34 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public void share(String accessLevel, Recipients target) {
         if (shareWith == null) {
             shareWith = new ShareWith(Map.of(accessLevel, target));
+            return;
+        }
+        Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
+        // sharedWith will be null when sharing at a new access-level
+        if (sharedWith == null) {
+            // update the ShareWith object
+            shareWith = shareWith.updateSharingInfo(accessLevel, target);
         } else {
-            Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.share(target);
         }
     }
 
     public void revoke(String accessLevel, Recipients target) {
         if (shareWith == null) {
-            // TODO log a warning that this is a noop
+            log.warn("Cannot revoke access as resource {} is not shared with anyone", this.resourceId);
             return;
+        }
+
+        Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
+        // sharedWith will only be null if given access level doesn't exist in which case we log a warning message
+        if (sharedWith == null) {
+            log.warn(
+                "Cannot revoke access to {} for {} as the resource is not shared at accessLevel {}",
+                this.resourceId,
+                accessLevel,
+                target
+            );
         } else {
-            Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
             sharedWith.revoke(target);
         }
     }
@@ -225,6 +246,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return set of access-levels which contain given nay of the targets
      */
     public Set<String> fetchAccessLevels(Recipient recipientType, Set<String> entities) {
+        if (shareWith == null) {
+            return Collections.emptySet();
+        }
         Set<String> matchingGroups = new HashSet<>();
         for (Map.Entry<String, Recipients> entry : shareWith.getSharingInfo().entrySet()) {
             String accessLevel = entry.getKey();
