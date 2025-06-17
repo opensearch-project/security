@@ -55,6 +55,8 @@ public class RunAsSubjectClient extends FilterClient {
                 super.doExecute(action, request, ActionListener.runBefore(listener, ctx::restore));
                 return null;
             });
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

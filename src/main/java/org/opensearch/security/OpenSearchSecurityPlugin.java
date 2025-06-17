@@ -2268,10 +2268,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
             String pluginPrincipal = subject.getPrincipal().getName();
-            URL resource = plugin.getClass().getClassLoader().getResource("plugin-permissions.yml");
+            URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
             RoleV7 pluginPermissions;
             if (resource == null) {
-                log.info("plugin-permissions.yml not found on classpath for plugin {}, using empty permissions", pluginPrincipal);
+                log.info(
+                    "plugin-additional-permissions.yml not found on classpath for plugin {}, using empty permissions",
+                    pluginPrincipal
+                );
                 pluginPermissions = new RoleV7();
                 pluginPermissions.setCluster_permissions(new ArrayList<>());
             } else {
