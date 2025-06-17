@@ -382,7 +382,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder extectedNodeStartupCount(int expectedNodeStartupCount) {
+        public Builder expectedNodeStartupCount(int expectedNodeStartupCount) {
             this.expectedNodeStartupCount = expectedNodeStartupCount;
             return this;
         }
@@ -480,6 +480,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             for (TestSecurityConfig.User user : users) {
                 testSecurityConfig.user(user);
             }
+            return this;
+        }
+
+        public Builder actionGroups(TestSecurityConfig.ActionGroup... actionGroups) {
+            testSecurityConfig.actionGroups(actionGroups);
             return this;
         }
 

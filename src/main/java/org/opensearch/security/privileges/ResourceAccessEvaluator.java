@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
-import org.opensearch.action.DocWriteRequest;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
@@ -15,6 +15,7 @@ import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -40,7 +41,10 @@ public class ResourceAccessEvaluator {
         final PrivilegesEvaluatorResponse presponse
     ) throws IOException {
 
-        if (!(request instanceof DocRequest)) {
+        // TODO: Check whether resource access should be disabled system index protection is off
+
+        // TODO need to check whether "cluster:" perms should be handled heeyah
+        if (!(request instanceof DocRequest req)) {
             return presponse;
         }
 
@@ -54,19 +58,15 @@ public class ResourceAccessEvaluator {
             return presponse.markComplete();
         }
 
-        DocRequest req = (DocRequest) request;
-
         // If user was super-admin, the request would have already been granted. So no need to check whether user is admin
 
         // Creation Request
         // TODO Check if following is the correct way to identify the create request
-        if (request instanceof DocWriteRequest<?> && req.id() == null) {
+        if (req.id() == null) {
             // check write permissions
-            // TODO verif that this can be punted to the regular evaluator since it requires write permissions to the index
+            // TODO verify that this can be punted to the regular evaluator since it requires write permissions to the index
             return presponse;
         }
-
-
 
         // if requested index is not a resource sharing index, move on to the next evaluator
         if (!resourceIndices.contains(req.index())) {
@@ -80,10 +80,11 @@ public class ResourceAccessEvaluator {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
+        AtomicBoolean shouldMarkAsComplete = new AtomicBoolean(false);
         this.resourceSharingIndexHandler.fetchSharingInfo(req.index(), req.id(), ActionListener.wrap(document -> {
             if (document == null) {
-                presponse.allowed = false; // TODO should we move this to next evaluator if no document is present, probs not since this
-                                           // index is protected
+                // TODO check whether we should mark response as not allowed. At present, it just returns incomplete response and hence is
+                // delegated to next evaluator
                 latch.countDown();
                 return;
             }
@@ -92,6 +93,7 @@ public class ResourceAccessEvaluator {
             // If user is the owner, action is allowed
             if (document.isSharedWithEveryone() || document.isCreatedBy(user.getName())) {
                 presponse.allowed = true;
+                shouldMarkAsComplete.set(true);
                 latch.countDown();
                 return;
             }
@@ -103,6 +105,9 @@ public class ResourceAccessEvaluator {
 
             if (accessLevels.isEmpty()) {
                 presponse.allowed = false;
+                // TODO check why following addition doesn't reflect in the final response message and find an alternative
+                presponse.getMissingPrivileges().add(action);
+                shouldMarkAsComplete.set(true);
                 latch.countDown();
                 return;
             }
@@ -110,16 +115,25 @@ public class ResourceAccessEvaluator {
             // Expand access-levels and check if any match the action supplied
             if (context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges) {
                 Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
-                presponse.allowed = actions.contains(action);
+                // a matcher to test against all patterns in `actions`
+                WildcardMatcher matcher = WildcardMatcher.from(actions, true);
+                if (matcher.test(action)) {
+                    presponse.allowed = true;
+                } else {
+                    // TODO check why following addition doesn't reflect in the final response message and find an alternative
+                    presponse.getMissingPrivileges().add(action);
+                }
                 latch.countDown();
             } else {
                 // we don't yet support Plugins to access resources
                 presponse.allowed = false;
                 latch.countDown();
             }
+            shouldMarkAsComplete.set(true);
 
         }, e -> {
             presponse.allowed = false;
+            shouldMarkAsComplete.set(true);
             latch.countDown();
         }));
         try {
@@ -128,6 +142,6 @@ public class ResourceAccessEvaluator {
             Thread.currentThread().interrupt();
         }
 
-        return presponse.markComplete();
+        return shouldMarkAsComplete.get() ? presponse.markComplete() : presponse;
     }
 }

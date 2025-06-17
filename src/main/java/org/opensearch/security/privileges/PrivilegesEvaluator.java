@@ -408,13 +408,6 @@ public class PrivilegesEvaluator {
         }
 
         final Resolved requestedResolved = context.getResolvedRequest();
-        try {
-            if (resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
-                return presponse;
-            }
-        } catch (IOException e) {
-            // Do nothing
-        }
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
@@ -442,12 +435,7 @@ public class PrivilegesEvaluator {
             log.debug("RequestedResolved : {}", requestedResolved);
         }
 
-        // check snapshot/restore requests
-        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
-            return presponse;
-        }
-
-        // Security index access
+        // System index access
         if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;
@@ -455,6 +443,20 @@ public class PrivilegesEvaluator {
 
         // Protected index access
         if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
+            return presponse;
+        }
+
+        // Protected Resources access
+        try {
+            if (resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
+                return presponse;
+            }
+        } catch (IOException e) {
+            // Do nothing
+        }
+
+        // check snapshot/restore requests
+        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
             return presponse;
         }
 

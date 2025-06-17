@@ -622,6 +622,7 @@ public class ResourceSharingIndexHandler {
                     );
                 }
 
+                assert sharingInfo != null;
                 for (String accessLevel : revokeAccess.accessLevels()) {
                     Recipients target = revokeAccess.atAccessLevel(accessLevel);
                     LOGGER.debug(
@@ -632,10 +633,9 @@ public class ResourceSharingIndexHandler {
                         accessLevel
                     );
 
-                    assert sharingInfo != null;
                     sharingInfo.revoke(accessLevel, target);
                 }
-                assert sharingInfo != null;
+
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

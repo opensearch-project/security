@@ -323,7 +323,6 @@ public class SystemIndexAccessEvaluator {
                     );
                 }
                 presponse.allowed = false;
-                presponse.getMissingPrivileges();
                 presponse.markComplete();
             }
             return;
