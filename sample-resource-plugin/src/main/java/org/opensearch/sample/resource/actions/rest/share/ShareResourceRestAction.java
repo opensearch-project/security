@@ -23,6 +23,8 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -61,16 +63,24 @@ public class ShareResourceRestAction extends BaseRestHandler {
         }
 
         Map<String, Object> shareWith = (Map<String, Object>) source.get("share_with");
-        Map<Recipient, Set<String>> recipients = new HashMap<>();
+
+        Map<String, Recipients> shareWithRecipients = new HashMap<>();
         if (shareWith != null) {
+            Map<Recipient, Set<String>> recipients;
             for (Map.Entry<String, Object> entry : shareWith.entrySet()) {
-                Recipient recipient = Recipient.valueOf(entry.getKey().toUpperCase(Locale.ROOT));
-                Set<String> targets = new HashSet<>((Collection<String>) entry.getValue());
-                recipients.put(recipient, targets);
+                String accessLevel = entry.getKey();
+                Map<String, Object> recs = (Map<String, Object>) entry.getValue();
+                recipients = new HashMap<>();
+                for (Map.Entry<String, Object> rec : recs.entrySet()) {
+                    Recipient recipient = Recipient.valueOf(rec.getKey().toUpperCase(Locale.ROOT));
+                    Set<String> targets = new HashSet<>((Collection<String>) rec.getValue());
+                    recipients.put(recipient, targets);
+                }
+                shareWithRecipients.put(accessLevel, new Recipients(recipients));
             }
         }
 
-        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, recipients);
+        final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, new ShareWith(shareWithRecipients));
         return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
     }
 }

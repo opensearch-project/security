@@ -9,15 +9,13 @@
 package org.opensearch.sample.resource.actions.rest.share;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
@@ -28,26 +26,22 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 
     private final String resourceId;
 
-    private final Map<Recipient, Set<String>> recipients;
+    private final ShareWith shareWithRecipients;
 
-    public ShareResourceRequest(String resourceId, Map<Recipient, Set<String>> recipients) {
+    public ShareResourceRequest(String resourceId, ShareWith shareWithRecipients) {
         this.resourceId = resourceId;
-        this.recipients = recipients;
+        this.shareWithRecipients = shareWithRecipients;
     }
 
     public ShareResourceRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
-        this.recipients = in.readMap(key -> key.readEnum(Recipient.class), input -> input.readSet(StreamInput::readString));
+        this.shareWithRecipients = new ShareWith(in);
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         out.writeString(this.resourceId);
-        out.writeMap(
-            recipients,
-            StreamOutput::writeEnum,
-            (streamOutput, strings) -> streamOutput.writeCollection(strings, StreamOutput::writeString)
-        );
+        shareWithRecipients.writeTo(out);
     }
 
     @Override
@@ -59,8 +53,8 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
         return this.resourceId;
     }
 
-    public Map<Recipient, Set<String>> getRecipients() {
-        return recipients;
+    public ShareWith getShareWith() {
+        return shareWithRecipients;
     }
 
     @Override

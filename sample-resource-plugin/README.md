@@ -10,11 +10,6 @@ Publish SPI to local maven before proceeding:
 ./gradlew clean :opensearch-security-spi:publishToMavenLocal
 ```
 
-System index feature must be enabled to prevent direct access to resource. Add the following setting in case it has not already been enabled.
-```yml
-plugins.security.system_indices.enabled: true
-```
-
 ## Features
 
 - Create, update, get, delete SampleResource, as well as share and revoke access to a resource.
@@ -58,12 +53,12 @@ plugins.security.system_indices.enabled: true
 
 4. **Interaction Rules**
     - If a **user is not the resource owner**, they must:
-        - Be assigned **a role with `sample_read_access`** permissions.
-        - **Have the resource shared with them** via the resource-sharing API.
+        - **Have the resource shared with them** via the resource-sharing API with appropriate action group.
     - A user **without** the necessary `sample-resource-plugin` cluster permissions:
         - **Cannot access the resource**, even if it is shared with them.
     - A user **with `sample-resource-plugin` permissions** but **without a shared resource**:
         - **Cannot access the resource**, since resource-level access control applies.
+    - Only resource-owners and super-admin can update the delete the resource.
 
 
 ## API Endpoints
@@ -104,7 +99,7 @@ The plugin exposes the following six API endpoints:
 
 ### 3. Delete Resource
 - **Endpoint:** `DELETE /_plugins/sample_resource_sharing/delete/{resource_id}`
-- **Description:** Deletes a specified resource owned by the requesting user.
+- **Description:** Deletes a specified resource owned by the requesting user. At present, only super-admins and resource-owner can delete the resource.
 - **Response:**
   ```json
   {
@@ -140,12 +135,14 @@ The plugin exposes the following six API endpoints:
 
 ### 5. Share Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+- **Description:** Shares a resource with the intended entities. At present, only super-admins and resource-owner can share the resource.
 - **Request Body:**
   ```json
   {
     "share_with": {
-      "users": [ "sample_user" ]
+      "read_only": {
+        "users": [ "sample_user" ]
+      }
     }
   }
   ```
@@ -153,7 +150,7 @@ The plugin exposes the following six API endpoints:
   ```json
     {
       "share_with": {
-        "default": {
+        "read_only": {
           "users": [ "sample_user" ]
         }
       }
@@ -162,19 +159,25 @@ The plugin exposes the following six API endpoints:
 
 ### 6. Revoke Resource Access
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+- **Description:** Shares a resource with the intended entities. At present, only super-admins and resource-owner can revoke access to the resource.
 - **Request Body:**
   ```json
     {
       "entities_to_revoke": {
-        "users": [ "sample_user" ]
+        "read_only": {
+          "users": [ "sample_user" ]
+        }
       }
     }
   ```
 - **Response:**
   ```json
     {
-      "share_with" : { }
+      "share_with" : {
+        "read_only": {
+          "users" : [ ]
+        }
+      }
     }
   ```
 
