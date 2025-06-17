@@ -89,6 +89,8 @@ public class SecurePluginTests {
                 """);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            HttpResponse catIndicesResponse = client.get("_cat/indices");
+            assertThat(catIndicesResponse.getBody(), containsString("test-index"));
         }
     }
 }
