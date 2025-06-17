@@ -69,7 +69,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.5"
+    id "com.github.spotbugs" version "6.2.0"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -376,7 +376,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.3.3"
+    toolVersion "10.25.0"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
@@ -474,6 +474,9 @@ configurations {
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
             force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
+            force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+            force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+            force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
