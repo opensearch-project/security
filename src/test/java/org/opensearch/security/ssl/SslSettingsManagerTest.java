@@ -66,8 +66,8 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.getBoolAffixKeyForCertType;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.getStringAffixKeyForCertType;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
+import static org.junit.Assert.assertThrows;
 
 public class SslSettingsManagerTest extends RandomizedTest {
 

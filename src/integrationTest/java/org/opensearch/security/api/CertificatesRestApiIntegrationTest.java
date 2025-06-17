@@ -30,13 +30,13 @@ import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static junit.framework.TestCase.fail;
 
 public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTest {
     final static String REST_API_ADMIN_SSL_INFO = "rest-api-admin-ssl-info";
@@ -88,7 +88,11 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     @Test
     public void availableForTlsAdmin() throws Exception {
-        withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), verifySSLCertsInfo(List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT)));
+        withUser(
+            ADMIN_USER_NAME,
+            localCluster.getAdminCertificate(),
+            verifySSLCertsInfo(List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT))
+        );
     }
 
     @Test
@@ -112,14 +116,16 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
                 assertSSLCertsInfo(localCluster.nodes(), expectCerts, ok(() -> testRestClient.get(sslCertsPath())));
                 if (localCluster.nodes().size() > 1) {
                     final var randomNodes = randomNodes();
-                    final var nodeIds = randomNodes.stream().map(n -> n.esNode().getNodeEnvironment().nodeId()).collect(Collectors.joining(","));
+                    final var nodeIds = randomNodes.stream()
+                        .map(n -> n.esNode().getNodeEnvironment().nodeId())
+                        .collect(Collectors.joining(","));
                     assertSSLCertsInfo(randomNodes, expectCerts, ok(() -> testRestClient.get(sslCertsPath(nodeIds))));
                 }
                 final var randomCertType = randomFrom(expectCerts);
                 assertSSLCertsInfo(
-                        localCluster.nodes(),
-                        List.of(randomCertType),
-                        ok(() -> testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), randomCertType)))
+                    localCluster.nodes(),
+                    List.of(randomCertType),
+                    ok(() -> testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), randomCertType)))
                 );
             } catch (Exception e) {
                 fail("Verify SSLCerts info failed with exception: " + e.getMessage());
@@ -161,22 +167,18 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     private void verifyCertsJson(final int nodeNumber, final JsonNode jsonNode) {
         if (jsonNode.get("subject_dn").asText().contains(ROOT_CA)) { // handle root cert
-            assertThat(
-                    jsonNode.toPrettyString(),
-                    jsonNode.get("subject_dn").asText(),
-                    is(TestCertificates.CA_SUBJECT)
-            );
+            assertThat(jsonNode.toPrettyString(), jsonNode.get("subject_dn").asText(), is(TestCertificates.CA_SUBJECT));
             assertThat(jsonNode.toPrettyString(), jsonNode.get("san").asText().isEmpty());
         } else { // handle non-root
             assertThat(
-                    jsonNode.toPrettyString(),
-                    jsonNode.get("subject_dn").asText(),
-                    is(String.format(TestCertificates.NODE_SUBJECT_PATTERN, nodeNumber))
+                jsonNode.toPrettyString(),
+                jsonNode.get("subject_dn").asText(),
+                is(String.format(TestCertificates.NODE_SUBJECT_PATTERN, nodeNumber))
             );
             assertThat(
-                    jsonNode.toPrettyString(),
-                    jsonNode.get("san").asText(),
-                    containsString(String.format("node-%s.example.com", nodeNumber))
+                jsonNode.toPrettyString(),
+                jsonNode.get("san").asText(),
+                containsString(String.format("node-%s.example.com", nodeNumber))
             );
         }
         assertThat(jsonNode.toPrettyString(), jsonNode.get("issuer_dn").asText(), is(TestCertificates.CA_SUBJECT));
