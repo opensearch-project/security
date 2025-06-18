@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
-
+- [Resource Sharing] Adds a Resource Access Evaluator for standalone Resource access authorization ([#5408](https://github.com/opensearch-project/security/pull/5408))
 
 ### Changed
 
