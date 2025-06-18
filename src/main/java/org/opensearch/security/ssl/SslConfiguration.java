@@ -20,30 +20,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import io.netty.handler.codec.http2.Http2SecurityUtil;
 import org.opensearch.OpenSearchException;
 import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.config.TrustStoreConfiguration;
 
-import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-
 public class SslConfiguration {
-
-    private final static Logger LOGGER = LogManager.getLogger(SslConfiguration.class);
 
     private final SslParameters sslParameters;
 
@@ -71,6 +61,18 @@ public class SslConfiguration {
             .collect(Collectors.toList());
     }
 
+    // TODO we always add all HTTP 2 ciphers, while maybe it is better to set them differently
+    public String[] ciphers () {
+        return Stream.concat(
+                Http2SecurityUtil.CIPHERS.stream(),
+                sslParameters.allowedCiphers().stream()
+        ).distinct().toArray(String[]::new);
+    }
+
+    public String[] allowedProtocols () {
+        return sslParameters.allowedProtocols().toArray(new String[0]);
+    }
+
     public KeyManagerFactory keyStoreFactory() {
         return keyStoreConfiguration.createKeyManagerFactory(sslParameters.shouldValidateNewCertDNs());
     }
@@ -87,64 +89,33 @@ public class SslConfiguration {
     }
 
     @SuppressWarnings("removal")
-    SslContext buildServerSslContext(final boolean validateCertificates) {
+    SSLContext buildSSLContext(final boolean validateCertificates, boolean isClient) {
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
-                KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
+            return AccessController.doPrivileged((PrivilegedExceptionAction<SSLContext>) () -> {
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forServer(kmFactory)
-                    .sslProvider(sslParameters.provider())
-                    .clientAuth(sslParameters.clientAuth())
-                    .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
-                    // TODO we always add all HTTP 2 ciphers, while maybe it is better to set them differently
-                    .ciphers(
-                        Stream.concat(
-                            Http2SecurityUtil.CIPHERS.stream(),
-                            StreamSupport.stream(sslParameters.allowedCiphers().spliterator(), false)
-                        ).collect(Collectors.toSet()),
-                        SupportedCipherSuiteFilter.INSTANCE
-                    )
-                    .sessionCacheSize(0)
-                    .sessionTimeout(0)
-                    .applicationProtocolConfig(
-                        new ApplicationProtocolConfig(
-                            ApplicationProtocolConfig.Protocol.ALPN,
-                            // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-                            ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                            // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-                            ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                            ApplicationProtocolNames.HTTP_2,
-                            ApplicationProtocolNames.HTTP_1_1
-                        )
-                    )
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .build();
+                KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
+                TrustManagerFactory tmFactory = trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns);
+
+
+                SSLContext sslContext = SSLContext.getInstance("TLS", sslParameters.provider().name());
+//                String.valueOf(provider.getName())
+
+
+                sslContext.init(kmFactory.getKeyManagers(), tmFactory.getTrustManagers(), null);
+
+                SSLSessionContext serverSessionContext;
+                if (!isClient) {
+                    serverSessionContext = sslContext.getServerSessionContext();
+                } else {
+                    serverSessionContext = sslContext.getClientSessionContext();
+                }
+                serverSessionContext.setSessionCacheSize(0);
+                serverSessionContext.setSessionTimeout(0);
+
+                return sslContext;
             });
         } catch (PrivilegedActionException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
-        }
-    }
-
-    @SuppressWarnings("removal")
-    SslContext buildClientSslContext(final boolean validateCertificates) {
-        try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
-                KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
-                Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forClient()
-                    .sslProvider(sslParameters.provider())
-                    .protocols(sslParameters.allowedProtocols())
-                    .ciphers(sslParameters.allowedCiphers())
-                    .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                    .sessionCacheSize(0)
-                    .sessionTimeout(0)
-                    .sslProvider(sslParameters.provider())
-                    .keyManager(kmFactory)
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .build();
-            });
-        } catch (PrivilegedActionException e) {
-            throw new OpenSearchException("Failed to build client SSL context", e);
         }
     }
 
