@@ -12,6 +12,8 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
+import java.security.Provider;
+import java.security.Security;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,6 +32,7 @@ import org.opensearch.security.ssl.config.CertType;
 import io.netty.handler.ssl.ClientAuth;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.OpenSearchSecurityPlugin.tryAddSecurityProvider;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE;
@@ -65,6 +68,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
+        tryAddSecurityProvider();
         writeCertificates("ca_http_certificate.pem", "access_http_certificate.pem", "access_http_certificate_pk.pem");
         writeCertificates("ca_transport_certificate.pem", "access_transport_certificate.pem", "access_transport_certificate_pk.pem");
     }
@@ -270,7 +274,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::isServer)
+                .map(SslContextHandler::isClient)
                 .orElse(false)
 
         );
@@ -311,7 +315,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::isServer)
+                .map(SslContextHandler::isClient)
                 .orElse(false)
 
         );
@@ -354,7 +358,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::isServer)
+                .map(SslContextHandler::isClient)
                 .orElse(false)
 
         );
@@ -420,7 +424,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::isServer)
+                .map(SslContextHandler::isClient)
                 .orElse(false)
 
         );
