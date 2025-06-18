@@ -2192,6 +2192,34 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
+
+            // Security Config Version Index
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED,
+                    ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
+            settings.add(
+                Setting.simpleString(
+                    ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
+                    ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT,
+                    ConfigConstants.SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT,
+                    Property.NodeScope,
+                    Property.Final
+                )
+            );
         }
 
         return settings;

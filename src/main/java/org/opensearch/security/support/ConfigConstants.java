@@ -135,6 +135,8 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = ".opendistro_security";
 
+    public static final String OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX = ".opensearch_security_config_versions";
+
     public static final String SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = SECURITY_SETTINGS_PREFIX + "enable_snapshot_restore_privilege";
     public static final boolean SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = true;
 
@@ -153,6 +155,7 @@ public class ConfigConstants {
 
     public static final String SECURITY_AUTHCZ_ADMIN_DN = SECURITY_SETTINGS_PREFIX + "authcz.admin_dn";
     public static final String SECURITY_CONFIG_INDEX_NAME = SECURITY_SETTINGS_PREFIX + "config_index_name";
+    public static final String SECURITY_CONFIG_VERSIONS_INDEX_NAME = SECURITY_SETTINGS_PREFIX + "config_versions_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = SECURITY_SETTINGS_PREFIX + "authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = SECURITY_SETTINGS_PREFIX + "authcz.rest_impersonation_user";
 
@@ -391,6 +394,14 @@ public class ConfigConstants {
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
+
+    // Security Config Version Index feature flag
+    public static final String EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED = SECURITY_SETTINGS_PREFIX
+        + "configurations_versions.enabled";
+    public static final boolean EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED_DEFAULT = false;
+
+    public static final String SECURITY_CONFIG_VERSION_RETENTION_COUNT = SECURITY_SETTINGS_PREFIX + "config_version.retention_count";
+    public static final int SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT = 10;
 
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings

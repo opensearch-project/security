@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 3.x]
 ### Added
 - Support for Argon2 hashing algorithm (#5413)
+- Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
+
 
 ### Changed
 - Underlying hasher to include new Argon2 implementation
