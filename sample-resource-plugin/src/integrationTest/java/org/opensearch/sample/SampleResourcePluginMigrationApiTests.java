@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -32,7 +35,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.RESOURCE_SHARING_MIGRATION_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -95,7 +97,7 @@ public class SampleResourcePluginMigrationApiTests {
 
     @Test
     public void testMigrateAPIWithRestAdmin_valid() {
-        createSampleResource();
+        String resourceId = createSampleResource();
         createSampleResourceNoUser();
         clearResourceSharingEntries();
 
@@ -107,13 +109,15 @@ public class SampleResourcePluginMigrationApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.getBody().contains("default"), is(true)); // with custom access-level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "default"))); // with
+                                                                                                                                // default
+                                                                                                                                // access-level
         }
     }
 
     @Test
     public void testMigrateAPIWithRestAdmin_valid_withSpecifiedAccessLevel() {
-        createSampleResource();
+        String resourceId = createSampleResource();
         createSampleResourceNoUser();
         clearResourceSharingEntries();
 
@@ -128,7 +132,9 @@ public class SampleResourcePluginMigrationApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.getBody().contains("read_only"), is(true)); // with custom access-level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "read_only"))); // with
+                                                                                                                                  // custom
+                                                                                                                                  // access-level
         }
     }
 
@@ -174,7 +180,7 @@ public class SampleResourcePluginMigrationApiTests {
         }
     }
 
-    private void createSampleResource() {
+    private String createSampleResource() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             String sampleResource = """
                 {
@@ -190,6 +196,7 @@ public class SampleResourcePluginMigrationApiTests {
             Awaitility.await()
                 .alias("Wait until resource data is populated")
                 .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
+            return resourceId;
         }
     }
 
@@ -230,5 +237,35 @@ public class SampleResourcePluginMigrationApiTests {
 
             client.delete(RESOURCE_SHARING_INDEX + "/?ignore_unavailable=true");
         }
+    }
+
+    private ArrayNode expectedHits(String resourceId, String accessLevel) {
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        // 1) Create the root array
+        ArrayNode expectedHits = mapper.createArrayNode();
+
+        // 2) Create the hit object
+        ObjectNode hit = mapper.createObjectNode();
+        hit.put("_index", RESOURCE_SHARING_INDEX);
+        hit.put("_id", resourceId);
+        hit.put("_score", 1.0);
+
+        // 3) Build the _source sub-object
+        ObjectNode source = hit.putObject("_source");
+        source.put("resource_id", resourceId);
+
+        ObjectNode createdBy = source.putObject("created_by");
+        createdBy.put("user", "admin");
+
+        ObjectNode shareWith = source.putObject("share_with");
+        ObjectNode readOnly = shareWith.putObject(accessLevel);
+        ArrayNode backendRoles = readOnly.putArray("backend_roles");
+        backendRoles.add("admin");
+
+        // 4) Add the hit into the array
+        expectedHits.add(hit);
+        return expectedHits;
     }
 }

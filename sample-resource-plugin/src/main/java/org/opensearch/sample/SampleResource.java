@@ -36,6 +36,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     private String name;
     private String description;
     private Map<String, String> attributes;
+    // NOTE: following field is added to specifically test migrate API, for newer resources this field must not be defined
     private User user;
 
     public SampleResource() throws IOException {
