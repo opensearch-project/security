@@ -114,10 +114,6 @@ public class SampleResourcePluginTests {
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-
-            Awaitility.await()
-                .alias("Wait until resource data is populated")
-                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
         }
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
@@ -222,16 +218,45 @@ public class SampleResourcePluginTests {
 
         // get sample resource with SHARED_WITH_USER
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            String finalResourceId = resourceId;
             Awaitility.await()
                 .alias("Wait until resource-sharing data is deleted")
-                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
+                .until(
+                    () -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + finalResourceId).getStatusCode(),
+                    equalTo(HttpStatus.SC_NOT_FOUND)
+                );
         }
 
         // get sample resource with admin
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            String finalResourceId1 = resourceId;
             Awaitility.await()
                 .alias("Wait until resource-sharing data is deleted")
-                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
+                .until(
+                    () -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + finalResourceId1).getStatusCode(),
+                    equalTo(HttpStatus.SC_NOT_FOUND)
+                );
+        }
+
+        // if we grant shared_with_user full access to the resource, they can delete it via sample plugin
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            String sampleResource = """
+                {"name":"sample"}
+                """;
+
+            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            response.assertStatusCode(HttpStatus.SC_OK);
+
+            resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
+            response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(SHARED_WITH_USER.getName(), sampleAllAG.name())
+            );
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
+            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_OK);
         }
     }
 
@@ -329,6 +354,7 @@ public class SampleResourcePluginTests {
                 .alias("Wait until resource-sharing data is populated")
                 .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
+
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(
@@ -360,7 +386,6 @@ public class SampleResourcePluginTests {
 
         // if we grant shared_with_user full access to the resource, they should not be able to delete directly since system index
         // protection is enabled
-        // and they can also not delete the record via sample plugin since they are not the owner of the resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
@@ -370,9 +395,6 @@ public class SampleResourcePluginTests {
         }
         try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER)) {
             HttpResponse response = client.delete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-
-            response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 

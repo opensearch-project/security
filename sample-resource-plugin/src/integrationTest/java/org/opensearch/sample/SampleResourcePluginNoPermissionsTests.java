@@ -38,7 +38,7 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOUR
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER_LIMITED_PERMISSIONS;
+import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_USER_NO_PERMISSION;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.sampleAllAG;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.sampleReadOnlyAG;
@@ -55,7 +55,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginLimitedPermissionsTests {
+public class SampleResourcePluginNoPermissionsTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
@@ -77,7 +77,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
         )
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(USER_ADMIN, SHARED_WITH_USER_LIMITED_PERMISSIONS)
+        .users(USER_ADMIN, SHARED_WITH_USER_NO_PERMISSION)
         .actionGroups(sampleReadOnlyAG, sampleAllAG)
         .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
@@ -93,7 +93,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
     @Test
     public void testPluginInstalledCorrectly() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse pluginsResponse = client.get("_cat/plugins");
+            HttpResponse pluginsResponse = client.get("_cat/plugins");
             assertThat(pluginsResponse.getBody(), containsString("org.opensearch.security.OpenSearchSecurityPlugin"));
             assertThat(pluginsResponse.getBody(), containsString("org.opensearch.sample.SampleResourcePlugin"));
         }
@@ -108,7 +108,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 {"name":"sample"}
                 """;
 
-            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
@@ -127,10 +127,7 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 {"name":"sampleUpdated"}
                 """;
 
-            TestRestClient.HttpResponse updateResponse = client.postJson(
-                SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId,
-                sampleResourceUpdated
-            );
+            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             updateResponse.assertStatusCode(HttpStatus.SC_OK);
         }
 
@@ -139,105 +136,91 @@ public class SampleResourcePluginLimitedPermissionsTests {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
                 .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString("sampleUpdated"));
         }
 
-        // resource should not be visible to SHARED_WITH_USER_LIMITED_PERMISSIONS
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        // resource should not be visible to SHARED_WITH_USER_NO_PERMISSION
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
 
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // SHARED_WITH_USER_LIMITED_PERMISSIONS should not be able to share admin's resource with itself
+        // SHARED_WITH_USER_NO_PERMISSION should not be able to share admin's resource with itself
         // Only super-admin and owners can share/revoke access at the moment
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            TestRestClient.HttpResponse response = client.postJson(
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
+            HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // share resource with shared_with user
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.postJson(
+            HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 response.bodyAsJsonNode().get("share_with").get(sampleReadOnlyAG.name()).get("users").get(0).asText(),
-                containsString(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName())
+                containsString(SHARED_WITH_USER_NO_PERMISSION.getName())
             );
         }
 
-        // resource should now be visible to SHARED_WITH_USER_LIMITED_PERMISSIONS
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+        // resource is now visible to SHARED_WITH_USER_NO_PERMISSION
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("sampleUpdated"));
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(1));
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // Update sample resource (shared_with_user should not be able to update resource)
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             String sampleResourceUpdated = """
                 {"name":"sampleUpdatedByUser"}
                 """;
 
-            TestRestClient.HttpResponse updateResponse = client.postJson(
-                SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId,
-                sampleResourceUpdated
-            );
+            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             updateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-        }
-
-        // resource is still visible to super-admin
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), containsString("sampleUpdated"));
         }
 
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.postJson(
+            HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName(), sampleReadOnlyAG.name())
+                revokeAccessPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleReadOnlyAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), not(containsString("resource_sharing_test_user_limited_perms")));
         }
 
-        // get sample resource with SHARED_WITH_USER_LIMITED_PERMISSIONS, user no longer has access to resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+        // get sample resource with SHARED_WITH_USER_NO_PERMISSION, user no longer has access to resource
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.bodyAsJsonNode().get("resources").size(), equalTo(0));
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // delete sample resource with SHARED_WITH_USER_LIMITED_PERMISSIONS
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            TestRestClient.HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+        // delete sample resource with SHARED_WITH_USER_NO_PERMISSION
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
+            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // delete sample resource
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
@@ -248,15 +231,15 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(0));
         }
 
-        // get sample resource with SHARED_WITH_USER_LIMITED_PERMISSIONS
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+        // get sample resource with SHARED_WITH_USER_NO_PERMISSION, will throw 403 since user no longer has access to get API
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
         // get sample resource with admin
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
         }
 
@@ -266,27 +249,27 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 {"name":"sample"}
                 """;
 
-            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
             response.assertStatusCode(HttpStatus.SC_OK);
 
             resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
             response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(SHARED_WITH_USER_LIMITED_PERMISSIONS.getName(), sampleAllAG.name())
+                shareWithPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleAllAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
         }
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
     }
 
     @Test
-    public void testAccessWithLimitedIP() {
+    public void testDirectAccess() {
         String resourceId;
         // create sample resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             String sampleResource = """
                 {"name":"sample"}
                 """;
@@ -304,139 +287,66 @@ public class SampleResourcePluginLimitedPermissionsTests {
                 .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
-        // user should be able to get its own resource as it has get API access
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-        }
-
-        // Update user's sample resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        // User share_with_no_perms should not be able to update, since resource is not shared with it
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             String sampleResourceUpdated = """
-                {"name":"sampleUpdated"}
+                {"name":"sampleUpdatedByUser"}
                 """;
 
             HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
-            // will be able to update even-though this user doesn't have access to update API, because this user is the owner of the
-            // resource
-            updateResponse.assertStatusCode(HttpStatus.SC_OK);
-        }
-
-        // User admin should not be able to update, since resource is not shared with it
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResourceUpdated = """
-                {"name":"sampleUpdatedByAdmin"}
-                """;
-
-            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
-            // cannot update because this user doesnt have access to the resource
+            // cannot update because this user doesn't have access to the resource
             updateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // Super admin can update the resource
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            String sampleResourceUpdated = """
-                {"name":"sampleUpdated"}
-                """;
-
-            HttpResponse updateResponse = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
-            // cannot update because this user doesnt have access to update API
-            updateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(updateResponse.getBody(), containsString("sample"));
-        }
-
-        // share resource with admin
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        // share resource with no-perms user
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleReadOnlyAG.name())
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // admin is able to access resource now
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        // no-perms user is able to access resource now
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // revoke admin's access
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        // revoke no-perms user access
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+                revokeAccessPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleReadOnlyAG.name())
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // admin can no longer access the resource
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        // no-perms user can no longer access the resource
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // User admin should not be able to delete share_with_user's resource
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        // no-perms user should not be able to delete share_with_user's resource
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
 
-            // cannot delete because user admin doesn't have access to resource
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
 
-        // if we grant admin full access to the resource, they will be able to delete the record via sample plugin
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
+        // if we grant no-perms full access to the resource, they will be able to delete the record via sample plugin
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(USER_ADMIN.getName(), sampleAllAG.name())
+                shareWithPayload(SHARED_WITH_USER_NO_PERMISSION.getName(), sampleAllAG.name())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
         }
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_PERMISSION)) {
             HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
-            response.assertStatusCode(HttpStatus.SC_OK);
-        }
-
-        // delete sample resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            String sampleResource = """
-                {"name":"sample"}
-                """;
-
-            HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
-            response.assertStatusCode(HttpStatus.SC_OK);
-
-            resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-        }
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            Awaitility.await()
-                .alias("Wait until resource-sharing data is populated")
-                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
-        }
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
-
-            // Will be able to delete even though this user doesn't have access to delete API because
-            response.assertStatusCode(HttpStatus.SC_OK);
-        }
-
-        // super-admin should be able to delete the resource
-        try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_PERMISSIONS)) {
-            String sampleResource = """
-                {"name":"sample"}
-                """;
-
-            HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
-            response.assertStatusCode(HttpStatus.SC_OK);
-
-            resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-        }
-
-        // Super admin can delete the resource
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
-
             response.assertStatusCode(HttpStatus.SC_OK);
         }
     }

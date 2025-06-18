@@ -34,6 +34,11 @@ public abstract class SampleResourcePluginTestHelper {
         )
     );
 
+    // No Permission
+    protected final static TestSecurityConfig.User SHARED_WITH_USER_NO_PERMISSION = new TestSecurityConfig.User(
+        "resource_sharing_test_user_no_perms"
+    );
+
     protected static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_read_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
