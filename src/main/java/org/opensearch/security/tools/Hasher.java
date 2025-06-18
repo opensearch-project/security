@@ -187,10 +187,13 @@ public class Hasher {
             );
         }
         if (line.hasOption(TYPE_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE, line.getOptionValue(TYPE_OPTION).toUpperCase());
+            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE, line.getOptionValue(TYPE_OPTION).toLowerCase());
         }
         if (line.hasOption(VERSION_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, line.getOptionValue(VERSION_OPTION));
+            settings.put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, 
+                Integer.parseInt(line.getOptionValue(VERSION_OPTION))
+            );
         }
         return settings.build();
     }
@@ -282,7 +285,7 @@ public class Hasher {
         options.addOption(
             Option.builder(TYPE_OPTION)
                 .longOpt("type")
-                .desc("Type of Argon2 algorithm to use. Valid values are: ARGON2I | ARGON2D | ARGON2ID. Default: ARGON2ID")
+                .desc("Type of Argon2 algorithm to use. Valid values are: argon2i | argon2d | argon2id. Default: argon2id")
                 .hasArg()
                 .argName("type (Argon2)")
                 .build()
