@@ -58,7 +58,8 @@ Publish SPI to local maven before proceeding:
         - **Cannot access the resource**, even if it is shared with them.
     - A user **with `sample-resource-plugin` permissions** but **without a shared resource**:
         - **Cannot access the resource**, since resource-level access control applies.
-    - Only resource-owners and super-admin can update the delete the resource.
+    - A user **with full-access to the resource** will be able to **update and delete that resource**.
+        - Owners and super-admin get full-access by default.
 
 
 ## API Endpoints
@@ -99,7 +100,7 @@ The plugin exposes the following six API endpoints:
 
 ### 3. Delete Resource
 - **Endpoint:** `DELETE /_plugins/sample_resource_sharing/delete/{resource_id}`
-- **Description:** Deletes a specified resource owned by the requesting user. At present, only super-admins and resource-owner can delete the resource.
+- **Description:** Deletes a specified resource owned by the requesting user.
 - **Response:**
   ```json
   {
@@ -135,7 +136,7 @@ The plugin exposes the following six API endpoints:
 
 ### 5. Share Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only super-admins and resource-owner can share the resource.
+- **Description:** Shares a resource with the intended entities.
 - **Request Body:**
   ```json
   {
@@ -159,7 +160,7 @@ The plugin exposes the following six API endpoints:
 
 ### 6. Revoke Resource Access
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only super-admins and resource-owner can revoke access to the resource.
+- **Description:** Shares a resource with the intended entities.
 - **Request Body:**
   ```json
     {
