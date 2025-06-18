@@ -28,7 +28,6 @@ import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
 
 import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.SslContext;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
@@ -231,7 +230,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
 
         assertThat(
             "Built Server SSL context for HTTP",
-            sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+            sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::isServer).orElse(false)
         );
     }
 
@@ -265,15 +264,13 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isServer)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
         );
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isClient)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );
@@ -303,20 +300,18 @@ public class SslSettingsManagerTest extends RandomizedTest {
 
         assertThat(
             "Built Server SSL context for HTTP",
-            sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::sslContext).map(SslContext::isServer).orElse(false)
+            sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::isServer).orElse(false)
         );
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isServer)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
         );
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isClient)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );
@@ -352,16 +347,14 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isServer)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isClient)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );
@@ -420,16 +413,14 @@ public class SslSettingsManagerTest extends RandomizedTest {
         assertThat(
             "Built Server SSL context for Transport",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isServer)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );
         assertThat(
             "Built Client SSL context for Transport Client",
             sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT)
-                .map(SslContextHandler::sslContext)
-                .map(SslContext::isClient)
+                .map(SslContextHandler::isServer)
                 .orElse(false)
 
         );

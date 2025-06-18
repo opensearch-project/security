@@ -12,6 +12,7 @@
 package org.opensearch.security.ssl.config;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -69,6 +70,19 @@ public class SslParameters {
     public SslProvider provider() {
         return provider;
     }
+
+//    public Provider provider(){
+//        switch (provider) {
+//            case SslProvider.JDK:
+//                break;
+//            case SslProvider.OPENSSL:
+//                break;
+//            case SslProvider.OPENSSL_REFCNT:
+//                break;
+//            default:
+//                throw new IllegalStateException("Unexpected value: " + provider);
+//        }
+//    }
 
     public List<String> allowedCiphers() {
         return ciphers;
