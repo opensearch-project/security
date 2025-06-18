@@ -97,7 +97,7 @@ public class Hasher {
                         settings = getPBKDF2Settings(line);
                         break;
                     case ConfigConstants.ARGON2:
-                        settings = getARGON2Settings(line);
+                        settings = getArgon2Settings(line);
                         break;
                     default:
                         throw new Exception("Unsupported hashing algorithm: " + algorithm);
@@ -159,7 +159,7 @@ public class Hasher {
         return settings.build();
     }
 
-    private static Settings getARGON2Settings(CommandLine line) throws ParseException {
+    private static Settings getArgon2Settings(CommandLine line) throws ParseException {
         Settings.Builder settings = Settings.builder();
         settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2);
         if (line.hasOption(MEMORY_OPTION)) {
