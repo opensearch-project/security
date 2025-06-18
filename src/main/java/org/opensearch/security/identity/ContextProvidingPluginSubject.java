@@ -26,10 +26,14 @@ public class ContextProvidingPluginSubject implements PluginSubject {
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
 
+    public static String getPluginPrincipalName(String canonicalClassName) {
+        return "plugin:" + canonicalClassName;
+    }
+
     public ContextProvidingPluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
         super();
         this.threadPool = threadPool;
-        String principal = "plugin:" + plugin.getClass().getCanonicalName();
+        String principal = getPluginPrincipalName(plugin.getClass().getCanonicalName());
         this.pluginPrincipal = new NamedPrincipal(principal);
         // Convention for plugin username. Prefixed with 'plugin:'. ':' is forbidden from usernames, so this
         // guarantees that a user with this username cannot be created by other means.
