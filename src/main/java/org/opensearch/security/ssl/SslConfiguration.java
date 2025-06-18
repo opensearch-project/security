@@ -95,12 +95,7 @@ public class SslConfiguration {
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 TrustManagerFactory tmFactory = trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns);
-
-
-                SSLContext sslContext = SSLContext.getInstance("TLS", sslParameters.provider().name());
-//                String.valueOf(provider.getName())
-
-
+                SSLContext sslContext = SSLContext.getInstance("TLS", sslParameters.provider());
                 sslContext.init(kmFactory.getKeyManagers(), tmFactory.getTrustManagers(), null);
 
                 SSLSessionContext serverSessionContext;
