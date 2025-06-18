@@ -894,9 +894,7 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableList(ret);
     }
 
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        RoleV7 pluginPermissions = new RoleV7();
-        pluginPermissions.setCluster_permissions(ImmutableList.copyOf(clusterActions));
-        this.pluginIdToActionPrivileges.put(pluginIdentifier, new SubjectBasedActionPrivileges(pluginPermissions, this.staticActionGroups));
+    public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
+        pluginIdToActionPrivileges.put(pluginIdentifier, new SubjectBasedActionPrivileges(pluginPermissions, staticActionGroups));
     }
 }
