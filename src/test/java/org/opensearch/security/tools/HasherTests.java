@@ -221,7 +221,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
         assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 1);
         assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
-        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), "argon2id");
+        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), Argon2.ID);
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
     }
 
