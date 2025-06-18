@@ -407,8 +407,6 @@ public class PrivilegesEvaluator {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
 
-        final Resolved requestedResolved = context.getResolvedRequest();
-
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
             // indices:data/write/bulk[s]).
@@ -431,8 +429,17 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
+        final Resolved requestedResolved = context.getResolvedRequest();
+
         if (isDebugEnabled) {
             log.debug("RequestedResolved : {}", requestedResolved);
+        }
+
+        // check snapshot/restore requests
+        // NOTE: Has to go first as restore request could be for protected and/or system indices and the request may
+        // fail with 403 if system index or protected index evaluators are triggered first
+        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
+            return presponse;
         }
 
         // System index access
@@ -453,11 +460,6 @@ public class PrivilegesEvaluator {
             }
         } catch (IOException e) {
             // Do nothing
-        }
-
-        // check snapshot/restore requests
-        if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
-            return presponse;
         }
 
         // check access for point in time requests

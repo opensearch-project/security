@@ -40,6 +40,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -162,7 +163,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
             clusterService,
             () -> clusterService.state(),
-            null,
+            mock(ThreadPool.class),
             new ThreadContext(Settings.EMPTY),
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
