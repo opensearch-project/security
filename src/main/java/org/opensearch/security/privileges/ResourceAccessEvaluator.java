@@ -55,20 +55,6 @@ public class ResourceAccessEvaluator {
 
         log.debug("Evaluating resource access");
 
-        final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
-
-        if (user == null) {
-            presponse.allowed = false;
-            log.debug("User is not authenticated, returning unauthorized");
-            return presponse.markComplete();
-        }
-
-        // If user was super-admin, the request would have already been granted. So no need to check whether user is admin
-
-        // Creation Request
         // TODO Check if following is the correct way to identify the create request
         if (req.id() == null) {
             // check write permissions
@@ -82,6 +68,19 @@ public class ResourceAccessEvaluator {
             log.debug("Request index {} is not a protected resource index", req.index());
             return presponse;
         }
+
+        final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        final User user = (userSubject == null) ? null : userSubject.getUser();
+
+        if (user == null) {
+            presponse.allowed = false;
+            log.debug("User is not authenticated, returning unauthorized");
+            return presponse.markComplete();
+        }
+
+        // If user was super-admin, the request would have already been granted. So no need to check whether user is admin
 
         // Fetch the ResourceSharing document
         CountDownLatch latch = new CountDownLatch(1);
