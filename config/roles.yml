@@ -535,3 +535,4 @@ forecast_full_access:
         - 'indices:data/read/search'
         - 'indices:data/write*'
         - 'indices_monitor'
+        - 'indices:admin/mappings/get'
