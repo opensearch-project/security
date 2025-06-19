@@ -19,7 +19,6 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.ResourceAccessLevels;
 
 /**
  * This class contains information about whom a resource is shared with and what is the action-group associated with it.
@@ -34,8 +33,6 @@ import org.opensearch.security.spi.resources.ResourceAccessLevels;
  *   }
  * }
  * </pre>
- *
- * "default" is a place-holder {@link ResourceAccessLevels#PLACE_HOLDER } that must be replaced with action-group names once Resource Authorization framework is implemented.
  *
  * @opensearch.experimental
  */

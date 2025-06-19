@@ -220,22 +220,13 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
-        boolean isAdmin = adminDNs.isAdmin(user);
-
-        this.resourceSharingIndexHandler.updateSharingInfo(
-            resourceId,
-            resourceIndex,
-            user.getName(),
-            target,
-            isAdmin,
-            ActionListener.wrap(sharingInfo -> {
-                LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
-                listener.onResponse(sharingInfo);
-            }, e -> {
-                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
-                listener.onFailure(e);
-            })
-        );
+        this.resourceSharingIndexHandler.updateSharingInfo(resourceId, resourceIndex, target, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
+            listener.onResponse(sharingInfo);
+        }, e -> {
+            LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
+            listener.onFailure(e);
+        }));
     }
 
     /**
@@ -270,19 +261,10 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
-        boolean isAdmin = adminDNs.isAdmin(user);
-
-        this.resourceSharingIndexHandler.revoke(
-            resourceId,
-            resourceIndex,
-            target,
-            user.getName(),
-            isAdmin,
-            ActionListener.wrap(listener::onResponse, exception -> {
-                LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
-                listener.onFailure(exception);
-            })
-        );
+        this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
+            LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
+            listener.onFailure(exception);
+        }));
     }
 
     /**

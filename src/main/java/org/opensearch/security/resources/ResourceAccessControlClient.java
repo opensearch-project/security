@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.spi.resources.ResourceAccessLevels;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -38,18 +37,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings) {
         this.resourceAccessHandler = resourceAccessHandler;
-    }
-
-    /**
-     * Verifies whether the current user has access to the specified resource.
-     *
-     * @param resourceId    The ID of the resource to verify.
-     * @param resourceIndex The index in which the resource resides.
-     * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
-     */
-    @Override
-    public void verifyAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, ResourceAccessLevels.PLACE_HOLDER, listener);
     }
 
     /**

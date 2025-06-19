@@ -476,7 +476,6 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceId      The unique identifier of the resource whose sharing configuration needs to be updated
      * @param resourceIndex   The source index where the original resource is stored
-     * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
      *                        "action-group": {
@@ -485,19 +484,11 @@ public class ResourceSharingIndexHandler {
      *                        "backend_roles": ["backend_role1"]
      *                        }
      *                        }
-     * @param isAdmin         Boolean indicating whether the user requesting to revoke is an admin or not
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */
     @SuppressWarnings("unchecked")
-    public void updateSharingInfo(
-        String resourceId,
-        String resourceIndex,
-        String requestUserName,
-        ShareWith shareWith,
-        boolean isAdmin,
-        ActionListener<ResourceSharing> listener
-    ) {
+    public void updateSharingInfo(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
@@ -505,19 +496,6 @@ public class ResourceSharingIndexHandler {
 
         // build update script
         sharingInfoListener.whenComplete(sharingInfo -> {
-            // Check if user can share. At present only the resource creator and admin is allowed to share the resource
-            if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
-
-                LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "User " + requestUserName + " is not authorized to share resource " + resourceId,
-                        RestStatus.FORBIDDEN
-                    )
-                );
-                return;
-            }
-
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
                 assert sharingInfo != null;
@@ -590,14 +568,7 @@ public class ResourceSharingIndexHandler {
      * @see Recipient
      * @see ResourceSharing
      */
-    public void revoke(
-        String resourceId,
-        String resourceIndex,
-        ShareWith revokeAccess,
-        String requestUserName,
-        boolean isAdmin,
-        ActionListener<ResourceSharing> listener
-    ) {
+    public void revoke(String resourceId, String resourceIndex, ShareWith revokeAccess, ActionListener<ResourceSharing> listener) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
             listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
             return;
@@ -612,15 +583,6 @@ public class ResourceSharingIndexHandler {
 
             // Check permissions & build revoke script
             sharingInfoListener.whenComplete(sharingInfo -> {
-                // Only admin or the creator of the resource is currently allowed to revoke access
-                if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
-                    listener.onFailure(
-                        new OpenSearchStatusException(
-                            "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId,
-                            RestStatus.FORBIDDEN
-                        )
-                    );
-                }
 
                 assert sharingInfo != null;
                 for (String accessLevel : revokeAccess.accessLevels()) {
