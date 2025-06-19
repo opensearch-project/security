@@ -40,6 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -47,6 +48,7 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
@@ -124,6 +126,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Path configPath;
     private final InternalAuthenticationBackend iab;
     private final ClusterInfoHolder cih;
+    private final ThreadPool threadPool;
+    private final Client client;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -142,6 +146,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.configPath = configPath;
         this.cih = cih;
         this.iab = new InternalAuthenticationBackend(passwordHasher);
+        this.threadPool = threadPool;
+        this.client = client;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -152,6 +158,17 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         } else {
             log.info("Static resources will not be loaded.");
         }
+
+        ThreadContext threadContext = threadPool.getThreadContext();
+        SecurityConfigVersionHandler versionHandler = new SecurityConfigVersionHandler(
+            cr,
+            opensearchSettings,
+            threadContext,
+            threadPool,
+            client,
+            this.cih
+        );
+        cr.subscribeOnChange(versionHandler);
 
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);

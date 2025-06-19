@@ -7,7 +7,7 @@
 rootProject.name = 'opensearch-security'
 
 include "spi"
-project(":spi").name = "opensearch-security-spi"
+project(":spi").name = rootProject.name + "-spi"
 
 include "sample-resource-plugin"
 project(":sample-resource-plugin").name = "opensearch-sample-resource-plugin"
