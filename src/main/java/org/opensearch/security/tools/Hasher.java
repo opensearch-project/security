@@ -248,9 +248,7 @@ public class Hasher {
         options.addOption(
             Option.builder(FUNCTION_OPTION)
                 .longOpt("function")
-                .desc(
-                    "Pseudo-random function applied to the password. Valid values are SHA1 | SHA224 | SHA256 | SHA384 | SHA512. Default: SHA256"
-                )
+                .desc("Pseudo-random function applied to the password. Valid values are SHA1 | SHA224 | SHA256 | SHA384 | SHA512. Default: SHA256")
                 .hasArg()
                 .argName("function (PBDKF2)")
                 .build()
