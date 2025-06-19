@@ -80,13 +80,13 @@ public class HasherTests {
     }
 
     @Test
-    public void testWithPBKDF2Signature() {
+    public void testWithPBKDF2Prefix() {
         Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
         assertTrue("should return a valid PBKDF2 hash with the default configuration", out.toString().startsWith("$3$25"));
     }
 
     @Test
-    public void testWithArgon2Signature() {
+    public void testWithArgon2Prefix() {
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
         assertTrue("should return a valid Argon2 hash with the default configuration", out.toString().startsWith("$argon2"));
     }
