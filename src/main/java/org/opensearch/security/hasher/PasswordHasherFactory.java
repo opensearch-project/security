@@ -133,7 +133,7 @@ public class PasswordHasherFactory {
             throw new IllegalArgumentException(String.format("Argon2 length must be a positive integer. Got: %d", length));
         }
         String typeLower = type.toLowerCase();
-        if (!typeLower.equals("ARGON2ID") && !typeLower.equals("ARGON2I") && !typeLower.equals("ARGON2D")) {
+        if (!typeLower.equals("argon2id") && !typeLower.equals("argon2i") && !typeLower.equals("argon2d")) {
             throw new IllegalArgumentException(String.format("Argon2 type must be one of argon2id, argon2i, or argon2d. Got: %s", type));
         }
         if (version != 16 && version != 19) {
