@@ -267,7 +267,7 @@ public class Hasher {
         options.addOption(
             Option.builder(MEMORY_OPTION)
                 .longOpt("memory")
-                .desc("Amount of memory to use for Argon2 hashing in KB. Default: 65536")
+                .desc("Amount of memory to use for Argon2 hashing in KiB. Default: 65536")
                 .hasArg()
                 .argName("memory (Argon2)")
                 .type(Number.class)
