@@ -88,6 +88,14 @@ public class SslContextHandler {
         engine.setEnabledCipherSuites(sslConfiguration.ciphers());
         engine.setEnabledProtocols(sslConfiguration.allowedProtocols());
         engine.setUseClientMode(isClient);
+
+        SSLParameters sslParameters = engine.getSSLParameters();
+        sslParameters.setApplicationProtocols(new String[]{
+                ApplicationProtocolNames.HTTP_2,
+                ApplicationProtocolNames.HTTP_1_1
+        });
+        engine.setSSLParameters(sslParameters);
+
         if (!isClient) {
             switch (sslConfiguration.sslParameters().clientAuth()) {
                 case ClientAuth.NONE:
@@ -105,12 +113,6 @@ public class SslContextHandler {
                 default:
                     throw new IllegalStateException("Unexpected value: " + sslConfiguration.sslParameters().clientAuth());
             }
-            SSLParameters sslParameters = sslContext.getDefaultSSLParameters();
-            sslParameters.setApplicationProtocols(new String[]{
-                    ApplicationProtocolNames.HTTP_2,
-                    ApplicationProtocolNames.HTTP_1_1
-            });
-            engine.setSSLParameters(sslParameters);
         }
         return engine;
     }
