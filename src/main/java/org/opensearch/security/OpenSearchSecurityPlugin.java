@@ -1437,6 +1437,55 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
         if (!SSLConfig.isSslOnlyMode()) {
             settings.add(
                 Setting.listSetting(
