@@ -96,7 +96,12 @@ public class SslConfiguration {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 TrustManagerFactory tmFactory = trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns);
                 SSLContext sslContext = SSLContext.getInstance("TLS", sslParameters.provider());
-                sslContext.init(kmFactory.getKeyManagers(), tmFactory.getTrustManagers(), null);
+
+                if (tmFactory != null) {
+                    sslContext.init(kmFactory.getKeyManagers(), tmFactory.getTrustManagers(), null);
+                } else {
+                    sslContext.init(kmFactory.getKeyManagers(), null, null);
+                }
 
                 SSLSessionContext serverSessionContext;
                 if (!isClient) {
