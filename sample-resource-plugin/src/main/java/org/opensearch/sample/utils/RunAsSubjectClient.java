@@ -1,12 +1,12 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-
-package org.opensearch.security.systemindex.sampleplugin;
+package org.opensearch.sample.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,6 +49,9 @@ public class RunAsSubjectClient extends FilterClient {
         Request request,
         ActionListener<Response> listener
     ) {
+        if (subject == null) {
+            throw new IllegalStateException("RunAsSubjectClient is not initialized.");
+        }
         try (ThreadContext.StoredContext ctx = threadPool().getThreadContext().newStoredContext(false)) {
             subject.runAs(() -> {
                 logger.info("Running transport action with subject: {}", subject.getPrincipal().getName());
