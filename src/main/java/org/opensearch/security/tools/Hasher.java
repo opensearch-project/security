@@ -258,7 +258,7 @@ public class Hasher {
         options.addOption(
             Option.builder(ITERATIONS_OPTION)
                 .longOpt("iterations")
-                .desc("Number of times the pseudo-random function is applied to the password. Default: 600000")
+                .desc("Number of times the pseudo-random function is applied to the password. Default: 600000 (PBKDF2), 3 (Argon2)")
                 .hasArg()
                 .argName("iterations (PBKDF2/Argon2)")
                 .type(Number.class)
@@ -293,7 +293,7 @@ public class Hasher {
         options.addOption(
             Option.builder(VERSION_OPTION)
                 .longOpt("version")
-                .desc("Version of Argon2 algorithm to use. Default: 0x13")
+                .desc("Version of Argon2 algorithm to use. Default: 19")
                 .hasArg()
                 .argName("version (Argon2)")
                 .type(String.class)
