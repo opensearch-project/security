@@ -9,7 +9,18 @@ buildscript {
         open_saml_version = '5.1.4'
         open_saml_shib_version = "9.1.4"
     }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
 }
+
 repositories {
     maven { url "build.shibboleth.net/maven/releases"}
 }
@@ -44,8 +55,8 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
 
-    runtimeOnly "org.apache.httpcomponents.client5:httpclient5:5.4.4"
-    runtimeOnly "org.apache.httpcomponents.client5:httpclient5-cache:5.4.4"
+    runtimeOnly "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+    runtimeOnly "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
 }
 
 tasks.shadowJar {
