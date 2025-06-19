@@ -218,7 +218,7 @@ public class HasherTests {
     @Test
     public void testWithArgon2ParallelismArgument() {
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-par", "2" });
-        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
         assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 2);
@@ -228,7 +228,7 @@ public class HasherTests {
         out.reset();
 
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-par", "1" });
-        argon2Function = Argon2Function.getInstanceFromHash(out.toString());
+        argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
         assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 1);
