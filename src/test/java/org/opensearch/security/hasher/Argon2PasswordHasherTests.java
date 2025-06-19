@@ -105,7 +105,6 @@ public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
         
-        //use the values provided in our most recent chat for memory amounts
         hasher = new Argon2PasswordHasher(
             47104,
             3,
