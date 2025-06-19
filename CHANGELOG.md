@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
-- Support for Argon2 hashing algorithm
+- Support for Argon2 hashing algorithm (#5413)
 
 ### Changed
 - Underlying hasher to include new Argon2 implementation
