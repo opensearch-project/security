@@ -8,9 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Support for Argon2 hashing algorithm (#5413)
 - Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
 - Create a mechanism for plugins to explicitly declare actions they need to perform with their assigned PluginSubject ([#5341](https://github.com/opensearch-project/security/pull/5341))
+- Support for Argon2 password hashing algorithm (#5413)
 
 ### Changed
-- Underlying hasher to include new Argon2 implementation
+- Underlying password hasher class to include new Argon2 implementation
 
 ### Dependencies
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.33.0 to 3.33.100 ([#5400](https://github.com/opensearch-project/security/pull/5400))
