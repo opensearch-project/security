@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
 - Create a mechanism for plugins to explicitly declare actions they need to perform with their assigned PluginSubject ([#5341](https://github.com/opensearch-project/security/pull/5341))
 - Support for Argon2 hashing algorithm
+- Support for Argon2 hashing algorithm (#5413)
 
 ### Changed
 - Underlying hasher to include new Argon2 implementation
