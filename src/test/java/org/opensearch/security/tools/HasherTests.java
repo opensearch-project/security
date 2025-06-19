@@ -47,7 +47,7 @@ public class HasherTests {
         assertTrue("should return a valid BCrypt hash with the default BCrypt configuration", out.toString().startsWith("$2y$12"));
     }
 
-    //BCRYPT
+    // BCRYPT
     @Test
     public void testWithBCryptRoundsArgument() {
         Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
@@ -79,7 +79,19 @@ public class HasherTests {
         assertTrue("should return a valid BCrypt hash with the correct configuration", out.toString().startsWith("$2a$05"));
     }
 
-    //PBKDF2
+    @Test
+    public void testWithPBKDF2Signature() {
+        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
+        assertTrue("should return a valid PBKDF2 hash with the default configuration", out.toString().startsWith("$3$25"));
+    }
+
+    @Test
+    public void testWithArgon2Signature() {
+        Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
+        assertTrue("should return a valid Argon2 hash with the default configuration", out.toString().startsWith("$argon2"));
+    }
+
+    // PBKDF2
     @Test
     public void testWithPBKDF2DefaultArguments() {
         Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
@@ -146,7 +158,7 @@ public class HasherTests {
         assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 250);
     }
 
-    //ARGON2
+    // ARGON2
     @Test
     public void testWithArgon2DefaultArguments() {
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
@@ -206,7 +218,7 @@ public class HasherTests {
     @Test
     public void testWithArgon2ParallelismArgument() {
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-par", "2" });
-        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
+        Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
         assertEquals("should return a valid Argon2 hash with the correct value for \"parallelism\"", argon2Function.getParallelism(), 2);
