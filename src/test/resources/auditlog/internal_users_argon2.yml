@@ -15,4 +15,4 @@ user1:
   hidden: false
   backend_roles: []
   attributes: {}
-  description: "Hashed with Argon2id with: 2 iterations | 65536 KB memory | 1 parallelism"
+  description: "Hashed with Argon2id with: 2 iterations | 65536 KiB memory | 1 parallelism"
