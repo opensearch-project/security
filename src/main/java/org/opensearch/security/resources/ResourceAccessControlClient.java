@@ -74,6 +74,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
-        resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(resourceIndex, listener);
+        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceIndex, listener);
     }
 }

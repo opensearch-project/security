@@ -6,8 +6,9 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.resource.disabled;
+package org.opensearch.sample.resource;
 
+import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -17,8 +18,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -47,7 +51,20 @@ public class SecurityDisabledTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .plugin(SampleResourcePlugin.class, PainlessModulePlugin.class)
+        .plugin(
+            new PluginInfo(
+                SampleResourcePlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "1.8",
+                SampleResourcePlugin.class.getName(),
+                null,
+                List.of(OpenSearchSecurityPlugin.class.getName()),
+                false
+            )
+        )
+        .plugin(PainlessModulePlugin.class)
         .loadConfigurationIntoIndex(false)
         .nodeSettings(Map.of("plugins.security.disabled", true, "plugins.security.ssl.http.enabled", false))
         .build();

@@ -32,6 +32,17 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+/**
+ * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
+ *
+ * It is separate from normal index access evaluation and takes into account access-levels defined when sharing a resource
+ * For example, a user with no roles associated at all, will still be able to access a resource if shared with.
+ *
+ * Resource could be shared at multiple access levels and the access will be evaluated for the level it is shared at
+ * regardless of the actions associated with the roles, if any, mapped to the user.
+ *
+ * @opensearch.experimental
+ */
 public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
@@ -78,6 +89,10 @@ public class ResourceAccessEvaluator {
             log.debug("Request index {} is not a protected resource index", req.index());
             return presponse;
         }
+
+        // TODO what about request to directly update resource-sharing record, these will only happen when system index protection is
+        // disabled
+        // TODO should we enforce that feature is only turned on if both SystemIndex protection and feature flag are set to true?
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER

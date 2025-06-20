@@ -11,25 +11,22 @@ package org.opensearch.sample.resource;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
-import org.opensearch.sample.resource.disabled.RACFeatureDisabledTests;
-import org.opensearch.sample.resource.disabled.SystemIndexDisabledTests;
-import org.opensearch.sample.resource.permissions.FullAccessTests;
-import org.opensearch.sample.resource.permissions.LimitedAccessTests;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 
 /**
- * Abstract class for sample resource plugin tests. Provides common constants and utility methods for testing. This class is not intended to be
- * instantiated directly. It is extended by {@link LimitedAccessTests}, {@link SystemIndexDisabledTests}, {@link FullAccessTests}, {@link RACFeatureDisabledTests}
+ * Provides common constants and utility methods for testing. This class is not intended to be
+ * instantiated directly.
  */
 public final class TestHelper {
 
@@ -87,6 +84,22 @@ public final class TestHelper {
             """.formatted(accessLevel, user);
     }
 
+    public static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
+        return """
+            {
+              "resource_id": "%s",
+              "created_by": {
+                "user": "%s"
+              },
+              "share_with": {
+                "%s" : {
+                    "users": ["%s"]
+                }
+              }
+            }
+            """.formatted(resourceId, creator, accessLevel, target);
+    }
+
     public static String revokeAccessPayload(String user, String accessLevel) {
         return """
             {
@@ -126,19 +139,32 @@ public final class TestHelper {
             }
         }
 
+        public String createRawResourceAs(CertificateData adminCert) {
+            try (TestRestClient client = cluster.getRestClient(adminCert)) {
+                String sample = "{\"name\":\"sample\"}";
+                TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
+                resp.assertStatusCode(HttpStatus.SC_CREATED);
+                return resp.getTextFromJsonBody("/_id");
+            }
+        }
+
         public void assertDirectGet(String resourceId, TestSecurityConfig.User user, int status, String expectedResourceName) {
             assertGet(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, user, status, expectedResourceName);
+        }
+
+        public void assertDirectViewSharingRecord(String resourceId, TestSecurityConfig.User user, int status) {
+            assertGet(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status, user.getName());
         }
 
         public void assertApiGet(String resourceId, TestSecurityConfig.User user, int status, String expectedResourceName) {
             assertGet(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId, user, status, expectedResourceName);
         }
 
-        private void assertGet(String endpoint, TestSecurityConfig.User user, int status, String expectedResourceName) {
+        private void assertGet(String endpoint, TestSecurityConfig.User user, int status, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
-                if (status == HttpStatus.SC_OK) assertThat(response.getBody(), containsString(expectedResourceName));
+                if (status == HttpStatus.SC_OK) assertThat(response.getBody(), containsString(expectedString));
             }
         }
 
@@ -155,7 +181,7 @@ public final class TestHelper {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
                 if (status == HttpStatus.SC_OK) {
-                    assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThan(1));
+                    assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThanOrEqualTo(1));
                     assertThat(response.getBody(), containsString(expectedResourceName));
                 }
             }
@@ -184,7 +210,13 @@ public final class TestHelper {
             String accessLevel,
             int status
         ) {
-            assertShare(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, target, accessLevel, status);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(
+                    RESOURCE_SHARING_INDEX + "/_doc/" + resourceId,
+                    directSharePayload(resourceId, user.getName(), target.getName(), accessLevel)
+                );
+                response.assertStatusCode(status);
+            }
         }
 
         public void assertApiShare(
@@ -245,6 +277,10 @@ public final class TestHelper {
 
         public void assertDirectDelete(String resourceId, TestSecurityConfig.User user, int status) {
             assertDelete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, user, status);
+        }
+
+        public void assertDirectDeleteResourceSharingRecord(String resourceId, TestSecurityConfig.User user, int status) {
+            assertDelete(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status);
         }
 
         public void assertApiDelete(String resourceId, TestSecurityConfig.User user, int status) {

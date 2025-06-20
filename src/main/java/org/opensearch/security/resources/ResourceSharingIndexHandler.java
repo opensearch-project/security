@@ -243,7 +243,7 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to fetch shared documents based on action-group match.
+     * Helper method to fetch own and shared documents based on action-group match.
      * This method uses scroll API to handle large result sets efficiently.
      *
      *
@@ -262,7 +262,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public void fetchSharedDocuments(
+    public void fetchAccessibleResourceIds(
         String resourceIndex,
         Set<String> entities,
         BoolQueryBuilder actionGroupQuery,
@@ -276,7 +276,7 @@ public class ResourceSharingIndexHandler {
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
-            boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
+            boolQuery.must(actionGroupQuery);
 
             executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
@@ -357,12 +357,7 @@ public class ResourceSharingIndexHandler {
             return;
         }
         String resourceSharingIndex = getSharingIndex(resourceIndex);
-        LOGGER.debug(
-            "Fetching document from {}, matching source_idx: {}, resource_id: {}",
-            resourceSharingIndex,
-            resourceIndex,
-            resourceId
-        );
+        LOGGER.debug("Fetching document from {}, matching resource_id: {}", resourceSharingIndex, resourceId);
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
@@ -372,12 +367,7 @@ public class ResourceSharingIndexHandler {
                 public void onResponse(GetResponse getResponse) {
                     try {
                         if (!getResponse.isExists()) {
-                            LOGGER.debug(
-                                "No document found in {} matching resource_id: {} and source_idx: {}",
-                                resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
-                            );
+                            LOGGER.debug("No document found in {} matching resource_id: {}", resourceSharingIndex, resourceId);
                             listener.onResponse(null);
                             return;
                         }
@@ -394,19 +384,17 @@ public class ResourceSharingIndexHandler {
                             resourceSharing.setResourceId(getResponse.getId());
 
                             LOGGER.debug(
-                                "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
+                                "Successfully fetched document from {} matching resource_id: {}",
                                 resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
+                                resourceId
                             );
 
                             listener.onResponse(resourceSharing);
                         }
                     } catch (Exception e) {
                         LOGGER.error(
-                            "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                            "Failed to parse documents matching resource_id: {} and  from {}",
                             resourceId,
-                            resourceIndex,
                             resourceSharingIndex,
                             e
                         );
@@ -470,7 +458,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -558,8 +546,6 @@ public class ResourceSharingIndexHandler {
      * @param resourceIndex   The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param requestUserName The user trying to revoke the accesses
-     * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException         if the update operation fails or encounters an error
@@ -741,54 +727,49 @@ public class ResourceSharingIndexHandler {
      * This is specifically to replace multi-match queries for wild-card expansions.
      * @param scroll        Search scroll context
      * @param searchRequest Initial search request
-     * @param query         Query builder for the request
+     * @param filterQuery   Query builder for the request
      * @param listener      Listener to receive the collected resource IDs
      */
     private void executeFlattenedSearchRequest(
         Scroll scroll,
         SearchRequest searchRequest,
-        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        BoolQueryBuilder filterQuery,
         ActionListener<Set<String>> listener
     ) {
-        // Painless script to pull out every user/role/backend_role from share_with.* into one array
+        // Painless script to emit all share_with principals
         String scriptSource = """
-              if (params._source.share_with instanceof Map) {
-                for (def grp : params._source.share_with.values()) {
-                  if (grp.users instanceof List) {
-                    for (u in grp.users) {
-                      emit("user:" + u);
+                // handle shared
+                if (params._source.share_with instanceof Map) {
+                  for (def grp : params._source.share_with.values()) {
+                    if (grp.users instanceof List) {
+                      for (u in grp.users) {
+                        emit("user:" + u);
+                      }
                     }
-                  }
-                  if (grp.roles instanceof List) {
-                    for (r in grp.roles) {
-                      emit("role:" + r);
+                    if (grp.roles instanceof List) {
+                      for (r in grp.roles) {
+                        emit("role:" + r);
+                      }
                     }
-                  }
-                  if (grp.backend_roles instanceof List) {
-                    for (b in grp.backend_roles) {
-                      emit("backend:" + b);
+                    if (grp.backend_roles instanceof List) {
+                      for (b in grp.backend_roles) {
+                        emit("backend:" + b);
+                      }
                     }
                   }
                 }
-              }
             """;
 
-        Script script = new Script(
-            ScriptType.INLINE,
-            "painless",
-            scriptSource,
-            Map.of()  // no params
-        );
+        Script script = new Script(ScriptType.INLINE, "painless", scriptSource, Map.of());
 
         SearchSourceBuilder ssb = new SearchSourceBuilder().derivedField(
-            "all_shared_principals",   // synthetic flattened field
+            "all_shared_principals",   // flattened runtime field
             "keyword",                 // type
-            script                     // inline script
-        ).query(query).size(1000).fetchSource(new String[] { "resource_id" }, null);
+            script
+        ).query(filterQuery).size(1000).fetchSource(new String[] { "resource_id" }, null);
 
         searchRequest.source(ssb);
 
-        // … the rest stays exactly the same …
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
         searchStep.whenComplete(initialResponse -> {

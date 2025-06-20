@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.resource.disabled;
+package org.opensearch.sample.resource;
 
 import java.util.List;
 import java.util.Map;
@@ -25,7 +25,6 @@ import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
-import org.opensearch.sample.resource.TestHelper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -52,7 +51,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 // Top-level suite that groups both API and raw-document tests
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ SystemIndexDisabledTests.ApiAccessTests.class, SystemIndexDisabledTests.RawDocumentAccessTests.class })
+@Suite.SuiteClasses({ SystemIndexDisabledTests.ApiAccessTests.class, SystemIndexDisabledTests.DirectIndexAccessTests.class })
 public class SystemIndexDisabledTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
@@ -272,7 +271,7 @@ public class SystemIndexDisabledTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(Scope.NONE)
-    public static class RawDocumentAccessTests extends BaseTests {
+    public static class DirectIndexAccessTests extends BaseTests {
 
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
 
@@ -301,7 +300,7 @@ public class SystemIndexDisabledTests {
         }
 
         @Test
-        public void testRaw_noAccessUser() {
+        public void testRawAccess_noAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
             api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_ACCESS)) {
@@ -319,7 +318,7 @@ public class SystemIndexDisabledTests {
         }
 
         @Test
-        public void testRaw_limitedAccessUser() {
+        public void testRawAccess_limitedAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
             api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_ACCESS)) {
@@ -338,7 +337,7 @@ public class SystemIndexDisabledTests {
         }
 
         @Test
-        public void testRaw_allAccessUser() {
+        public void testRawAccess_allAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
             api.awaitSharingEntry();
             String userResId;
@@ -362,7 +361,7 @@ public class SystemIndexDisabledTests {
         }
 
         @Test
-        public void testRaw_adminCertificate() {
+        public void testRawAccess_adminCertificate() {
             String id = api.createRawResourceAs(USER_ADMIN);
             api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
