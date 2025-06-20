@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample;
+package org.opensearch.sample.resource.disabled;
 
 import java.util.Map;
 
@@ -18,12 +18,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestHelper.revokeAccessPayload;
+import static org.opensearch.sample.resource.TestHelper.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -33,7 +43,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePluginTestHelper {
+public class SecurityDisabledTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -70,7 +80,6 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
             response.assertStatusCode(HttpStatus.SC_OK);
             String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
 
-            // in sample plugin implementation, get all API is checked against
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
 
