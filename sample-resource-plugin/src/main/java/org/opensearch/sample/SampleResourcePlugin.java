@@ -30,8 +30,10 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.identity.PluginSubject;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ActionPlugin;
+import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -54,6 +56,10 @@ import org.opensearch.sample.resource.actions.transport.GetResourceTransportActi
 import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
 import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
+import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
+import org.opensearch.sample.secure.actions.transport.SecurePluginTransportAction;
+import org.opensearch.sample.utils.RunAsSubjectClient;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -68,9 +74,11 @@ import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENS
  * It uses ".sample_resource_sharing_plugin" index to manage its resources, and exposes few REST APIs that manage CRUD operations on sample resources.
  *
  */
-public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin {
+public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, IdentityAwarePlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
     private boolean isResourceSharingEnabled = false;
+
+    private RunAsSubjectClient pluginClient;
 
     public SampleResourcePlugin(final Settings settings) {
         isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
@@ -90,7 +98,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        return Collections.emptyList();
+        this.pluginClient = new RunAsSubjectClient(client);
+        return List.of(pluginClient);
     }
 
     @Override
@@ -107,6 +116,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new CreateResourceRestAction());
         handlers.add(new GetResourceRestAction());
         handlers.add(new DeleteResourceRestAction());
+        handlers.add(new SecurePluginRestAction());
 
         if (isResourceSharingEnabled) {
             handlers.add(new ShareResourceRestAction());
@@ -126,6 +136,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
             actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
         }
+        actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }
 
@@ -133,5 +144,12 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
         return Collections.singletonList(systemIndexDescriptor);
+    }
+
+    @Override
+    public void assignSubject(PluginSubject pluginSubject) {
+        if (this.pluginClient != null) {
+            this.pluginClient.setSubject(pluginSubject);
+        }
     }
 }

@@ -19,6 +19,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.1.0
 * Include mapped roles when setting userInfo in ThreadContext ([#5369](https://github.com/opensearch-project/security/pull/5369))
 * Adds details for debugging Security not initialized error([#5370](https://github.com/opensearch-project/security/pull/5370))
 * [Resource Sharing] Store resource sharing info in indices that map 1-to-1 with resource index ([#5358](https://github.com/opensearch-project/security/pull/5358))
+* add missing cluster:monitor permission ([#5405](https://github.com/opensearch-project/security/pull/5405))
+* add missing mapping get permission ([#5412](https://github.com/opensearch-project/security/pull/5412))
 
 ### Removed
 * Removed unused support for custom User object serialization ([#5339](https://github.com/opensearch-project/security/pull/5339))
