@@ -195,8 +195,8 @@ public class SecurityInterceptor {
                                 && !(request instanceof SearchRequest)
                                 && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
-                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER))
-                        || requestHeadersToCopy.contains(k)
+                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
+                            || requestHeadersToCopy.contains(k))
                 )
             );
 
