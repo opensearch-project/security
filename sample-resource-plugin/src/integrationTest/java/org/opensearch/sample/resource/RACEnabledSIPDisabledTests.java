@@ -58,9 +58,9 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    RACFeatureEnabledSystemIndexDisabledTests.ApiAccessTests.class,
-    RACFeatureEnabledSystemIndexDisabledTests.DirectIndexAccessTests.class })
-public class RACFeatureEnabledSystemIndexDisabledTests {
+    RACEnabledSIPDisabledTests.ApiAccessTests.class,
+    RACEnabledSIPDisabledTests.DirectIndexAccessTests.class })
+public class RACEnabledSIPDisabledTests {
 
     /**
      * Base test class providing shared cluster setup and teardown

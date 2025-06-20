@@ -25,6 +25,7 @@ import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -42,6 +43,7 @@ import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_UPDATE_E
 import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_LIMITED_ACCESS;
 import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_NO_ACCESS;
+import static org.opensearch.sample.resource.TestHelper.directSharePayload;
 import static org.opensearch.sample.resource.TestHelper.revokeAccessPayload;
 import static org.opensearch.sample.resource.TestHelper.sampleAllAG;
 import static org.opensearch.sample.resource.TestHelper.sampleReadOnlyAG;
@@ -53,14 +55,13 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
- * These tests run with resource sharing feature disabled but system index enabled.
- * User with resource index permissions will have access to all resources via plugin APIs but not through direct index access requests
+ * These tests run with resource sharing feature enabled and system index protection enabled
+ * This is how the feature is intended to be utilized.
+ * Only user's with appropriate permissions be able to access a resource. SIP prevents any direct index accesses.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-    RACFeatureDisabledSystemIndexEnabledTests.ApiAccessTests.class,
-    RACFeatureDisabledSystemIndexEnabledTests.DirectIndexAccessTests.class })
-public class RACFeatureDisabledSystemIndexEnabledTests {
+@Suite.SuiteClasses({ RACEnabledTests.ApiAccessTests.class, RACEnabledTests.DirectIndexAccessTests.class })
+public class RACEnabledTests {
 
     /**
      * Base test class providing shared cluster setup and teardown
@@ -86,20 +87,21 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, SHARED_WITH_USER_LIMITED_ACCESS, SHARED_WITH_USER_NO_ACCESS)
             .actionGroups(sampleReadOnlyAG, sampleAllAG)
-            .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
+            .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
             .build();
 
         @After
         public void clearIndices() {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 client.delete(RESOURCE_INDEX_NAME);
+                client.delete(RESOURCE_SHARING_INDEX);
             }
         }
     }
 
     /**
      * Tests exercising the plugin API endpoints
-     * All users can access all resources through the plugin APIs given they have appropriate index permission
+     * with feature enabled user's cannot modify resource that is not shared with them
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -117,12 +119,12 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
         }
 
         @Test
-        public void testResourceSharingIndexDoesntExist() {
+        public void testResourceSharingIndexExists() {
             api.createSampleResourceAs(USER_ADMIN);
-            // when feature is disabled, no resource-sharing index should be created
+            api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 HttpResponse resp = client.get(RESOURCE_SHARING_INDEX + "/_search");
-                resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+                resp.assertStatusCode(HttpStatus.SC_OK);
             }
         }
 
@@ -130,7 +132,7 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
         public void testApiAccess_noAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
 
-            // user has no permissions
+            // user has no permission
 
             // cannot create own resource
             try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_ACCESS)) {
@@ -145,15 +147,15 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
             api.assertApiUpdate(adminResId, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
-            // feature is disabled, no handler's exist
+            // cannot share admin's resource with itself
             api.assertApiShare(
                 adminResId,
                 SHARED_WITH_USER_NO_ACCESS,
                 SHARED_WITH_USER_NO_ACCESS,
                 sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
+                HttpStatus.SC_FORBIDDEN
             );
-            api.assertApiRevoke(adminResId, SHARED_WITH_USER_NO_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiRevoke(adminResId, SHARED_WITH_USER_NO_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
 
             // cannot delete admin's resource
             api.assertApiDelete(adminResId, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
@@ -167,7 +169,7 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
             // user doesn't have update or delete permissions, but can read and create
             // Has * permission on sample plugin resource index
 
-            // can create a resource
+            // can create own resource
             String userResId;
             try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_ACCESS)) {
                 String sample = "{\"name\":\"sampleUser\"}";
@@ -176,45 +178,46 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
 
-            // can see admin's resource
-            api.assertApiGet(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK, "sample");
-            api.assertApiGetAll(SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK, "sample");
+            // cannot see admin's resource
+            api.assertApiGet(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN, "");
+            api.assertApiGetAll(SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK, "sampleUser"); // can only see own resource
+
             // cannot update admin's resource
             api.assertApiUpdate(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
-            // cannot update own resource
-            api.assertApiUpdate(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            // can update own resource
+            api.assertApiUpdate(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK);
 
-            // feature is disabled, no handler's exist
+            // cannot share or revoke admin's resource
             api.assertApiShare(
                 adminResId,
                 SHARED_WITH_USER_LIMITED_ACCESS,
                 SHARED_WITH_USER_LIMITED_ACCESS,
                 sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
+                HttpStatus.SC_FORBIDDEN
             );
-            api.assertApiRevoke(
-                adminResId,
-                SHARED_WITH_USER_LIMITED_ACCESS,
-                USER_ADMIN,
-                sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
-            );
+            api.assertApiRevoke(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
 
-            // cannot delete resource since feature is disabled and user doesn't have delete permission
-            api.assertApiDelete(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
-            // cannot delete admin's resource since user doesn't have delete permission
+            // can share or revoke own resource
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            api.assertApiShare(userResId, SHARED_WITH_USER_LIMITED_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiRevoke(userResId, SHARED_WITH_USER_LIMITED_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+
+            // can delete own resource since user is the owner
+            api.assertApiDelete(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK);
+            // cannot delete admin's resource
             api.assertApiDelete(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
         }
 
         @Test
         public void testApiAccess_allAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
 
-            // user has * cluster and * index permissions on all indices
+            // user has * cluster and index permissions
 
-            // can create a resource
+            // can create own resource
             String userResId;
             try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_FULL_ACCESS)) {
                 String sample = "{\"name\":\"sampleUser\"}";
@@ -223,64 +226,78 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
 
-            // can see admin's resource
-            api.assertApiGet(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sample");
-            api.assertApiGetAll(SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sample");
+            // cannot see admin's resource
+            api.assertApiGet(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN, "sample");
+            api.assertApiGetAll(SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sampleUser");
 
-            // can update admin's resource
-            api.assertApiUpdate(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
-            api.assertApiGet(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sampleUpdated");
-            // can update a resource
+            // cannot update admin's resource
+            api.assertApiUpdate(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
+            // can update own resource
             api.assertApiUpdate(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
             api.assertApiGet(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sampleUpdated");
 
-            // feature is disabled, no handler's exist
+            // cannot share or revoke admin's resource
             api.assertApiShare(
                 adminResId,
                 SHARED_WITH_USER_FULL_ACCESS,
                 SHARED_WITH_USER_FULL_ACCESS,
                 sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
+                HttpStatus.SC_FORBIDDEN
             );
-            api.assertApiRevoke(adminResId, SHARED_WITH_USER_FULL_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiRevoke(adminResId, SHARED_WITH_USER_FULL_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
 
-            // can delete a resource
+            // can share or revoke own resource
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            api.assertApiShare(userResId, SHARED_WITH_USER_FULL_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiRevoke(userResId, SHARED_WITH_USER_FULL_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+
+            // can delete own resource
             api.assertApiDelete(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
-            // can delete admin's resource
-            api.assertApiDelete(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_NOT_FOUND, "");
+            // cannot delete admin's resource
+            api.assertApiDelete(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
         }
 
         @Test
-        public void testApiAccess_adminCertificateUser() {
+        public void testApiAccess_superAdmin() {
             String id = api.createSampleResourceAs(USER_ADMIN);
-            // can see all resources
+            api.awaitSharingEntry();
+            // can see admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + id);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sample"));
+            }
 
-                // can update all resources
+            // can update admin's resource
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
-                resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + id, updatePayload);
+                HttpResponse resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + id, updatePayload);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
+            }
 
-                // can't share or revoke, as handlers don't exist
-                resp = client.postJson(
+            // can share and revoke admin's resource
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                HttpResponse response = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
-                    shareWithPayload(SHARED_WITH_USER_FULL_ACCESS.getName(), sampleAllAG.name())
+                    shareWithPayload(SHARED_WITH_USER_NO_ACCESS.getName(), sampleAllAG.name())
                 );
-                resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
 
-                resp = client.postJson(
+                response.assertStatusCode(HttpStatus.SC_OK);
+
+                response = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
-                    revokeAccessPayload(SHARED_WITH_USER_FULL_ACCESS.getName(), sampleAllAG.name())
+                    revokeAccessPayload(SHARED_WITH_USER_NO_ACCESS.getName(), sampleAllAG.name())
                 );
-                resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
 
-                // can delete admin's resource
-                resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + id);
+                response.assertStatusCode(HttpStatus.SC_OK);
+            }
+
+            // can delete admin's resource
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                HttpResponse resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + id);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + id);
                 resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
@@ -290,77 +307,99 @@ public class RACFeatureDisabledSystemIndexEnabledTests {
     }
 
     /**
-     * Tests exercising direct raw-document operations on the index
-     * No user except super-admin ca access documents directly since system index protection is enabled
+     * Tests exercising direct raw-document operations on the index.
+     * Only super-admins will be able to perform raw access requet
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
     public static class DirectIndexAccessTests extends BaseTests {
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
 
-        @Test
-        public void testRawAccess_noAccessUser() {
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-
-            // user has no permissions
-
-            // cannot access any raw request
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_ACCESS)) {
+        private void assertResourceIndexAccess(String id, TestSecurityConfig.User user) {
+            // cannot interact with resource index
+            try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            api.assertDirectGet(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectGetAll(SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectUpdate(id, user, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectDelete(id, user, HttpStatus.SC_FORBIDDEN);
+
+        }
+
+        private void assertResourceSharingIndexAccess(String id, TestSecurityConfig.User user) {
+            // cannot interact with resource sharing index
+            api.assertDirectViewSharingRecord(id, user, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectShare(id, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectRevoke(id, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectDeleteResourceSharingRecord(id, user, HttpStatus.SC_FORBIDDEN);
+        }
+
+        @Test
+        public void testRawAccess_noAccessUser() {
+            String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            // user has no permission
+            assertResourceIndexAccess(id, SHARED_WITH_USER_NO_ACCESS);
+            assertResourceSharingIndexAccess(id, SHARED_WITH_USER_NO_ACCESS);
         }
 
         @Test
         public void testRawAccess_limitedAccessUser() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            // user doesn't have update or delete permissions, but can read and create
-            // Has * permission on sample plugin resource index
+            // user has read permission on resource index
+            // since SIP is enabled, user will not be able to perform any raw requests
 
-            // cannot create a resource since user doesn't have indices:data/write/index permission
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_ACCESS)) {
-                String sample = "{\"name\":\"sampleUser\"}";
-                HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
-                resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-            }
-            // cannot read admin's resource since system index protection is enabled, will show 404
-            api.assertDirectGet(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_NOT_FOUND, "");
-            // cannot update or delete resource
-            api.assertDirectUpdate(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            assertResourceIndexAccess(id, SHARED_WITH_USER_LIMITED_ACCESS);
+            assertResourceSharingIndexAccess(id, SHARED_WITH_USER_LIMITED_ACCESS);
         }
 
         @Test
         public void testRawAccess_allAccessUser() {
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            // user has * cluster and index permissions on all indices
+            // user has * permission on all indices
+            // since SIP is enabled, user will not be able to perform any raw requests
 
-            // cannot create a resource directly since system index protection (SIP) is enabled
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_FULL_ACCESS)) {
-                String sample = "{\"name\":\"sampleUser\"}";
-                HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
-                resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
-            }
-            // cannot read admin's resource directly since SIP is enabled
-            api.assertDirectGet(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_NOT_FOUND, "sample");
-            // cannot update or delete admin resource directly since SIP is enabled
-            api.assertDirectUpdate(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
+            String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            assertResourceIndexAccess(id, SHARED_WITH_USER_FULL_ACCESS);
+
+            // cannot interact with resource sharing index
+            api.assertDirectViewSharingRecord(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_NOT_FOUND);
+            api.assertDirectShare(
+                id,
+                SHARED_WITH_USER_FULL_ACCESS,
+                SHARED_WITH_USER_FULL_ACCESS,
+                sampleAllAG.name(),
+                HttpStatus.SC_FORBIDDEN
+            );
+            api.assertDirectRevoke(
+                id,
+                SHARED_WITH_USER_FULL_ACCESS,
+                SHARED_WITH_USER_FULL_ACCESS,
+                sampleAllAG.name(),
+                HttpStatus.SC_FORBIDDEN
+            );
+            api.assertDirectDeleteResourceSharingRecord(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
         }
 
         @Test
-        public void testRawAccess_adminCertificateUser() {
-            // super-admin can perform any operation
+        public void testRawAccess_superAdmin() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                // can access resource index directly
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(RESOURCE_INDEX_NAME + "/_doc/" + id, "{\"name\":\"adminDirectUpdated\"}")
                     .assertStatusCode(HttpStatus.SC_OK);
+
+                // can access resource sharing index directly
+                client.get(RESOURCE_SHARING_INDEX + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(
+                    RESOURCE_SHARING_INDEX + "/_doc/" + id,
+                    directSharePayload(id, USER_ADMIN.getName(), SHARED_WITH_USER_NO_ACCESS.getName(), sampleReadOnlyAG.name())
+                ).assertStatusCode(HttpStatus.SC_OK);
+                client.delete(RESOURCE_SHARING_INDEX + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
+
+                // can delete resource
                 client.delete(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
             }
         }
