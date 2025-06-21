@@ -51,7 +51,6 @@ buildscript {
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
-        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
     }
 
     dependencies {
@@ -507,6 +506,7 @@ allprojects {
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
+        maven { url "build.shibboleth.net/maven/releases"}
     }
 
     configurations {
@@ -698,26 +698,7 @@ dependencies {
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
     runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.32"
-    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
-    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
-
-    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
-    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
-        exclude(group: 'org.apache.velocity', module: 'velocity')
-    }
-    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
-
+    implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
