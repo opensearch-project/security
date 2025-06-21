@@ -486,13 +486,21 @@ public class ResourceSharingIndexHandler {
         sharingInfoListener.whenComplete(sharingInfo -> {
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
-                assert sharingInfo != null;
+                if (sharingInfo == null) {
+                    LOGGER.debug("No sharing found for access level {}", accessLevel);
+                    listener.onResponse(null);
+                    return;
+                }
                 sharingInfo.share(accessLevel, target);
             }
 
             String resourceSharingIndex = getSharingIndex(resourceIndex);
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                assert sharingInfo != null;
+                if (sharingInfo == null) {
+                    LOGGER.debug("No sharing found for resource id {}", resourceId);
+                    listener.onResponse(null);
+                    return;
+                }
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

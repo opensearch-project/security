@@ -32,8 +32,9 @@ public final class TestHelper {
 
     public static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
-    public final static TestSecurityConfig.User SHARED_WITH_USER_FULL_ACCESS = new TestSecurityConfig.User("resource_sharing_test_user")
-        .roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*"));
+    public final static TestSecurityConfig.User SHARED_WITH_USER_FULL_ACCESS = new TestSecurityConfig.User(
+        "resource_sharing_test_user_all_access" + ""
+    ).roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*"));
 
     // No update permission
     public final static TestSecurityConfig.User SHARED_WITH_USER_LIMITED_ACCESS = new TestSecurityConfig.User(

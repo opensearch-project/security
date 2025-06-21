@@ -57,9 +57,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * User with resource index permissions will have access to all resources via plugin APIs but not through direct index access requests
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-    RACDisabledSIPEnabledTests.ApiAccessTests.class,
-    RACDisabledSIPEnabledTests.DirectIndexAccessTests.class })
+@Suite.SuiteClasses({ RACDisabledSIPEnabledTests.ApiAccessTests.class, RACDisabledSIPEnabledTests.DirectIndexAccessTests.class })
 public class RACDisabledSIPEnabledTests {
 
     /**

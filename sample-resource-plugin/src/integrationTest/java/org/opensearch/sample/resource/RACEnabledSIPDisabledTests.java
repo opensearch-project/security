@@ -57,9 +57,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * Only users with appropriate access to resources will be allowed via APIs and via direct index access since SIP is disabled.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-    RACEnabledSIPDisabledTests.ApiAccessTests.class,
-    RACEnabledSIPDisabledTests.DirectIndexAccessTests.class })
+@Suite.SuiteClasses({ RACEnabledSIPDisabledTests.ApiAccessTests.class, RACEnabledSIPDisabledTests.DirectIndexAccessTests.class })
 public class RACEnabledSIPDisabledTests {
 
     /**
