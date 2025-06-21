@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
 
-public class ContextProvidingPluginSubjectTests {
+public class SecurePluginSubjectTests {
     static class TestIdentityAwarePlugin extends Plugin implements IdentityAwarePlugin {
 
     }
@@ -41,7 +41,7 @@ public class ContextProvidingPluginSubjectTests {
 
         final User pluginUser = new User(pluginPrincipal);
 
-        ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
+        SecurePluginSubject subject = new SecurePluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
         assertThat(subject.getPrincipal().getName(), equalTo(pluginPrincipal));
 

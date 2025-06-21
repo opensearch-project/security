@@ -34,9 +34,9 @@ import static org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin
 public class RestBulkIndexDocumentIntoMixOfSystemIndexAction extends BaseRestHandler {
 
     private final Client client;
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
-    public RestBulkIndexDocumentIntoMixOfSystemIndexAction(Client client, RunAsSubjectClient pluginClient) {
+    public RestBulkIndexDocumentIntoMixOfSystemIndexAction(Client client, PluginClient pluginClient) {
         this.client = client;
         this.pluginClient = pluginClient;
     }

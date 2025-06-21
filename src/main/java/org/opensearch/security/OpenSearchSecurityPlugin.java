@@ -167,8 +167,8 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.NoopPluginSubject;
+import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -2294,7 +2294,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public PluginSubject getPluginSubject(Plugin plugin) {
         PluginSubject subject;
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
-            subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+            subject = new SecurePluginSubject(threadPool, settings, plugin);
             String pluginPrincipal = subject.getPrincipal().getName();
             URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
             RoleV7 pluginPermissions;

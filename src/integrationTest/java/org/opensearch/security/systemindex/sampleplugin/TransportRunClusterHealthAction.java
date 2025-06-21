@@ -26,14 +26,14 @@ import org.opensearch.transport.client.Client;
 public class TransportRunClusterHealthAction extends HandledTransportAction<RunClusterHealthRequest, AcknowledgedResponse> {
 
     private final Client client;
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
     @Inject
     public TransportRunClusterHealthAction(
         final TransportService transportService,
         final ActionFilters actionFilters,
         final Client client,
-        final RunAsSubjectClient pluginClient
+        final PluginClient pluginClient
     ) {
         super(RunClusterHealthAction.NAME, transportService, actionFilters, RunClusterHealthRequest::new);
         this.client = client;

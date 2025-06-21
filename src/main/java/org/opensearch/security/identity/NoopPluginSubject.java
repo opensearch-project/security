@@ -12,8 +12,8 @@
 package org.opensearch.security.identity;
 
 import java.security.Principal;
-import java.util.concurrent.Callable;
 
+import org.opensearch.common.CheckedRunnable;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.PluginSubject;
@@ -33,9 +33,9 @@ public class NoopPluginSubject implements PluginSubject {
     }
 
     @Override
-    public <T> T runAs(Callable<T> callable) throws Exception {
+    public <E extends Exception> void runAs(CheckedRunnable<E> r) throws E {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-            return callable.call();
+            r.run();
         }
     }
 }
