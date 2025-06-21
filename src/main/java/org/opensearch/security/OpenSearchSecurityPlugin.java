@@ -167,7 +167,6 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.NoopPluginSubject;
 import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -2292,9 +2291,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        PluginSubject subject;
+        PluginSubject subject = new SecurePluginSubject(threadPool, settings, plugin);
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
-            subject = new SecurePluginSubject(threadPool, settings, plugin);
             String pluginPrincipal = subject.getPrincipal().getName();
             URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
             RoleV7 pluginPermissions;
@@ -2314,8 +2312,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
             pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
             evaluator.updatePluginToActionPrivileges(pluginPrincipal, pluginPermissions);
-        } else {
-            subject = new NoopPluginSubject(threadPool);
         }
         return subject;
     }
