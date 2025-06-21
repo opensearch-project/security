@@ -211,6 +211,7 @@ public class RACEnabledSIPDisabledTests {
         @Test
         public void testApiAccess_allAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user has * cluster and index permissions
 

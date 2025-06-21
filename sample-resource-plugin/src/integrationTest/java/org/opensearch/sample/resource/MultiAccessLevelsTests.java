@@ -99,6 +99,13 @@ public class MultiAccessLevelsTests {
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
     public static class AdminCertificateAccessTests extends BaseTests {
+        @After
+        public void cleanup() {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                client.delete(RESOURCE_INDEX_NAME);
+                client.delete(RESOURCE_SHARING_INDEX);
+            }
+        }
 
         @Test
         public void adminCertificate_canCRUD() {

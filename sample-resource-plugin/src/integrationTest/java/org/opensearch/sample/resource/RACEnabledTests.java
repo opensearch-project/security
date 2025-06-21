@@ -131,6 +131,7 @@ public class RACEnabledTests {
         @Test
         public void testApiAccess_noAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user has no permission
 
@@ -165,6 +166,7 @@ public class RACEnabledTests {
         @Test
         public void testApiAccess_limitedAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user doesn't have update or delete permissions, but can read and create
             // Has * permission on sample plugin resource index
@@ -214,6 +216,7 @@ public class RACEnabledTests {
         @Test
         public void testApiAccess_allAccessUser() {
             String adminResId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user has * cluster and index permissions
 
