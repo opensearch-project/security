@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.DocWriteResponse;
@@ -44,6 +45,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
@@ -148,11 +150,16 @@ public class ResourceSharingIndexHandler {
      *                      "backend_roles": ["backend_role1"]
      *                      }
      *                      }
-     * @return ResourceSharing Returns resourceSharing object if the operation was successful, null otherwise
+     * @param listener Returns resourceSharing object if the operation was successful, exception otherwise
      * @throws IOException if there are issues with index operations or JSON processing
      */
-    public ResourceSharing indexResourceSharing(String resourceId, String resourceIndex, CreatedBy createdBy, ShareWith shareWith)
-        throws IOException {
+    public void indexResourceSharing(
+        String resourceId,
+        String resourceIndex,
+        CreatedBy createdBy,
+        ShareWith shareWith,
+        ActionListener<ResourceSharing> listener
+    ) throws IOException {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
@@ -165,22 +172,23 @@ public class ResourceSharingIndexHandler {
                 .setId(resourceId)
                 .request();
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(
-                idxResponse -> LOGGER.info(
-                    "Successfully created {} entry for resource {} in index {}.",
-                    resourceSharingIndex,
-                    resourceId,
-                    resourceIndex
-                ),
-                (failResponse) -> {
-                    LOGGER.error(failResponse.getMessage());
+            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
+                listener.onResponse(entry);
+            }, (e) -> {
+                if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
+                    // already exists → treat as a skip if you like
+                    LOGGER.warn("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
+                    listener.onResponse(entry);
+                } else {
+                    LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
+                    listener.onFailure(e);
                 }
-            );
+            });
             client.index(ir, irListener);
-            return entry;
         } catch (Exception e) {
-            LOGGER.error("Failed to create {} entry.", resourceSharingIndex, e);
-            throw new OpenSearchStatusException("Failed to create " + resourceSharingIndex + " entry.", RestStatus.INTERNAL_SERVER_ERROR);
+            LOGGER.error("Failed to submit index request for [{}] in [{}]", resourceId, resourceSharingIndex, e);
+            listener.onFailure(e);
         }
     }
 

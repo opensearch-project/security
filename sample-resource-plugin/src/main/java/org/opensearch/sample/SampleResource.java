@@ -14,6 +14,7 @@ package org.opensearch.sample;
 import java.io.IOException;
 import java.util.Map;
 
+import org.opensearch.commons.authuser.User;
 import org.opensearch.core.ParseField;
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -35,6 +36,8 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     private String name;
     private String description;
     private Map<String, String> attributes;
+    // NOTE: following field is added to specifically test migrate API, for newer resources this field must not be defined
+    private User user;
 
     public SampleResource() throws IOException {
         super();
@@ -44,6 +47,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         this.name = in.readString();
         this.description = in.readString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
+        this.user = new User(in);
     }
 
     private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(
@@ -59,6 +63,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
             s.setName((String) a[0]);
             s.setDescription((String) a[1]);
             s.setAttributes((Map<String, String>) a[2]);
+            s.setUser((User) a[3]);
             return s;
         }
     );
@@ -67,6 +72,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         PARSER.declareString(constructorArg(), new ParseField("name"));
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("description"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
+        PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> User.parse(p), null, new ParseField("user"));
     }
 
     public static SampleResource fromXContent(XContentParser parser) throws IOException {
@@ -74,13 +80,19 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     }
 
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        return builder.startObject().field("name", name).field("description", description).field("attributes", attributes).endObject();
+        return builder.startObject()
+            .field("name", name)
+            .field("description", description)
+            .field("attributes", attributes)
+            .field("user", user)
+            .endObject();
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(description);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
+        user.writeTo(out);
     }
 
     public void setName(String name) {
@@ -93,6 +105,10 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getName() {
