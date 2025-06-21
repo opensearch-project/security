@@ -83,7 +83,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
 
                     @Override
                     public Optional<String> sslProvider() {
-                        return sslSettingsManager.sslConfiguration(CertType.HTTP).map(config -> config.sslParameters().provider().name());
+                        return sslSettingsManager.sslConfiguration(CertType.HTTP).map(config -> config.sslParameters().provider().getName());
                     }
 
                     @Override

@@ -19,51 +19,44 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.ClientAuth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.ssl.config.Certificate;
-import org.opensearch.transport.NettyAllocator;
-
-import io.netty.handler.ssl.SslContext;
 
 import static java.util.function.Predicate.not;
 
 public class SslContextHandler {
-
     private final static Logger LOGGER = LogManager.getLogger(SslContextHandler.class);
-
-    private SslContext sslContext;
-
+    private final boolean isClient;
     private final SslConfiguration sslConfiguration;
-
     private final List<Certificate> loadedCertificates;
+
+    private SSLContext sslContext;
 
     public SslContextHandler(final SslConfiguration sslConfiguration) {
         this(sslConfiguration, false);
     }
 
     public SslContextHandler(final SslConfiguration sslConfiguration, final boolean client) {
-        this.sslContext = client ? sslConfiguration.buildClientSslContext(true) : sslConfiguration.buildServerSslContext(true);
+        this.isClient = client;
         this.sslConfiguration = sslConfiguration;
         this.loadedCertificates = sslConfiguration.certificates();
-    }
-
-    public SSLEngine createSSLEngine() {
-        return sslContext.newEngine(NettyAllocator.getAllocator());
-    }
-
-    public SSLEngine createSSLEngine(final String hostname, final int port) {
-        return sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+        this.sslContext = sslConfiguration.buildSSLContext(true, isClient);
     }
 
     public SslConfiguration sslConfiguration() {
         return sslConfiguration;
     }
 
-    SslContext sslContext() {
+    // public for tests
+    SSLContext sslContext() {
         return sslContext;
     }
 
@@ -76,12 +69,54 @@ public class SslContextHandler {
         return authorityCertificates(loadedCertificates);
     }
 
-    Stream<Certificate> authorityCertificates(final List<Certificate> certificates) {
-        return certificates.stream().filter(not(Certificate::hasPrivateKey));
-    }
-
     public Stream<Certificate> keyMaterialCertificates() {
         return keyMaterialCertificates(loadedCertificates);
+    }
+
+    public SSLEngine createSSLEngine() {
+        return configureSSLEngine(sslContext.createSSLEngine());
+    }
+
+    public SSLEngine createSSLEngine(final String hostname, final int port) {
+        return configureSSLEngine(sslContext.createSSLEngine(hostname, port));
+    }
+
+    public boolean isClient(){ return isClient; }
+    public boolean isServer(){ return !isClient; }
+
+    SSLEngine configureSSLEngine(final SSLEngine engine) {
+        engine.setEnabledCipherSuites(sslConfiguration.ciphers());
+        engine.setEnabledProtocols(sslConfiguration.allowedProtocols());
+        engine.setUseClientMode(isClient);
+        if (!isClient) {
+            switch (sslConfiguration.sslParameters().clientAuth()) {
+                case ClientAuth.NONE:
+                    engine.setWantClientAuth(false);
+                    engine.setNeedClientAuth(false);
+                    break;
+                case ClientAuth.OPTIONAL:
+                    engine.setWantClientAuth(true);
+                    engine.setNeedClientAuth(false);
+                    break;
+                case ClientAuth.REQUIRE:
+                    engine.setWantClientAuth(false);
+                    engine.setNeedClientAuth(true);
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + sslConfiguration.sslParameters().clientAuth());
+            }
+            SSLParameters sslParameters = sslContext.getDefaultSSLParameters();
+            sslParameters.setApplicationProtocols(new String[]{
+                    ApplicationProtocolNames.HTTP_2,
+                    ApplicationProtocolNames.HTTP_1_1
+            });
+            engine.setSSLParameters(sslParameters);
+        }
+        return engine;
+    }
+
+    Stream<Certificate> authorityCertificates(final List<Certificate> certificates) {
+        return certificates.stream().filter(not(Certificate::hasPrivateKey));
     }
 
     Stream<Certificate> keyMaterialCertificates(final List<Certificate> certificates) {
@@ -103,7 +138,6 @@ public class SslContextHandler {
             hasChanges = true;
             validateDates(newAuthorityCertificates);
         }
-
         if (notSameCertificates(loadedKeyMaterialCertificates, newKeyMaterialCertificates)) {
             LOGGER.debug("Key material and access certificate has changed");
             hasChanges = true;
@@ -115,11 +149,7 @@ public class SslContextHandler {
         }
         if (hasChanges) {
             invalidateSessions();
-            if (sslContext.isClient()) {
-                sslContext = sslConfiguration.buildClientSslContext(false);
-            } else {
-                sslContext = sslConfiguration.buildServerSslContext(false);
-            }
+            sslContext = sslConfiguration.buildSSLContext(false, isClient);
             loadedCertificates.clear();
             loadedCertificates.addAll(newCertificates);
         }
@@ -205,7 +235,9 @@ public class SslContextHandler {
     }
 
     private void invalidateSessions() {
-        final var sessionContext = sslContext.sessionContext();
+        final var sessionContext = this.isClient?
+                sslContext.getClientSessionContext() :
+                sslContext.getServerSessionContext();
         if (sessionContext != null) {
             for (final var sessionId : Collections.list(sessionContext.getIds())) {
                 final var session = sessionContext.getSession(sessionId);
@@ -215,5 +247,4 @@ public class SslContextHandler {
             }
         }
     }
-
 }
