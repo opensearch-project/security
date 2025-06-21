@@ -47,10 +47,7 @@ public class SecurePluginSubjectTests {
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
-        subject.runAs(() -> {
-            assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(pluginUser));
-            return null;
-        });
+        subject.runAs(() -> { assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(pluginUser)); });
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
