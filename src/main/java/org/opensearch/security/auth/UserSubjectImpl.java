@@ -10,8 +10,8 @@
 package org.opensearch.security.auth;
 
 import java.security.Principal;
-import java.util.concurrent.Callable;
 
+import org.opensearch.common.CheckedRunnable;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.UserSubject;
@@ -42,10 +42,10 @@ public class UserSubjectImpl implements UserSubject {
     }
 
     @Override
-    public <T> T runAs(Callable<T> callable) throws Exception {
+    public <E extends Exception> void runAs(CheckedRunnable<E> r) throws E {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-            return callable.call();
+            r.run();
         }
     }
 

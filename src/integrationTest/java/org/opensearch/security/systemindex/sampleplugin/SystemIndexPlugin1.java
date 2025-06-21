@@ -45,7 +45,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
-    private RunAsSubjectClient pluginClient;
+    private PluginClient pluginClient;
 
     private Client client;
 
@@ -64,7 +64,7 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        this.pluginClient = new RunAsSubjectClient(client);
+        this.pluginClient = new PluginClient(client);
         return List.of(pluginClient);
     }
 

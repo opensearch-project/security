@@ -34,9 +34,9 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestBulkIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
 
     private final Client client;
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
-    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, RunAsSubjectClient pluginClient) {
+    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, PluginClient pluginClient) {
         this.client = client;
         this.pluginClient = pluginClient;
     }

@@ -30,14 +30,14 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
     AcknowledgedResponse> {
 
     private final Client client;
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
     @Inject
     public TransportIndexDocumentIntoSystemIndexAction(
         final TransportService transportService,
         final ActionFilters actionFilters,
         final Client client,
-        final RunAsSubjectClient pluginClient
+        final PluginClient pluginClient
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;

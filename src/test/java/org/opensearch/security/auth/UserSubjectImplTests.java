@@ -43,10 +43,7 @@ public class UserSubjectImplTests {
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
-        subject.runAs(() -> {
-            assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(user));
-            return null;
-        });
+        subject.runAs(() -> { assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(user)); });
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
