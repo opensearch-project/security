@@ -33,12 +33,14 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -62,6 +64,8 @@ public class RestLayerPrivilegesEvaluatorTest {
     private DynamicConfigModel dynamicConfigModel;
     @Mock
     private ClusterInfoHolder clusterInfoHolder;
+    @Mock
+    private ResourceSharingIndexHandler resourceSharingIndexHandler;
 
     private static final User TEST_USER = new User("test_user");
 
@@ -159,7 +163,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
             clusterService,
             () -> clusterService.state(),
-            null,
+            mock(ThreadPool.class),
             new ThreadContext(Settings.EMPTY),
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
@@ -167,7 +171,9 @@ public class RestLayerPrivilegesEvaluatorTest {
             Settings.EMPTY,
             null,
             clusterInfoHolder,
-            null
+            null,
+            Set.of(),
+            resourceSharingIndexHandler
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);

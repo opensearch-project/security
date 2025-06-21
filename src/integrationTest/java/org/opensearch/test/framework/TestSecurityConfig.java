@@ -1082,7 +1082,7 @@ public class TestSecurityConfig {
             writeConfigToIndex(client, CType.ROLES, roles);
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
-            writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
+            writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
             writeEmptyConfigToIndex(client, CType.TENANTS);
         } else {
             // Write raw configuration alternatively to the normal configuration

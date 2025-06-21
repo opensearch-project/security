@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -32,7 +31,6 @@ import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
@@ -81,7 +79,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         if (Strings.isNullOrEmpty(resourceId)) {
             fetchAllResources(listener, client);
         } else {
-            verifyAndFetchSingle(resourceId, listener, client);
+            fetchResourceById(resourceId, listener);
         }
     }
 
@@ -96,20 +94,6 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                 listener.onResponse(new GetResourceResponse(Collections.emptySet()));
             } else {
                 fetchResourcesByIds(ids, listener);
-            }
-        }, listener::onFailure));
-    }
-
-    private void verifyAndFetchSingle(String resourceId, ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
-        if (client == null) {
-            fetchResourceById(resourceId, listener);
-            return;
-        }
-        client.verifyAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
-            if (!authorized) {
-                listener.onFailure(new OpenSearchStatusException("Not authorized to access resource: " + resourceId, RestStatus.FORBIDDEN));
-            } else {
-                fetchResourceById(resourceId, listener);
             }
         }, listener::onFailure));
     }
