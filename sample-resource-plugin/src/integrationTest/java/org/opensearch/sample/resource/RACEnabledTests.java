@@ -339,6 +339,7 @@ public class RACEnabledTests {
         @Test
         public void testRawAccess_noAccessUser() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            api.awaitSharingEntry();
             // user has no permission
             assertResourceIndexAccess(id, SHARED_WITH_USER_NO_ACCESS);
             assertResourceSharingIndexAccess(id, SHARED_WITH_USER_NO_ACCESS);
@@ -347,6 +348,7 @@ public class RACEnabledTests {
         @Test
         public void testRawAccess_limitedAccessUser() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            api.awaitSharingEntry();
             // user has read permission on resource index
             // since SIP is enabled, user will not be able to perform any raw requests
 
@@ -360,6 +362,7 @@ public class RACEnabledTests {
             // since SIP is enabled, user will not be able to perform any raw requests
 
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
+            api.awaitSharingEntry();
             assertResourceIndexAccess(id, SHARED_WITH_USER_FULL_ACCESS);
 
             // cannot interact with resource sharing index

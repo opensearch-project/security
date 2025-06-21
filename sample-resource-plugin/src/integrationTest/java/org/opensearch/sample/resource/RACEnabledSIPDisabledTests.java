@@ -317,6 +317,7 @@ public class RACEnabledSIPDisabledTests {
         @Test
         public void testRawAccess_noAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
             // user has no permission
 
             // cannot access any raw request
@@ -339,6 +340,7 @@ public class RACEnabledSIPDisabledTests {
         @Test
         public void testRawAccess_limitedAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user has read permission on resource index
 
@@ -380,6 +382,7 @@ public class RACEnabledSIPDisabledTests {
         @Test
         public void testRawAccess_allAccessUser() {
             String id = api.createRawResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
 
             // user has * permission on all indices
 
