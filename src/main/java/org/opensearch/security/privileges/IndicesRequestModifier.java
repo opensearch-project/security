@@ -18,6 +18,13 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
+/**
+ * Provides methods to modify the local indices of an IndicesRequest. All methods use the ResolvedIndices metadata object
+ * to make sure that remote indices are properly retained.
+ * <p>
+ * We need the distinction between local indices and remote indices because authorization on remote indices is performed
+ * on the remote cluster - thus, we can leave them here just as they are.
+ */
 public class IndicesRequestModifier {
 
     public boolean reduceLocalIndices(ActionRequest targetRequest, ResolvedIndices resolvedIndices, Collection<String> newIndices) {
@@ -37,23 +44,13 @@ public class IndicesRequestModifier {
         if (targetRequest instanceof IndicesRequest.Replaceable replaceable) {
             if (resolvedIndices.remote().isEmpty()) {
                 if (replaceable.indicesOptions().expandWildcardsOpen()
-                    || replaceable.indicesOptions().expandWildcardsClosed()
-                    || replaceable.indicesOptions().expandWildcardsHidden()) {
+                    || replaceable.indicesOptions().expandWildcardsClosed()) {
                     // If the request expands wildcards, we use an index expression which resolves to no indices
-                    // This expression cannot resolve to anything because indices with a leading underscore are not allowed
-                    replaceable.indices("_empty*,-*");
+                    replaceable.indices(".none*,-*");
                     return true;
                 } else if (replaceable.indicesOptions().allowNoIndices()) {
-                    // If the request does not expand wildcards, we have to look for two different conditions due to
-                    // a slightly odd behavior of IndexNameExpressionResolver:
-                    // https://github.com/opensearch-project/OpenSearch/blob/afb08a071269b234936b778f62800bded0e5ea7a/server/src/main/java/org/opensearch/cluster/metadata/IndexNameExpressionResolver.java#L249
-                    // For allowNoIndices(), we just select a non-existing index. Again, index names with leading
-                    // underscores never exist.
-                    replaceable.indices("_empty");
-                    return true;
-                } else if (replaceable.indicesOptions().ignoreUnavailable()) {
-                    // Second case for the special behavior of IndexNameExpressionResolver:
-                    replaceable.indices("_empty", "-_empty*");
+                    // If the request does not expand wildcards, we use a index name that cannot exist.
+                    replaceable.indices("-.none*");
                     return true;
                 } else {
                     // In this case, we cannot perform replacement. But it also won't be necessary due to the
