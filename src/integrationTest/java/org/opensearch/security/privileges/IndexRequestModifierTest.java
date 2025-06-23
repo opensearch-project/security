@@ -31,20 +31,66 @@ import org.opensearch.security.util.MockIndexMetadataBuilder;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        IndexRequestModifierTest.SetLocalIndices.class,
         IndexRequestModifierTest.SetLocalIndicesToEmpty.class })
 public class IndexRequestModifierTest {
 
     static final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
-    static final Metadata metadata = MockIndexMetadataBuilder.indices("index").build();
+    static final Metadata metadata = MockIndexMetadataBuilder.indices("index", "index1", "index2", "index3").build();
     final static ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
+    static final IndicesRequestModifier subject = new IndicesRequestModifier();
+
+    public static class SetLocalIndices {
+        @Test
+        public void basic() {
+            ResolvedIndices resolvedIndices = ResolvedIndices.of("index1");
+            SearchRequest request = new SearchRequest("index1", "index2", "index3");
+
+            boolean success = subject.setLocalIndices(request, resolvedIndices, Collections.singletonList("index1"));
+            assertTrue(success);
+            assertArrayEquals(new String [] {"index1"}, request.indices());
+        }
+
+        @Test
+        public void withRemote() {
+            ResolvedIndices resolvedIndices = ResolvedIndices.of("index1").withRemoteIndices(Map.of("remote", new OriginalIndices(new String[] {"index_remote"}, IndicesOptions.LENIENT_EXPAND_OPEN)));
+            SearchRequest request = new SearchRequest("index1", "index2", "index3", "remote:index_remote");
+
+            boolean success = subject.setLocalIndices(request, resolvedIndices, Collections.singletonList("index1"));
+            assertTrue(success);
+            assertArrayEquals(new String [] {"index1", "remote:index_remote"}, request.indices());
+        }
+
+        @Test
+        public void empty() {
+            ResolvedIndices resolvedIndices = ResolvedIndices.of("index1");
+            SearchRequest request = new SearchRequest("index1", "index2", "index3");
+
+            boolean success = subject.setLocalIndices(request, resolvedIndices, Collections.emptyList());
+            assertTrue(success);
+            String [] finalResolvedIndices = indexNameExpressionResolver.concreteIndexNames(clusterState, request);
+            assertArrayEquals(new String [0], finalResolvedIndices);
+        }
+
+        @Test
+        public void unsupportedType() {
+            ResolvedIndices resolvedIndices = ResolvedIndices.of("index1");
+            IndexRequest request = new IndexRequest("index1");
+
+            boolean success = subject.setLocalIndices(request, resolvedIndices, Collections.singletonList("index1"));
+            assertFalse(success);
+        }
+    }
 
     @RunWith(Parameterized.class)
     public static class SetLocalIndicesToEmpty {
@@ -62,7 +108,7 @@ public class IndexRequestModifierTest {
                 resolvedIndices = resolvedIndices.withRemoteIndices(Map.of("remote", new OriginalIndices(new String [] {"index"}, request.indicesOptions())));
             }
 
-            boolean success = new IndicesRequestModifier().setLocalIndicesToEmpty((ActionRequest) request, resolvedIndices);
+            boolean success = subject.setLocalIndicesToEmpty((ActionRequest) request, resolvedIndices);
 
             if (!(request instanceof IndicesRequest.Replaceable)) {
                 assertFalse(success);

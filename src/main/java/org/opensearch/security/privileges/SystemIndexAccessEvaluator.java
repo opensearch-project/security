@@ -129,7 +129,7 @@ public class SystemIndexAccessEvaluator {
         final ActionPrivileges actionPrivileges,
         final User user
     ) {
-        boolean containsSystemIndex = requestedResolved.local().containsAny(this::isSystemIndex);
+        boolean containsSystemIndex = false; // TODO requestedResolved.local().containsAny(this::isSystemIndex);
 
         evaluateSystemIndicesAccess(
             action,
@@ -322,7 +322,7 @@ public class SystemIndexAccessEvaluator {
                         presponse.markComplete();
                         return;
                     }
-                    this.indicesRequestModifier.reduceLocalIndices(request, requestedResolved, allWithoutSecurity);
+                    this.indicesRequestModifier.setLocalIndices(request, requestedResolved, allWithoutSecurity);
                     if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
                     }
