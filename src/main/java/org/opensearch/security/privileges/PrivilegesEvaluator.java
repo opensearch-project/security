@@ -26,7 +26,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,6 +104,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -454,12 +454,12 @@ public class PrivilegesEvaluator {
         }
 
         // Protected Resources access
-        try {
-            if (resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
-                return presponse;
-            }
-        } catch (IOException e) {
-            // Do nothing
+        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        if (resourceAccessEvaluator.evaluate(request, action0, isResourceSharingFeatureEnabled, context, presponse).isComplete()) {
+            return presponse;
         }
 
         // check access for point in time requests

@@ -10,7 +10,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -38,7 +37,7 @@ import org.opensearch.threadpool.ThreadPool;
  * It is separate from normal index access evaluation and takes into account access-levels defined when sharing a resource
  * For example, a user with no roles associated at all, will still be able to access a resource if shared with.
  *
- * Resource could be shared at multiple access levels and the access will be evaluated for the level it is shared at
+ * Resource could be shared at multiple access levels, and the access will be evaluated for the level it is shared at
  * regardless of the actions associated with the roles, if any, mapped to the user.
  *
  * @opensearch.experimental
@@ -60,14 +59,36 @@ public class ResourceAccessEvaluator {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
     }
 
+    /**
+     * Evaluate access to resources (example, docs in an index).
+     * The permissions will be evaluated based on the access-level the resource is shared at rather than roles that the requesting user is mapped to.
+     * This allows for a standalone authorization flow for users requesting access to resource.
+     * <p>
+     * 0. Creating a resource requires "create" permissions that are checked outside this evaluator.
+     * 1. Owners and admin-certificate users will be granted access automatically.
+     * 2. Even if a user has access to all indices, they will not be able to access a resource that they are not the owner of and is not shared with them.
+     * 3. A user with no index permissions may not be able to create a resource, however, they can modify and delete a resource shared with them at full-access level.
+     *
+     * @param request                         may contain information about the index and the resource being requested
+     * @param action                          the action being requested to be performed on the resource
+     * @param isResourceSharingFeatureEnabled flag to indicate whether this feature is enabled
+     * @param context                         the evaluation context to be used when performing authorization
+     * @param presponse                       the response which tells whether the action is allowed for user, or should the request be checked with another evaluator
+     * @return PrivilegesEvaluatorResponse may be complete if the request is for a resource and authz check was successful, incomplete otherwise
+     */
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
         final String action,
+        boolean isResourceSharingFeatureEnabled,
         final PrivilegesEvaluationContext context,
         final PrivilegesEvaluatorResponse presponse
-    ) throws IOException {
+    ) {
 
         // TODO: Check whether resource access should be disabled system index protection is off
+        // If feature is disabled we skip evaluation through this evaluator
+        if (!isResourceSharingFeatureEnabled) {
+            return presponse;
+        }
 
         // TODO need to check whether "cluster:" perms should be handled heeyah
         if (!(request instanceof DocRequest req)) {
@@ -78,8 +99,7 @@ public class ResourceAccessEvaluator {
 
         // TODO Check if following is the correct way to identify the create request
         if (req.id() == null) {
-            // check write permissions
-            // TODO verify that this can be punted to the regular evaluator since it requires write permissions to the index
+            // check write permissions, should be done by regular index access evaluator
             log.debug("Request id is null, request is of type {}", req.getClass().getName());
             return presponse;
         }
@@ -184,7 +204,7 @@ public class ResourceAccessEvaluator {
         try {
             latch.await();
         } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
+            log.error("Interrupted while evaluating resource {} access for user {}", req.id(), user.getName(), ie);
         }
 
         return shouldMarkAsComplete.get() ? presponse.markComplete() : presponse;
