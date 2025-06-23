@@ -24,7 +24,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRequest;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginResponse;
-import org.opensearch.sample.utils.RunAsSubjectClient;
+import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -35,12 +35,10 @@ import org.opensearch.transport.client.Client;
 public class SecurePluginTransportAction extends HandledTransportAction<SecurePluginRequest, SecurePluginResponse> {
     private static final Logger log = LogManager.getLogger(SecurePluginTransportAction.class);
 
-    // TODO Get RunAsClient
-
     private final Client pluginClient;
 
     @Inject
-    public SecurePluginTransportAction(TransportService transportService, ActionFilters actionFilters, RunAsSubjectClient pluginClient) {
+    public SecurePluginTransportAction(TransportService transportService, ActionFilters actionFilters, PluginClient pluginClient) {
         super(SecurePluginAction.NAME, transportService, actionFilters, SecurePluginRequest::new);
         this.pluginClient = pluginClient;
     }

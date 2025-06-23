@@ -68,6 +68,7 @@ import org.opensaml.core.config.Initializer;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
+import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -316,6 +317,10 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private static void initializeOpenSAMLConfiguration() throws InitializationException {
         log.info("Initializing OpenSAML using the Java Services API");
 
+        System.setProperty(
+            DefaultSecurityConfigurationBootstrap.CONFIG_PROPERTY_ECDH_DEFAULT_KDF,
+            DefaultSecurityConfigurationBootstrap.PBKDF2
+        );
         final ServiceLoader<Initializer> serviceLoader = ServiceLoader.load(Initializer.class);
         for (Initializer initializer : serviceLoader) {
             if (initializer instanceof XMLObjectProviderInitializer) {
