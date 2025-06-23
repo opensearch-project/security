@@ -34,14 +34,14 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestHelper.FULL_ACCESS_USER;
+import static org.opensearch.sample.resource.TestHelper.LIMITED_ACCESS_USER;
+import static org.opensearch.sample.resource.TestHelper.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_FULL_ACCESS;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_LIMITED_ACCESS;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_NO_ACCESS;
 import static org.opensearch.sample.resource.TestHelper.revokeAccessPayload;
 import static org.opensearch.sample.resource.TestHelper.sampleAllAG;
 import static org.opensearch.sample.resource.TestHelper.sampleReadOnlyAG;
@@ -86,7 +86,7 @@ public class MultiAccessLevelsTests {
             )
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, SHARED_WITH_USER_LIMITED_ACCESS, SHARED_WITH_USER_NO_ACCESS)
+            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
             .actionGroups(sampleReadOnlyAG, sampleAllAG)
             .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
             .build();
@@ -131,14 +131,14 @@ public class MultiAccessLevelsTests {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 HttpResponse response = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                    shareWithPayload(SHARED_WITH_USER_NO_ACCESS.getName(), sampleAllAG.name())
+                    shareWithPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
                 response.assertStatusCode(HttpStatus.SC_OK);
 
                 response = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                    revokeAccessPayload(SHARED_WITH_USER_NO_ACCESS.getName(), sampleAllAG.name())
+                    revokeAccessPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
                 response.assertStatusCode(HttpStatus.SC_OK);
@@ -198,29 +198,29 @@ public class MultiAccessLevelsTests {
 
         @Test
         public void fullAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_FULL_ACCESS);
+            assertNoAccessBeforeSharing(FULL_ACCESS_USER);
             // share at sampleReadOnly level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
-            assertReadOnly(SHARED_WITH_USER_FULL_ACCESS);
+            assertReadOnly(FULL_ACCESS_USER);
         }
 
         @Test
         public void limitedAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
             // share at sampleReadOnly level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
-            assertReadOnly(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertReadOnly(LIMITED_ACCESS_USER);
         }
 
         @Test
         public void noAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_NO_ACCESS);
+            assertNoAccessBeforeSharing(NO_ACCESS_USER);
             // share at sampleReadOnly level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_NO_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
-            assertReadOnly(SHARED_WITH_USER_NO_ACCESS);
+            assertReadOnly(NO_ACCESS_USER);
         }
     }
 
@@ -272,39 +272,39 @@ public class MultiAccessLevelsTests {
 
         @Test
         public void fullAccessUser_canCRUD() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_FULL_ACCESS);
+            assertNoAccessBeforeSharing(FULL_ACCESS_USER);
             // share at sampleAllAG level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
 
             // can share admin's resource with others since full access was granted
-            assertSharingAccess(SHARED_WITH_USER_FULL_ACCESS, SHARED_WITH_USER_LIMITED_ACCESS);
+            assertSharingAccess(FULL_ACCESS_USER, LIMITED_ACCESS_USER);
 
-            assertFullAccess(SHARED_WITH_USER_FULL_ACCESS);
+            assertFullAccess(FULL_ACCESS_USER);
         }
 
         @Test
         public void limitedAccessUser_canCRUD() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
             // share at sampleAllAG level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
 
-            assertSharingAccess(SHARED_WITH_USER_LIMITED_ACCESS, SHARED_WITH_USER_FULL_ACCESS);
+            assertSharingAccess(LIMITED_ACCESS_USER, FULL_ACCESS_USER);
 
-            assertFullAccess(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertFullAccess(LIMITED_ACCESS_USER);
         }
 
         @Test
         public void noAccessUser_canCRUD() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_NO_ACCESS);
+            assertNoAccessBeforeSharing(NO_ACCESS_USER);
             // share at sampleAllAG level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_NO_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(); // wait until sharing info is populated
 
-            assertSharingAccess(SHARED_WITH_USER_NO_ACCESS, SHARED_WITH_USER_LIMITED_ACCESS);
+            assertSharingAccess(NO_ACCESS_USER, LIMITED_ACCESS_USER);
 
-            assertFullAccess(SHARED_WITH_USER_NO_ACCESS);
+            assertFullAccess(NO_ACCESS_USER);
         }
     }
 
@@ -353,61 +353,55 @@ public class MultiAccessLevelsTests {
 
         @Test
         public void multipleUsers_multipleLevels() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_FULL_ACCESS);
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertNoAccessBeforeSharing(FULL_ACCESS_USER);
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
             // 1. share at read-only for full-access user & at full-access for limited perms user
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
             // 2. check individual access
-            assertReadOnly(SHARED_WITH_USER_FULL_ACCESS);
+            assertReadOnly(FULL_ACCESS_USER);
 
             // 3. limited access user shares with full-access user at sampleAllAG
-            api.assertApiShare(
-                resourceId,
-                SHARED_WITH_USER_LIMITED_ACCESS,
-                SHARED_WITH_USER_FULL_ACCESS,
-                sampleAllAG.name(),
-                HttpStatus.SC_OK
-            );
+            api.assertApiShare(resourceId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
             // 4. full-access user now has full-access to admin's resource
-            assertFullAccess(SHARED_WITH_USER_FULL_ACCESS);
+            assertFullAccess(FULL_ACCESS_USER);
         }
 
         @Test
         public void multipleUsers_sameLevel() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_FULL_ACCESS);
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertNoAccessBeforeSharing(FULL_ACCESS_USER);
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
             // 1. share with both users at read-only level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
             // 2. assert both now have read-only access
-            assertReadOnly(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertReadOnly(LIMITED_ACCESS_USER);
         }
 
         @Test
         public void sameUser_multipleLevels() {
-            assertNoAccessBeforeSharing(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
             // 1. share with user at read-only level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
             // 2. assert user now have read-only access
-            assertReadOnly(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertReadOnly(LIMITED_ACCESS_USER);
 
             // 3. share with user at full-access level
-            api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
             // 4. assert user now has full access
-            assertFullAccess(SHARED_WITH_USER_LIMITED_ACCESS);
+            assertFullAccess(LIMITED_ACCESS_USER);
         }
     }
 }

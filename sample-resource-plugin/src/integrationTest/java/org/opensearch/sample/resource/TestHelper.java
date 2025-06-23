@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -32,12 +33,11 @@ public final class TestHelper {
 
     public static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
-    public final static TestSecurityConfig.User SHARED_WITH_USER_FULL_ACCESS = new TestSecurityConfig.User(
-        "resource_sharing_test_user_all_access" + ""
-    ).roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*"));
+    public final static TestSecurityConfig.User FULL_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_all_access")
+        .roles(new TestSecurityConfig.Role("shared_role").indexPermissions("*").on("*").clusterPermissions("*"));
 
     // No update permission
-    public final static TestSecurityConfig.User SHARED_WITH_USER_LIMITED_ACCESS = new TestSecurityConfig.User(
+    public final static TestSecurityConfig.User LIMITED_ACCESS_USER = new TestSecurityConfig.User(
         "resource_sharing_test_user_limited_perms"
     ).roles(
         new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
@@ -49,9 +49,7 @@ public final class TestHelper {
     );
 
     // No Permission
-    public final static TestSecurityConfig.User SHARED_WITH_USER_NO_ACCESS = new TestSecurityConfig.User(
-        "resource_sharing_test_user_no_perms"
-    );
+    public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
     public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_read_access",
@@ -296,13 +294,21 @@ public final class TestHelper {
         }
 
         public void awaitSharingEntry() {
+            awaitSharingEntry("admin");
+        }
+
+        public void awaitSharingEntry(String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await()
-                    .alias("Wait for sharing entry")
-                    .until(
-                        () -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                        equalTo(1)
-                    );
+                Awaitility.await().alias("Wait for sharing entry").until(() -> {
+                    TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
+                    response.assertStatusCode(200);
+                    JsonNode hits = response.bodyAsJsonNode().get("hits");
+                    if (hits != null && hits.has("hits")) {
+                        assertThat(response.bodyAsMap().get("hits").toString(), containsString(expectedString));
+                        return response.bodyAsJsonNode().get("hits").get("hits").size();
+                    }
+                    return 0;
+                }, equalTo(1));
             }
         }
     }

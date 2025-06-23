@@ -32,6 +32,9 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestHelper.FULL_ACCESS_USER;
+import static org.opensearch.sample.resource.TestHelper.LIMITED_ACCESS_USER;
+import static org.opensearch.sample.resource.TestHelper.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestHelper.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_DELETE_ENDPOINT;
@@ -39,9 +42,6 @@ import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_GET_ENDP
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestHelper.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_FULL_ACCESS;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_LIMITED_ACCESS;
-import static org.opensearch.sample.resource.TestHelper.SHARED_WITH_USER_NO_ACCESS;
 import static org.opensearch.sample.resource.TestHelper.revokeAccessPayload;
 import static org.opensearch.sample.resource.TestHelper.sampleAllAG;
 import static org.opensearch.sample.resource.TestHelper.sampleReadOnlyAG;
@@ -82,7 +82,7 @@ public class RACDisabledSIPEnabledTests {
             .plugin(PainlessModulePlugin.class)
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, SHARED_WITH_USER_FULL_ACCESS, SHARED_WITH_USER_LIMITED_ACCESS, SHARED_WITH_USER_NO_ACCESS)
+            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
             .actionGroups(sampleReadOnlyAG, sampleAllAG)
             .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
             .build();
@@ -131,30 +131,24 @@ public class RACDisabledSIPEnabledTests {
             // user has no permissions
 
             // cannot create own resource
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
 
             // cannot get admin's resource
-            api.assertApiGet(adminResId, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN, "");
+            api.assertApiGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(
-                adminResId,
-                SHARED_WITH_USER_NO_ACCESS,
-                SHARED_WITH_USER_NO_ACCESS,
-                sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
-            );
-            api.assertApiRevoke(adminResId, SHARED_WITH_USER_NO_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
 
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
         }
 
@@ -167,7 +161,7 @@ public class RACDisabledSIPEnabledTests {
 
             // can create a resource
             String userResId;
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
                 resp.assertStatusCode(HttpStatus.SC_OK);
@@ -175,34 +169,22 @@ public class RACDisabledSIPEnabledTests {
             }
 
             // can see admin's resource
-            api.assertApiGet(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK, "sample");
-            api.assertApiGetAll(SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_OK, "sample");
+            api.assertApiGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
             // cannot update own resource
-            api.assertApiUpdate(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(
-                adminResId,
-                SHARED_WITH_USER_LIMITED_ACCESS,
-                SHARED_WITH_USER_LIMITED_ACCESS,
-                sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
-            );
-            api.assertApiRevoke(
-                adminResId,
-                SHARED_WITH_USER_LIMITED_ACCESS,
-                USER_ADMIN,
-                sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
-            );
+            api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
 
             // cannot delete resource since feature is disabled and user doesn't have delete permission
-            api.assertApiDelete(userResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             // cannot delete admin's resource since user doesn't have delete permission
-            api.assertApiDelete(adminResId, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
         }
 
@@ -214,7 +196,7 @@ public class RACDisabledSIPEnabledTests {
 
             // can create a resource
             String userResId;
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_FULL_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
                 resp.assertStatusCode(HttpStatus.SC_OK);
@@ -222,30 +204,24 @@ public class RACDisabledSIPEnabledTests {
             }
 
             // can see admin's resource
-            api.assertApiGet(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sample");
-            api.assertApiGetAll(SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sample");
+            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
             // can update admin's resource
-            api.assertApiUpdate(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
-            api.assertApiGet(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
             // can update a resource
-            api.assertApiUpdate(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(
-                adminResId,
-                SHARED_WITH_USER_FULL_ACCESS,
-                SHARED_WITH_USER_FULL_ACCESS,
-                sampleReadOnlyAG.name(),
-                HttpStatus.SC_BAD_REQUEST
-            );
-            api.assertApiRevoke(adminResId, SHARED_WITH_USER_FULL_ACCESS, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
 
             // can delete a resource
-            api.assertApiDelete(userResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
+            api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
             // can delete admin's resource
-            api.assertApiDelete(adminResId, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_OK);
+            api.assertApiDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_NOT_FOUND, "");
         }
 
@@ -267,13 +243,13 @@ public class RACDisabledSIPEnabledTests {
                 // can't share or revoke, as handlers don't exist
                 resp = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
-                    shareWithPayload(SHARED_WITH_USER_FULL_ACCESS.getName(), sampleAllAG.name())
+                    shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
                 resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
 
                 resp = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
-                    revokeAccessPayload(SHARED_WITH_USER_FULL_ACCESS.getName(), sampleAllAG.name())
+                    revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
                 resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
 
@@ -303,15 +279,15 @@ public class RACDisabledSIPEnabledTests {
             // user has no permissions
 
             // cannot access any raw request
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_NO_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            api.assertDirectGet(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectGetAll(SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_NO_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectGet(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGetAll(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectUpdate(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectDelete(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
         @Test
@@ -321,16 +297,16 @@ public class RACDisabledSIPEnabledTests {
             // Has * permission on sample plugin resource index
 
             // cannot create a resource since user doesn't have indices:data/write/index permission
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_LIMITED_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
             // cannot read admin's resource since system index protection is enabled, will show 404
-            api.assertDirectGet(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_NOT_FOUND, "");
+            api.assertDirectGet(id, LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
             // cannot update or delete resource
-            api.assertDirectUpdate(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_LIMITED_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectDelete(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
         @Test
@@ -339,16 +315,16 @@ public class RACDisabledSIPEnabledTests {
             // user has * cluster and index permissions on all indices
 
             // cannot create a resource directly since system index protection (SIP) is enabled
-            try (TestRestClient client = cluster.getRestClient(SHARED_WITH_USER_FULL_ACCESS)) {
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
             // cannot read admin's resource directly since SIP is enabled
-            api.assertDirectGet(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_NOT_FOUND, "sample");
+            api.assertDirectGet(id, FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "sample");
             // cannot update or delete admin resource directly since SIP is enabled
-            api.assertDirectUpdate(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(id, SHARED_WITH_USER_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectDelete(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
         @Test
