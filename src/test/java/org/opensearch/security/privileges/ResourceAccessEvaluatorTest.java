@@ -8,7 +8,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -31,8 +30,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -49,20 +46,17 @@ import static org.mockito.Mockito.when;
 public class ResourceAccessEvaluatorTest {
     @Mock
     private ThreadPool threadPool;
-    // Use a real ThreadContext to support putTransient/getTransient
-    ThreadContext threadContext;
+
     @Mock
     private ResourceSharingIndexHandler sharingHandler;
     @Mock
     private PrivilegesEvaluationContext context;
 
+    private ThreadContext threadContext;
     private ResourceAccessEvaluator evaluator;
 
     private static final String IDX = "resource-index";
     private boolean isResourceSharingFeatureEnabled = true;
-
-    @Captor
-    private ArgumentCaptor<ActionListener<ResourceSharing>> listenerCaptor;
 
     @Before
     public void setup() {
@@ -81,7 +75,7 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testFeatureDisabled() throws IOException {
+    public void testFeatureDisabled() {
         isResourceSharingFeatureEnabled = false;
         stubAuthenticatedUser("alice");
         var req = new IndexRequest(IDX).id("res1");
@@ -94,7 +88,7 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testPublicResourceAllowed() throws IOException {
+    public void testPublicResourceAllowed() {
         stubAuthenticatedUser("alice");
         var req = new IndexRequest(IDX).id("res1");
         doAnswer(inv -> {
@@ -114,7 +108,7 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testNotSharedDenied() throws IOException {
+    public void testNotSharedDenied() {
         stubAuthenticatedUser("bob");
         var req = new IndexRequest(IDX).id("res2");
         doAnswer(inv -> {
@@ -136,7 +130,7 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testOwnerAllowed() throws IOException {
+    public void testOwnerAllowed() {
         stubAuthenticatedUser("ownerUser");
         var req = new IndexRequest(IDX).id("resOwner");
         doAnswer(inv -> {
@@ -157,10 +151,9 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testShareWithAllowed() throws IOException {
+    public void testShareWithAllowed() {
         stubAuthenticatedUser("charlie");
         var req = new IndexRequest(IDX).id("resShared");
-        // Mock RoleBasedActionPrivileges to allow "read"
         var rba = mock(RoleBasedActionPrivileges.class);
         var ag = mock(FlattenedActionGroups.class);
         when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));

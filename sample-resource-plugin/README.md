@@ -10,6 +10,11 @@ Publish SPI to local maven before proceeding:
 ./gradlew clean :opensearch-security-spi:publishToMavenLocal
 ```
 
+System index feature must be enabled to prevent direct access to resource. Add the following setting in case it has not already been enabled.
+```yml
+plugins.security.system_indices.enabled: true
+```
+
 ## Features
 
 - Create, update, get, delete SampleResource, as well as share and revoke access to a resource.

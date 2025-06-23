@@ -367,7 +367,12 @@ public class ResourceSharingIndexHandler {
                 public void onResponse(GetResponse getResponse) {
                     try {
                         if (!getResponse.isExists()) {
-                            LOGGER.debug("No document found in {} matching resource_id: {}", resourceSharingIndex, resourceId);
+                            LOGGER.debug(
+                                "No document found in {} matching resource_id: {} and source_idx {}",
+                                resourceSharingIndex,
+                                resourceId,
+                                resourceIndex
+                            );
                             listener.onResponse(null);
                             return;
                         }
@@ -384,17 +389,19 @@ public class ResourceSharingIndexHandler {
                             resourceSharing.setResourceId(getResponse.getId());
 
                             LOGGER.debug(
-                                "Successfully fetched document from {} matching resource_id: {}",
+                                "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
                                 resourceSharingIndex,
-                                resourceId
+                                resourceId,
+                                resourceIndex
                             );
 
                             listener.onResponse(resourceSharing);
                         }
                     } catch (Exception e) {
                         LOGGER.error(
-                            "Failed to parse documents matching resource_id: {} and  from {}",
+                            "Failed to parse documents matching resource_id: {} and source_idx {} from {}",
                             resourceId,
+                            resourceIndex,
                             resourceSharingIndex,
                             e
                         );
@@ -484,23 +491,19 @@ public class ResourceSharingIndexHandler {
 
         // build update script
         sharingInfoListener.whenComplete(sharingInfo -> {
+            if (sharingInfo == null) {
+                LOGGER.debug("No sharing record found for resource {}", resourceId);
+                listener.onResponse(null);
+                return;
+            }
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
-                if (sharingInfo == null) {
-                    LOGGER.debug("No sharing found for access level {}", accessLevel);
-                    listener.onResponse(null);
-                    return;
-                }
+
                 sharingInfo.share(accessLevel, target);
             }
 
             String resourceSharingIndex = getSharingIndex(resourceIndex);
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                if (sharingInfo == null) {
-                    LOGGER.debug("No sharing found for resource id {}", resourceId);
-                    listener.onResponse(null);
-                    return;
-                }
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

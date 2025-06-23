@@ -34,11 +34,14 @@ import org.opensearch.threadpool.ThreadPool;
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
  *
- * It is separate from normal index access evaluation and takes into account access-levels defined when sharing a resource
+ * It is separate from normal index access evaluation and takes into account access-levels defined when sharing a resource.
  * For example, a user with no roles associated at all, will still be able to access a resource if shared with.
  *
  * Resource could be shared at multiple access levels, and the access will be evaluated for the level it is shared at
  * regardless of the actions associated with the roles, if any, mapped to the user.
+ *
+ * NOTE: It is recommended to keep system index protection on, and this evaluator assumes that it is.
+ * Without it, normal users with index permission may be able to modify the sharing records directly.
  *
  * @opensearch.experimental
  */
@@ -84,22 +87,20 @@ public class ResourceAccessEvaluator {
         final PrivilegesEvaluatorResponse presponse
     ) {
 
-        // TODO: Check whether resource access should be disabled system index protection is off
         // If feature is disabled we skip evaluation through this evaluator
         if (!isResourceSharingFeatureEnabled) {
             return presponse;
         }
 
-        // TODO need to check whether "cluster:" perms should be handled heeyah
+        // Skip evaluation if request is not a DocRequest type
         if (!(request instanceof DocRequest req)) {
             return presponse;
         }
 
         log.debug("Evaluating resource access");
 
-        // TODO Check if following is the correct way to identify the create request
+        // Resource Creation requests must be checked by regular index access evaluator
         if (req.id() == null) {
-            // check write permissions, should be done by regular index access evaluator
             log.debug("Request id is null, request is of type {}", req.getClass().getName());
             return presponse;
         }
@@ -109,10 +110,6 @@ public class ResourceAccessEvaluator {
             log.debug("Request index {} is not a protected resource index", req.index());
             return presponse;
         }
-
-        // TODO what about request to directly update resource-sharing record, these will only happen when system index protection is
-        // disabled
-        // TODO should we enforce that feature is only turned on if both SystemIndex protection and feature flag are set to true?
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
@@ -125,15 +122,16 @@ public class ResourceAccessEvaluator {
             return presponse.markComplete();
         }
 
-        // If user was super-admin, the request would have already been granted. So no need to check whether user is admin
+        // If the user is a super-admin, the request would have already been granted. So no need to check whether user is admin.
 
-        // Fetch the ResourceSharing document
         CountDownLatch latch = new CountDownLatch(1);
 
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         AtomicBoolean shouldMarkAsComplete = new AtomicBoolean(false);
+
+        // Fetch the ResourceSharing document and evaluate access
         this.resourceSharingIndexHandler.fetchSharingInfo(req.index(), req.id(), ActionListener.wrap(document -> {
             if (document == null) {
                 // TODO check whether we should mark response as not allowed. At present, it just returns incomplete response and hence is
@@ -143,7 +141,7 @@ public class ResourceAccessEvaluator {
                 return;
             }
 
-            // If document is public, action is allowed
+            // If the document is public, action is allowed
             // If user is the owner, action is allowed
             if (document.isSharedWithEveryone() || document.isCreatedBy(user.getName())) {
                 presponse.allowed = true;
@@ -156,11 +154,13 @@ public class ResourceAccessEvaluator {
                 return;
             }
 
+            // Check whether user or their roles match any access-levels this resource is shared at
             Set<String> accessLevels = new HashSet<>();
             accessLevels.addAll(document.fetchAccessLevels(Recipient.USERS, Set.of(user.getName())));
             accessLevels.addAll(document.fetchAccessLevels(Recipient.ROLES, userRoles));
             accessLevels.addAll(document.fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
 
+            // if no access-levels match, then action is not allowed
             if (accessLevels.isEmpty()) {
                 presponse.allowed = false;
                 log.debug("Resource {} is not shared with user {}", req.id(), user.getName());
@@ -169,7 +169,7 @@ public class ResourceAccessEvaluator {
                 return;
             }
 
-            // Expand access-levels and check if any match the action supplied
+            // Expand access-levels and check if any actions match the action supplied
             if (context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges) {
                 Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
                 // a matcher to test against all patterns in `actions`
@@ -184,7 +184,7 @@ public class ResourceAccessEvaluator {
                 }
                 latch.countDown();
             } else {
-                // we don't yet support Plugins to access resources
+                // NOTE we don't yet support Plugins to access resources
                 presponse.allowed = false;
                 log.debug(
                     "Plugin access to resources is currently not supported. Plugin {} is not authorized to access resource {}.",

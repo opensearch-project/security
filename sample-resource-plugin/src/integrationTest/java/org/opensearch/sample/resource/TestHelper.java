@@ -26,8 +26,7 @@ import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFI
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 
 /**
- * Provides common constants and utility methods for testing. This class is not intended to be
- * instantiated directly.
+ * Provides common constants and utility methods for testing.
  */
 public final class TestHelper {
 
