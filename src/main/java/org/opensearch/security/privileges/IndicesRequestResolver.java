@@ -46,13 +46,7 @@ public class IndicesRequestResolver {
         ActionRequestMetadata<?, ?> actionRequestMetadata,
         PrivilegesEvaluationContext context
     ) {
-        Optional<ResolvedIndices> providedIndices = actionRequestMetadata.resolvedIndices();
-        if (providedIndices.isPresent()) {
-            return providedIndices.get();
-        } else {
-            // The action does not implement the resolution mechanism; we have to do it by ourselves
-            return resolveFallback(request, context.clusterState());
-        }
+        return resolve(request, actionRequestMetadata, context::clusterState);
     }
 
     private ResolvedIndices resolveFallback(ActionRequest request, ClusterState clusterState) {
