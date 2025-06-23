@@ -10,8 +10,8 @@
 package org.opensearch.security.identity;
 
 import java.security.Principal;
-import java.util.concurrent.Callable;
 
+import org.opensearch.common.CheckedRunnable;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
@@ -21,15 +21,19 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-public class ContextProvidingPluginSubject implements PluginSubject {
+public class SecurePluginSubject implements PluginSubject {
     private final ThreadPool threadPool;
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
 
-    public ContextProvidingPluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
+    public static String getPluginPrincipalName(String canonicalClassName) {
+        return "plugin:" + canonicalClassName;
+    }
+
+    public SecurePluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
         super();
         this.threadPool = threadPool;
-        String principal = "plugin:" + plugin.getClass().getCanonicalName();
+        String principal = getPluginPrincipalName(plugin.getClass().getCanonicalName());
         this.pluginPrincipal = new NamedPrincipal(principal);
         // Convention for plugin username. Prefixed with 'plugin:'. ':' is forbidden from usernames, so this
         // guarantees that a user with this username cannot be created by other means.
@@ -42,10 +46,10 @@ public class ContextProvidingPluginSubject implements PluginSubject {
     }
 
     @Override
-    public <T> T runAs(Callable<T> callable) throws Exception {
+    public <E extends Exception> void runAs(CheckedRunnable<E> r) throws E {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, pluginUser);
-            return callable.call();
+            r.run();
         }
     }
 }

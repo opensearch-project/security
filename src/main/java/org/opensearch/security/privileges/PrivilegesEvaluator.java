@@ -84,15 +84,17 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -153,11 +155,18 @@ public class PrivilegesEvaluator {
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
-    private final NamedXContentRegistry namedXContentRegistry;
     private final Settings settings;
-    private final Map<String, Set<String>> pluginToClusterActions;
-    private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
+    private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>();
+    private final Map<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges = new HashMap<>();
+
+    /**
+     * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
+     * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
+     * use the action groups derived from the dynamic configuration (which is always computed on the fly on
+     * configuration updates).
+     */
+    private final FlattenedActionGroups staticActionGroups;
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
@@ -170,8 +179,7 @@ public class PrivilegesEvaluator {
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry
+        final IndexResolverReplacer irr
     ) {
 
         super();
@@ -180,7 +188,6 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
-        this.pluginToClusterActions = new HashMap<>();
         this.clusterStateSupplier = clusterStateSupplier;
         this.settings = settings;
 
@@ -196,8 +203,10 @@ public class PrivilegesEvaluator {
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
-        this.namedXContentRegistry = namedXContentRegistry;
         this.configurationRepository = configurationRepository;
+        this.staticActionGroups = new FlattenedActionGroups(
+            DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS))
+        );
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -213,9 +222,9 @@ public class PrivilegesEvaluator {
 
         if (clusterService != null) {
             clusterService.addListener(event -> {
-                ActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
+                RoleBasedActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
                 if (actionPrivileges != null) {
-                    actionPrivileges.updateClusterStateMetadataAsync(clusterService, threadPool);
+                    actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
         }
@@ -231,19 +240,13 @@ public class PrivilegesEvaluator {
         rolesConfiguration = rolesConfiguration.withStaticConfig();
         tenantConfiguration = tenantConfiguration.withStaticConfig();
         try {
-            ActionPrivileges actionPrivileges = new ActionPrivileges(
-                rolesConfiguration,
-                flattenedActionGroups,
-                () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
-                settings,
-                pluginToClusterActions
-            );
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(rolesConfiguration, flattenedActionGroups, settings);
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
-            ActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
+            RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
 
             if (oldInstance != null) {
-                oldInstance.shutdown();
+                oldInstance.clusterStateMetadataDependentPrivileges().shutdown();
             }
         } catch (Exception e) {
             log.error("Error while updating ActionPrivileges", e);
@@ -266,13 +269,9 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    public ActionPrivileges getActionPrivileges() {
-        return this.actionPrivileges.get();
-    }
-
     public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permission) {
         PrivilegesEvaluationContext context = createContext(user, permission);
-        return this.actionPrivileges.get().hasExplicitClusterPrivilege(context, permission).isAllowed();
+        return context.getActionPrivileges().hasExplicitClusterPrivilege(context, permission).isAllowed();
     }
 
     public boolean isInitialized() {
@@ -315,9 +314,32 @@ public class PrivilegesEvaluator {
         }
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+        ActionPrivileges actionPrivileges;
+        ImmutableSet<String> mappedRoles;
+
+        if (user.isPluginUser()) {
+            mappedRoles = ImmutableSet.of();
+            actionPrivileges = this.pluginIdToActionPrivileges.get(user.getName());
+            if (actionPrivileges == null) {
+                actionPrivileges = ActionPrivileges.EMPTY;
+            }
+        } else {
+            mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
+            actionPrivileges = this.actionPrivileges.get();
+        }
+
+        return new PrivilegesEvaluationContext(
+            user,
+            mappedRoles,
+            action0,
+            request,
+            task,
+            irr,
+            resolver,
+            clusterStateSupplier,
+            actionPrivileges
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
@@ -374,7 +396,7 @@ public class PrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        ActionPrivileges actionPrivileges = this.actionPrivileges.get();
+        ActionPrivileges actionPrivileges = context.getActionPrivileges();
         if (actionPrivileges == null) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
@@ -857,7 +879,7 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableList(ret);
     }
 
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        pluginToClusterActions.put(pluginIdentifier, clusterActions);
+    public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
+        pluginIdToActionPrivileges.put(pluginIdentifier, new SubjectBasedActionPrivileges(pluginPermissions, staticActionGroups));
     }
 }

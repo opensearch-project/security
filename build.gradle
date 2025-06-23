@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.12.6'
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.7'
+        spring_version = '6.2.8'
         bouncycastle_version = '1.81'
 
         if (buildVersionQualifier) {
@@ -48,10 +48,10 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
-        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
     }
 
     dependencies {
@@ -69,7 +69,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.5"
+    id "com.github.spotbugs" version "6.2.0"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -376,7 +376,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.3.3"
+    toolVersion "10.25.0"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
@@ -423,7 +423,7 @@ publishing {
     repositories {
         maven {
             name = "Snapshots" //  optional target repository name
-            url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
+            url = "https://central.sonatype.com/repository/maven-snapshots/"
             credentials {
                 username "$System.env.SONATYPE_USERNAME"
                 password "$System.env.SONATYPE_PASSWORD"
@@ -472,8 +472,12 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.0"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.0"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
+            force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+            force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+            force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
+            force "org.codehaus.plexus:plexus-utils:3.6.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
@@ -485,7 +489,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.18.0"
-            force "net.bytebuddy:byte-buddy:1.17.5"
+            force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
@@ -500,9 +504,11 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
+        maven { url "build.shibboleth.net/maven/releases"}
     }
 
     configurations {
@@ -693,27 +699,8 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.32"
-    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
-    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
-
-    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
-    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
-        exclude(group: 'org.apache.velocity', module: 'velocity')
-    }
-    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
-
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.33"
+    implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 

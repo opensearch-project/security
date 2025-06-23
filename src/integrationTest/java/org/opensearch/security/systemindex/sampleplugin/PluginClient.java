@@ -21,20 +21,19 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.FilterClient;
 
 /**
- * Implementation of client that will run transport actions in a stashed context and inject the name of the provided
- * subject into the context.
+ * A special client for executing transport actions as this plugin's system subject.
  */
-public class RunAsSubjectClient extends FilterClient {
+public class PluginClient extends FilterClient {
 
-    private static final Logger logger = LogManager.getLogger(RunAsSubjectClient.class);
+    private static final Logger logger = LogManager.getLogger(PluginClient.class);
 
     private Subject subject;
 
-    public RunAsSubjectClient(Client delegate) {
+    public PluginClient(Client delegate) {
         super(delegate);
     }
 
-    public RunAsSubjectClient(Client delegate, Subject subject) {
+    public PluginClient(Client delegate, Subject subject) {
         super(delegate);
         this.subject = subject;
     }
@@ -53,8 +52,9 @@ public class RunAsSubjectClient extends FilterClient {
             subject.runAs(() -> {
                 logger.info("Running transport action with subject: {}", subject.getPrincipal().getName());
                 super.doExecute(action, request, ActionListener.runBefore(listener, ctx::restore));
-                return null;
             });
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
