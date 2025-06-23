@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,6 +23,8 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SecurityConfigVersionHandler;
+import org.opensearch.security.configuration.SecurityConfigVersionsLoader;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
@@ -68,7 +71,7 @@ public class SecurityRestApiActions {
             auditLog,
             settings
         );
-        return List.of(
+        List<RestHandler> handler = List.of(
             new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
             new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
             new RolesApiAction(clusterService, threadPool, securityApiDependencies),
@@ -108,6 +111,29 @@ public class SecurityRestApiActions {
             new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
             new MigrateResourceSharingInfoApiAction(clusterService, threadPool, securityApiDependencies, resourceSharingIndexHandler)
         );
+
+        if (SecurityConfigVersionHandler.isVersionIndexEnabled(settings)) {
+            handler.add(
+                new ViewVersionApiAction(
+                    clusterService,
+                    threadPool,
+                    securityApiDependencies,
+                    new SecurityConfigVersionsLoader(client, settings)
+                )
+            );
+            handler.add(
+                new RollbackVersionApiAction(
+                    clusterService,
+                    threadPool,
+                    securityApiDependencies,
+                    new SecurityConfigVersionsLoader(client, settings),
+                    configurationRepository,
+                    client
+                )
+            );
+        }
+
+        return handler;
     }
 
 }
