@@ -181,7 +181,8 @@ public class ConfigConstants {
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
 
     // Argon2 password hashing parameters
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.iterations";
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS = SECURITY_SETTINGS_PREFIX
+        + "password.hashing.argon2.iterations";
     public static final int SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT = 3;
     public static final String SECURITY_PASSWORD_HASHING_ARGON2_MEMORY = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.memory";
     public static final int SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT = 65536;

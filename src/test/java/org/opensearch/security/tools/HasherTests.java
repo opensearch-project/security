@@ -16,14 +16,15 @@ import java.io.InputStream;
 import java.io.PrintStream;
 
 import org.junit.After;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.password4j.Argon2Function;
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.types.Argon2;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class HasherTests {
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -305,7 +306,25 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2AllArguments() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "47104", "-i", "1", "-par", "2", "-l", "64", "-t", "argon2d", "-v", "19" });
+        Hasher.main(
+            new String[] {
+                "-p",
+                "password",
+                "-a",
+                "Argon2",
+                "-m",
+                "47104",
+                "-i",
+                "1",
+                "-par",
+                "2",
+                "-l",
+                "64",
+                "-t",
+                "argon2d",
+                "-v",
+                "19" }
+        );
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 47104);
         assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 1);

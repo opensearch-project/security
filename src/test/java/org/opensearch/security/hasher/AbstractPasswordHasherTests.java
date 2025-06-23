@@ -13,12 +13,14 @@ package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
 
+import org.junit.Test;
+
+import org.opensearch.OpenSearchSecurityException;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
-import org.junit.Test;
-import org.opensearch.OpenSearchSecurityException;
 
 public abstract class AbstractPasswordHasherTests {
 
@@ -65,7 +67,7 @@ public abstract class AbstractPasswordHasherTests {
         assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), emptyHash); });
     }
 
-    @Test 
+    @Test
     public void shouldHandleNullHashWhenChecking() {
         String nullHash = null;
         assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), nullHash); });

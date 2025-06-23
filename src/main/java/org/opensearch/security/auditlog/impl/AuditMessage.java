@@ -75,7 +75,8 @@ public final class AuditMessage {
     @VisibleForTesting
     public static final String BCRYPT_REGEX = "\\$2[ayb]\\$.{56}";
     public static final String PBKDF2_REGEX = "\\$\\d+\\$\\d+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
-    public static final String ARGON2_REGEX = "\\$argon2(id/i/d)\\$v=\\d+\\$(?:[a-z]=\\d+,?)+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
+    public static final String ARGON2_REGEX =
+        "\\$argon2(id/i/d)\\$v=\\d+\\$(?:[a-z]=\\d+,?)+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
     public static final Pattern HASH_REGEX_PATTERN = Pattern.compile(BCRYPT_REGEX + "|" + PBKDF2_REGEX + "|" + ARGON2_REGEX);
     private static final String HASH_REPLACEMENT_VALUE = "__HASH__";
     private static final String INTERNALUSERS_DOC_ID = CType.INTERNALUSERS.toLCString();

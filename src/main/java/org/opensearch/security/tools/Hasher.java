@@ -35,6 +35,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
@@ -190,10 +191,7 @@ public class Hasher {
             settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE, line.getOptionValue(TYPE_OPTION).toLowerCase());
         }
         if (line.hasOption(VERSION_OPTION)) {
-            settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, 
-                Integer.parseInt(line.getOptionValue(VERSION_OPTION))
-            );
+            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, Integer.parseInt(line.getOptionValue(VERSION_OPTION)));
         }
         return settings.build();
     }
@@ -248,7 +246,9 @@ public class Hasher {
         options.addOption(
             Option.builder(FUNCTION_OPTION)
                 .longOpt("function")
-                .desc("Pseudo-random function applied to the password. Valid values are SHA1 | SHA224 | SHA256 | SHA384 | SHA512. Default: SHA256")
+                .desc(
+                    "Pseudo-random function applied to the password. Valid values are SHA1 | SHA224 | SHA256 | SHA384 | SHA512. Default: SHA256"
+                )
                 .hasArg()
                 .argName("function (PBDKF2)")
                 .build()

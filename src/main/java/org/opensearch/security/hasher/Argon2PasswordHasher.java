@@ -22,7 +22,7 @@ import com.password4j.HashingFunction;
 import com.password4j.Password;
 import com.password4j.types.Argon2;
 
-class Argon2PasswordHasher extends AbstractPasswordHasher{
+class Argon2PasswordHasher extends AbstractPasswordHasher {
 
     private final int memory;
     private final int iterations;
@@ -47,15 +47,14 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
             securityManager.checkPermission(new SpecialPermission());
         }
         this.hashingFunction = AccessController.doPrivileged(
-            (PrivilegedAction<HashingFunction>) () ->
-                Argon2Function.getInstance(
-                    this.memory,
-                    this.iterations,
-                    this.parallelization,
-                    this.length,
-                    this.typeArgon2,
-                    this.version
-                )
+            (PrivilegedAction<HashingFunction>) () -> Argon2Function.getInstance(
+                this.memory,
+                this.iterations,
+                this.parallelization,
+                this.length,
+                this.typeArgon2,
+                this.version
+            )
         );
     }
 
@@ -82,7 +81,7 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
 
     @Override
     @SuppressWarnings("removal")
-    public boolean check(char[] password, String hash){
+    public boolean check(char[] password, String hash) {
         checkPasswordNotNullOrEmpty(password);
         checkHashNotNullOrEmpty(hash);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
@@ -98,8 +97,8 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
             cleanup(passwordBuffer);
         }
     }
-    
-    private HashingFunction getArgon2FunctionFromHash(String hash){
+
+    private HashingFunction getArgon2FunctionFromHash(String hash) {
         return Argon2Function.getInstanceFromHash(hash);
     }
 
@@ -118,5 +117,5 @@ class Argon2PasswordHasher extends AbstractPasswordHasher{
                 throw new IllegalArgumentException("Unknown Argon2 type: " + type);
         }
     }
-    
+
 }

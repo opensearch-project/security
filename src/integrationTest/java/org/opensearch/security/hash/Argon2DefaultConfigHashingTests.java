@@ -98,37 +98,39 @@
  */
 
 package org.opensearch.security.hash;
+
 import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
+
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class Argon2DefaultConfigHashingTests extends HashingTests {
 
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
-            .hash(generateArgon2Hash(
-                    PASSWORD,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+        .hash(
+            generateArgon2Hash(
+                PASSWORD,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
             )
         );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder()
-        .clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .anonymousAuth(false)
