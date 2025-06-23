@@ -43,7 +43,7 @@ import static org.opensearch.sample.SampleResourcePluginTestHelper.SHARED_WITH_U
 import static org.opensearch.sample.SampleResourcePluginTestHelper.revokeAccessPayload;
 import static org.opensearch.sample.SampleResourcePluginTestHelper.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.resources.ResourceSharingConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -55,6 +55,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginTests {
+
+    private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -82,7 +84,7 @@ public class SampleResourcePluginTests {
     public void clearIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(RESOURCE_INDEX_NAME);
-            client.delete(OPENSEARCH_RESOURCE_SHARING_INDEX);
+            client.delete(RESOURCE_SHARING_INDEX);
         }
     }
 
@@ -117,10 +119,7 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // Update sample resource (admin should be able to update resource)
@@ -254,10 +253,7 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // admin should not be able to access resource directly since system index protection is enabled, but can access via sample plugin
@@ -301,10 +297,7 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
 
         // share resource with shared_with user
@@ -333,10 +326,7 @@ public class SampleResourcePluginTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await()
                 .alias("Wait until resource-sharing data is populated")
-                .until(
-                    () -> client.get(OPENSEARCH_RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(),
-                    equalTo(1)
-                );
+                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
         }
         // revoke share_with_user's access
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {

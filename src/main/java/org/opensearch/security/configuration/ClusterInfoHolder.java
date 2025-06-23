@@ -36,6 +36,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 
 public class ClusterInfoHolder implements ClusterStateListener {
+    public static final String CLUSTER_MANAGER_NOT_PRESENT = "Cluster manager not present";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile DiscoveryNodes nodes = null;
@@ -92,5 +93,12 @@ public class ClusterInfoHolder implements ClusterStateListener {
 
     public String getClusterName() {
         return this.clusterName;
+    }
+
+    public Boolean hasClusterManager() {
+        if (nodes != null) {
+            return nodes.getClusterManagerNode() != null;
+        }
+        return false;
     }
 }

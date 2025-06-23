@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,6 +61,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
@@ -78,6 +80,7 @@ import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
+import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 
 public class BackendRegistry {
 
@@ -100,6 +103,7 @@ public class BackendRegistry {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
+    private final ClusterInfoHolder clusterInfoHolder;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
@@ -151,13 +155,15 @@ public class BackendRegistry {
         final AdminDNs adminDns,
         final XFFResolver xffResolver,
         final AuditLog auditLog,
-        final ThreadPool threadPool
+        final ThreadPool threadPool,
+        final ClusterInfoHolder clusterInfoHolder
     ) {
         this.adminDns = adminDns;
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
+        this.clusterInfoHolder = clusterInfoHolder;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.restAuthDomains = Collections.emptySortedSet();
         this.ipAuthFailureListeners = Collections.emptyList();
@@ -183,6 +189,31 @@ public class BackendRegistry {
         userCache.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
+    }
+
+    public void invalidateUserCache(String[] usernames) {
+        if (usernames == null || usernames.length == 0) {
+            log.warn("No usernames given, not invalidating user cache.");
+            return;
+        }
+
+        Set<String> usernamesAsSet = new HashSet<>(Arrays.asList(usernames));
+
+        // Invalidate entries in the userCache by iterating over the keys and matching the username.
+        userCache.asMap()
+            .keySet()
+            .stream()
+            .filter(authCreds -> usernamesAsSet.contains(authCreds.getUsername()))
+            .forEach(userCache::invalidate);
+
+        // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
+        restImpersonationCache.invalidateAll(usernamesAsSet);
+
+        // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
+        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsSet.contains(user.getName())).forEach(restRoleCache::invalidate);
+
+        // If the user isn't found it still says this, which could be bad
+        log.debug("Cache invalidated for all valid users from list: {}", String.join(", ", usernamesAsSet));
     }
 
     @Subscribe
@@ -249,8 +280,12 @@ public class BackendRegistry {
         }
 
         if (!isInitialized()) {
-            log.error("Not yet initialized (you may need to run securityadmin)");
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
+            StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            log.error("{} (you may need to run securityadmin)", error.toString());
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, error.toString()));
             return false;
         }
 
@@ -323,8 +358,8 @@ public class BackendRegistry {
                         if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
                             auditLog.logFailedLogin("<NONE>", false, null, request);
                         }
-                        if (isTraceEnabled) {
-                            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                        if (authDomain.getHttpAuthenticator().getType().equals(BASIC_TYPE)) {
+                            log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());

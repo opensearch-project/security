@@ -27,9 +27,9 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 
 public class RestGetOnSystemIndexAction extends BaseRestHandler {
 
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
-    public RestGetOnSystemIndexAction(RunAsSubjectClient pluginClient) {
+    public RestGetOnSystemIndexAction(PluginClient pluginClient) {
         this.pluginClient = pluginClient;
     }
 

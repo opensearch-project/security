@@ -79,6 +79,7 @@ import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -107,6 +108,7 @@ public class SecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
+    private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
     private final XFFResolver xffResolver;
@@ -122,6 +124,7 @@ public class SecurityFilter implements ActionFilter {
         AuditLog auditLog,
         ThreadPool threadPool,
         ClusterService cs,
+        final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver
@@ -132,6 +135,7 @@ public class SecurityFilter implements ActionFilter {
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.cs = cs;
+        this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.xffResolver = xffResolver;
@@ -362,10 +366,14 @@ public class SecurityFilter implements ActionFilter {
             final PrivilegesEvaluator eval = evalp;
 
             if (!eval.isInitialized()) {
-                log.error("OpenSearch Security not initialized for {}", action);
-                listener.onFailure(
-                    new OpenSearchSecurityException("OpenSearch Security not initialized for " + action, RestStatus.SERVICE_UNAVAILABLE)
-                );
+                StringBuilder error = new StringBuilder("OpenSearch Security not initialized for ");
+                error.append(action);
+                if (!clusterInfoHolder.hasClusterManager()) {
+                    error.append(String.format(". %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+                }
+
+                log.error(error.toString());
+                listener.onFailure(new OpenSearchSecurityException(error.toString(), RestStatus.SERVICE_UNAVAILABLE));
                 return;
             }
 
@@ -520,10 +528,6 @@ public class SecurityFilter implements ActionFilter {
         }
 
         return false;
-    }
-
-    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
-        evalp.updatePluginToClusterActions(pluginIdentifier, clusterActions);
     }
 
     private boolean isRequestIndexImmutable(Object request) {

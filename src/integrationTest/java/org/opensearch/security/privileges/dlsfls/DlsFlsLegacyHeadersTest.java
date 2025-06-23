@@ -35,6 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -345,7 +346,8 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState
+            () -> clusterState,
+            ActionPrivileges.EMPTY
         );
 
         DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
@@ -364,7 +366,8 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState
+            () -> clusterState,
+            ActionPrivileges.EMPTY
         );
     }
 

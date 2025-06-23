@@ -28,6 +28,7 @@
 
 package org.opensearch.test.framework.cluster;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -38,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.KeyManager;
@@ -171,7 +173,17 @@ public interface OpenSearchClientProvider {
         RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
             .setHttpClientConfigCallback(configCallback);
 
-        return new RestHighLevelClient(builder);
+        return new RestHighLevelClient(builder.build(), (restClient) -> {
+            ForkJoinPool.commonPool().submit(() -> {
+                // Do the closing of the restClient asynchronously, as it might cause a 5 second delay
+                try {
+                    restClient.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }, Collections.emptyList()) {
+        };
     }
 
     default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {

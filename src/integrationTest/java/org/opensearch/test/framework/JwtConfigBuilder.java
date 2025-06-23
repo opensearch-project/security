@@ -22,7 +22,7 @@ public class JwtConfigBuilder {
     private String jwtUrlParameter;
     private List<String> signingKeys;
     private String subjectKey;
-    private String rolesKey;
+    private List<String> rolesKey;
 
     public JwtConfigBuilder jwtHeader(String jwtHeader) {
         this.jwtHeader = jwtHeader;
@@ -45,6 +45,11 @@ public class JwtConfigBuilder {
     }
 
     public JwtConfigBuilder rolesKey(String rolesKey) {
+        this.rolesKey = List.of(rolesKey);
+        return this;
+    }
+
+    public JwtConfigBuilder rolesKey(List<String> rolesKey) {
         this.rolesKey = rolesKey;
         return this;
     }
@@ -64,7 +69,7 @@ public class JwtConfigBuilder {
         if (isNoneBlank(subjectKey)) {
             builder.put("subject_key", subjectKey);
         }
-        if (isNoneBlank(rolesKey)) {
+        if (rolesKey != null && !rolesKey.isEmpty()) {
             builder.put("roles_key", rolesKey);
         }
         return builder.build();
