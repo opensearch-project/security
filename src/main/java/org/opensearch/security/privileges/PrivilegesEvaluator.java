@@ -224,14 +224,18 @@ public class PrivilegesEvaluator {
         }
 
         if (apiTokenRepository != null) {
+            // TODO Also ensure these are read on node bootstrap
             apiTokenRepository.subscribeOnChange(() -> {
                 SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
                     CType.ACTIONGROUPS
                 );
-                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
-                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
-
-                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                for (Map.Entry<String, RoleV7> entry : apiTokenRepository.getJtis().entrySet()) {
+                    pluginIdToActionPrivileges.put(
+                        entry.getKey(),
+                        new SubjectBasedActionPrivileges(entry.getValue(), flattenedActionGroups)
+                    );
+                }
             });
         }
 
@@ -245,7 +249,6 @@ public class PrivilegesEvaluator {
         }
 
         this.apiTokenRepository = apiTokenRepository;
-
     }
 
     void updateConfiguration(
@@ -335,7 +338,7 @@ public class PrivilegesEvaluator {
         ActionPrivileges actionPrivileges;
         ImmutableSet<String> mappedRoles;
 
-        if (user.isPluginUser()) {
+        if (user.isPluginUser() || user.isApiTokenRequest()) {
             mappedRoles = ImmutableSet.of();
             actionPrivileges = this.pluginIdToActionPrivileges.get(user.getName());
             if (actionPrivileges == null) {
