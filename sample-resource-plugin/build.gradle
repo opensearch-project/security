@@ -66,6 +66,7 @@ configurations.all {
         force 'commons-codec:commons-codec:1.18.0'
         force 'org.hamcrest:hamcrest:2.2'
         force 'org.mockito:mockito-core:5.18.0'
+        force 'org.slf4j:slf4j-api:1.7.36'
     }
 }
 
