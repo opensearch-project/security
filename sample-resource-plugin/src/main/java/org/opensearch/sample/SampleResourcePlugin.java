@@ -59,7 +59,7 @@ import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportA
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
 import org.opensearch.sample.secure.actions.transport.SecurePluginTransportAction;
-import org.opensearch.sample.utils.RunAsSubjectClient;
+import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -78,7 +78,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
     private boolean isResourceSharingEnabled = false;
 
-    private RunAsSubjectClient pluginClient;
+    private PluginClient pluginClient;
 
     public SampleResourcePlugin(final Settings settings) {
         isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
@@ -98,7 +98,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        this.pluginClient = new RunAsSubjectClient(client);
+        this.pluginClient = new PluginClient(client);
         return List.of(pluginClient);
     }
 
