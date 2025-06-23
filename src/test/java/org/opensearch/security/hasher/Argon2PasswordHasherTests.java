@@ -11,11 +11,13 @@
 
 package org.opensearch.security.hasher;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.opensearch.security.support.ConfigConstants;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
 
@@ -32,102 +34,46 @@ public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
     }
 
     @Test
-    public void shouldGenerateValidHashesFromParameters(){
-        PasswordHasher hasher = new Argon2PasswordHasher(
-            47104,
-            1,
-            2,
-            32,
-            "argon2id",
-            19
-        );
+    public void shouldGenerateValidHashesFromParameters() {
+        PasswordHasher hasher = new Argon2PasswordHasher(47104, 1, 2, 32, "argon2id", 19);
         String hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            19456,
-            2,
-            1,
-            64,
-            "argon2i",
-            19
-        );
+        hasher = new Argon2PasswordHasher(19456, 2, 1, 64, "argon2i", 19);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            65536,
-            1,
-            1,
-            128,
-            "argon2d",
-            19
-        );
+        hasher = new Argon2PasswordHasher(65536, 1, 1, 128, "argon2d", 19);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            7168,
-            5,
-            1,
-            256,
-            "argon2id",
-            16
-        );
+        hasher = new Argon2PasswordHasher(7168, 5, 1, 256, "argon2id", 16);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            9216,
-            4,
-            1,
-            512,
-            "argon2id",
-            16
-        );
+        hasher = new Argon2PasswordHasher(9216, 4, 1, 512, "argon2id", 16);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            65536,
-            3,
-            1,
-            1024,
-            "argon2id",
-            16
-        );
-        hash = hasher.hash(password.toCharArray());
-        assertThat(hasher.check(password.toCharArray(), hash), is(true));
-        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
-        
-        hasher = new Argon2PasswordHasher(
-            47104,
-            3,
-            2,
-            128,
-            "argon2id",
-            19
-        );
+        hasher = new Argon2PasswordHasher(65536, 3, 1, 1024, "argon2id", 16);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new Argon2PasswordHasher(
-            19456,
-            4,
-            1,
-            256,
-            "argon2i",
-            19
-        );
+        hasher = new Argon2PasswordHasher(47104, 3, 2, 128, "argon2id", 19);
+        hash = hasher.hash(password.toCharArray());
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
+
+        hasher = new Argon2PasswordHasher(19456, 4, 1, 256, "argon2i", 19);
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
-    
+
 }
