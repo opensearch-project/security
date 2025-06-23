@@ -91,6 +91,14 @@ public class MultiAccessLevelsTests {
             .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
             .build();
 
+        @After
+        public void cleanup() {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                client.delete(RESOURCE_INDEX_NAME);
+                client.delete(RESOURCE_SHARING_INDEX);
+            }
+        }
+
     }
 
     /**
@@ -99,13 +107,6 @@ public class MultiAccessLevelsTests {
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
     public static class AdminCertificateAccessTests extends BaseTests {
-        @After
-        public void cleanup() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-                client.delete(RESOURCE_SHARING_INDEX);
-            }
-        }
 
         @Test
         public void adminCertificate_canCRUD() {
@@ -239,14 +240,6 @@ public class MultiAccessLevelsTests {
             api.awaitSharingEntry(); // wait until sharing entry is created
         }
 
-        @After
-        public void cleanup() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-                client.delete(RESOURCE_SHARING_INDEX);
-            }
-        }
-
         private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
             api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
             api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
@@ -331,14 +324,6 @@ public class MultiAccessLevelsTests {
             api.awaitSharingEntry(); // wait until sharing entry is created
         }
 
-        @After
-        public void cleanup() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-                client.delete(RESOURCE_SHARING_INDEX);
-            }
-        }
-
         private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
             api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
             api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
@@ -421,7 +406,7 @@ public class MultiAccessLevelsTests {
             api.assertApiShare(resourceId, USER_ADMIN, SHARED_WITH_USER_LIMITED_ACCESS, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
 
-            // 24 assert user now has full access
+            // 4. assert user now has full access
             assertFullAccess(SHARED_WITH_USER_LIMITED_ACCESS);
         }
     }
