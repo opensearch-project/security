@@ -315,7 +315,7 @@ public class SystemIndexAccessEvaluator {
                         presponse.markComplete();
                         return;
                     }
-                    this.indicesRequestModifier.reduceLocalIndices(request, requestedResolved, allWithoutSecurity);
+                    this.indicesRequestModifier.setLocalIndices(request, requestedResolved, allWithoutSecurity);
                     if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
                     }
