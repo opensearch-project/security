@@ -27,7 +27,7 @@ import org.opensearch.cluster.metadata.ResolvedIndices;
  */
 public class IndicesRequestModifier {
 
-    public boolean reduceLocalIndices(ActionRequest targetRequest, ResolvedIndices resolvedIndices, Collection<String> newIndices) {
+    public boolean setLocalIndices(ActionRequest targetRequest, ResolvedIndices resolvedIndices, Collection<String> newIndices) {
         if (newIndices.isEmpty()) {
             return setLocalIndicesToEmpty(targetRequest, resolvedIndices);
         }

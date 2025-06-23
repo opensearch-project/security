@@ -627,7 +627,7 @@ public class PrivilegesEvaluator {
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
-                if (this.indicesRequestModifier.reduceLocalIndices(request, resolvedIndices, presponse.getAvailableIndices())) {
+                if (this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, presponse.getAvailableIndices())) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }
