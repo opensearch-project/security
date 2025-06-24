@@ -477,7 +477,7 @@ configurations {
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-            force "org.codehaus.plexus:plexus-utils:3.3.0"
+            force "org.codehaus.plexus:plexus-utils:3.6.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
@@ -489,7 +489,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.18.0"
-            force "net.bytebuddy:byte-buddy:1.17.5"
+            force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
         }
@@ -699,7 +699,7 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.32"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.33"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
