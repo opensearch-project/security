@@ -43,7 +43,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * REST endpoint:
- *   GET /_plugins/_security/api/version
+ *   GET /_plugins/_security/api/versions
  *   GET /_plugins/_security/api/version/{versionId}
  */
 public class ViewVersionApiAction extends AbstractApiAction {
@@ -51,7 +51,7 @@ public class ViewVersionApiAction extends AbstractApiAction {
     private static final Logger LOGGER = LogManager.getLogger(ViewVersionApiAction.class);
 
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new Route(Method.GET, "/version"), new Route(Method.GET, "/version/{versionID}"))
+        ImmutableList.of(new Route(Method.GET, "/versions"), new Route(Method.GET, "/version/{versionID}"))
     );
 
     private final SecurityConfigVersionsLoader versionsLoader;
@@ -65,15 +65,10 @@ public class ViewVersionApiAction extends AbstractApiAction {
         super(Endpoint.VIEW_VERSION, clusterService, threadPool, securityApiDependencies);
         this.versionsLoader = versionsLoader;
 
-        this.requestHandlersBuilder.add(RestRequest.Method.POST, RequestHandler.methodNotImplementedHandler)
-            .add(RestRequest.Method.PATCH, RequestHandler.methodNotImplementedHandler)
-            .add(RestRequest.Method.PUT, RequestHandler.methodNotImplementedHandler)
-            .add(RestRequest.Method.DELETE, RequestHandler.methodNotImplementedHandler)
-
-            .onGetRequest((restRequest) -> {
-                String versionParam = restRequest.param("versionID");
-                return handleGetRequest(versionParam);
-            });
+        this.requestHandlersBuilder.allMethodsNotImplemented().onGetRequest((restRequest) -> {
+            String versionParam = restRequest.param("versionID");
+            return handleGetRequest(versionParam);
+        });
     }
 
     @Override
@@ -140,10 +135,10 @@ public class ViewVersionApiAction extends AbstractApiAction {
             builder.field("security_configs");
             Map<String, Object> plainConfigs = new LinkedHashMap<>();
             for (Map.Entry<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> entry : ver.getSecurity_configs().entrySet()) {
-                Map<String, Object> scMap = new LinkedHashMap<>();
-                scMap.put("lastUpdated", entry.getValue().getLastUpdated());
-                scMap.put("configData", entry.getValue().getConfigData());
-                plainConfigs.put(entry.getKey(), scMap);
+                Map<String, Object> securityConfigMap = new LinkedHashMap<>();
+                securityConfigMap.put("lastUpdated", entry.getValue().getLastUpdated());
+                securityConfigMap.put("configData", entry.getValue().getConfigData());
+                plainConfigs.put(entry.getKey(), securityConfigMap);
             }
             builder.map(plainConfigs);
 

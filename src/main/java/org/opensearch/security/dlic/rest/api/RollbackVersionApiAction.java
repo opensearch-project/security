@@ -12,8 +12,10 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -49,21 +51,22 @@ import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
 import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * REST endpoint:
- *   POST /_plugins/_security/api/rollback
- *   POST /_plugins/_security/api/rollback/version/{versionID}
+ *   POST /_plugins/_security/api/version/rollback
+ *   POST /_plugins/_security/api/version/rollback/{versionID}
  */
 public class RollbackVersionApiAction extends AbstractApiAction {
 
     private static final Logger log = LogManager.getLogger(RollbackVersionApiAction.class);
 
+    private static final long CONFIG_WRITE_TIMEOUT_SECONDS = 20;
+
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new Route(POST, "/rollback"), new Route(POST, "/rollback/version/{versionID}"))
+        ImmutableList.of(new Route(POST, "/version/rollback"), new Route(POST, "/version/rollback/{versionID}"))
     );
 
     private final SecurityConfigVersionsLoader versionsLoader;
@@ -84,35 +87,31 @@ public class RollbackVersionApiAction extends AbstractApiAction {
         this.configRepository = configRepository;
         this.client = client;
 
-        this.requestHandlersBuilder.add(RestRequest.Method.GET, methodNotImplementedHandler)
-            .add(RestRequest.Method.PATCH, methodNotImplementedHandler)
-            .add(RestRequest.Method.PUT, methodNotImplementedHandler)
-            .add(RestRequest.Method.DELETE, methodNotImplementedHandler)
-            .add(POST, (channel, request, unusedclient) -> {
-                ValidationResult<SecurityConfiguration> result = handlePostRequest(request);
-                result.valid(securityConfiguration -> {
-                    try {
-                        XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
-                        builder.startObject();
-                        builder.field("status", "OK");
-                        builder.field("message", "config rolled back to version " + request.param("versionID", "previous"));
-                        builder.endObject();
-                        channel.sendResponse(new BytesRestResponse(OK, builder));
-                    } catch (IOException e) {
-                        log.error("Failed to send rollback response", e);
-                        channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
-                    }
-                }).error((status, content) -> {
-                    try {
-                        XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
-                        content.toXContent(builder, null);
-                        channel.sendResponse(new BytesRestResponse(status, builder));
-                    } catch (IOException e) {
-                        log.error("Failed to build error response", e);
-                        channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
-                    }
-                });
+        this.requestHandlersBuilder.allMethodsNotImplemented().override(POST, (channel, request, unusedclient) -> {
+            ValidationResult<SecurityConfiguration> result = handlePostRequest(request);
+            result.valid(securityConfiguration -> {
+                try {
+                    XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
+                    builder.startObject();
+                    builder.field("status", "OK");
+                    builder.field("message", "config rolled back to version " + request.param("versionID", "previous"));
+                    builder.endObject();
+                    channel.sendResponse(new BytesRestResponse(OK, builder));
+                } catch (IOException e) {
+                    log.error("Failed to send rollback response", e);
+                    channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
+                }
+            }).error((status, content) -> {
+                try {
+                    XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
+                    content.toXContent(builder, null);
+                    channel.sendResponse(new BytesRestResponse(status, builder));
+                } catch (IOException e) {
+                    log.error("Failed to build error response", e);
+                    channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
+                }
             });
+        });
 
     }
 
@@ -163,17 +162,11 @@ public class RollbackVersionApiAction extends AbstractApiAction {
             return ValidationResult.error(NOT_FOUND, payload(NOT_FOUND, "Version " + versionId + " not found"));
         }
 
-        SecurityConfigVersionsLoader.sortVersionsById(doc.getVersions());
-
         return rollbackCommon(versionId, doc);
     }
 
     private ValidationResult<SecurityConfiguration> rollbackCommon(String versionId, SecurityConfigVersionDocument doc) throws IOException {
         var maybeVer = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst().orElse(null);
-
-        if (maybeVer == null) {
-            return ValidationResult.error(NOT_FOUND, payload(NOT_FOUND, "Version " + versionId + " not found"));
-        }
 
         try {
 
@@ -194,11 +187,11 @@ public class RollbackVersionApiAction extends AbstractApiAction {
     private void rollbackConfigsToSecurityIndex(SecurityConfigVersionDocument.Version<?> versionData) throws IOException {
         Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> securityConfigs = versionData.getSecurity_configs();
         if (securityConfigs == null || securityConfigs.isEmpty()) {
-            throw new IOException("No security configs to rollback in version " + versionData.getVersion_id());
+            throw new NullPointerException("No security configs to rollback in version " + versionData.getVersion_id());
         }
 
-        Map<CType<?>, SecurityDynamicConfiguration<?>> configsToApply = new java.util.HashMap<>();
-        Map<CType<?>, SecurityDynamicConfiguration<?>> backups = new java.util.HashMap<>();
+        Map<CType<?>, SecurityDynamicConfiguration<?>> configsToApply = new HashMap<>();
+        Map<CType<?>, SecurityDynamicConfiguration<?>> backups = new HashMap<>();
 
         try {
 
@@ -208,67 +201,46 @@ public class RollbackVersionApiAction extends AbstractApiAction {
                 String cTypeName = entry.getKey();
                 SecurityConfigVersionDocument.HistoricSecurityConfig<?> sc = entry.getValue();
 
+                CType<?> cType = CType.fromString(cTypeName);
+                if (cType == null) {
+                    throw new NullPointerException("Rollback aborted: Unknown config type '" + cTypeName + "' found in version");
+                }
+
                 if (sc == null || sc.getConfigData() == null) {
                     log.warn("Skipping cType '{}' due to null configData", cTypeName);
                     continue;
                 }
 
-                CType<?> cType = CType.fromString(cTypeName);
-                if (cType == null) {
-                    throw new IOException("Rollback aborted: Unknown config type '" + cTypeName + "' found in version");
-                }
-
                 SecurityDynamicConfiguration<?> currentConfig = currentConfigs.get(cType);
                 if (currentConfig == null) {
-                    throw new IOException("Rollback aborted: Could not fetch current config for cType '" + cTypeName + "'");
+                    throw new IllegalArgumentException("Rollback aborted: Could not fetch current config for cType '" + cTypeName + "'");
                 }
 
-                SecurityDynamicConfiguration<?> sdc = SecurityDynamicConfiguration.empty(cType);
-                sdc.setSeqNo(currentConfig.getSeqNo());
-                sdc.setPrimaryTerm(currentConfig.getPrimaryTerm());
+                SecurityDynamicConfiguration<?> rollBackConfig = SecurityDynamicConfiguration.empty(cType);
+                rollBackConfig.setSeqNo(currentConfig.getSeqNo());
+                rollBackConfig.setPrimaryTerm(currentConfig.getPrimaryTerm());
 
                 for (Map.Entry<String, ?> configEntry : sc.getConfigData().entrySet()) {
                     if ("_meta".equals(configEntry.getKey())) {
-                        continue;
+                        continue; // Avoiding duplicate entry for meta field
                     }
-                    sdc.putCObject(configEntry.getKey(), configEntry.getValue());
+                    rollBackConfig.putCObject(configEntry.getKey(), configEntry.getValue());
                 }
 
-                if (isConfigEqual(currentConfig, sdc)) {
+                if (isConfigEqual(currentConfig, rollBackConfig)) {
                     log.info("Skipping rollback for cType '{}' as there are no changes", cTypeName);
                     continue;
                 }
 
                 backups.put(cType, currentConfig);
-                configsToApply.put(cType, sdc);
+                configsToApply.put(cType, rollBackConfig);
             }
 
-            final var latch = new java.util.concurrent.CountDownLatch(configsToApply.size());
-
-            for (Map.Entry<CType<?>, SecurityDynamicConfiguration<?>> entry : configsToApply.entrySet()) {
-                AbstractApiAction.saveAndUpdateConfigsAsync(
-                    securityApiDependencies,
-                    client,
-                    entry.getKey(),
-                    entry.getValue(),
-                    new ActionListener<IndexResponse>() {
-                        @Override
-                        public void onResponse(IndexResponse r) {
-                            latch.countDown();
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Rollback: failed to write config for cType={} : {}", entry.getKey().toLCString(), e.getMessage(), e);
-                            latch.countDown();
-                        }
-                    }
-                );
-                log.info("Rollback: wrote config data for cType={}", entry.getKey().toLCString());
-            }
-
-            if (!latch.await(20, java.util.concurrent.TimeUnit.SECONDS)) {
-                throw new IOException("Timeout while writing rolled-back configs");
+            try {
+                writeConfigsWithLatch(configsToApply);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Rollback was interrupted", ie);
             }
 
         } catch (Exception e) {
@@ -276,17 +248,72 @@ public class RollbackVersionApiAction extends AbstractApiAction {
         }
     }
 
+    private void writeConfigsWithLatch(Map<CType<?>, SecurityDynamicConfiguration<?>> configsToApply) throws IOException,
+        InterruptedException {
+        final var latch = new CountDownLatch(configsToApply.size());
+
+        for (Map.Entry<CType<?>, SecurityDynamicConfiguration<?>> entry : configsToApply.entrySet()) {
+            AbstractApiAction.saveAndUpdateConfigsAsync(
+                securityApiDependencies,
+                client,
+                entry.getKey(),
+                entry.getValue(),
+                new ActionListener<IndexResponse>() {
+                    @Override
+                    public void onResponse(IndexResponse r) {
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Rollback: failed to write config for cType={} : {}", entry.getKey().toLCString(), e.getMessage(), e);
+                        latch.countDown();
+                    }
+                }
+            );
+            log.info("Rollback: wrote config data for cType={}", entry.getKey().toLCString());
+        }
+
+        if (!latch.await(CONFIG_WRITE_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)) {
+            throw new IOException("Timeout while writing rolled-back configs");
+        }
+    }
+
     private void revertRollbackOnFailure(Map<CType<?>, SecurityDynamicConfiguration<?>> backups, Exception originalException)
         throws IOException {
         log.error("Rollback failed mid-way. Reverting previous updates...", originalException);
 
+        final var latch = new java.util.concurrent.CountDownLatch(backups.size());
+
         for (Map.Entry<CType<?>, SecurityDynamicConfiguration<?>> entry : backups.entrySet()) {
-            try {
-                AbstractApiAction.saveAndUpdateConfigs(securityApiDependencies, client, entry.getKey(), entry.getValue()).actionGet();
-                log.info("Rollback revert: restored previous config for cType={}", entry.getKey().toLCString());
-            } catch (Exception re) {
-                log.error("Failed to revert config for cType={}", entry.getKey().toLCString(), re);
+            AbstractApiAction.saveAndUpdateConfigsAsync(
+                securityApiDependencies,
+                client,
+                entry.getKey(),
+                entry.getValue(),
+                new ActionListener<IndexResponse>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("Rollback revert: restored previous config for cType={}", entry.getKey().toLCString());
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to revert config for cType={}", entry.getKey().toLCString(), e);
+                        latch.countDown();
+                    }
+                }
+            );
+        }
+
+        try {
+            if (!latch.await(CONFIG_WRITE_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)) {
+                throw new IOException("Timeout while reverting rollback configs");
             }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Rollback revert was interrupted", ie);
         }
 
         throw new IOException(
@@ -304,7 +331,7 @@ public class RollbackVersionApiAction extends AbstractApiAction {
         return builder;
     }
 
-    private boolean isConfigEqual(SecurityDynamicConfiguration<?> currentConfig, SecurityDynamicConfiguration<?> targetConfig) {
+    public boolean isConfigEqual(SecurityDynamicConfiguration<?> currentConfig, SecurityDynamicConfiguration<?> targetConfig) {
         if (currentConfig.getCEntries().equals(targetConfig.getCEntries())) {
             return true;
         }

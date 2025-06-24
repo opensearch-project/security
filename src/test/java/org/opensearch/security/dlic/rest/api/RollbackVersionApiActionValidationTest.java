@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.configuration.SecurityConfigVersionsLoader;
 import org.opensearch.transport.client.Client;
 
@@ -60,19 +61,19 @@ public class RollbackVersionApiActionValidationTest extends AbstractApiActionVal
     @Test
     public void testOnConfigDelete_isForbidden() throws IOException {
         var result = rollbackVersionApiAction.createEndpointValidator().onConfigDelete(SecurityConfiguration.of(null, configuration));
-        assertThat(result.status(), is(org.opensearch.core.rest.RestStatus.FORBIDDEN));
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
     public void testOnConfigLoad_isAllowed() throws IOException {
         var result = rollbackVersionApiAction.createEndpointValidator().onConfigLoad(SecurityConfiguration.of(null, configuration));
-        assertThat(result.status(), is(org.opensearch.core.rest.RestStatus.OK));
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
     public void testOnConfigChange_isAllowed() throws IOException {
         var result = rollbackVersionApiAction.createEndpointValidator().onConfigChange(SecurityConfiguration.of(null, configuration));
-        assertThat(result.status(), is(org.opensearch.core.rest.RestStatus.OK));
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
 }
