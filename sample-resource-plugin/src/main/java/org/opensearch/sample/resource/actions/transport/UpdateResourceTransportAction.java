@@ -70,13 +70,10 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
 
                 log.debug("Update Request: {}", ur.toString());
 
-                nodeClient.update(
-                    ur,
-                    ActionListener.wrap(
-                        updateResponse -> { log.debug("Updated resource: {}", updateResponse.toString()); },
-                        listener::onFailure
-                    )
-                );
+                nodeClient.update(ur, ActionListener.wrap(updateResponse -> {
+                    log.debug("Updated resource: {}", updateResponse.toString());
+                    listener.onResponse(new CreateResourceResponse(updateResponse.toString()));
+                }, listener::onFailure));
             } catch (IOException e) {
                 listener.onFailure(new RuntimeException(e));
             }

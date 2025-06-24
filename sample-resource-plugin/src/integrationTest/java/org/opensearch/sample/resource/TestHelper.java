@@ -124,7 +124,6 @@ public final class TestHelper {
                 String sample = "{\"name\":\"sample\"}";
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-                client.close();
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
         }
@@ -134,7 +133,6 @@ public final class TestHelper {
                 String sample = "{\"name\":\"sample\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
-                client.close();
                 return resp.getTextFromJsonBody("/_id");
             }
         }

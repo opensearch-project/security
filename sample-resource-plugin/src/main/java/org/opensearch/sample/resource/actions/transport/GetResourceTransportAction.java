@@ -25,7 +25,6 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
@@ -56,19 +55,12 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
-    private final Settings settings;
 
     @Inject
-    public GetResourceTransportAction(
-        Settings settings,
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient
-    ) {
+    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.settings = settings;
     }
 
     @Override
