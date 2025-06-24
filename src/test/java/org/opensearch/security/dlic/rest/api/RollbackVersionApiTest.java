@@ -29,7 +29,7 @@ import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECUR
 
 public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
 
-    private final String ENDPOINT = getEndpointPrefix() + "/api";
+    private final String ENDPOINT = PLUGINS_PREFIX + "/api";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Before
@@ -86,15 +86,11 @@ public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
         assertThat("Failed to insert config versions doc", response.getStatusCode(), is(oneOf(200, 201)));
     }
 
-    protected String getEndpointPrefix() {
-        return PLUGINS_PREFIX;
-    }
-
     @Test
     public void testRollbackToPreviousVersion_success() throws Exception {
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executePostRequest(ENDPOINT + "/rollback", "");
+        HttpResponse response = rh.executePostRequest(ENDPOINT + "/version/rollback", "");
 
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(response.getBody(), containsString("config rolled back to version v1"));
@@ -104,7 +100,7 @@ public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
     public void testRollbackToSpecificVersion_success() throws Exception {
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executePostRequest(ENDPOINT + "/rollback/version/v1", "");
+        HttpResponse response = rh.executePostRequest(ENDPOINT + "/version/rollback/v1", "");
 
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(response.getBody(), containsString("config rolled back to version v1"));
@@ -114,7 +110,7 @@ public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
     public void testRollbackToInvalidVersion_shouldFail() throws Exception {
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executePostRequest(ENDPOINT + "/rollback/version/invalid", "");
+        HttpResponse response = rh.executePostRequest(ENDPOINT + "/version/rollback/invalid", "");
 
         assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
         assertThat(response.getBody(), containsString("Version invalid not found"));
@@ -154,7 +150,7 @@ public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
 
         assertThat("Failed to insert single-version doc", overwrite.getStatusCode(), isOneOf(200, 201));
 
-        HttpResponse rollback = rh.executePostRequest(ENDPOINT + "/rollback", "");
+        HttpResponse rollback = rh.executePostRequest(ENDPOINT + "/version/rollback", "");
         assertThat(rollback.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
         assertThat(rollback.getBody(), containsString("No previous version available to rollback"));
     }
@@ -163,7 +159,7 @@ public class RollbackVersionApiTest extends AbstractRestApiUnitTest {
     public void testRollbackWithoutAdminCert_shouldFail() throws Exception {
         rh.sendAdminCertificate = false;
 
-        HttpResponse response = rh.executePostRequest(ENDPOINT + "/rollback", "");
+        HttpResponse response = rh.executePostRequest(ENDPOINT + "/version/rollback", "");
 
         assertThat(
             "Expected UNAUTHORIZED or FORBIDDEN when no admin cert is provided",
