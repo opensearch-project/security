@@ -145,7 +145,8 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 response.set("upgrades", allUpdates);
                 final ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { CType.ROLES.toLCString() });
 
-                client.execute(ConfigUpdateAction.INSTANCE, cur);
+                client.execute(ConfigUpdateAction.INSTANCE, cur).actionGet();
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
             })
             .error((status, toXContent) -> response(channel, status, toXContent));
     }
