@@ -16,11 +16,14 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import io.netty.handler.ssl.JdkSslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,8 +66,15 @@ public class SslContextHandler {
         return sslConfiguration;
     }
 
-    SslContext sslContext() {
-        return sslContext;
+    /**
+     * Only JDK provider is supported, so we expect only JdkSslContext.
+     * @return null if context cannot be fetched from io.netty.handler.ssl.SslContext child type.
+     */
+    public SSLContext sslContext() {
+        if (sslContext instanceof JdkSslContext) {
+            return ((JdkSslContext) sslContext).context();
+        }
+        return null;
     }
 
     public Stream<Certificate> certificates() {
