@@ -39,11 +39,11 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
     }
 
     private String viewVersionBase() {
-        return endpointPrefix() + "/version";
+        return endpointPrefix() + "/versions";
     }
 
     private String viewVersion(String versionId) {
-        return viewVersionBase() + "/" + versionId;
+        return endpointPrefix() + "/version/" + versionId;
     }
 
     @Override

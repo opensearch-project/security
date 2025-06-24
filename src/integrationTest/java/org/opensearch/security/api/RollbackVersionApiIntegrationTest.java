@@ -29,16 +29,11 @@ import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECUR
 
 public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
-    private String endpointPrefix() {
-        return PLUGINS_PREFIX + "/api";
-    }
-
-    private String RollbackBase() {
-        return endpointPrefix() + "/rollback";
-    }
+    private static final String ENDPOINT_PREFIX = PLUGINS_PREFIX + "/api";
+    private static final String ROLLBACK_BASE = ENDPOINT_PREFIX + "/version/rollback";
 
     private String RollbackVersion(String versionId) {
-        return RollbackBase() + "/version/" + versionId;
+        return ROLLBACK_BASE + "/" + versionId;
     }
 
     @Override
@@ -92,7 +87,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
     @Test
     public void testRollbackToPreviousVersion_success() throws Exception {
         withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
-            var response = client.post(RollbackBase());
+            var response = client.post(ROLLBACK_BASE);
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
             assertThat(response.getTextFromJsonBody("/status"), equalTo("OK"));
             assertThat(response.getTextFromJsonBody("/message"), containsString("config rolled back to version"));
@@ -113,7 +108,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
     @Test
     public void testRollbackWithNonAdmin_shouldBeUnauthorized() throws Exception {
         withUser(NEW_USER, DEFAULT_PASSWORD, client -> {
-            var response = client.post(RollbackBase());
+            var response = client.post(ROLLBACK_BASE);
             assertThat(response.getStatusCode(), isOneOf(HttpStatus.SC_FORBIDDEN, HttpStatus.SC_UNAUTHORIZED));
         });
     }
@@ -156,7 +151,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
 
             client.post("/_refresh");
 
-            var response = client.post(RollbackBase());
+            var response = client.post(ROLLBACK_BASE);
             assertThat(response.getStatusCode(), is(404));
             assertThat(response.getBody(), containsString("No previous version available to rollback"));
         });
