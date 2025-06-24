@@ -27,9 +27,9 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 
 public class RestUpdateOnSystemIndexAction extends BaseRestHandler {
 
-    private final RunAsSubjectClient pluginClient;
+    private final PluginClient pluginClient;
 
-    public RestUpdateOnSystemIndexAction(RunAsSubjectClient pluginClient) {
+    public RestUpdateOnSystemIndexAction(PluginClient pluginClient) {
         this.pluginClient = pluginClient;
     }
 
