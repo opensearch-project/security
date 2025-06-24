@@ -14,7 +14,6 @@ import java.util.Optional;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
-
 import static org.opensearch.test.framework.certificate.AlgorithmKit.ecdsaSha256withEcdsa;
 import static org.opensearch.test.framework.certificate.AlgorithmKit.rsaSha256withRsa;
 
