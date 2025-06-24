@@ -15,6 +15,7 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -108,6 +109,13 @@ public class RACEnabledTests {
     public static class ApiAccessTests extends BaseTests {
 
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
+        private String adminResId;
+
+        @Before
+        public void setup() {
+            adminResId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry();
+        }
 
         @Test
         public void testPluginInstalledCorrectly() {
@@ -120,8 +128,6 @@ public class RACEnabledTests {
 
         @Test
         public void testResourceSharingIndexExists() {
-            api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 HttpResponse resp = client.get(RESOURCE_SHARING_INDEX + "/_search");
                 resp.assertStatusCode(HttpStatus.SC_OK);
@@ -130,9 +136,6 @@ public class RACEnabledTests {
 
         @Test
         public void testApiAccess_noAccessUser() {
-            String adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
-
             // user has no permission
 
             // cannot create own resource
@@ -159,9 +162,6 @@ public class RACEnabledTests {
 
         @Test
         public void testApiAccess_limitedAccessUser() {
-            String adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
-
             // user doesn't have update or delete permissions, but can read and create
             // Has * permission on sample plugin resource index
 
@@ -203,9 +203,6 @@ public class RACEnabledTests {
 
         @Test
         public void testApiAccess_allAccessUser() {
-            String adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
-
             // user has * cluster and index permissions
 
             // can create own resource
@@ -246,11 +243,10 @@ public class RACEnabledTests {
 
         @Test
         public void testApiAccess_superAdmin() {
-            String id = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
+
             // can see admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + id);
+                HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sample"));
             }
@@ -258,7 +254,7 @@ public class RACEnabledTests {
             // can update admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
-                HttpResponse resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + id, updatePayload);
+                HttpResponse resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId, updatePayload);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
             }
@@ -266,14 +262,14 @@ public class RACEnabledTests {
             // can share and revoke admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 HttpResponse response = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
+                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
                     shareWithPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
                 response.assertStatusCode(HttpStatus.SC_OK);
 
                 response = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
+                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
                     revokeAccessPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
@@ -282,9 +278,9 @@ public class RACEnabledTests {
 
             // can delete admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                HttpResponse resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + id);
+                HttpResponse resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-                resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + id);
+                resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
             }
 
@@ -299,6 +295,7 @@ public class RACEnabledTests {
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
     public static class DirectIndexAccessTests extends BaseTests {
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
+        private String id;
 
         private void assertResourceIndexAccess(String id, TestSecurityConfig.User user) {
             // cannot interact with resource index
@@ -321,10 +318,14 @@ public class RACEnabledTests {
             api.assertDirectDeleteResourceSharingRecord(id, user, HttpStatus.SC_FORBIDDEN);
         }
 
+        @Before
+        public void setUp() {
+            id = api.createRawResourceAs(cluster.getAdminCertificate());
+            api.awaitSharingEntry("kirk");
+        }
+
         @Test
         public void testRawAccess_noAccessUser() {
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry();
             // user has no permission
             assertResourceIndexAccess(id, NO_ACCESS_USER);
             assertResourceSharingIndexAccess(id, NO_ACCESS_USER);
@@ -332,8 +333,6 @@ public class RACEnabledTests {
 
         @Test
         public void testRawAccess_limitedAccessUser() {
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry();
             // user has read permission on resource index
             // since SIP is enabled, user will not be able to perform any raw requests
 
@@ -346,8 +345,6 @@ public class RACEnabledTests {
             // user has * permission on all indices
             // since SIP is enabled, user will not be able to perform any raw requests
 
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry();
             assertResourceIndexAccess(id, FULL_ACCESS_USER);
 
             // cannot interact with resource sharing index
@@ -359,8 +356,6 @@ public class RACEnabledTests {
 
         @Test
         public void testRawAccess_superAdmin() {
-            String id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry();
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 // can access resource index directly
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);

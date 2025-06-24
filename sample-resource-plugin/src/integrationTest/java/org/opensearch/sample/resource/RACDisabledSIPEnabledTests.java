@@ -275,7 +275,6 @@ public class RACDisabledSIPEnabledTests {
         @Test
         public void testRawAccess_noAccessUser() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
-
             // user has no permissions
 
             // cannot access any raw request

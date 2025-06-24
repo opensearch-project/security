@@ -8,7 +8,8 @@
 
 package org.opensearch.sample.resource;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Duration;
+
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -19,7 +20,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
@@ -124,16 +124,8 @@ public final class TestHelper {
                 String sample = "{\"name\":\"sample\"}";
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
                 resp.assertStatusCode(HttpStatus.SC_OK);
+                client.close();
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
-            }
-        }
-
-        public String createRawResourceAs(TestSecurityConfig.User user) {
-            try (TestRestClient client = cluster.getRestClient(user)) {
-                String sample = "{\"name\":\"sample\"}";
-                TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
-                resp.assertStatusCode(HttpStatus.SC_CREATED);
-                return resp.getTextFromJsonBody("/_id");
             }
         }
 
@@ -142,6 +134,7 @@ public final class TestHelper {
                 String sample = "{\"name\":\"sample\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
+                client.close();
                 return resp.getTextFromJsonBody("/_id");
             }
         }
@@ -298,16 +291,14 @@ public final class TestHelper {
 
         public void awaitSharingEntry(String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await().alias("Wait for sharing entry").until(() -> {
+                Awaitility.await("Wait for sharing entry").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
                     TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
                     response.assertStatusCode(200);
-                    JsonNode hits = response.bodyAsJsonNode().get("hits");
-                    if (hits != null && hits.has("hits")) {
-                        assertThat(response.bodyAsMap().get("hits").toString(), containsString(expectedString));
-                        return response.bodyAsJsonNode().get("hits").get("hits").size();
-                    }
-                    return 0;
-                }, equalTo(1));
+                    String hitsJson = response.bodyAsMap().get("hits").toString();
+                    assertThat(hitsJson, containsString(expectedString));
+                    int size = response.bodyAsJsonNode().get("hits").get("hits").size();
+                    assertThat(size, greaterThanOrEqualTo(1));
+                });
             }
         }
     }
