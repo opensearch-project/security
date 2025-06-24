@@ -66,6 +66,7 @@ configurations.all {
         force 'commons-codec:commons-codec:1.18.0'
         force 'org.hamcrest:hamcrest:2.2'
         force 'org.mockito:mockito-core:5.18.0'
+        force 'org.slf4j:slf4j-api:1.7.36'
     }
 }
 
@@ -76,6 +77,7 @@ dependencies {
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
+    integrationTestImplementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
 
     // To be removed once integration test framework supports extended plugins
     integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')

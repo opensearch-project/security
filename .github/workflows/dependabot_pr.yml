@@ -60,6 +60,7 @@ jobs:
         uses: dangoslen/dependabot-changelog-helper@v4
         with:
           version: 'Unreleased 3.x'
+          sectionHeader: "Maintenance"
 
       - name: Commit the changes
         uses: stefanzweifel/git-auto-commit-action@v6
