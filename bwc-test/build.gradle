@@ -92,11 +92,11 @@ String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = nextVersion
 
-String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT";
-String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
+String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT"
+String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT"
 
 // Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
-def String extractVersion(versionStr) {
+String extractVersion(versionStr) {
     def versionMatcher =  versionStr =~ /(.+?)(\.\d+)(-(alpha|beta|rc)\d+)?$/
     versionMatcher.find()
     if (versionMatcher.group(3) != null) { /* there is a qualifier */
@@ -198,6 +198,7 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'first'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.clusters.path', "${buildDir}/testclusters"
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
 }
