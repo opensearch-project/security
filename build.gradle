@@ -34,7 +34,9 @@ buildscript {
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.8'
-        bouncycastle_version = '1.81'
+        bc_fips_version = '2.0.0'
+        bcpkix_fips_version = '2.0.7'
+        bcutil_fips_version = '2.0.3'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -536,8 +538,9 @@ allprojects {
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
         integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-        integrationTestImplementation "org.bouncycastle:bc-fips:2.0.0"
-        integrationTestImplementation "org.bouncycastle:bcpkix-fips:2.0.7"
+        integrationTestImplementation "org.bouncycastle:bc-fips:${bc_fips_version}"
+        integrationTestImplementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
+        integrationTestImplementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
         integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
             exclude(group: 'org.hamcrest', module: 'hamcrest')
         }
@@ -653,8 +656,9 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.9.0'
-    implementation "org.bouncycastle:bc-fips:2.0.0"
-    implementation "org.bouncycastle:bcpkix-fips:2.0.7"
+    implementation "org.bouncycastle:bc-fips:${bc_fips_version}"
+    implementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
+    implementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
@@ -757,9 +761,9 @@ dependencies {
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    testImplementation "org.bouncycastle:bc-fips:2.0.0"
-    testImplementation "org.bouncycastle:bcpkix-fips:2.0.7"
-
+    testImplementation "org.bouncycastle:bc-fips:${bc_fips_version}"
+    testImplementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
+    testImplementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
