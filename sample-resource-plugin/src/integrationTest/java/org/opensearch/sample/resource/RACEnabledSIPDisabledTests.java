@@ -287,8 +287,7 @@ public class RACEnabledSIPDisabledTests {
     /**
      * Tests exercising direct raw-document operations on the index
      * Users with permission to resource and its sharing index will be able to interact with them successfully.
-     *
-     * Shows importance of System-Index protection feature for this new authz mechanism, by showing what would happen if SIP is disabled but feature is enabled.
+     * Shows the importance of System-Index protection feature for this new authz mechanism, by showing what would happen if SIP is disabled and the feature is enabled.
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -338,6 +337,7 @@ public class RACEnabledSIPDisabledTests {
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             // once admin share's record, user can then query it directly
             api.assertDirectShare(adminResId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
             // cannot update or delete resource
@@ -367,6 +367,7 @@ public class RACEnabledSIPDisabledTests {
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             // once admin share's record, user can then query it directly
             api.assertDirectShare(adminResId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.awaitSharingEntry(FULL_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
             // admin cannot read user's resource until after they share it with admin
