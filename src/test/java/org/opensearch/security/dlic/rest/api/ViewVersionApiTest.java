@@ -32,7 +32,7 @@ import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECUR
 
 public class ViewVersionApiTest extends AbstractRestApiUnitTest {
 
-    private final String ENDPOINT = getEndpointPrefix() + "/api";
+    private final String ENDPOINT = PLUGINS_PREFIX + "/api";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Before
@@ -74,13 +74,9 @@ public class ViewVersionApiTest extends AbstractRestApiUnitTest {
 
     }
 
-    protected String getEndpointPrefix() {
-        return PLUGINS_PREFIX;
-    }
-
     @Test
     public void testGetAllVersions_returnsOkAndHasVersionsArray() throws Exception {
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/version");
+        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/versions");
 
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
@@ -132,7 +128,7 @@ public class ViewVersionApiTest extends AbstractRestApiUnitTest {
     public void testGetAllVersions_forbiddenWithoutAdminCert() throws Exception {
         rh.sendAdminCertificate = false;
 
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/version");
+        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/versions");
 
         assertThat(response.getStatusCode(), isOneOf(HttpStatus.SC_UNAUTHORIZED, HttpStatus.SC_FORBIDDEN));
     }
