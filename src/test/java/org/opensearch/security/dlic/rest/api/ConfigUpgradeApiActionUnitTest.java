@@ -68,6 +68,7 @@ public class ConfigUpgradeApiActionUnitTest extends AbstractApiActionValidationT
         final var actionFuture = mock(ActionFuture.class);
         doReturn(mock(IndexResponse.class)).when(actionFuture).actionGet();
         doReturn(actionFuture).when(client).index(any());
+        doReturn(actionFuture).when(client).execute(any(), any());
 
         configUpgradeApiAction = spy(new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies));
 
