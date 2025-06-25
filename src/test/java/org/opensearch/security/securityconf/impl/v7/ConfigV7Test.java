@@ -111,7 +111,7 @@ public class ConfigV7Test {
         ConfigV7.OnBehalfOfSettings oboSettings;
 
         oboSettings = new ConfigV7.OnBehalfOfSettings();
-        assertThat(Boolean.FALSE, is(oboSettings.getOboEnabled()));
+        assertThat(Boolean.FALSE, is(oboSettings.isEnabled()));
         Assert.assertNull(oboSettings.getSigningKey());
         Assert.assertNull(oboSettings.getEncryptionKey());
     }
