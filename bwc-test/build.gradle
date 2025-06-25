@@ -42,23 +42,6 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 }
 
-buildscript {
-    ext {
-        opensearch_group = "org.opensearch"
-    }
-    repositories {
-        mavenLocal()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "${opensearch_group}.gradle:build-tools:${opensearch_version}"
-    }
-}
-
 repositories {
     mavenLocal()
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
