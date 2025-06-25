@@ -4,8 +4,6 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to the [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
 ## [Unreleased 3.x]
-### Added
-- Provide SecureHttpTransportParameters to complement SecureTransportParameters counterpart ([#5432](https://github.com/opensearch-project/security/pull/5432))
 
 ### Features
 
@@ -23,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Refactoring
 
-
+* Refactor JWT Vender to take a claims builder and rename oboEnabled to enabled ([#5436](https://github.com/opensearch-project/security/pull/5436))
 
 ### Maintenance
 
