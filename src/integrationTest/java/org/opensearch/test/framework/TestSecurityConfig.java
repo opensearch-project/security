@@ -451,7 +451,7 @@ public class TestSecurityConfig {
 
         public final static TestSecurityConfig.User USER_ADMIN = new User("admin").roles(
             new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
-        ).backendRoles("admin");
+        );
 
         String name;
         private String password;

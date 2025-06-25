@@ -29,6 +29,7 @@ import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -48,13 +49,16 @@ import static org.opensearch.security.resources.ResourceSharingIndexHandler.getS
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SampleResourcePluginMigrationApiTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
+
+    public final static TestSecurityConfig.User MIGRATION_USER = new TestSecurityConfig.User("migration_user").roles(
+        new TestSecurityConfig.Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
+    ).backendRoles("admin");
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -74,7 +78,7 @@ public class SampleResourcePluginMigrationApiTests {
         )
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(USER_ADMIN)
+        .users(MIGRATION_USER)
         .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
@@ -89,7 +93,7 @@ public class SampleResourcePluginMigrationApiTests {
     @Test
     public void testMigrateAPIWithNormalAdminUser_forbidden() {
         createSampleResource();
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
@@ -98,13 +102,14 @@ public class SampleResourcePluginMigrationApiTests {
     @Test
     public void testMigrateAPIWithRestAdmin_valid() {
         String resourceId = createSampleResource();
-        createSampleResourceNoUser();
+        String resourceIdNoUser = createSampleResourceNoUser();
         clearResourceSharingEntries();
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("message"), equalTo("Migration complete. migrated 1; skippedNoUser 1; failed 0"));
+            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 1; skippedNoUser 1; failed 0"));
+            assertThat(migrateResponse.bodyAsMap().get("skippedResources"), equalTo(List.of(resourceIdNoUser)));
 
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
@@ -118,7 +123,7 @@ public class SampleResourcePluginMigrationApiTests {
     @Test
     public void testMigrateAPIWithRestAdmin_valid_withSpecifiedAccessLevel() {
         String resourceId = createSampleResource();
-        createSampleResourceNoUser();
+        String resourceIdNoUser = createSampleResourceNoUser();
         clearResourceSharingEntries();
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
@@ -127,7 +132,8 @@ public class SampleResourcePluginMigrationApiTests {
                 migrationPayload_valid_withSpecifiedAccessLevel()
             );
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("message"), equalTo("Migration complete. migrated 1; skippedNoUser 1; failed 0"));
+            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 1; skippedNoUser 1; failed 0"));
+            assertThat(migrateResponse.bodyAsMap().get("skippedResources"), equalTo(List.of(resourceIdNoUser)));
 
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
@@ -181,7 +187,7 @@ public class SampleResourcePluginMigrationApiTests {
     }
 
     private String createSampleResource() {
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
             String sampleResource = """
                 {
                     "name":"sample",
@@ -200,8 +206,8 @@ public class SampleResourcePluginMigrationApiTests {
         }
     }
 
-    private void createSampleResourceNoUser() {
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+    private String createSampleResourceNoUser() {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
             String sampleResource = """
                 {
                     "name":"sample2"
@@ -215,6 +221,7 @@ public class SampleResourcePluginMigrationApiTests {
             Awaitility.await()
                 .alias("Wait until resource data is populated")
                 .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
+            return resourceId;
         }
     }
 
@@ -257,7 +264,7 @@ public class SampleResourcePluginMigrationApiTests {
         source.put("resource_id", resourceId);
 
         ObjectNode createdBy = source.putObject("created_by");
-        createdBy.put("user", "admin");
+        createdBy.put("user", MIGRATION_USER.getName());
 
         ObjectNode shareWith = source.putObject("share_with");
         ObjectNode readOnly = shareWith.putObject(accessLevel);

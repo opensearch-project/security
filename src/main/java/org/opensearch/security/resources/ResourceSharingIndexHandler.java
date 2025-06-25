@@ -177,7 +177,7 @@ public class ResourceSharingIndexHandler {
                 listener.onResponse(entry);
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
-                    // already exists → treat as a skip if you like
+                    // already exists → skipping
                     LOGGER.warn("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
                     listener.onResponse(entry);
                 } else {
