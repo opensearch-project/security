@@ -244,8 +244,23 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             }
 
             @Override
-            public Optional<SecureAuxTransportParameters> parameters() {
-                return SecureAuxTransportSettingsProvider.super.parameters();
+            public Optional<SecureAuxTransportParameters> parameters(AuxTransport transport) {
+                return Optional.of(new SecureAuxTransportParameters() {
+
+                    @Override
+                    public Optional<String> clientAuth() {
+                        CertType auxCertType = new CertType(transport.settingKey());
+                        return sslSettingsManager.sslConfiguration(auxCertType).map(config -> config.sslParameters().clientAuth().name());
+                    }
+
+                    @Override
+                    public Collection<String> cipherSuites() {
+                        CertType auxCertType = new CertType(transport.settingKey());
+                        return sslSettingsManager.sslConfiguration(auxCertType)
+                                .map(config -> config.sslParameters().allowedCiphers())
+                                .orElse(Collections.emptyList());
+                    }
+                });
             }
         });
     }
