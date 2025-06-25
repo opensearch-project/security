@@ -37,7 +37,7 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
-    opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
     buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -51,13 +51,13 @@ ext {
         opensearch_build += "-SNAPSHOT"
     }
 
-//    common_utils_version = System.getProperty("common_utils.version", opensearch_build)
-    common_utils_version = System.getProperty("common_utils.version", "3.0.0.0")
+    common_utils_version = System.getProperty("common_utils.version", "3.1.0.0")
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
+    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
 }
 
@@ -83,6 +83,7 @@ dependencies {
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
+    integrationTestImplementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
 
     // To be removed once integration test framework supports extended plugins
     integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
