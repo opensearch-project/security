@@ -240,7 +240,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             @Override
             public Optional<SSLContext> buildSecureAuxServerTransportContext(Settings settings, AuxTransport transport) {
                 CertType auxCertType = new CertType(transport.settingKey());
-                return sslSettingsManager.sslContextHandler(auxCertType).map(SslContextHandler::sslContext);
+                return sslSettingsManager.sslContextHandler(auxCertType).map(SslContextHandler::tryFetchSSLContext);
             }
 
             @Override

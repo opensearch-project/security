@@ -67,14 +67,22 @@ public class SslContextHandler {
     }
 
     /**
-     * Only JDK provider is supported, so we expect only JdkSslContext.
-     * @return null if context cannot be fetched from io.netty.handler.ssl.SslContext child type.
+     * Attempt to fetch the underlying io.netty.handler.ssl.SslContext as a javax SSLContext.
+     * As JDK is the only supported provider we expect sslContext is always of type JdkSslContext,
+     * allowing us to extract the javax.net.ssl.SSLContext delegate. Providing a javax SSLContext is
+     * desirable for dependencies which want to access security settings without taking on netty as a dependency.
+     * @return null if context cannot be fetched as JdkSslContext.
      */
-    public SSLContext sslContext() {
+    public SSLContext tryFetchSSLContext() {
         if (sslContext instanceof JdkSslContext) {
             return ((JdkSslContext) sslContext).context();
         }
         return null;
+    }
+
+    // public for testing
+    public SslContext sslContext() {
+        return sslContext;
     }
 
     public Stream<Certificate> certificates() {
