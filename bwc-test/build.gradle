@@ -44,10 +44,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
-        common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
-        jackson_version = System.getProperty("jackson_version", "2.15.2")
     }
     repositories {
         mavenLocal()
@@ -75,8 +72,8 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
-    testImplementation "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
-    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+    testImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
 
 }
 
