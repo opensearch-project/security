@@ -23,6 +23,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -39,6 +40,7 @@ import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPe
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -171,7 +173,8 @@ public class PrivilegesEvaluatorUnitTest {
             settings,
             privilegesInterceptor,
             clusterInfoHolder,
-            irr
+            irr,
+            mock(ApiTokenRepository.class)
         );
     }
 

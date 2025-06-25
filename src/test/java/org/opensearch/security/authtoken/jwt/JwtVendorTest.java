@@ -23,7 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -44,6 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -71,14 +71,14 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
