@@ -15,6 +15,12 @@ import java.util.Date;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 
+/**
+ * Builder for creating JWT claims.
+ *
+ * This class builds a claims set with standard claims such as issued_at, not before time, subject, issuer, audience,
+ * expiration time, and custom claims.
+ */
 public class JwtClaimsBuilder {
     private final JWTClaimsSet.Builder builder;
 

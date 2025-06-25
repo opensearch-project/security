@@ -63,15 +63,14 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private final JwtParser jwtParser;
     private final String encryptionKey;
-    private final Boolean oboEnabled;
+    private final Boolean enabled;
     private final String clusterName;
 
     private final EncryptionDecryptionUtil encryptionUtil;
 
     @SuppressWarnings("removal")
     public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
-        String oboEnabledSetting = settings.get("enabled", "true");
-        oboEnabled = Boolean.parseBoolean(oboEnabledSetting);
+        enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
         encryptionKey = settings.get("encryption_key");
 
         final SecurityManager sm = System.getSecurityManager();
@@ -165,7 +164,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
-        if (!oboEnabled) {
+        if (!enabled) {
             log.debug("On-behalf-of authentication is disabled");
             return null;
         }

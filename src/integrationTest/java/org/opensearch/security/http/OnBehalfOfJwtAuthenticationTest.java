@@ -62,7 +62,6 @@ public class OnBehalfOfJwtAuthenticationTest {
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/generateonbehalfoftoken";
-    private static Boolean oboEnabled = true;
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
             "jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(
@@ -118,7 +117,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         .roles(HOST_MAPPING_ROLE, ROLE_WITH_OBO_PERM);
 
     private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
-        return new OnBehalfOfConfig().enabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey);
+        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(encryptionKey);
     }
 
     @ClassRule
