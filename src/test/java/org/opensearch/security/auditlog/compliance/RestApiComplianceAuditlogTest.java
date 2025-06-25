@@ -377,6 +377,36 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
 
     }
 
+    @Test
+    public void testArgon2HashRedaction() {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+            .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2)
+            .build();
+        final DynamicSecurityConfig securityConfig = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_argon2.yml");
+        setupAndReturnAuditMessages(settings, securityConfig);
+        rh.sendAdminCertificate = true;
+        rh.keystore = "kirk-keystore.jks";
+
+        // read internal users and verify no Argon2 hash is present in audit logs
+        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
+            rh.executeGetRequest("/_opendistro/_security/api/internalusers");
+        });
+
+        Assert.assertFalse(
+            message1.toString()
+                .contains(
+                    "$argon2id$"
+                    )
+        );
+        Assert.assertTrue(message1.toString().contains("__HASH__"));
+    }
+
     private List<AuditMessage> setupAndReturnAuditMessages(Settings settings) {
         return setupAndReturnAuditMessages(settings, new DynamicSecurityConfig());
     }

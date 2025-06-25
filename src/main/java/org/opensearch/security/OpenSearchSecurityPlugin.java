@@ -243,6 +243,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEF
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
+import static org.opensearch.security.support.ConfigConstants.;
 
 // CS-ENFORCE-SINGLE
 
@@ -1431,6 +1432,55 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Setting.simpleString(
                 ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT,
                 Property.NodeScope,
                 Property.Final
             )
