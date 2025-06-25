@@ -243,7 +243,6 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEF
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
-import static org.opensearch.security.support.ConfigConstants.;
 
 // CS-ENFORCE-SINGLE
 
