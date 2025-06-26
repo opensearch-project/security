@@ -23,6 +23,7 @@ import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.test.framework.TestSecurityConfig.User;
+import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestGrpcClient;
@@ -39,17 +40,20 @@ public class GrpcTests {
 
     static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
 
+    private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
+
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+        .testCertificates(TEST_CERTIFICATES)
         .anonymousAuth(false)
         .plugin(GrpcPlugin.class)
-        .grpc()
+        .grpc(TEST_CERTIFICATES)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .build();
 
     @Test
-    public void testRolloverWithLimitedUser() throws IOException {
+    public void testSearch() throws IOException {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.put("test-index");
             client.postJson("test-index/_doc/1", "{\"field\": \"value\"}");
