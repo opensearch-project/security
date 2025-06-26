@@ -18,12 +18,12 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class OnBehalfOfConfig implements ToXContentObject {
-    private Boolean oboEnabled;
+    private Boolean enabled;
     private String signing_key;
     private String encryption_key;
 
-    public OnBehalfOfConfig oboEnabled(Boolean oboEnabled) {
-        this.oboEnabled = oboEnabled;
+    public OnBehalfOfConfig enabled(Boolean enabled) {
+        this.enabled = enabled;
         return this;
     }
 
@@ -40,7 +40,7 @@ public class OnBehalfOfConfig implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
         xContentBuilder.startObject();
-        xContentBuilder.field("enabled", oboEnabled);
+        xContentBuilder.field("enabled", enabled);
         xContentBuilder.field("signing_key", signing_key);
         if (StringUtils.isNoneBlank(encryption_key)) {
             xContentBuilder.field("encryption_key", encryption_key);
