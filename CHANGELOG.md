@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Features
 
 * Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
+* Introduced View API and Rollback API for experimental versioned security configurations ([#5431](https://github.com/opensearch-project/security/pull/5431))
 
 ### Enhancements
 
