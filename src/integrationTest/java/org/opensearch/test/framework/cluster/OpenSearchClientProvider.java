@@ -108,6 +108,10 @@ public interface OpenSearchClientProvider {
         return getRestClient(user.getName(), user.getPassword(), null, headers);
     }
 
+    default TestGrpcClient getGrpcClient(UserCredentialsHolder user) {
+        return getGrpcClient(user.getName(), user.getPassword());
+    }
+
     default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
         return getRestHighLevelClient(new UserCredentialsHolder() {
             @Override
@@ -211,6 +215,11 @@ public interface OpenSearchClientProvider {
         return getRestClient(useCertificateData, basicAuthHeader);
     }
 
+    default TestGrpcClient getGrpcClient(String user, String password) {
+        Header basicAuthHeader = getBasicAuthHeader(user, password);
+        return getGrpcClient(basicAuthHeader.getValue());
+    }
+
     /**
      * Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
      * method to test non-basic authentication, such as JWT bearer authentication.
@@ -232,6 +241,10 @@ public interface OpenSearchClientProvider {
         return createGenericClientRestClient(headers, useCertificateData, null);
     }
 
+    default TestGrpcClient getGrpcClient(String authorizationHeader) {
+        return createGenericClientGrpcClient(authorizationHeader);
+    }
+
     default TestRestClient getSecurityDisabledRestClient() {
         return new TestRestClient(getHttpAddress(), List.of(), getSSLContext(null), null, false, false);
     }
@@ -242,6 +255,12 @@ public interface OpenSearchClientProvider {
         InetAddress sourceInetAddress
     ) {
         return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress, true, false);
+    }
+
+    default TestGrpcClient createGenericClientGrpcClient(
+            String authorizationHeader
+    ) {
+        return new TestGrpcClient(getHttpAddress(), authorizationHeader, getSSLContext());
     }
 
     default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
