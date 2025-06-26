@@ -37,21 +37,6 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
-    opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
-
-    version_tokens = opensearch_version.tokenize('-')
-    opensearch_build = version_tokens[0] + '.0'
-
-    if (buildVersionQualifier) {
-        opensearch_build += "-${buildVersionQualifier}"
-    }
-    if (isSnapshot) {
-        opensearch_build += "-SNAPSHOT"
-    }
-
-    common_utils_version = System.getProperty("common_utils.version", "3.1.0.0")
 }
 
 repositories {
@@ -68,17 +53,13 @@ configurations.all {
         force 'commons-codec:commons-codec:1.18.0'
         force 'org.hamcrest:hamcrest:2.2'
         force 'org.mockito:mockito-core:5.18.0'
-        force 'org.slf4j:slf4j-api:2.0.12'
+        force 'org.slf4j:slf4j-api:1.7.36'
     }
 }
 
 dependencies {
     // Main implementation dependencies
     compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
-
-    implementation "org.opensearch:common-utils:${common_utils_version}"
-    implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
