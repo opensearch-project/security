@@ -1,13 +1,8 @@
 package org.opensearch.test.framework.cluster;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 import javax.net.ssl.SSLContext;
 
-import io.grpc.Metadata;
-import org.apache.hc.core5.http.Header;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,14 +13,14 @@ import org.opensearch.protobufs.services.SearchServiceGrpc;
 import io.grpc.ChannelCredentials;
 import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
 import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
 public class TestGrpcClient {
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
-    Metadata.Key<String> AUTHORIZATION_KEY =
-            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+    Metadata.Key<String> AUTHORIZATION_KEY = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
 
     private InetSocketAddress nodeHttpAddress;
     private String authorizationHeader;
