@@ -12,14 +12,17 @@ import java.io.IOException;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sample.SampleResource;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+
 /**
  * Request object for CreateSampleResource transport action
  */
-public class CreateResourceRequest extends ActionRequest {
+public class CreateResourceRequest extends ActionRequest implements DocRequest {
 
     private final SampleResource resource;
 
@@ -46,5 +49,15 @@ public class CreateResourceRequest extends ActionRequest {
 
     public SampleResource getResource() {
         return this.resource;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String id() {
+        return null;
     }
 }

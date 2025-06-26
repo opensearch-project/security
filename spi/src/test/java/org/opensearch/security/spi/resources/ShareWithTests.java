@@ -89,7 +89,7 @@ public class ShareWithTests {
         XContentParser parser;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
             builder.startObject()
-                .startObject(ResourceAccessLevels.PLACE_HOLDER)
+                .startObject("default")
                 .array("users", "user1", "user2")
                 .array("roles", "role1")
                 .array("backend_roles", "backend_role1")
@@ -110,7 +110,7 @@ public class ShareWithTests {
 
         MatcherAssert.assertThat(shareWith, notNullValue());
 
-        Recipients defaultAccessLevel = shareWith.atAccessLevel(ResourceAccessLevels.PLACE_HOLDER);
+        Recipients defaultAccessLevel = shareWith.atAccessLevel("default");
 
         Recipients readOnly = shareWith.atAccessLevel("read-only");
 
@@ -212,7 +212,7 @@ public class ShareWithTests {
     public void test_writeSharedWithScopesToStream() throws IOException {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 
-        Map<String, Recipients> map = Map.of(ResourceAccessLevels.PLACE_HOLDER, new Recipients(Map.of()));
+        Map<String, Recipients> map = Map.of("default", new Recipients(Map.of()));
 
         ShareWith shareWith = new ShareWith(map);
 
