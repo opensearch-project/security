@@ -10,6 +10,7 @@
 package org.opensearch.security.grpc;
 
 import java.io.IOException;
+import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +23,7 @@ import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -43,20 +45,23 @@ public class GrpcTests {
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .testCertificates(TEST_CERTIFICATES)
+        .certificates(TEST_CERTIFICATES)
         .plugin(GrpcPlugin.class)
         .grpc(TEST_CERTIFICATES)
+        .loadConfigurationIntoIndex(false)
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true))
         .sslOnly(true)
         .build();
 
     @Test
     public void testSearch() throws IOException {
         try (TestRestClient client = cluster.getRestClient()) {
-            client.put("test-index");
+            TestRestClient.HttpResponse response = client.put("test-index");
+            response.assertStatusCode(200);
             client.postJson("test-index/_doc/1", "{\"field\": \"value\"}");
         }
 
-        // TODO this is SSO Only test, but eventually a test with authc should be added as well
+        // TODO this is SSL Only test, but eventually a test with authc should be added as well
         TestGrpcClient client = cluster.getGrpcClient(TEST_CERTIFICATES);
         // Create a search request
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setFrom(0).setSize(10).build();
