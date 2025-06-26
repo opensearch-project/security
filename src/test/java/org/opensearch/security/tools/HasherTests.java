@@ -19,6 +19,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.security.support.ConfigConstants;
+
 import com.password4j.Argon2Function;
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.types.Argon2;
@@ -164,12 +166,36 @@ public class HasherTests {
     public void testWithArgon2DefaultArguments() {
         Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
-        assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
-        assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
-        assertEquals("should return a valid Argon2 hash with the default value for \"parallelism\"", argon2Function.getParallelism(), 1);
-        assertEquals("should return a valid Argon2 hash with the default value for \"length\"", argon2Function.getOutputLength(), 32);
-        assertEquals("should return a valid Argon2 hash with the default value for \"type\"", argon2Function.getVariant(), Argon2.ID);
-        assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"memory\"",
+            argon2Function.getMemory(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT
+        );
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"iterations\"",
+            argon2Function.getIterations(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT
+        );
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"parallelism\"",
+            argon2Function.getParallelism(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT
+        );
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"length\"",
+            argon2Function.getOutputLength(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT
+        );
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"type\"",
+            argon2Function.getVariant(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT
+        );
+        assertEquals(
+            "should return a valid Argon2 hash with the default value for \"version\"",
+            argon2Function.getVersion(),
+            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+        );
     }
 
     @Test
