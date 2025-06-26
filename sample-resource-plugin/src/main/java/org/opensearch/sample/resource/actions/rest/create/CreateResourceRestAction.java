@@ -50,14 +50,11 @@ public class CreateResourceRestAction extends BaseRestHandler {
             source = parser.map();
         }
 
-        switch (request.method()) {
-            case PUT:
-                return createResource(source, client);
-            case POST:
-                return updateResource(source, request.param("resource_id"), client);
-            default:
-                throw new IllegalArgumentException("Illegal method: " + request.method());
-        }
+        return switch (request.method()) {
+            case PUT -> createResource(source, client);
+            case POST -> updateResource(source, request.param("resource_id"), client);
+            default -> throw new IllegalArgumentException("Illegal method: " + request.method());
+        };
     }
 
     private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
@@ -80,11 +77,12 @@ public class CreateResourceRestAction extends BaseRestHandler {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
         Map<String, String> attributes = getAttributes(source);
+        boolean shouldStoreUser = source.containsKey("store_user") && (boolean) source.get("store_user");
         SampleResource resource = new SampleResource();
         resource.setName(name);
         resource.setDescription(description);
         resource.setAttributes(attributes);
-        final CreateResourceRequest createSampleResourceRequest = new CreateResourceRequest(resource);
+        final CreateResourceRequest createSampleResourceRequest = new CreateResourceRequest(resource, shouldStoreUser);
         return channel -> client.executeLocally(
             CreateResourceAction.INSTANCE,
             createSampleResourceRequest,

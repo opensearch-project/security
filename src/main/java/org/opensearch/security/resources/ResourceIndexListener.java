@@ -65,18 +65,16 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         try {
             Objects.requireNonNull(user);
-            ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
-                resourceId,
-                resourceIndex,
-                new CreatedBy(user.getName()),
-                null
-            );
-            log.debug(
-                "Successfully created a resource sharing entry {} for resource {} within index {}",
-                sharing,
-                resourceId,
-                resourceIndex
-            );
+            ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
+                log.debug(
+                    "postIndex: Successfully created a resource sharing entry {} for resource {} within index {}",
+                    entry,
+                    resourceId,
+                    resourceIndex
+                );
+            }, e -> { log.debug(e.getMessage()); });
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceId, resourceIndex, new CreatedBy(user.getName()), null, listener);
+
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);
         }

@@ -19,6 +19,8 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.commons.ConfigConstants;
+import org.opensearch.commons.authuser.User;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -52,16 +54,20 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     @Override
     protected void doExecute(Task task, CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+        String userStr = threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
+        User user = User.parse(userStr);
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            createResource(request, listener);
+            createResource(request, user, listener);
         } catch (Exception e) {
             log.error("Failed to create resource", e);
             listener.onFailure(e);
         }
     }
 
-    private void createResource(CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
+    private void createResource(CreateResourceRequest request, User user, ActionListener<CreateResourceResponse> listener) {
         SampleResource sample = request.getResource();
+        if (request.shouldStoreUser()) sample.setUser(user);
+
         try (XContentBuilder builder = jsonBuilder()) {
             IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
                 .setWaitForActiveShards(1)
