@@ -506,13 +506,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             );
             nodeOverrideSettingsBuilder.put(
                 "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemkey_filepath",
-                testCertificates.getNodeKey(0, "").getAbsolutePath()
+                testCertificates.getNodeKey(0, null).getAbsolutePath()
             );
             // nodeOverrideSettingsBuilder.put(
             // "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemkey_password",
             // PRIVATE_KEY_GRPC_PASSWORD
             // );
-            nodeOverrideSettingsBuilder.put("plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode", "REQUIRE");
+            nodeOverrideSettingsBuilder.put("plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode", "OPTIONAL");
             nodeOverrideSettingsBuilder.put(
                 "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemtrustedcas_filepath",
                 testCertificates.getRootCertificate().getAbsolutePath()

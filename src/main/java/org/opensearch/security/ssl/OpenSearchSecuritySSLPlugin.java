@@ -101,6 +101,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
 
@@ -654,6 +655,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
                 SECURITY_SSL_AUX_KEYSTORE_FILEPATH,
                 SECURITY_SSL_AUX_PEMKEY_FILEPATH,
+                SECURITY_SSL_AUX_PEMKEY_PASSWORD,
                 SECURITY_SSL_AUX_PEMCERT_FILEPATH,
                 SECURITY_SSL_AUX_CLIENTAUTH_MODE,
                 SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH,
