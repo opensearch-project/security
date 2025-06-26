@@ -12,10 +12,6 @@
 package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-
-import org.opensearch.SpecialPermission;
 
 import com.password4j.Argon2Function;
 import com.password4j.HashingFunction;
@@ -33,7 +29,6 @@ class Argon2PasswordHasher extends AbstractPasswordHasher {
 
     private static final int DEFAULT_SALT_LENGTH = 128;
 
-    @SuppressWarnings("removal")
     Argon2PasswordHasher(int memory, int iterations, int parallelism, int length, String type, int version) {
         this.iterations = iterations;
         this.memory = memory;
@@ -42,57 +37,34 @@ class Argon2PasswordHasher extends AbstractPasswordHasher {
         this.typeArgon2 = parseType(type);
         this.version = version;
 
-        SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null) {
-            securityManager.checkPermission(new SpecialPermission());
-        }
-        this.hashingFunction = AccessController.doPrivileged(
-            (PrivilegedAction<HashingFunction>) () -> Argon2Function.getInstance(
-                this.memory,
-                this.iterations,
-                this.parallelization,
-                this.length,
-                this.typeArgon2,
-                this.version
-            )
+        this.hashingFunction = Argon2Function.getInstance(
+            this.memory,
+            this.iterations,
+            this.parallelization,
+            this.length,
+            this.typeArgon2,
+            this.version
         );
     }
 
     @Override
-    @SuppressWarnings("removal")
     public String hash(char[] password) {
         checkPasswordNotNullOrEmpty(password);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null) {
-                securityManager.checkPermission(new SpecialPermission());
-            }
-            return AccessController.doPrivileged(
-                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer)
-                    .addRandomSalt(DEFAULT_SALT_LENGTH)
-                    .with(hashingFunction)
-                    .getResult()
-            );
+            return Password.hash(passwordBuffer).addRandomSalt(DEFAULT_SALT_LENGTH).with(hashingFunction).getResult();
         } finally {
             cleanup(passwordBuffer);
         }
     }
 
     @Override
-    @SuppressWarnings("removal")
     public boolean check(char[] password, String hash) {
         checkPasswordNotNullOrEmpty(password);
         checkHashNotNullOrEmpty(hash);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null) {
-                securityManager.checkPermission(new SpecialPermission());
-            }
-            return AccessController.doPrivileged(
-                (PrivilegedAction<Boolean>) () -> Password.check(passwordBuffer, hash).with(getArgon2FunctionFromHash(hash))
-            );
+            return Password.check(passwordBuffer, hash).with(getArgon2FunctionFromHash(hash));
         } finally {
             cleanup(passwordBuffer);
         }
