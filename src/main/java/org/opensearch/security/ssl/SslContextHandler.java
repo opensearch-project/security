@@ -16,11 +16,14 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import io.netty.handler.ssl.JdkSslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,7 +66,22 @@ public class SslContextHandler {
         return sslConfiguration;
     }
 
-    SslContext sslContext() {
+    /**
+     * Attempt to fetch the underlying io.netty.handler.ssl.SslContext as a javax SSLContext.
+     * As JDK is the only supported provider we expect sslContext is always of type JdkSslContext,
+     * allowing us to extract the javax.net.ssl.SSLContext delegate. Providing a javax SSLContext is
+     * desirable for dependencies which want to access security settings without taking on netty as a dependency.
+     * @return null if context cannot be fetched as JdkSslContext.
+     */
+    public SSLContext tryFetchSSLContext() {
+        if (sslContext instanceof JdkSslContext) {
+            return ((JdkSslContext) sslContext).context();
+        }
+        return null;
+    }
+
+    // public for testing
+    public SslContext sslContext() {
         return sslContext;
     }
 
