@@ -29,7 +29,6 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestGrpcClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -45,21 +44,20 @@ public class GrpcTests {
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .testCertificates(TEST_CERTIFICATES)
-        .anonymousAuth(false)
         .plugin(GrpcPlugin.class)
         .grpc(TEST_CERTIFICATES)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER)
+        .sslOnly(true)
         .build();
 
     @Test
     public void testSearch() throws IOException {
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+        try (TestRestClient client = cluster.getRestClient()) {
             client.put("test-index");
             client.postJson("test-index/_doc/1", "{\"field\": \"value\"}");
         }
 
-        TestGrpcClient client = cluster.getGrpcClient(ADMIN_USER);
+        // TODO this is SSO Only test, but eventually a test with authc should be added as well
+        TestGrpcClient client = cluster.getGrpcClient(TEST_CERTIFICATES);
         // Create a search request
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setFrom(0).setSize(10).build();
 
