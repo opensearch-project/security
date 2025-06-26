@@ -237,24 +237,24 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
         return Optional.of(new SecureAuxTransportSettingsProvider() {
 
             @Override
-            public Optional<SSLContext> buildSecureAuxServerTransportContext(Settings settings, AuxTransport transport) {
-                CertType auxCertType = new CertType(transport.settingKey());
+            public Optional<SSLContext> buildSecureAuxServerTransportContext(Settings settings, String auxTransportSettingKey) {
+                CertType auxCertType = new CertType(auxTransportSettingKey);
                 return sslSettingsManager.sslContextHandler(auxCertType).map(SslContextHandler::tryFetchSSLContext);
             }
 
             @Override
-            public Optional<SecureAuxTransportParameters> parameters(AuxTransport transport) {
+            public Optional<SecureAuxTransportParameters> parameters(Settings settings, String auxTransportSettingKey) {
                 return Optional.of(new SecureAuxTransportParameters() {
 
                     @Override
                     public Optional<String> clientAuth() {
-                        CertType auxCertType = new CertType(transport.settingKey());
+                        CertType auxCertType = new CertType(auxTransportSettingKey);
                         return sslSettingsManager.sslConfiguration(auxCertType).map(config -> config.sslParameters().clientAuth().name());
                     }
 
                     @Override
                     public Collection<String> cipherSuites() {
-                        CertType auxCertType = new CertType(transport.settingKey());
+                        CertType auxCertType = new CertType(auxTransportSettingKey);
                         return sslSettingsManager.sslConfiguration(auxCertType)
                             .map(config -> config.sslParameters().allowedCiphers())
                             .orElse(Collections.emptyList());
