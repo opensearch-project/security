@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
@@ -71,15 +71,14 @@ public class ProtectedIndexAccessEvaluator {
         final ActionRequest request,
         final Task task,
         final String action,
-        final IndexResolverReplacer.Resolved requestedResolved,
+        final ResolvedIndices requestedResolved,
         final PrivilegesEvaluatorResponse presponse,
         final Set<String> mappedRoles
     ) {
         if (!protectedIndexEnabled) {
             return presponse;
         }
-        if (!requestedResolved.isLocalAll()
-            && indexMatcher.matchAny(requestedResolved.getAllIndices())
+        if (indexMatcher.matchAny(requestedResolved.local().names())
             && deniedActionMatcher.test(action)
             && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
@@ -88,14 +87,7 @@ public class ProtectedIndexAccessEvaluator {
             return presponse.markComplete();
         }
 
-        if (requestedResolved.isLocalAll() && deniedActionMatcher.test(action) && !allowedRolesMatcher.matchAny(mappedRoles)) {
-            auditLog.logMissingPrivileges(action, request, task);
-            log.warn("{} for '_all' indices is not allowed for a regular user", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
-        }
-        if ((requestedResolved.isLocalAll() || indexMatcher.matchAny(requestedResolved.getAllIndices()))
-            && !allowedRolesMatcher.matchAny(mappedRoles)) {
+        if (indexMatcher.matchAny(requestedResolved.local().names()) && !allowedRolesMatcher.matchAny(mappedRoles)) {
 
             final boolean isDebugEnabled = log.isDebugEnabled();
             if (request instanceof SearchRequest) {

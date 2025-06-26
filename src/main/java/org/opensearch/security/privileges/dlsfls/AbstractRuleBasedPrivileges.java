@@ -25,12 +25,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
@@ -124,8 +124,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
      * @throws PrivilegesEvaluationException If something went wrong during privileges evaluation. In such cases, any
      *                                       access should be denied to make sure that no unauthorized information is exposed.
      */
-    public boolean isUnrestricted(PrivilegesEvaluationContext context, IndexResolverReplacer.Resolved resolved)
-        throws PrivilegesEvaluationException {
+    public boolean isUnrestricted(PrivilegesEvaluationContext context, ResolvedIndices resolved) throws PrivilegesEvaluationException {
         if (context.getMappedRoles().isEmpty()) {
             return false;
         }
@@ -149,7 +148,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         // If we found an unrestricted role, we continue with the next index/alias/data stream. If we found a restricted role, we abort
         // early and return true.
 
-        for (String index : resolved.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver())) {
+        for (String index : resolved.local().names(context.clusterState())) {
             if (this.dfmEmptyOverridesAll) {
                 // We assume that we have a restriction unless there are roles without restriction.
                 // Thus, we only have to check the roles without restriction.
@@ -829,5 +828,4 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     static abstract class Rule {
         abstract boolean isUnrestricted();
     }
-
 }
