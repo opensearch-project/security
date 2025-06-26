@@ -65,6 +65,8 @@ class Argon2PasswordHasher extends AbstractPasswordHasher {
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             return Password.check(passwordBuffer, hash).with(getArgon2FunctionFromHash(hash));
+        } catch (Exception e) {
+            return false;
         } finally {
             cleanup(passwordBuffer);
         }

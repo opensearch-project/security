@@ -77,4 +77,12 @@ public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
+
+    @Test
+    public void shouldReturnFalseForInvalidHash() {
+        PasswordHasher hasher = new Argon2PasswordHasher(memory, iterations, parallelism, length, type, version);
+        String invalidHash = "invalid_hash";
+        boolean result = hasher.check(password.toCharArray(), invalidHash);
+        assertThat("Invalid hash should return false", result, is(false));
+    }
 }
