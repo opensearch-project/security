@@ -257,9 +257,7 @@ public interface OpenSearchClientProvider {
         return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress, true, false);
     }
 
-    default TestGrpcClient createGenericClientGrpcClient(
-            String authorizationHeader
-    ) {
+    default TestGrpcClient createGenericClientGrpcClient(String authorizationHeader) {
         return new TestGrpcClient(getHttpAddress(), authorizationHeader, getSSLContext());
     }
 

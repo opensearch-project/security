@@ -491,6 +491,9 @@ configurations {
             force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
+            force "com.google.protobuf:protobuf-java:3.25.5"
+            force "io.perfmark:perfmark-api:0.27.0"
+            force "com.google.guava:failureaccess:1.0.3"
         }
     }
 
@@ -531,7 +534,10 @@ allprojects {
             exclude(group: 'org.slf4j', module: 'slf4j-api')
         }
         integrationTestImplementation "org.opensearch:protobufs:0.3.0"
+        integrationTestImplementation "io.grpc:grpc-protobuf:${versions.grpc}"
+        integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
         integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+        integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
         integrationTestImplementation 'commons-io:commons-io:2.20.0'
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
