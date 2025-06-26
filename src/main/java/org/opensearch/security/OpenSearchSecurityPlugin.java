@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -293,8 +294,35 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
 
-    public static boolean isActionTraceEnabled() {
+    /**
+     * Register bouncycastle ssl provider.
+     * @return true if successfully registered.
+     */
+    @SuppressWarnings("removal")
+    public static boolean tryAddSecurityProvider() {
+        final SecurityManager sm = System.getSecurityManager();
 
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        // Add provider if on the classpath.
+        return AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {
+            if (Security.getProvider("BC") == null) {
+                try {
+                    Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
+                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
+                    Security.addProvider(provider);
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            return false;
+        });
+    }
+
+    public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
     }
 
@@ -416,7 +444,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("ba9c5a61065f7f6115188128ffbdaa18fca34562b78b811f082439e2bef1d282"); // esnode-key
         demoCertHashes.add("bcd708e8dc707ae065f7ad8582979764b497f062e273d478054ab2f49c5469c6"); // root-ca
 
-        tryAddSecurityProvider();
+        if(tryAddSecurityProvider()){
+            log.debug("Bouncy Castle Provider added");
+        } else {
+            log.debug("Bouncy Castle Provider could not be added");
+        }
 
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
@@ -2327,30 +2359,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 SSLConfig
             )
         );
-    }
-
-    @SuppressWarnings("removal")
-    private void tryAddSecurityProvider() {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        // Add provider if on the classpath.
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            if (Security.getProvider("BC") == null) {
-                try {
-                    Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
-                    Security.addProvider(provider);
-                    log.debug("Bouncy Castle Provider added");
-                } catch (Exception e) {
-                    log.debug("Bouncy Castle Provider could not be added", e);
-                }
-            }
-            return null;
-        });
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions

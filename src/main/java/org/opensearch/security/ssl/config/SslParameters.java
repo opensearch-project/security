@@ -12,6 +12,8 @@
 package org.opensearch.security.ssl.config;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -66,8 +68,12 @@ public class SslParameters {
         return clientAuth;
     }
 
-    public SslProvider provider() {
-        return provider;
+    public Provider provider(){
+        return switch (provider) {
+            case SslProvider.JDK -> Security.getProvider("SunJSSE");
+            case SslProvider.OPENSSL, SslProvider.OPENSSL_REFCNT ->
+                    throw new IllegalStateException("OpenSSL providers not configurable or supported: " + provider);
+        };
     }
 
     public List<String> allowedCiphers() {
