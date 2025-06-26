@@ -1,5 +1,6 @@
 package org.opensearch.test.framework.cluster;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLContext;
 
@@ -9,13 +10,13 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
+import org.opensearch.test.framework.certificate.TestCertificates;
 
 import io.grpc.ChannelCredentials;
 import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.TlsChannelCredentials;
-import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
 public class TestGrpcClient {
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
@@ -25,11 +26,18 @@ public class TestGrpcClient {
     private InetSocketAddress nodeHttpAddress;
     private String authorizationHeader;
     private SSLContext sslContext;
+    private TestCertificates testCertificates;
 
-    public TestGrpcClient(InetSocketAddress nodeHttpAddress, String authorizationHeader, SSLContext sslContext) {
+    public TestGrpcClient(
+        InetSocketAddress nodeHttpAddress,
+        String authorizationHeader,
+        SSLContext sslContext,
+        TestCertificates testCertificates
+    ) {
         this.nodeHttpAddress = nodeHttpAddress;
         this.authorizationHeader = authorizationHeader;
         this.sslContext = sslContext;
+        this.testCertificates = testCertificates;
     }
 
     public SearchResponse search(SearchRequest request) {
@@ -42,12 +50,16 @@ public class TestGrpcClient {
     }
 
     private SearchServiceGrpc.SearchServiceBlockingStub client() {
-        ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
-            // You can use your own certificate here .trustManager(new File("cert.pem"))
-            .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
-            .build();
-        System.out.println("nodeHttpAddress.getHostString():" + nodeHttpAddress);
-        ManagedChannel channel = Grpc.newChannelBuilderForAddress("127.0.0.1", 9400, credentials).build();
+        ChannelCredentials credentials = null;
+        try {
+            credentials = TlsChannelCredentials.newBuilder()
+                // You can use your own certificate here .trustManager(new File("cert.pem"))
+                .trustManager(testCertificates.getRootCertificate())
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        ManagedChannel channel = Grpc.newChannelBuilderForAddress("localhost", 9400, credentials).build();
         return SearchServiceGrpc.newBlockingStub(channel);
     }
 }
