@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.SSLContext;
 
+import io.grpc.Metadata;
 import org.apache.hc.core5.http.Header;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,21 +24,25 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactor
 public class TestGrpcClient {
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
+    Metadata.Key<String> AUTHORIZATION_KEY =
+            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+
     private InetSocketAddress nodeHttpAddress;
-    private List<Header> headers = new ArrayList<>();
+    private String authorizationHeader;
     private SSLContext sslContext;
 
-    private final InetAddress sourceInetAddress;
-
-    public TestGrpcClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext, InetAddress sourceInetAddress) {
+    public TestGrpcClient(InetSocketAddress nodeHttpAddress, String authorizationHeader, SSLContext sslContext) {
         this.nodeHttpAddress = nodeHttpAddress;
-        this.headers.addAll(headers);
+        this.authorizationHeader = authorizationHeader;
         this.sslContext = sslContext;
-        this.sourceInetAddress = sourceInetAddress;
     }
 
     public SearchResponse search(SearchRequest request) {
         SearchServiceGrpc.SearchServiceBlockingStub client = client();
+        Metadata md = new Metadata();
+
+        md.put(AUTHORIZATION_KEY, authorizationHeader);
+        // client = MetadataUtils.attachHeaders(client, md);
         return client.search(request);
     }
 
