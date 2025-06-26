@@ -21,7 +21,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.opensearch.common.annotation.ExperimentalApi;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
@@ -257,8 +256,8 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     public Collection<String> cipherSuites() {
                         CertType auxCertType = new CertType(transport.settingKey());
                         return sslSettingsManager.sslConfiguration(auxCertType)
-                                .map(config -> config.sslParameters().allowedCiphers())
-                                .orElse(Collections.emptyList());
+                            .map(config -> config.sslParameters().allowedCiphers())
+                            .orElse(Collections.emptyList());
                     }
                 });
             }
