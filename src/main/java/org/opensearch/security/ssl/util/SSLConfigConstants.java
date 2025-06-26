@@ -137,6 +137,11 @@ public final class SSLConfigConstants {
         SSLConfigConstants.PEM_KEY_FILEPATH,
         key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
     );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMKEY_PASSWORD = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_KEY_PASSWORD,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
     public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMCERT_FILEPATH = Setting.affixKeySetting(
         SSLConfigConstants.SSL_AUX_PREFIX,
         SSLConfigConstants.PEM_CERT_FILEPATH,

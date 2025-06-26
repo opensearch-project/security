@@ -1,6 +1,5 @@
 package org.opensearch.test.framework.cluster;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLContext;
 
@@ -17,6 +16,7 @@ import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.TlsChannelCredentials;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
 public class TestGrpcClient {
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
@@ -51,14 +51,10 @@ public class TestGrpcClient {
 
     private SearchServiceGrpc.SearchServiceBlockingStub client() {
         ChannelCredentials credentials = null;
-        try {
-            credentials = TlsChannelCredentials.newBuilder()
-                // You can use your own certificate here .trustManager(new File("cert.pem"))
-                .trustManager(testCertificates.getRootCertificate())
-                .build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        credentials = TlsChannelCredentials.newBuilder()
+            // You can use your own certificate here .trustManager(new File("cert.pem"))
+            .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
+            .build();
         ManagedChannel channel = Grpc.newChannelBuilderForAddress("localhost", 9400, credentials).build();
         return SearchServiceGrpc.newBlockingStub(channel);
     }
