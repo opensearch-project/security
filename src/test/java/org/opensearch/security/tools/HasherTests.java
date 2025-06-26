@@ -189,7 +189,7 @@ public class HasherTests {
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"type\"",
             argon2Function.getVariant(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT
+            parseType(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT)
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"version\"",
@@ -358,5 +358,21 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the correct value for \"length\"", argon2Function.getOutputLength(), 64);
         assertEquals("should return a valid Argon2 hash with the correct value for \"type\"", argon2Function.getVariant(), Argon2.D);
         assertEquals("should return a valid Argon2 hash with the correct value for \"version\"", argon2Function.getVersion(), 19);
+    }
+
+    private Argon2 parseType(String type) {
+        if (type == null) {
+            throw new IllegalArgumentException("Argon2 type can't be null");
+        }
+        switch (type.toUpperCase()) {
+            case "ARGON2ID":
+                return Argon2.ID;
+            case "ARGON2I":
+                return Argon2.I;
+            case "ARGON2D":
+                return Argon2.D;
+            default:
+                throw new IllegalArgumentException("Unknown Argon2 type: " + type);
+        }
     }
 }
