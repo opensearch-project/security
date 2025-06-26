@@ -46,8 +46,8 @@ public class TestGrpcClient {
             // You can use your own certificate here .trustManager(new File("cert.pem"))
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        ManagedChannel channel = Grpc.newChannelBuilderForAddress(nodeHttpAddress.getHostString(), nodeHttpAddress.getPort(), credentials)
-            .build();
+        System.out.println("nodeHttpAddress.getHostString():" + nodeHttpAddress);
+        ManagedChannel channel = Grpc.newChannelBuilderForAddress("127.0.0.1", 9400, credentials).build();
         return SearchServiceGrpc.newBlockingStub(channel);
     }
 }
