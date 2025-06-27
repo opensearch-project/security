@@ -31,7 +31,7 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
         .hash(
             generateArgon2Hash(
-                PASSWORD,
+                "secret",
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,

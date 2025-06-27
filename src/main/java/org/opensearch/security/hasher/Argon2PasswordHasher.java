@@ -27,7 +27,7 @@ class Argon2PasswordHasher extends AbstractPasswordHasher {
     private final Argon2 typeArgon2;
     private final int version;
 
-    private static final int DEFAULT_SALT_LENGTH = 128;
+    private static final int DEFAULT_SALT_LENGTH = 32;
 
     Argon2PasswordHasher(int memory, int iterations, int parallelism, int length, String type, int version) {
         this.iterations = iterations;
