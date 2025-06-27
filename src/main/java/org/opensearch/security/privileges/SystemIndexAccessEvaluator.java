@@ -49,6 +49,8 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
+import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+
 /**
  * This class performs authorization on requests targeting system indices
  * NOTE:
@@ -302,9 +304,8 @@ public class SystemIndexAccessEvaluator {
                 }
         }
 
-        // cluster actions will return true for requestedResolved.isLocalAll()
         // the following section should only be run for index actions
-        if (this.isSystemIndexEnabled && user.isPluginUser() && !requestedResolved.isLocalAll()) {
+        if (this.isSystemIndexEnabled && user.isPluginUser() && !isClusterPerm(action)) {
             Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
                 user.getName().replace("plugin:", ""),
                 requestedResolved.getAllIndices()
