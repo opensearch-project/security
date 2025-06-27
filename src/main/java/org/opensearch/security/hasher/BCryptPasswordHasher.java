@@ -12,10 +12,6 @@
 package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-
-import org.opensearch.SpecialPermission;
 
 import com.password4j.BcryptFunction;
 import com.password4j.HashingFunction;
@@ -28,38 +24,24 @@ class BCryptPasswordHasher extends AbstractPasswordHasher {
         this.hashingFunction = BcryptFunction.getInstance(Bcrypt.valueOf(minor), logRounds);
     }
 
-    @SuppressWarnings("removal")
     @Override
     public String hash(char[] password) {
         checkPasswordNotNullOrEmpty(password);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null) {
-                securityManager.checkPermission(new SpecialPermission());
-            }
-            return AccessController.doPrivileged(
-                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).with(hashingFunction).getResult()
-            );
+            return Password.hash(passwordBuffer).with(hashingFunction).getResult();
         } finally {
             cleanup(passwordBuffer);
         }
     }
 
-    @SuppressWarnings("removal")
     @Override
     public boolean check(char[] password, String hash) {
         checkPasswordNotNullOrEmpty(password);
         checkHashNotNullOrEmpty(hash);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null) {
-                securityManager.checkPermission(new SpecialPermission());
-            }
-            return AccessController.doPrivileged(
-                (PrivilegedAction<Boolean>) () -> Password.check(passwordBuffer, hash).with(getBCryptFunctionFromHash(hash))
-            );
+            return Password.check(passwordBuffer, hash).with(getBCryptFunctionFromHash(hash));
         } finally {
             cleanup(passwordBuffer);
         }
