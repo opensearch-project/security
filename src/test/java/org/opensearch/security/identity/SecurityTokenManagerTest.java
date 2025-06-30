@@ -110,6 +110,7 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder().put("enabled", false).build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
 
         assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
@@ -126,6 +127,7 @@ public class SecurityTokenManagerTest {
             .build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
@@ -336,5 +338,26 @@ public class SecurityTokenManagerTest {
             }
         });
         assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
+    }
+
+    @Test
+    public void issueApiToken_success() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+
+        createMockJwtVendorInTokenManager(false);
+
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
     }
 }
