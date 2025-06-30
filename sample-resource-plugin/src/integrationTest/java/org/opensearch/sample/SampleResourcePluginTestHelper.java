@@ -10,6 +10,7 @@ package org.opensearch.sample;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 
 /**
@@ -42,6 +43,8 @@ public abstract class SampleResourcePluginTestHelper {
     protected static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     protected static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
+    protected static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+
     protected static String shareWithPayload(String user) {
         return """
             {
@@ -61,5 +64,53 @@ public abstract class SampleResourcePluginTestHelper {
             }
             """.formatted(user);
 
+    }
+
+    protected static String migrationPayload_valid() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+    }
+
+    protected static String migrationPayload_valid_withSpecifiedAccessLevel() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s",
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
+    }
+
+    protected static String migrationPayload_missingSourceIndex() {
+        return """
+            {
+            "username_path": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted("user/name", "user/backend_roles");
+    }
+
+    protected static String migrationPayload_missingUserName() {
+        return """
+            {
+            "source_index": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
+    }
+
+    protected static String migrationPayload_missingBackendRoles() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 }

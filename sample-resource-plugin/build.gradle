@@ -37,6 +37,8 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
+
+    common_utils_version = System.getProperty("common_utils.version", "3.1.0.0")
 }
 
 repositories {
@@ -60,6 +62,10 @@ configurations.all {
 dependencies {
     // Main implementation dependencies
     compileOnly project(path: ":${rootProject.name}-spi", configuration: 'shadow')
+
+    implementation "org.opensearch:common-utils:${common_utils_version}"
+    implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
