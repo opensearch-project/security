@@ -70,7 +70,9 @@ public final class TestHelper {
     public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
-    public static String shareWithPayload(String user, String accessLevel) {
+    static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+
+    static String shareWithPayload(String user, String accessLevel) {
         return """
             {
               "share_with": {
@@ -82,7 +84,7 @@ public final class TestHelper {
             """.formatted(accessLevel, user);
     }
 
-    public static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
+    static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
         return """
             {
               "resource_id": "%s",
@@ -109,6 +111,54 @@ public final class TestHelper {
             }
             """.formatted(accessLevel, user);
 
+    }
+
+    static String migrationPayload_valid() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+    }
+
+    static String migrationPayload_valid_withSpecifiedAccessLevel() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s",
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
+    }
+
+    static String migrationPayload_missingSourceIndex() {
+        return """
+            {
+            "username_path": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted("user/name", "user/backend_roles");
+    }
+
+    static String migrationPayload_missingUserName() {
+        return """
+            {
+            "source_index": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
+    }
+
+    static String migrationPayload_missingBackendRoles() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 
     public static class ApiHelper {
