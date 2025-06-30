@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.rest;
+package org.opensearch.security.resources.api.share;
 
 import org.opensearch.action.ActionType;
 

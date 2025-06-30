@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.rest;
+package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
 
@@ -43,10 +43,6 @@ public class ShareResponse extends ActionResponse implements ToXContentObject {
         builder.startObject("sharing_info");
         builder.value(resourceSharing);
         return builder.endObject();
-    }
-
-    public ResourceSharing getResourceSharing() {
-        return resourceSharing;
     }
 
     @Override
