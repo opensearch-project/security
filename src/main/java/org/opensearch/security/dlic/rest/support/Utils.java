@@ -68,6 +68,8 @@ public class Utils {
     @Deprecated
     public final static String LEGACY_PLUGIN_API_ROUTE_PREFIX = LEGACY_PLUGIN_ROUTE_PREFIX + "/api";
 
+    public final static String PLUGIN_API_RESOURCE_ROUTE_PREFIX = PLUGIN_API_ROUTE_PREFIX + "/resource";
+
     public final static String OPENDISTRO_API_DEPRECATION_MESSAGE =
         "[_opendistro/_security] is a deprecated endpoint path. Please use _plugins/_security instead.";
 
