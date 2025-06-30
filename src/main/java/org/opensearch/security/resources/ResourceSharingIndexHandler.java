@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +30,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -55,6 +56,7 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
@@ -62,6 +64,8 @@ import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import com.flipkart.zjsonpatch.JsonPatch;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -370,67 +374,38 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
 
-            client.get(getRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(GetResponse getResponse) {
-                    try {
-                        if (!getResponse.isExists()) {
-                            LOGGER.debug(
-                                "No document found in {} matching resource_id: {} and source_idx {}",
-                                resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
-                            );
-                            listener.onResponse(null);
-                            return;
-                        }
-                        try (
-                            XContentParser parser = XContentType.JSON.xContent()
-                                .createParser(
-                                    NamedXContentRegistry.EMPTY,
-                                    LoggingDeprecationHandler.INSTANCE,
-                                    getResponse.getSourceAsString()
-                                )
-                        ) {
-                            parser.nextToken();
-                            ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
-                            resourceSharing.setResourceId(getResponse.getId());
-
-                            LOGGER.debug(
-                                "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
-                                resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
-                            );
-
-                            listener.onResponse(resourceSharing);
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error(
-                            "Failed to parse documents matching resource_id: {} and source_idx {} from {}",
-                            resourceId,
-                            resourceIndex,
+            client.get(getRequest, ActionListener.wrap(getResponse -> {
+                try {
+                    if (!getResponse.isExists()) {
+                        LOGGER.debug(
+                            "No document found in {} matching resource_id: {} and source_idx {}",
                             resourceSharingIndex,
-                            e
+                            resourceId,
+                            resourceIndex
                         );
-                        listener.onFailure(
-                            new OpenSearchStatusException(
-                                "Failed to parse document matching resource_id: "
-                                    + resourceId
-                                    + " and source_idx: "
-                                    + resourceIndex
-                                    + " from "
-                                    + resourceSharingIndex,
-                                RestStatus.INTERNAL_SERVER_ERROR
-                            )
-                        );
+                        listener.onResponse(null);
+                        return;
                     }
-                }
+                    try (
+                        XContentParser parser = XContentType.JSON.xContent()
+                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
+                    ) {
+                        parser.nextToken();
+                        ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                        resourceSharing.setResourceId(getResponse.getId());
 
-                @Override
-                public void onFailure(Exception e) {
+                        LOGGER.debug(
+                            "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
+                            resourceSharingIndex,
+                            resourceId,
+                            resourceIndex
+                        );
+
+                        listener.onResponse(resourceSharing);
+                    }
+                } catch (Exception e) {
                     LOGGER.error(
-                        "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                        "Failed to parse documents matching resource_id: {} and source_idx {} from {}",
                         resourceId,
                         resourceIndex,
                         resourceSharingIndex,
@@ -448,26 +423,28 @@ public class ResourceSharingIndexHandler {
                         )
                     );
                 }
-            });
-        } catch (Exception e) {
-            LOGGER.error(
-                "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
-                resourceId,
-                resourceIndex,
-                resourceSharingIndex,
-                e
-            );
-            listener.onFailure(
-                new OpenSearchStatusException(
-                    "Failed to parse document matching resource_id: "
-                        + resourceId
-                        + " and source_idx: "
-                        + resourceIndex
-                        + " from "
-                        + resourceSharingIndex,
-                    RestStatus.INTERNAL_SERVER_ERROR
-                )
-            );
+
+            }, e -> {
+                LOGGER.error(
+                    "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                    resourceId,
+                    resourceIndex,
+                    resourceSharingIndex,
+                    e
+                );
+                listener.onFailure(
+                    new OpenSearchStatusException(
+                        "Failed to parse document matching resource_id: "
+                            + resourceId
+                            + " and source_idx: "
+                            + resourceIndex
+                            + " from "
+                            + resourceSharingIndex,
+                        RestStatus.INTERNAL_SERVER_ERROR
+                    )
+                );
+            }));
+
         }
     }
 
@@ -491,7 +468,7 @@ public class ResourceSharingIndexHandler {
      * @throws RuntimeException if there's an error during the update operation
      */
     @SuppressWarnings("unchecked")
-    public void updateSharingInfo(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
+    public void share(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
@@ -527,7 +504,10 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
                     listener.onResponse(sharingInfo);
-                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                }, (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    listener.onFailure(failResponse);
+                });
                 client.index(ir, irListener);
             }
         }, listener::onFailure);
@@ -586,7 +566,7 @@ public class ResourceSharingIndexHandler {
             // Fetch the current ResourceSharing document
             fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-            // Check permissions & build revoke script
+            // build revoke script
             sharingInfoListener.whenComplete(sharingInfo -> {
 
                 assert sharingInfo != null;
@@ -618,10 +598,70 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
                     listener.onResponse(sharingInfo);
-                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                }, (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    listener.onFailure(failResponse);
+                });
                 client.index(ir, irListener);
             }, listener::onFailure);
         }
+    }
+
+    /**
+     * Fetch existing share_with, apply JSON-Patch ops, and update the document.
+     * Three ops are supported:
+     * 1. Move -> upgrade or downgrade access
+     * 2. Add -> share with new entities
+     * 3. Remove -> revoke access
+     * @param resourceId    id of the resource to apply the patch to
+     * @param resourceIndex name of the index where resource is present
+     * @param patchContent  the patch to be applied
+     * @param listener      listener to be notified in case of success or failure
+     */
+    public void patchSharingInfo(String resourceId, String resourceIndex, JsonNode patchContent, ActionListener<ResourceSharing> listener) {
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // Apply patch and update the document
+        sharingInfoListener.whenComplete(resourceSharing -> {
+            // TODO see if .getShareWith() call should be removed, if so patch content path must be "/share_with"
+            final var sharingNode = (ObjectNode) Utils.convertJsonToJackson(resourceSharing.getShareWith(), true);
+            JsonNode updatedSharingNode = JsonPatch.apply(sharingNode, patchContent);
+
+            ResourceSharing updatedSharingInfo;
+
+            try (
+                XContentParser parser = XContentType.JSON.xContent()
+                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, updatedSharingNode.toString())
+            ) {
+                ShareWith shareWith = ShareWith.fromXContent(parser);
+                updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), shareWith);
+            }
+
+            IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                .setId(resourceId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setOpType(DocWriteRequest.OpType.INDEX)
+                .request();
+
+            client.index(ir, ActionListener.wrap(idxResponse -> {
+                LOGGER.info(
+                    "Successfully updated {} resource sharing info for resource {} in index {}.",
+                    resourceSharingIndex,
+                    resourceId,
+                    resourceIndex
+                );
+
+                listener.onResponse(updatedSharingInfo);
+            }, (e) -> {
+                LOGGER.error(e.getMessage());
+                listener.onFailure(e);
+            }));
+        }, listener::onFailure);
     }
 
     /**
