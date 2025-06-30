@@ -181,6 +181,9 @@ import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.api.share.ShareAction;
+import org.opensearch.security.resources.api.share.ShareRestAction;
+import org.opensearch.security.resources.api.share.ShareTransportAction;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -618,6 +621,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // FGAC enabled == not sslOnly
             if (!SSLConfig.isSslOnlyMode()) {
                 handlers.add(
                     new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool))
@@ -684,8 +688,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
 
-                log.debug("Added {} rest handler(s)", handlers.size());
+                // Resource sharing API to update sharing info
+                handlers.add(new ShareRestAction());
+
             }
+            log.debug("Added {} rest handler(s)", handlers.size());
         }
 
         return handlers;
@@ -711,6 +718,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
             }
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+
+            // transport action to handle sharing info update
+            actions.add(new ActionHandler<>(ShareAction.INSTANCE, ShareTransportAction.class));
         }
         return actions;
     }
