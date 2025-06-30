@@ -6,14 +6,17 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.rest;
+package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,7 +30,10 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
-import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.PATCH;
+import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_RESOURCE_ROUTE_PREFIX;
@@ -41,11 +47,16 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
+    private final static Set<String> allowedPatchOperations = Set.of("add", "move", "remove");
+
     public ShareRestAction() {}
 
     @Override
     public List<Route> routes() {
-        return addRoutesPrefix(ImmutableList.of(new Route(POST, "/share")), PLUGIN_API_RESOURCE_ROUTE_PREFIX);
+        return addRoutesPrefix(
+            ImmutableList.of(new Route(PUT, "/share"), new Route(GET, "/share"), new Route(PATCH, "/share")),
+            PLUGIN_API_RESOURCE_ROUTE_PREFIX
+        );
     }
 
     @Override
@@ -62,18 +73,20 @@ public class ShareRestAction extends BaseRestHandler {
             }
         }
 
-        ShareRequest resourceAccessRequest = ShareRequest.from(source, request.params());
+        ShareRequest sharingInfoUpdateRequest = ShareRequest.from(source);
+
         return channel -> {
-            client.executeLocally(ShareAction.INSTANCE, resourceAccessRequest, new ActionListener<>() {
+            // TODO confirm the validation here for patch Operations
+            var patchOps = patchOperations(sharingInfoUpdateRequest.getPatch());
+            if (!patchOps.isEmpty() && allowedPatchOperations.containsAll(patchOps)) {
+                badRequest(channel, "Invalid patch operation supplied. Allowed ops: " + allowedPatchOperations);
+            }
+
+            client.executeLocally(ShareAction.INSTANCE, sharingInfoUpdateRequest, new ActionListener<>() {
 
                 @Override
                 public void onResponse(ShareResponse response) {
-                    try {
-                        sendResponse(channel, response);
-                    } catch (IOException e) {
-                        LOGGER.error(e.getMessage(), e);
-                        handleError(channel, e);
-                    }
+                    ok(channel, response::toXContent);
                 }
 
                 @Override
@@ -86,21 +99,14 @@ public class ShareRestAction extends BaseRestHandler {
         };
     }
 
-    /**
-     * Send the appropriate response to the channel.
-     * @param channel the channel to send the response to
-     * @param response the response to send
-     * @throws IOException if an I/O error occurs
-     */
-    private void sendResponse(RestChannel channel, ShareResponse response) throws IOException {
-        ok(channel, response::toXContent);
+    protected final Set<String> patchOperations(final JsonNode patchRequestContent) {
+        final var operations = ImmutableSet.<String>builder();
+        for (final JsonNode node : patchRequestContent) {
+            if (node.has("op")) operations.add(node.get("op").asText());
+        }
+        return operations.build();
     }
 
-    /**
-     * Handle errors that occur during request processing.
-     * @param channel the channel to send the error response to
-     * @param e the exception that caused the error
-     */
     private void handleError(RestChannel channel, Exception e) {
         String message = e.getMessage();
         if (e instanceof OpenSearchStatusException ex) {
