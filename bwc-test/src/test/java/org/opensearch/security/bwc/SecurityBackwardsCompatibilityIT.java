@@ -9,24 +9,18 @@ package org.opensearch.security.bwc;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +28,7 @@ import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Joiner;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
@@ -41,7 +36,6 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -50,13 +44,11 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
-import org.bouncycastle.util.io.pem.PemReader;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 
 import org.opensearch.Version;
-import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
@@ -198,42 +190,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             X509Certificate caCert = loadCert(rootCaStream);
             KeyStore trustStore = KeyStore.getInstance("JKS");
             trustStore.load(null);
-            trustStore.setCertificateEntry("al_0", caCert);
+            trustStore.setCertificateEntry("root-ca", caCert);
             sslContextBuilder.loadTrustMaterial(trustStore, null);
         } catch (Exception e) {
             throw new RuntimeException("Failed to load root-ca", e);
         }
-        try (InputStream kirkCertStream = getClass().getResourceAsStream("/security/kirk.pem");
-             InputStream kirkKeyStream = getClass().getResourceAsStream("/security/kirk-key.pem")) {
-            X509Certificate kirkCerts = loadCert(kirkCertStream);
-            byte[] kirkKeyBytes;
-            try (PemReader pemReader = new PemReader(new InputStreamReader(Objects.requireNonNull(kirkKeyStream), StandardCharsets.UTF_8))) {
-                kirkKeyBytes = pemReader.readPemObject().getContent();
-            }
-            PKCS8EncodedKeySpec kirkKeySpec = new PKCS8EncodedKeySpec(kirkKeyBytes);
-            PrivateKey kirkKey;
-            try {
-                kirkKey = KeyFactory.getInstance("RSA").generatePrivate(kirkKeySpec);
-            } catch (InvalidKeySpecException ignore) {
-                try {
-                    kirkKey = KeyFactory.getInstance("DSA").generatePrivate(kirkKeySpec);
-                } catch (InvalidKeySpecException ignore2) {
-                    try {
-                        kirkKey = KeyFactory.getInstance("EC").generatePrivate(kirkKeySpec);
-                    } catch (InvalidKeySpecException e) {
-                        throw new RuntimeException("Neither RSA, DSA nor EC worked", e);
-                    }
-                }
-            }
-
-            String alias = "al";
+        try (InputStream keyStream = getClass().getResourceAsStream("/security/test-kirk.jks")) {
             KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(null);
-            keyStore.setKeyEntry(alias, kirkKey, "changeit".toCharArray(), new X509Certificate[]{kirkCerts});
-            sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray(), (aliases, sslParameters) -> alias);
+            keyStore.load(keyStream, "changeit".toCharArray());
+            sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray(), (aliases, socket) -> "kirk");
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load admin cert", e);
+            throw new RuntimeException("Failed to load keystore", e);
         }
+
         try {
             SSLContext sslContext = sslContextBuilder.build();
             RestClientBuilder builder = RestClient.builder(hosts).setHttpClientConfigCallback(httpClientBuilder -> {
@@ -313,19 +282,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                     CLUSTER_NAME + "-" + nodeIndex,
                     "config",
                     "opensearch-security");
-            String configIndex = ".opendistro_security";
 
             try (RestClient adminCertClient = getAdminCertClient(getClusterHosts().get(nodeIndex))) {
+                Response whoami = RestHelper.makeRequest(adminCertClient, "GET", "_plugins/_security/whoami", null);
+                assertThat(whoami.getStatusLine().getStatusCode(), is(200));
+
                 try (Stream<Path> paths = Files.walk(securityConfigPath)) {
+                    List<String> configNames = new ArrayList<>();
                     paths.filter(file -> Files.isRegularFile(file) && file.getFileName().toString().endsWith(".yml")).forEach(file -> {
-                        try (StringEntity entity = new StringEntity(Files.readString(file), ContentType.create("application/yaml", StandardCharsets.UTF_8))) {
-                            String configName = file.getFileName().toString().replace("_", "").replace(".yml", "");
-                            List<Response> responses = RestHelper.requestAgainstAllNodes(adminCertClient, "PUT", configIndex + "/_doc/" + configName, entity);
-                            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
-                        } catch (IOException e) {
-                            throw new RuntimeException("Failed to update security config file: " + file, e);
-                        }
+                        String configName = file.getFileName().toString().replace("_", "").replace(".yml", "");
+                        configNames.add(configName);
                     });
+                    Response response = RestHelper.makeRequest(adminCertClient, "PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(configNames), null);
+                    assertThat(response.getStatusLine().getStatusCode(), is(200));
                 }
             }
         }
