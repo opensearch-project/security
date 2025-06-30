@@ -34,7 +34,7 @@ buildscript {
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.8'
-        bc_fips_version = '2.0.0'
+        bc_fips_version = '2.1.0'
         bcpkix_fips_version = '2.0.7'
         bcutil_fips_version = '2.0.3'
 
