@@ -36,7 +36,7 @@ buildscript {
         spring_version = '6.2.8'
         bc_fips_version = '2.0.0'
         bcpkix_fips_version = '2.0.7'
-        bcutil_fips_version = '2.0.3'
+        bcutil_fips_version = '2.1.4'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
