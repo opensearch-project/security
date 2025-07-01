@@ -13,8 +13,11 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.test.framework.cluster.LocalCluster;
+
+import javax.net.ssl.SSLException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_OPT;
@@ -30,15 +33,19 @@ public class GrpcTestsClientAuthOptionalTest {
             .build();
 
     @Test
-    public void testSearch() {
+    public void testSearch() throws SSLException {
         long testDocs = 9;
         String testIndex = "test-index";
-        GrpcHelpers.createTestIndex(cluster.getRestClient(), testIndex, testDocs);
-        SearchResponse resp = GrpcHelpers.grpcMatchAllQuery(cluster.getGrpcClient(TEST_CERTIFICATES), testIndex, 100);
+        BulkResponse bulkResp = GrpcHelpers.doBulk(GrpcHelpers.plaintextManagedChannel(), testIndex, testDocs);
+
+
+
+
+        SearchResponse searchResp = GrpcHelpers.doMatchAll(GrpcHelpers.plaintextManagedChannel(), testIndex, 100);
         assertThat("Search response should not be null", resp != null);
-        SearchResponse.ResponseCase respCase = resp.getResponseCase();
+        SearchResponse.ResponseCase respCase = searchResp.getResponseCase();
         assertThat("Search response should indicate success", respCase.getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber());
-        long hits = resp.getResponseBody().getHits().getTotal().getTotalHits().getValue();
+        long hits = searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue();
         assertThat("Search response has correct hits count", hits == 9);
     }
 }
