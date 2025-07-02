@@ -182,7 +182,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         return jwtToken;
     }
-    
+
     @SuppressWarnings("unchecked")
     @VisibleForTesting
     public String extractSubject(JWTClaimsSet claims) {
@@ -201,7 +201,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
                     log.warn("Failed to get subject from JWT claims with subject_key '{}'.", subjectKey);
                     return null;
                 }
-            }            
+            }
 
             if (subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
