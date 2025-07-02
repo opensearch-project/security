@@ -491,9 +491,9 @@ configurations {
             force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
-            force "com.google.protobuf:protobuf-java:3.25.5"
-            force "io.perfmark:perfmark-api:0.27.0"
-            force "com.google.guava:failureaccess:1.0.3"
+
+            // For org.opensearch.plugin:transport-grpc
+            force "com.google.guava:failureaccess:1.0.2"
         }
     }
 
