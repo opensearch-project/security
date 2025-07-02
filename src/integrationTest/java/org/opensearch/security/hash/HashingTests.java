@@ -22,9 +22,11 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import com.password4j.Argon2Function;
 import com.password4j.BcryptFunction;
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.Password;
+import com.password4j.types.Argon2;
 import com.password4j.types.Bcrypt;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,4 +80,23 @@ public class HashingTests extends RandomizedTest {
             .getResult();
     }
 
+    public static String generateArgon2Hash(
+        String password,
+        int memory,
+        int iterations,
+        int parallelism,
+        int length,
+        String type,
+        int version
+    ) {
+        Argon2 argon2Type = switch (type.toUpperCase()) {
+            case "ARGON2ID" -> Argon2.ID;
+            case "ARGON2I" -> Argon2.I;
+            case "ARGON2D" -> Argon2.D;
+            default -> throw new IllegalArgumentException("Unknown Argon2 type: " + type);
+        };
+        return Password.hash(CharBuffer.wrap(password.toCharArray()))
+            .with(Argon2Function.getInstance(memory, iterations, parallelism, length, argon2Type, version))
+            .getResult();
+    }
 }
