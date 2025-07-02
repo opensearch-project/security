@@ -9,14 +9,18 @@
  */
 package org.opensearch.security.grpc;
 
-import java.net.InetSocketAddress;
+import java.io.IOException;
 import java.util.Map;
 
+import io.grpc.ChannelCredentials;
+import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
+import io.grpc.TlsChannelCredentials;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.ClientAuth;
 
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.opensearch.common.transport.PortsRange;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
@@ -36,6 +40,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 
 import javax.net.ssl.SSLException;
 
+import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.GRPC_SECURE_TRANSPORT_SETTING_KEY;
 import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.SETTING_GRPC_SECURE_PORT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
@@ -52,7 +57,7 @@ public class GrpcHelpers {
     protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.REQUIRE.name());
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
-    private static final String HOST_ADDR = "127.0.0.1";
+    private static final String HOST_ADDR = "localhost";
     private static final Map<String, Object> SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
             ConfigConstants.SECURITY_SSL_ONLY, true,
             AUX_TRANSPORT_TYPES_KEY, GRPC_SECURE_TRANSPORT_SETTING_KEY,
@@ -73,39 +78,30 @@ public class GrpcHelpers {
                 .sslOnly(true);
     }
 
-    public static ManagedChannel plaintextManagedChannel() throws SSLException {
-        return new NettyGrpcChannelBuilder()
-                .setAddress(new TransportAddress(new InetSocketAddress(HOST_ADDR, PORTS_RANGE.ports()[0])))
+    public static ManagedChannel plaintextChannel() throws SSLException {
+        return NettyChannelBuilder
+                .forAddress(HOST_ADDR, PORTS_RANGE.ports()[0])
+                .proxyDetector(NOOP_PROXY_DETECTOR)
+                .usePlaintext()
                 .build();
     }
 
-    public static ManagedChannel noAuthChannel() throws SSLException {
-        return new NettyGrpcChannelBuilder()
-                .setAddress(new TransportAddress(new InetSocketAddress(HOST_ADDR, PORTS_RANGE.ports()[0])))
-                .clientAuth(ClientAuth.NONE)
+    public static ManagedChannel insecureChannel() {
+        ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
                 .build();
+        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
-    public static ManagedChannel optAuthChannel() throws SSLException {
-        return new NettyGrpcChannelBuilder()
-                .setAddress(new TransportAddress(new InetSocketAddress(HOST_ADDR, PORTS_RANGE.ports()[0])))
-                .clientAuth(ClientAuth.OPTIONAL)
+    public static ManagedChannel mTLSChannel() throws IOException {
+        ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
                 .keyManager(
-                        TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-                        TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath()
+                    TEST_CERTIFICATES.getNodeCertificate(0),
+                    TEST_CERTIFICATES.getNodeKey(0, null)
                 )
+                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
                 .build();
-    }
-
-    public static ManagedChannel requireAuthChannel() throws SSLException {
-        return new NettyGrpcChannelBuilder()
-                .setAddress(new TransportAddress(new InetSocketAddress(HOST_ADDR, PORTS_RANGE.ports()[0])))
-                .clientAuth(ClientAuth.REQUIRE)
-                .keyManager(
-                        TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-                        TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath()
-                )
-                .build();
+        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {

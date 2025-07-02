@@ -17,11 +17,8 @@ import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import javax.net.ssl.SSLException;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_OPT;
-import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.baseGrpcCluster;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -33,19 +30,19 @@ public class GrpcTestsClientAuthOptionalTest {
             .build();
 
     @Test
-    public void testSearch() throws SSLException {
+    public void testBulkAndSearchInsecureChannel() {
         long testDocs = 9;
         String testIndex = "test-index";
-        BulkResponse bulkResp = GrpcHelpers.doBulk(GrpcHelpers.plaintextManagedChannel(), testIndex, testDocs);
 
+        BulkResponse bulkResp = GrpcHelpers.doBulk(GrpcHelpers.insecureChannel(), testIndex, testDocs);
+        assertThat("Bulk response should not be null", bulkResp != null);
+        assertThat("Bulk response should not contain errors", !bulkResp.hasBulkErrorResponse());
+        assertThat("Bulk response should have response for all docs indexed", bulkResp.getBulkResponseBody().getItemsCount() == testDocs);
 
-
-
-        SearchResponse searchResp = GrpcHelpers.doMatchAll(GrpcHelpers.plaintextManagedChannel(), testIndex, 100);
-        assertThat("Search response should not be null", resp != null);
-        SearchResponse.ResponseCase respCase = searchResp.getResponseCase();
-        assertThat("Search response should indicate success", respCase.getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber());
-        long hits = searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue();
-        assertThat("Search response has correct hits count", hits == 9);
+        SearchResponse searchResp = GrpcHelpers.doMatchAll(GrpcHelpers.insecureChannel(), testIndex, 100);
+        assertThat("Search response should not be null", searchResp != null);
+        assertThat("Search response should indicate success", searchResp.getResponseCase().getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber());
+        assertThat("Search response has correct hits count", searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue() == testDocs);
     }
+
 }
