@@ -9,28 +9,28 @@
  */
 package org.opensearch.security.grpc;
 
+import java.io.IOException;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.grpc.StatusRuntimeException;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import java.io.IOException;
+import io.grpc.StatusRuntimeException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.security.grpc.GrpcClientAuthNoneTests.assertBulkAndSearchTestIndex;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_REQUIRE;
 import static org.opensearch.security.grpc.GrpcHelpers.baseGrpcCluster;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class GrpcClientAuthRequireTests {
     @ClassRule
-    public static LocalCluster cluster = baseGrpcCluster()
-            .nodeSettings(CLIENT_AUTH_REQUIRE)
-            .build();
+    public static LocalCluster cluster = baseGrpcCluster().nodeSettings(CLIENT_AUTH_REQUIRE).build();
 
     @Test
     public void testPlaintextChannel() {
