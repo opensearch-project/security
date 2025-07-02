@@ -194,7 +194,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             // This loop is necessary for nested claim traversal
             for (int i = 0; i < subjectKey.size(); i++) {
                 if (i == subjectKey.size() - 1) {
-                    
                     subjectObject = claimsMap.get(subjectKey.get(i));
                 } else if (claimsMap.get(subjectKey.get(i)) instanceof Map) {
                     claimsMap = (Map<String, Object>) claimsMap.get(subjectKey.get(i));
