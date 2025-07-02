@@ -9,35 +9,35 @@
  */
 package org.opensearch.security.grpc;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import java.io.IOException;
-import java.util.UUID;
+import io.grpc.ManagedChannel;
+import io.grpc.StatusRuntimeException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_NONE;
 import static org.opensearch.security.grpc.GrpcHelpers.baseGrpcCluster;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class GrpcClientAuthNoneTests {
     @ClassRule
-    public static LocalCluster cluster = baseGrpcCluster()
-            .nodeSettings(CLIENT_AUTH_NONE)
-            .build();
+    public static LocalCluster cluster = baseGrpcCluster().nodeSettings(CLIENT_AUTH_NONE).build();
 
     public static void assertBulkAndSearchTestIndex(ManagedChannel channel) {
-        int testDocs = (int)(Math.random() * 101);
+        int testDocs = (int) (Math.random() * 101);
         String testIndex = UUID.randomUUID().toString().substring(0, 10);
 
         BulkResponse bulkResp = GrpcHelpers.doBulk(channel, testIndex, testDocs);
@@ -47,8 +47,14 @@ public class GrpcClientAuthNoneTests {
 
         SearchResponse searchResp = GrpcHelpers.doMatchAll(channel, testIndex, 10);
         assertThat("Search response should not be null", searchResp != null);
-        assertThat("Search response should indicate success", searchResp.getResponseCase().getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber());
-        assertThat("Search response has correct hits count", searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue() == testDocs);
+        assertThat(
+            "Search response should indicate success",
+            searchResp.getResponseCase().getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber()
+        );
+        assertThat(
+            "Search response has correct hits count",
+            searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue() == testDocs
+        );
     }
 
     @Test
