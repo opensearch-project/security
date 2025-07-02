@@ -34,9 +34,6 @@ buildscript {
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.8'
-        bc_fips_version = '2.0.0'
-        bcpkix_fips_version = '2.0.7'
-        bcutil_fips_version = '2.0.3'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -538,9 +535,9 @@ allprojects {
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
         integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-        integrationTestImplementation "org.bouncycastle:bc-fips:${bc_fips_version}"
-        integrationTestImplementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
-        integrationTestImplementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
+        integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+        integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+        integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
         integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
             exclude(group: 'org.hamcrest', module: 'hamcrest')
         }
@@ -557,7 +554,7 @@ allprojects {
         integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
-        integrationTestImplementation 'com.password4j:password4j:1.8.3'
+        integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
         integrationTestImplementation "com.google.guava:guava:${guava_version}"
         integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
         integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
@@ -656,13 +653,13 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.9.0'
-    implementation "org.bouncycastle:bc-fips:${bc_fips_version}"
-    implementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
-    implementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
+    implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+    implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+    implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
-    implementation 'com.password4j:password4j:1.8.3'
+    implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
 
     // Action privileges: check tables and compact collections
@@ -761,9 +758,9 @@ dependencies {
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    testImplementation "org.bouncycastle:bc-fips:${bc_fips_version}"
-    testImplementation "org.bouncycastle:bcpkix-fips:${bcpkix_fips_version}"
-    testImplementation "org.bouncycastle:bcutil-fips:${bcutil_fips_version}"
+    testImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+    testImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+    testImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
