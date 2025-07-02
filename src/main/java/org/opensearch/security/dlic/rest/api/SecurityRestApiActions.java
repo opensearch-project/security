@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
@@ -24,6 +25,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.ssl.SslSettingsManager;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;
@@ -49,7 +51,9 @@ public class SecurityRestApiActions {
         final SslSettingsManager sslSettingsManager,
         final UserService userService,
         final boolean certificatesReloadEnabled,
-        final PasswordHasher passwordHasher
+        final PasswordHasher passwordHasher,
+        final IndexResolverReplacer irr,
+        final IndexNameExpressionResolver indexNameExpressionResolver
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
@@ -102,7 +106,8 @@ public class SecurityRestApiActions {
                 certificatesReloadEnabled,
                 securityApiDependencies
             ),
-            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies)
+            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
+            new SimulationApiAction(clusterService, threadPool, securityApiDependencies, irr, indexNameExpressionResolver)
         );
     }
 

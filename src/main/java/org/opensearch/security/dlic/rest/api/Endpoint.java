@@ -29,5 +29,6 @@ public enum Endpoint {
     VALIDATE,
     ALLOWLIST,
     NODESDN,
-    SSL;
+    SSL,
+    SIMULATION;
 }
