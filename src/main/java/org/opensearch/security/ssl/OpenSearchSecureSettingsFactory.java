@@ -26,7 +26,6 @@ import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureAuxTransportSettingsProvider;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
-import org.opensearch.plugins.SecureHttpTransportSettingsProvider.SecureHttpTransportParameters;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.TransportExceptionHandler;
@@ -36,7 +35,6 @@ import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.AuxTransport;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportAdapterProvider;
 
