@@ -79,6 +79,21 @@ public class SecurePluginTests {
     }
 
     @Test
+    public void testRunClusterStateWithPluginSubject() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.postJson(SAMPLE_RESOURCE_PLUGIN_PREFIX + "/run_action", """
+                {
+                    "action": "cluster:monitor/state",
+                    "index": ".opendistro_security"
+                }
+                """);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response.getBody(), containsString("clusterState"));
+        }
+    }
+
+    @Test
     public void testRunCreateIndexWithPluginSubject() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.postJson(SAMPLE_RESOURCE_PLUGIN_PREFIX + "/run_action", """

@@ -71,7 +71,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.2.0"
+    id "com.github.spotbugs" version "6.2.1"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -484,7 +484,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.38.0"
+            force "com.google.errorprone:error_prone_annotations:2.39.0"
             force "org.checkerframework:checker-qual:3.49.4"
             force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.19.0"
@@ -687,7 +687,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.38.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.39.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.8'
@@ -756,8 +756,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M2"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.2'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
