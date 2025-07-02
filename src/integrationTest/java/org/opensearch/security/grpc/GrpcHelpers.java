@@ -12,14 +12,6 @@ package org.opensearch.security.grpc;
 import java.io.IOException;
 import java.util.Map;
 
-import io.grpc.ChannelCredentials;
-import io.grpc.Grpc;
-import io.grpc.ManagedChannel;
-import io.grpc.TlsChannelCredentials;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.netty.handler.ssl.ClientAuth;
-
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.opensearch.common.transport.PortsRange;
 import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.protobufs.BulkRequest;
@@ -39,7 +31,14 @@ import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
+import io.grpc.ChannelCredentials;
+import io.grpc.Grpc;
+import io.grpc.ManagedChannel;
+import io.grpc.TlsChannelCredentials;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+
 import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.GRPC_SECURE_TRANSPORT_SETTING_KEY;
 import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.SETTING_GRPC_SECURE_PORT;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
@@ -48,34 +47,50 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_KEY;
+import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
-    protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.NONE.name());
-    protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.OPTIONAL.name());
-    protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.REQUIRE.name());
+    protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
+        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        ClientAuth.NONE.name()
+    );
+    protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(
+        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        ClientAuth.OPTIONAL.name()
+    );
+    protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(
+        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        ClientAuth.REQUIRE.name()
+    );
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
     private static final String HOST_ADDR = "localhost";
     private static final Map<String, Object> SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
-            ConfigConstants.SECURITY_SSL_ONLY, true,
-            AUX_TRANSPORT_TYPES_KEY, GRPC_SECURE_TRANSPORT_SETTING_KEY,
-            SETTING_GRPC_SECURE_PORT.getKey(), PORTS_RANGE.getPortRangeString(),
-            SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), true,
-            SECURITY_SSL_AUX_PEMKEY_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-            SECURITY_SSL_AUX_PEMCERT_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
-            SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
+        ConfigConstants.SECURITY_SSL_ONLY,
+        true,
+        AUX_TRANSPORT_TYPES_KEY,
+        GRPC_SECURE_TRANSPORT_SETTING_KEY,
+        SETTING_GRPC_SECURE_PORT.getKey(),
+        PORTS_RANGE.getPortRangeString(),
+        SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        true,
+        SECURITY_SSL_AUX_PEMKEY_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
+        SECURITY_SSL_AUX_PEMCERT_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
+        SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
-    public static LocalCluster.Builder baseGrpcCluster(){
-        return new LocalCluster.Builder()
-                .clusterManager(ClusterManager.SINGLENODE)
-                .plugin(GrpcPlugin.class)
-                .certificates(TEST_CERTIFICATES)
-                .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
-                .loadConfigurationIntoIndex(false)
-                .sslOnly(true);
+    public static LocalCluster.Builder baseGrpcCluster() {
+        return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .plugin(GrpcPlugin.class)
+            .certificates(TEST_CERTIFICATES)
+            .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
+            .loadConfigurationIntoIndex(false)
+            .sslOnly(true);
     }
 
     /*
@@ -83,11 +98,7 @@ public class GrpcHelpers {
     No encryption in transit.
     */
     public static ManagedChannel plaintextChannel() {
-        return NettyChannelBuilder
-                .forAddress(HOST_ADDR, PORTS_RANGE.ports()[0])
-                .proxyDetector(NOOP_PROXY_DETECTOR)
-                .usePlaintext()
-                .build();
+        return NettyChannelBuilder.forAddress(HOST_ADDR, PORTS_RANGE.ports()[0]).proxyDetector(NOOP_PROXY_DETECTOR).usePlaintext().build();
     }
 
     /*
@@ -95,8 +106,8 @@ public class GrpcHelpers {
     */
     public static ManagedChannel insecureChannel() {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
-                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
-                .build();
+            .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
+            .build();
         return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
@@ -105,12 +116,9 @@ public class GrpcHelpers {
     */
     public static ManagedChannel secureChannel() throws IOException {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
-                .keyManager(
-                    TEST_CERTIFICATES.getNodeCertificate(0),
-                    TEST_CERTIFICATES.getNodeKey(0, null)
-                )
-                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
-                .build();
+            .keyManager(TEST_CERTIFICATES.getNodeCertificate(0), TEST_CERTIFICATES.getNodeKey(0, null))
+            .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
+            .build();
         return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
@@ -119,28 +127,21 @@ public class GrpcHelpers {
     */
     public static ManagedChannel secureUntrustedChannel() throws IOException {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
-                .keyManager(
-                        UN_TRUSTED_TEST_CERTIFICATES.getNodeCertificate(0),
-                        UN_TRUSTED_TEST_CERTIFICATES.getNodeKey(0, null)
-                )
-                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
-                .build();
+            .keyManager(UN_TRUSTED_TEST_CERTIFICATES.getNodeCertificate(0), UN_TRUSTED_TEST_CERTIFICATES.getNodeKey(0, null))
+            .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
+            .build();
         return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
-        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder()
-                .setRefresh(Refresh.REFRESH_TRUE);
+        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE);
         for (int i = 0; i < numDocs; i++) {
             String docBody = "{\"field\": \"doc " + i + " body\"}";
-            IndexOperation indexOp = IndexOperation.newBuilder()
-                    .setIndex(index)
-                    .setId(String.valueOf(i))
-                    .build();
+            IndexOperation indexOp = IndexOperation.newBuilder().setIndex(index).setId(String.valueOf(i)).build();
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
-                    .setIndex(indexOp)
-                    .setDoc(com.google.protobuf.ByteString.copyFromUtf8(docBody))
-                    .build();
+                .setIndex(indexOp)
+                .setDoc(com.google.protobuf.ByteString.copyFromUtf8(docBody))
+                .build();
             requestBuilder.addRequestBody(requestBody);
         }
         DocumentServiceGrpc.DocumentServiceBlockingStub stub = DocumentServiceGrpc.newBlockingStub(channel);
@@ -148,17 +149,9 @@ public class GrpcHelpers {
     }
 
     public static SearchResponse doMatchAll(ManagedChannel channel, String index, int size) {
-        QueryContainer query = QueryContainer.newBuilder()
-                .setMatchAll(MatchAllQuery.newBuilder().build())
-                .build();
-        SearchRequestBody requestBody = SearchRequestBody.newBuilder()
-                .setSize(size)
-                .setQuery(query)
-                .build();
-        SearchRequest searchRequest = SearchRequest.newBuilder()
-                .addIndex(index)
-                .setRequestBody(requestBody)
-                .build();
+        QueryContainer query = QueryContainer.newBuilder().setMatchAll(MatchAllQuery.newBuilder().build()).build();
+        SearchRequestBody requestBody = SearchRequestBody.newBuilder().setSize(size).setQuery(query).build();
+        SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setRequestBody(requestBody).build();
         SearchServiceGrpc.SearchServiceBlockingStub stub = SearchServiceGrpc.newBlockingStub(channel);
         return stub.search(searchRequest);
     }
