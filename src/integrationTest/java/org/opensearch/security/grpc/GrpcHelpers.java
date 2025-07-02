@@ -28,6 +28,7 @@ import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.IndexOperation;
 import org.opensearch.protobufs.MatchAllQuery;
 import org.opensearch.protobufs.QueryContainer;
+import org.opensearch.protobufs.Refresh;
 import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
@@ -37,8 +38,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-
-import javax.net.ssl.SSLException;
 
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.GRPC_SECURE_TRANSPORT_SETTING_KEY;
@@ -130,7 +129,8 @@ public class GrpcHelpers {
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
-        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder();
+        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder()
+                .setRefresh(Refresh.REFRESH_TRUE);
         for (int i = 0; i < numDocs; i++) {
             String docBody = "{\"field\": \"doc " + i + " body\"}";
             IndexOperation indexOp = IndexOperation.newBuilder()
@@ -152,7 +152,6 @@ public class GrpcHelpers {
                 .setMatchAll(MatchAllQuery.newBuilder().build())
                 .build();
         SearchRequestBody requestBody = SearchRequestBody.newBuilder()
-                .setFrom(0)
                 .setSize(size)
                 .setQuery(query)
                 .build();
