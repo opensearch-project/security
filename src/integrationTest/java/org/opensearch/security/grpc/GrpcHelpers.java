@@ -52,6 +52,7 @@ import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_KEY;
 
 public class GrpcHelpers {
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
+    protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.NONE.name());
     protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.OPTIONAL.name());
     protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(), ClientAuth.REQUIRE.name());
@@ -78,7 +79,11 @@ public class GrpcHelpers {
                 .sslOnly(true);
     }
 
-    public static ManagedChannel plaintextChannel() throws SSLException {
+    /*
+    Plaintext connection.
+    No encryption in transit.
+    */
+    public static ManagedChannel plaintextChannel() {
         return NettyChannelBuilder
                 .forAddress(HOST_ADDR, PORTS_RANGE.ports()[0])
                 .proxyDetector(NOOP_PROXY_DETECTOR)
@@ -86,6 +91,9 @@ public class GrpcHelpers {
                 .build();
     }
 
+    /*
+    TLS with no client certificate.
+    */
     public static ManagedChannel insecureChannel() {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
                 .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
@@ -93,11 +101,28 @@ public class GrpcHelpers {
         return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
     }
 
-    public static ManagedChannel mTLSChannel() throws IOException {
+    /*
+    TLS with client certificate trusted by server.
+    */
+    public static ManagedChannel secureChannel() throws IOException {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
                 .keyManager(
                     TEST_CERTIFICATES.getNodeCertificate(0),
                     TEST_CERTIFICATES.getNodeKey(0, null)
+                )
+                .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
+                .build();
+        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
+    }
+
+    /*
+    TLS with client certificate not trusted by server.
+    */
+    public static ManagedChannel secureUntrustedChannel() throws IOException {
+        ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
+                .keyManager(
+                        UN_TRUSTED_TEST_CERTIFICATES.getNodeCertificate(0),
+                        UN_TRUSTED_TEST_CERTIFICATES.getNodeKey(0, null)
                 )
                 .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
                 .build();
