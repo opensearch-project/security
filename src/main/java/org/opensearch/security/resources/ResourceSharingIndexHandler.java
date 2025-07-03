@@ -528,8 +528,8 @@ public class ResourceSharingIndexHandler {
         // Fetch the current ResourceSharing document
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-            // build revoke script
-            sharingInfoListener.whenComplete(sharingInfo -> {
+        // build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
 
             assert sharingInfo != null;
             for (String accessLevel : revokeAccess.accessLevels()) {
