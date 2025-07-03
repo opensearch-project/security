@@ -33,10 +33,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
@@ -63,10 +66,11 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
  * </ul>
  */
 public class CType<T> implements Comparable<CType<?>> {
+    private final static Logger LOGGER = LogManager.getLogger(CType.class);
 
     private final static Set<CType<?>> allSet = new HashSet<>();
-    private static Map<String, CType<?>> nameToInstanceMap = new HashMap<>();
-    private static Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
+    private static final Map<String, CType<?>> nameToInstanceMap = new HashMap<>();
+    private static final Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
 
     public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>("actiongroups", "action_groups", ActionGroupsV7.class, 0, false);
     public static final CType<AllowlistingSettings> ALLOWLIST = new CType<>("allowlist", "allowlist", AllowlistingSettings.class, 1, true);
@@ -138,7 +142,13 @@ public class CType<T> implements Comparable<CType<?>> {
     }
 
     public static Set<CType<?>> fromStringValues(String[] strings) {
-        return Arrays.stream(strings).map(CType::fromString).collect(Collectors.toSet());
+        return Arrays.stream(strings).map(s -> {
+            CType<?> type = CType.fromString(s);
+            if (type == null) {
+                LOGGER.warn("Unknown config type '{}' found. Ignoring it", s);
+            }
+            return type;
+        }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     public static CType<?> fromOrd(int ord) {
