@@ -15,13 +15,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -47,7 +46,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
-    private final static Set<String> allowedPatchOperations = Set.of("add", "move", "remove");
+    private final static Set<String> allowedPatchOperations = Set.of("share_with", "revoke");
 
     public ShareRestAction() {}
 
@@ -66,6 +65,10 @@ public class ShareRestAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        // These two params will only be present with GET request
+        String resId = request.param("resource_id");
+        String resourceIndex = request.param("resource_index");
+
         Map<String, Object> source = new HashMap<>();
         if (request.hasContent()) {
             try (XContentParser parser = request.contentParser()) {
@@ -73,12 +76,21 @@ public class ShareRestAction extends BaseRestHandler {
             }
         }
 
+        if (!Strings.isNullOrEmpty(resId)) {
+            source.put("resource_id", resId);
+        }
+        if (!Strings.isNullOrEmpty(resourceIndex)) {
+            source.put("resource_index", resourceIndex);
+        }
+
+        source.put("method", request.method());
+
         ShareRequest sharingInfoUpdateRequest = ShareRequest.from(source);
 
         return channel -> {
             // TODO confirm the validation here for patch Operations
-            var patchOps = patchOperations(sharingInfoUpdateRequest.getPatch());
-            if (!patchOps.isEmpty() && allowedPatchOperations.containsAll(patchOps)) {
+            Map<String, Object> patch = sharingInfoUpdateRequest.getPatch();
+            if (patch != null && !allowedPatchOperations.containsAll(patch.keySet())) {
                 badRequest(channel, "Invalid patch operation supplied. Allowed ops: " + allowedPatchOperations);
             }
 
@@ -97,14 +109,6 @@ public class ShareRestAction extends BaseRestHandler {
 
             });
         };
-    }
-
-    protected final Set<String> patchOperations(final JsonNode patchRequestContent) {
-        final var operations = ImmutableSet.<String>builder();
-        for (final JsonNode node : patchRequestContent) {
-            if (node.has("op")) operations.add(node.get("op").asText());
-        }
-        return operations.build();
     }
 
     private void handleError(RestChannel channel, Exception e) {

@@ -40,13 +40,13 @@ public class ShareResponse extends ActionResponse implements ToXContentObject {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("sharing_info");
-        builder.value(resourceSharing);
+        builder.startObject();
+        builder.field("sharing_info", resourceSharing);
         return builder.endObject();
     }
 
     @Override
     public String toString() {
-        return "ShareResourceResponse [resourceSharing=" + resourceSharing + "]";
+        return "ShareResponse [resourceSharing=" + resourceSharing + "]";
     }
 }
