@@ -216,21 +216,20 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             if (testClustersPath == null || testClustersPath.isEmpty()) {
                 throw new RuntimeException("tests.clusters.path system property is not set");
             }
-            int nodeIndex = 1;
             Path securityConfigPath = Path.of(
                     testClustersPath,
-                    CLUSTER_NAME + "-" + nodeIndex,
+                    CLUSTER_NAME + 1,
                     "config",
                     "opensearch-security");
-            Path securityAdminPath = Path.of(
+            Path securityAdminPath = Path.of(testClustersPath,
                     testClustersPath,
-                    CLUSTER_NAME + "-" + nodeIndex,
+                    CLUSTER_NAME + 1,
                     "plugins",
                     "opensearch-security",
                     "tools",
                     "securityadmin.sh");
             if (!Files.exists(securityAdminPath)) {
-                throw new RuntimeException("securityadmin.sh not found in: " + securityAdminPath);
+                throw new RuntimeException("securityadmin.sh nicht gefunden unter: " + securityAdminPath);
             }
 
             URI rootCaUri = getClass().getResource("/security/root-ca.pem").toURI();
