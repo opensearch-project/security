@@ -27,6 +27,7 @@
 package org.opensearch.security.filter;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -61,7 +62,9 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -86,7 +89,6 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -110,7 +112,6 @@ public class SecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
-    private final IndexResolverReplacer indexResolverReplacer;
     private final XFFResolver xffResolver;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
@@ -126,7 +127,6 @@ public class SecurityFilter implements ActionFilter {
         ClusterService cs,
         final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
-        final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver
     ) {
         this.evalp = evalp;
@@ -137,7 +137,6 @@ public class SecurityFilter implements ActionFilter {
         this.cs = cs;
         this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
-        this.indexResolverReplacer = indexResolverReplacer;
         this.xffResolver = xffResolver;
         this.immutableIndicesMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
@@ -162,12 +161,13 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            apply0(task, action, request, listener, chain);
+            apply0(task, action, request, actionRequestMetadata, listener, chain);
         }
     }
 
@@ -179,6 +179,7 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
@@ -300,13 +301,13 @@ public class SecurityFilter implements ActionFilter {
 
                 if (request instanceof BulkShardRequest) {
                     for (BulkItemRequest bsr : ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener);
+                        isImmutable = checkImmutableIndices(bsr.request(), actionRequestMetadata, listener);
                         if (isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener);
+                    isImmutable = checkImmutableIndices(request, actionRequestMetadata, listener);
                 }
 
                 if (isImmutable) {
@@ -381,7 +382,7 @@ public class SecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            PrivilegesEvaluationContext context = eval.createContext(user, action, request, task, injectedRoles);
+            PrivilegesEvaluationContext context = eval.createContext(user, action, request, actionRequestMetadata, task, injectedRoles);
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
             if (log.isDebugEnabled()) {
@@ -508,7 +509,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener) {
+    private boolean checkImmutableIndices(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
             || request instanceof UpdateRequest
             || request instanceof UpdateByQueryRequest
@@ -518,24 +519,27 @@ public class SecurityFilter implements ActionFilter {
             || request instanceof CloseIndexRequest
             || request instanceof IndicesAliasesRequest;
 
-        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
+        if (isModifyIndexRequest && isRequestIndexImmutable(request, actionRequestMetadata)) {
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
 
-        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, actionRequestMetadata)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
 
         return false;
     }
 
-    private boolean isRequestIndexImmutable(Object request) {
-        final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
-        if (resolved.isLocalAll()) {
+    private boolean isRequestIndexImmutable(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata) {
+        Optional<ResolvedIndices> optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
+        if (!optionalResolvedIndices.isPresent()) {
             return true;
         }
-        final Set<String> allIndices = resolved.getAllIndices();
-        return immutableIndicesMatcher.matchAny(allIndices);
+        ResolvedIndices resolvedIndices = optionalResolvedIndices.get();
+        if (resolvedIndices.local().isAll()) {
+            return true;
+        }
+        return immutableIndicesMatcher.matchAny(resolvedIndices.local().names());
     }
 }

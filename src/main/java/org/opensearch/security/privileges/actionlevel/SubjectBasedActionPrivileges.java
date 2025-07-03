@@ -29,7 +29,6 @@ import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -305,7 +304,6 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         protected PrivilegesEvaluatorResponse providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
             CheckTable<String, String> checkTable
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
@@ -326,7 +324,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                 }
             }
 
-            return responseForIncompletePrivileges(context, resolvedIndices, checkTable, exceptions);
+            return responseForIncompletePrivileges(context, checkTable, exceptions);
         }
 
         /**
