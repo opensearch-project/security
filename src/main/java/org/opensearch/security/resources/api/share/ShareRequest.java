@@ -12,10 +12,10 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -23,7 +23,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import joptsimple.internal.Strings;
@@ -32,7 +32,7 @@ import joptsimple.internal.Strings;
  * This class represents a request to share access to a resource.
  *
  */
-public class ShareRequest extends ActionRequest {
+public class ShareRequest extends ActionRequest implements DocRequest {
 
     @JsonProperty("resource_id")
     private final String resourceId;
@@ -41,7 +41,9 @@ public class ShareRequest extends ActionRequest {
     @JsonProperty("share_with")
     private final ShareWith shareWith;
     @JsonProperty("patch")
-    private final JsonNode patch;
+    private final Map<String, Object> patch;
+
+    private final RestRequest.Method method;
 
     /**
      * Private constructor to enforce usage of Builder
@@ -51,6 +53,7 @@ public class ShareRequest extends ActionRequest {
         this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
         this.patch = builder.patch;
+        this.method = builder.method;
     }
 
     /**
@@ -59,6 +62,8 @@ public class ShareRequest extends ActionRequest {
     @SuppressWarnings("unchecked")
     public static ShareRequest from(Map<String, Object> source) throws IOException {
         Builder builder = new Builder();
+
+        builder.method((RestRequest.Method) source.get("method"));
 
         builder.resourceId((String) source.get("resource_id"));
 
@@ -69,7 +74,7 @@ public class ShareRequest extends ActionRequest {
         }
 
         if (source.containsKey("patch")) {
-            builder.patch((JsonNode) source.get("patch"));
+            builder.patch((Map<String, Object>) source.get("patch"));
         }
 
         return builder.build();
@@ -80,7 +85,8 @@ public class ShareRequest extends ActionRequest {
         this.resourceId = in.readString();
         this.resourceIndex = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        this.patch = Utils.toJsonNode(in.readString());
+        this.patch = in.readMap();
+        this.method = in.readEnum(RestRequest.Method.class);
     }
 
     @Override
@@ -93,34 +99,60 @@ public class ShareRequest extends ActionRequest {
         if (patch != null) {
             out.writeString(patch.toString());
         }
+        out.writeEnum(method);
     }
 
     @Override
     public ActionRequestValidationException validate() {
+        var arv = new ActionRequestValidationException();
         if (Strings.isNullOrEmpty(resourceIndex) || Strings.isNullOrEmpty(resourceId)) {
-            throw new ActionRequestValidationException();
+            arv.addValidationError("resource_id and resource_index must be present");
+            throw arv;
+        }
+
+        // no further check needed in case of GET
+        if (method == RestRequest.Method.GET) {
+            return null;
         }
         // either of shareWith or patch must be present in the request
         if (shareWith == null && (patch == null || patch.isEmpty())) {
-            throw new ActionRequestValidationException();
+            String message = method == RestRequest.Method.PATCH ? "Patch" : "ShareWith";
+            arv.addValidationError(message + " is required");
+            throw arv;
         }
         return null;
-    }
-
-    public String getResourceId() {
-        return resourceId;
-    }
-
-    public String getResourceIndex() {
-        return resourceIndex;
     }
 
     public ShareWith getShareWith() {
         return shareWith;
     }
 
-    public JsonNode getPatch() {
+    public Map<String, Object> getPatch() {
         return patch;
+    }
+
+    public RestRequest.Method getMethod() {
+        return method;
+    }
+
+    /**
+     * Get the index that this request operates on
+     *
+     * @return the index
+     */
+    @Override
+    public String index() {
+        return resourceIndex;
+    }
+
+    /**
+     * Get the id of the document for this request
+     *
+     * @return the id
+     */
+    @Override
+    public String id() {
+        return resourceId;
     }
 
     /**
@@ -130,7 +162,8 @@ public class ShareRequest extends ActionRequest {
         private String resourceId;
         private String resourceIndex;
         private ShareWith shareWith;
-        private JsonNode patch;
+        private Map<String, Object> patch;
+        private RestRequest.Method method;
 
         public void resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -152,8 +185,12 @@ public class ShareRequest extends ActionRequest {
             this.shareWith = shareWith;
         }
 
-        public void patch(JsonNode patch) {
+        public void patch(Map<String, Object> patch) {
             this.patch = patch;
+        }
+
+        public void method(RestRequest.Method method) {
+            this.method = method;
         }
 
         public ShareRequest build() {
