@@ -37,7 +37,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
-import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,10 +65,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.bulk.BulkAction;
@@ -1439,6 +1438,55 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
         if (!SSLConfig.isSslOnlyMode()) {
             settings.add(
                 Setting.listSetting(
@@ -2334,23 +2382,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        // Add provider if on the classpath.
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            if (Security.getProvider("BC") == null) {
-                try {
-                    Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
-                    Security.addProvider(provider);
-                    log.debug("Bouncy Castle Provider added");
-                } catch (Exception e) {
-                    log.debug("Bouncy Castle Provider could not be added", e);
-                }
+        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            if (Security.getProvider("BCFIPS") == null) {
+                Security.addProvider(new BouncyCastleFipsProvider());
+                log.debug("Bouncy Castle FIPS Provider added");
             }
             return null;
         });

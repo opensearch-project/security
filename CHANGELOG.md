@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 * Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
 * [Resource Sharing] Adds migrate API to move resource-sharing info to security plugin ([#5389](https://github.com/opensearch-project/security/pull/5389))
+* Introduces support for the Argon2 Password Hashing Algorithm ([#5441] (https://github.com/opensearch-project/security/pull/5441))
 
 ### Enhancements
 
@@ -25,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Refactoring
 
 * Refactor JWT Vendor to take a claims builder and rename oboEnabled to be enabled ([#5436](https://github.com/opensearch-project/security/pull/5436))
+* Refactor JWT Vender to take a claims builder and rename oboEnabled to enabled ([#5436](https://github.com/opensearch-project/security/pull/5436))
+* Remove ASN1 reflection methods ([#5454](https://github.com/opensearch-project/security/pull/5454))
+* Remove provider reflection code ([#5457](https://github.com/opensearch-project/security/pull/5457))
 
 ### Maintenance
 
@@ -41,6 +45,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.32 to 4.2.33 ([#5428](https://github.com/opensearch-project/security/pull/5428))
 
 ### Documentation
-
 
 [Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.1...main
