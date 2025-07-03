@@ -8,7 +8,10 @@
 
 package org.opensearch.sample.resource;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,10 +19,14 @@ import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
 import org.opensearch.Version;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -72,7 +79,8 @@ public final class TestUtils {
         "sample_plugin_index_all_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
         "indices:*",
-        "cluster:admin/sample-resource-plugin/*"
+        "cluster:admin/sample-resource-plugin/*",
+        "cluster:admin/security/resource/share"
     );
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
@@ -83,6 +91,7 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
     static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+    static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
@@ -197,6 +206,92 @@ public final class TestUtils {
             "username_path": "%s"
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
+    }
+
+    static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
+        return """
+            {
+              "resource_id": "%s",
+              "resource_index": "%s",
+              "share_with": {
+                "%s" : {
+                    "users": ["%s"]
+                }
+              }
+            }
+            """.formatted(resourceId, resourceIndex, accessLevel, user);
+    }
+
+    public static class PatchSharingInfoPayloadBuilder {
+        private String resourceId;
+        private String resourceIndex;
+        private final Map<String, Recipients> share = new HashMap<>();
+        private final Map<String, Recipients> revoke = new HashMap<>();
+
+        public PatchSharingInfoPayloadBuilder resourceId(String resourceId) {
+            this.resourceId = resourceId;
+            return this;
+        }
+
+        public PatchSharingInfoPayloadBuilder resourceIndex(String resourceIndex) {
+            this.resourceIndex = resourceIndex;
+            return this;
+        }
+
+        public void share(Recipients recipients, String accessLevel) {
+            Recipients existing = share.getOrDefault(accessLevel, new Recipients(new HashMap<>()));
+            existing.share(recipients);
+            share.put(accessLevel, existing);
+        }
+
+        public void revoke(Recipients recipients, String accessLevel) {
+            Recipients existing = revoke.getOrDefault(accessLevel, new Recipients(new HashMap<>()));
+            // intentionally share() is called here since we are building a shareWith object, this final object will be used to remove
+            // access
+            // think of it as currentShareWith.removeAll(revokeShareWith)
+            existing.share(recipients);
+            revoke.put(accessLevel, existing);
+        }
+
+        private String buildJsonString(Map<String, Recipients> input) {
+
+            List<String> output = new ArrayList<>();
+            for (Map.Entry<String, Recipients> entry : input.entrySet()) {
+                try {
+                    XContentBuilder builder = XContentFactory.jsonBuilder();
+                    entry.getValue().toXContent(builder, ToXContent.EMPTY_PARAMS);
+                    String recipJson = builder.toString();
+                    output.add("""
+                        "%s" : %s
+                        """.formatted(entry.getKey(), recipJson));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+
+            return String.join(",", output);
+
+        }
+
+        public String build() {
+            String allShares = buildJsonString(share);
+            String allRevokes = buildJsonString(revoke);
+            return """
+                {
+                  "resource_id": "%s",
+                  "resource_index": "%s",
+                  "patch":{
+                      "share_with": {
+                        %s
+                      },
+                      "revoke": {
+                        %s
+                      }
+                  }
+                }
+                """.formatted(resourceId, resourceIndex, allShares, allRevokes);
+        }
     }
 
     public static class ApiHelper {
