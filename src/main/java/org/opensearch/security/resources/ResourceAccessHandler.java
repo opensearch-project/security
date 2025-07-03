@@ -13,11 +13,11 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -127,7 +127,7 @@ public class ResourceAccessHandler {
     public void patchSharingInfo(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull JsonNode patchContent,
+        @NonNull Map<String, Object> patchContent,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -159,6 +159,41 @@ public class ResourceAccessHandler {
             listener.onResponse(sharingInfo);
         }, e -> {
             LOGGER.error("Failed to patched sharing info for resource {} with {}: {}", resourceId, patchContent.toString(), e.getMessage());
+            listener.onFailure(e);
+        }));
+
+    }
+
+    /**
+     * Get sharing info for this record
+     * @param resourceId    id of the resource whose sharing info is to be fetched
+     * @param resourceIndex name of the resource index
+     * @param listener      listener to be notified of final resource sharing record
+     */
+    public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceIndex, ActionListener<ResourceSharing> listener) {
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        final User user = (userSubject == null) ? null : userSubject.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Failed to fetch resource sharing info {}", resourceId);
+            listener.onFailure(
+                new OpenSearchStatusException(
+                    "No authenticated user found. Failed to fetch resource sharing info " + resourceId,
+                    RestStatus.UNAUTHORIZED
+                )
+            );
+            return;
+        }
+
+        LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceIndex);
+
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully fetched sharing info for resource {} in index {}", resourceId, resourceIndex);
+            listener.onResponse(sharingInfo);
+        }, e -> {
+            LOGGER.error("Failed to fetched sharing info for resource {} in index {}: {}", resourceId, resourceIndex, e.getMessage());
             listener.onFailure(e);
         }));
 

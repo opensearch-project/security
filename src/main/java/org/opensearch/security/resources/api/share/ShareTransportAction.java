@@ -13,6 +13,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -35,21 +36,20 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
     @Override
     protected void doExecute(Task task, ShareRequest request, ActionListener<ShareResponse> listener) {
 
-        if (request.getPatch() != null) {
-            resourceAccessHandler.patchSharingInfo(
-                request.getResourceId(),
-                request.getResourceIndex(),
-                request.getPatch(),
-                ActionListener.wrap(resourceSharing -> listener.onResponse(new ShareResponse(resourceSharing)), listener::onFailure)
-            );
-
-        } else if (request.getShareWith() != null) {
-            resourceAccessHandler.share(
-                request.getResourceId(),
-                request.getResourceIndex(),
-                request.getShareWith(),
-                ActionListener.wrap(response -> listener.onResponse(new ShareResponse(response)), listener::onFailure)
-            );
+        ActionListener<ResourceSharing> sharingInfoListener = ActionListener.wrap(
+            resourceSharing -> listener.onResponse(new ShareResponse(resourceSharing)),
+            listener::onFailure
+        );
+        switch (request.getMethod()) {
+            case GET:
+                resourceAccessHandler.getSharingInfo(request.id(), request.index(), sharingInfoListener);
+                return;
+            case PATCH:
+                resourceAccessHandler.patchSharingInfo(request.id(), request.index(), request.getPatch(), sharingInfoListener);
+                break;
+            case PUT:
+                resourceAccessHandler.share(request.id(), request.index(), request.getShareWith(), sharingInfoListener);
+                break;
         }
 
     }
