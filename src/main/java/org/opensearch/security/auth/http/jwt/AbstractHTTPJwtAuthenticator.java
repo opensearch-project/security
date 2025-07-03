@@ -186,7 +186,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @SuppressWarnings("unchecked")
     @VisibleForTesting
     public String extractSubject(JWTClaimsSet claims) {
-        // log.warn("claims is '{}' ", claims);
+        log.warn("claims is '{}' ", claims);
         String subject = claims.getSubject();
         log.warn("subject is '{}' ", subject);
         log.warn("subjectKey is '{}' ", subjectKey);
