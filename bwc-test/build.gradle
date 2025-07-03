@@ -155,7 +155,6 @@ String extractVersion(versionStr) {
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
                 node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
                 node.setting("plugins.security.system_indices.enabled", "true")
-                node.setting("logger.org.opensearch.security", "TRACE")
             }
 
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
