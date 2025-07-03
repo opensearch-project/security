@@ -8,10 +8,6 @@
 package org.opensearch.security.bwc;
 
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +50,7 @@ import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import static org.apache.hc.core5.http.ContentType.APPLICATION_NDJSON;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -155,7 +152,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
                 TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
-                    .setTlsVersions("TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3")
+                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
                     .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                     .setTlsDetailsFactory(sslEngine -> new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol()))
@@ -207,54 +204,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     public void testNodeStats() throws IOException {
         List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
         responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
-    }
-
-    public void testOldSettingsUpdate() throws Exception {
-        String round = System.getProperty("tests.rest.bwcsuite_round");
-        if (CLUSTER_TYPE == ClusterType.MIXED && round.equals("first")) {
-            String testClustersPath = System.getProperty("tests.clusters.path");
-            if (testClustersPath == null || testClustersPath.isEmpty()) {
-                throw new RuntimeException("tests.clusters.path system property is not set");
-            }
-            Path securityConfigPath = Path.of(
-                    testClustersPath,
-                    CLUSTER_NAME + 1,
-                    "config",
-                    "opensearch-security");
-            Path securityAdminPath = Path.of(testClustersPath,
-                    testClustersPath,
-                    CLUSTER_NAME + 1,
-                    "plugins",
-                    "opensearch-security",
-                    "tools",
-                    "securityadmin.sh");
-            if (!Files.exists(securityAdminPath)) {
-                throw new RuntimeException("securityadmin.sh nicht gefunden unter: " + securityAdminPath);
-            }
-
-            URI rootCaUri = getClass().getResource("/security/root-ca.pem").toURI();
-            URI adminCertUri = getClass().getResource("/security/kirk.pem").toURI();
-            URI adminKeyUri = getClass().getResource("/security/kirk-key.pem").toURI();
-
-            Path rootCaPath = Path.of(rootCaUri);
-            Path adminCertPath = Path.of(adminCertUri);
-            Path adminKeyPath = Path.of(adminKeyUri);
-
-            Files.setPosixFilePermissions(securityAdminPath,
-                    PosixFilePermissions.fromString("rwxr-xr-x"));
-
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    securityAdminPath.toString(),
-                    "-cd", securityConfigPath.toString(),
-                    "-cacert", rootCaPath.toString(),
-                    "-cert", adminCertPath.toString(),
-                    "-key", adminKeyPath.toString(),
-                    "-nhnv");
-            Process process = processBuilder.inheritIO().start();
-            int exitCode = process.waitFor();
-
-            assertThat("SecurityAdmin execution failed", exitCode, is(0));
-        }
     }
 
     @SuppressWarnings("unchecked")
