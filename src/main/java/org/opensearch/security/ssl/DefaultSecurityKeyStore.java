@@ -18,7 +18,6 @@
 package org.opensearch.security.ssl;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -1117,10 +1116,9 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
             final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
             final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
-            Method getObjectMethod = getObjectMethod();
-            ASN1Object maybeTaggedAsn1Primitive = (ASN1Primitive) getObjectMethod.invoke(asn1TaggedObject);
+            ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();
             if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
-                maybeTaggedAsn1Primitive = (ASN1Primitive) getObjectMethod.invoke(maybeTaggedAsn1Primitive);
+                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getObject();
             }
             if (maybeTaggedAsn1Primitive instanceof ASN1String) {
                 return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());
@@ -1130,15 +1128,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             }
         } catch (final Exception ioe) { // catch all exception here since BC throws diff exceptions
             throw new RuntimeException("Couldn't parse subject alternative names", ioe);
-        }
-    }
-
-    static Method getObjectMethod() throws ClassNotFoundException, NoSuchMethodException {
-        Class<?> asn1TaggedObjectClass = Class.forName("org.bouncycastle.asn1.ASN1TaggedObject");
-        try {
-            return asn1TaggedObjectClass.getMethod("getBaseObject");
-        } catch (NoSuchMethodException ex) {
-            return asn1TaggedObjectClass.getMethod("getObject");
         }
     }
 }

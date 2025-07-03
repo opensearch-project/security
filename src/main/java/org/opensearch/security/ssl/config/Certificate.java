@@ -11,7 +11,6 @@
 
 package org.opensearch.security.ssl.config;
 
-import java.lang.reflect.Method;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -124,10 +123,9 @@ public class Certificate {
             final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
             final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
             final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
-            Method getObjectMethod = getObjectMethod();
-            ASN1Object maybeTaggedAsn1Primitive = (ASN1Primitive) getObjectMethod.invoke(asn1TaggedObject);
+            ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();
             if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
-                maybeTaggedAsn1Primitive = (ASN1Primitive) getObjectMethod.invoke(maybeTaggedAsn1Primitive);
+                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getObject();
             }
             if (maybeTaggedAsn1Primitive instanceof ASN1String) {
                 return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());
@@ -137,15 +135,6 @@ public class Certificate {
             }
         } catch (final Exception ioe) { // catch all exception here since BC throws diff exceptions
             throw new RuntimeException("Couldn't parse subject alternative names", ioe);
-        }
-    }
-
-    static Method getObjectMethod() throws ClassNotFoundException, NoSuchMethodException {
-        Class<?> asn1TaggedObjectClass = Class.forName("org.bouncycastle.asn1.ASN1TaggedObject");
-        try {
-            return asn1TaggedObjectClass.getMethod("getBaseObject");
-        } catch (NoSuchMethodException ex) {
-            return asn1TaggedObjectClass.getMethod("getObject");
         }
     }
 
