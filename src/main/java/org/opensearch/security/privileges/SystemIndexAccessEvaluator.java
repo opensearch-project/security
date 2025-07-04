@@ -129,7 +129,7 @@ public class SystemIndexAccessEvaluator {
         final ActionPrivileges actionPrivileges,
         final User user
     ) {
-        boolean containsSystemIndex = requestedResolved.local().containsAny(this::isSystemIndex);
+        boolean containsSystemIndex = false; // TODO requestedResolved.local().containsAny(this::isSystemIndex);
 
         evaluateSystemIndicesAccess(
             action,
