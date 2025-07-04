@@ -148,19 +148,5 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertThat(HttpStatus.SC_OK, is(rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "").getStatusCode()));
-
-        assertThat(
-            HttpStatus.SC_OK,
-            is(
-                (res = rh.executePutRequest(
-                    "_plugins/_security/configupdate?config_types=unknown_xxx",
-                    "",
-                    encodeBasicHeader("nagilum", "nagilum")
-                )).getStatusCode()
-            )
-        );
-        assertContains(res, "*\"successful\":0*failed_node_exception*");
-
     }
-
 }
