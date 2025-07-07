@@ -217,12 +217,14 @@ public final class TestHelper {
 
         private void assertGetAll(String endpoint, TestSecurityConfig.User user, int status, String expectedResourceName) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.get(endpoint);
-                response.assertStatusCode(status);
-                if (status == HttpStatus.SC_OK) {
-                    assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThanOrEqualTo(1));
-                    assertThat(response.getBody(), containsString(expectedResourceName));
-                }
+                Awaitility.await("Wait until index is refreshed").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+                    TestRestClient.HttpResponse response = client.get(endpoint);
+                    response.assertStatusCode(status);
+                    if (status == HttpStatus.SC_OK) {
+                        assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThanOrEqualTo(1));
+                        assertThat(response.getBody(), containsString(expectedResourceName));
+                    }
+                });
             }
         }
 

@@ -249,14 +249,14 @@ public class MultiAccessLevelsTests {
             api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
         }
 
-        private void assertFullAccess(TestSecurityConfig.User user) {
+        private void assertRUDAccess(TestSecurityConfig.User user) {
             api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
             api.assertApiUpdate(resourceId, user, HttpStatus.SC_OK);
             api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
         }
 
-        // check that target can not access before sharing and after revoking
-        // while resource is shared they can access it and share it someone else
+        // check that target cannot access before sharing and after revoking
+        // while resource is shared, they can access it and share it someone else
         private void assertSharingAccess(TestSecurityConfig.User user, TestSecurityConfig.User target) {
             api.assertApiGet(resourceId, target, HttpStatus.SC_FORBIDDEN, "");
             api.assertApiShare(resourceId, user, target, sampleAllAG.name(), HttpStatus.SC_OK);
@@ -280,7 +280,7 @@ public class MultiAccessLevelsTests {
             // can share admin's resource with others since full access was granted
             assertSharingAccess(FULL_ACCESS_USER, LIMITED_ACCESS_USER);
 
-            assertFullAccess(FULL_ACCESS_USER);
+            assertRUDAccess(FULL_ACCESS_USER);
         }
 
         @Test
@@ -292,7 +292,7 @@ public class MultiAccessLevelsTests {
 
             assertSharingAccess(LIMITED_ACCESS_USER, FULL_ACCESS_USER);
 
-            assertFullAccess(LIMITED_ACCESS_USER);
+            assertRUDAccess(LIMITED_ACCESS_USER);
         }
 
         @Test
@@ -300,11 +300,11 @@ public class MultiAccessLevelsTests {
             assertNoAccessBeforeSharing(NO_ACCESS_USER);
             // share at sampleAllAG level
             api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry(NO_ACCESS_USER.getName()); // wait until sharing info is populated
+            api.awaitSharingEntry(NO_ACCESS_USER.getName());
 
             assertSharingAccess(NO_ACCESS_USER, LIMITED_ACCESS_USER);
 
-            assertFullAccess(NO_ACCESS_USER);
+            assertRUDAccess(NO_ACCESS_USER);
         }
     }
 
@@ -361,12 +361,12 @@ public class MultiAccessLevelsTests {
             api.awaitSharingEntry(FULL_ACCESS_USER.getName());
             api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
 
-            // 2. check individual access
+            // 2. check read-only access for full-access user
             assertReadOnly(FULL_ACCESS_USER);
 
             // 3. limited access user shares with full-access user at sampleAllAG
             api.assertApiShare(resourceId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry();
+            api.awaitSharingEntry(FULL_ACCESS_USER.getName());
 
             // 4. full-access user now has full-access to admin's resource
             assertFullAccess(FULL_ACCESS_USER);
@@ -380,7 +380,7 @@ public class MultiAccessLevelsTests {
             // 1. share with both users at read-only level
             api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry();
+            api.awaitSharingEntry(sampleReadOnlyAG.name());
 
             // 2. assert both now have read-only access
             assertReadOnly(LIMITED_ACCESS_USER);
@@ -399,7 +399,7 @@ public class MultiAccessLevelsTests {
 
             // 3. share with user at full-access level
             api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry();
+            api.awaitSharingEntry(sampleAllAG.name());
 
             // 4. assert user now has full access
             assertFullAccess(LIMITED_ACCESS_USER);
