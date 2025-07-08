@@ -8,8 +8,6 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,12 +70,11 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
 
                 nodeClient.update(ur, ActionListener.wrap(updateResponse -> {
                     log.debug("Updated resource: {}", updateResponse.toString());
-                    listener.onResponse(new CreateResourceResponse(updateResponse.toString()));
+                    listener.onResponse(
+                        new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                    );
                 }, listener::onFailure));
-            } catch (IOException e) {
-                listener.onFailure(new RuntimeException(e));
             }
-            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully."));
         } catch (Exception e) {
             log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);

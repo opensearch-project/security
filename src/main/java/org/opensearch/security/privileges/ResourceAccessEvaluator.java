@@ -118,12 +118,12 @@ public class ResourceAccessEvaluator {
         // If user is a plugin or api-token
         if (!(context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
             // NOTE we don't yet support Plugins to access resources
-            presponse.allowed = false;
             log.debug(
                 "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
                 user.getName(),
                 req.id()
             );
+            presponse.markComplete();
             return presponse;
         }
 

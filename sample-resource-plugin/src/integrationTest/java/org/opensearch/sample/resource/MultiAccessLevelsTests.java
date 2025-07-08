@@ -432,22 +432,40 @@ public class MultiAccessLevelsTests {
             api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
         }
 
-        private void assertReadOnly(TestSecurityConfig.User user) {
-            api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-            api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
-            api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        private void assertReadOnly() {
+            api.assertApiGet(resourceId, TestHelper.FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            api.assertApiUpdate(resourceId, TestHelper.FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(resourceId, TestHelper.FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
-            api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiShare(
+                resourceId,
+                TestHelper.FULL_ACCESS_USER,
+                TestHelper.FULL_ACCESS_USER,
+                sampleAllAG.name(),
+                HttpStatus.SC_FORBIDDEN
+            );
+            api.assertApiRevoke(
+                resourceId,
+                TestHelper.FULL_ACCESS_USER,
+                TestHelper.FULL_ACCESS_USER,
+                sampleAllAG.name(),
+                HttpStatus.SC_FORBIDDEN
+            );
         }
 
-        private void assertFullAccess(TestSecurityConfig.User user) {
-            api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-            api.assertApiUpdate(resourceId, user, HttpStatus.SC_OK);
-            api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_OK);
-            api.assertApiRevoke(resourceId, user, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
+        private void assertFullAccess() {
+            api.assertApiGet(resourceId, TestHelper.LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            api.assertApiUpdate(resourceId, TestHelper.LIMITED_ACCESS_USER, HttpStatus.SC_OK);
+            api.assertApiShare(
+                resourceId,
+                TestHelper.LIMITED_ACCESS_USER,
+                TestHelper.LIMITED_ACCESS_USER,
+                sampleAllAG.name(),
+                HttpStatus.SC_OK
+            );
+            api.assertApiRevoke(resourceId, TestHelper.LIMITED_ACCESS_USER, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry();
-            api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
+            api.assertApiDelete(resourceId, TestHelper.LIMITED_ACCESS_USER, HttpStatus.SC_OK);
         }
 
         @Test
@@ -458,7 +476,7 @@ public class MultiAccessLevelsTests {
             api.awaitSharingEntry("*");
 
             // 2. check read-only access for full-access user
-            assertReadOnly(FULL_ACCESS_USER);
+            assertReadOnly();
         }
 
         @Test
@@ -469,7 +487,7 @@ public class MultiAccessLevelsTests {
             api.awaitSharingEntry("*");
 
             // 2. check read-only access for full-access user
-            assertFullAccess(LIMITED_ACCESS_USER);
+            assertFullAccess();
         }
 
     }
