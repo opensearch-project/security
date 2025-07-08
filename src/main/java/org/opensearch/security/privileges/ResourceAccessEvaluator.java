@@ -43,7 +43,6 @@ import org.opensearch.threadpool.ThreadPool;
  * NOTE: It is recommended to keep system index protection on, and this evaluator assumes that it is.
  * Without it, normal users with index permission may be able to modify the sharing records directly.
  *
- * @opensearch.experimental
  */
 public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
@@ -114,12 +113,18 @@ public class ResourceAccessEvaluator {
         final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = userSubject.getUser();
 
-        if (user == null) {
+        // If user is a plugin or api-token
+        if (!(context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
+            // NOTE we don't yet support Plugins to access resources
             presponse.allowed = false;
-            log.debug("User is not authenticated, returning unauthorized");
-            return presponse.markComplete();
+            log.debug(
+                "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
+                user.getName(),
+                req.id()
+            );
+            return presponse;
         }
 
         // If the user is a super-admin, the request would have already been granted. So no need to check whether user is admin.
@@ -141,9 +146,8 @@ public class ResourceAccessEvaluator {
                 return;
             }
 
-            // If the document is public, action is allowed
             // If user is the owner, action is allowed
-            if (document.isSharedWithEveryone() || document.isCreatedBy(user.getName())) {
+            if (document.isCreatedBy(user.getName())) {
                 presponse.allowed = true;
                 shouldMarkAsComplete.set(true);
                 String message = document.isSharedWithEveryone()
@@ -154,9 +158,12 @@ public class ResourceAccessEvaluator {
                 return;
             }
 
+            // check for publicly shared documents
+            userRoles.add("*");
+            userBackendRoles.add("*");
             // Check whether user or their roles match any access-levels this resource is shared at
             Set<String> accessLevels = new HashSet<>();
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.USERS, Set.of(user.getName())));
+            accessLevels.addAll(document.fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
             accessLevels.addAll(document.fetchAccessLevels(Recipient.ROLES, userRoles));
             accessLevels.addAll(document.fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
 
@@ -170,29 +177,19 @@ public class ResourceAccessEvaluator {
             }
 
             // Expand access-levels and check if any actions match the action supplied
-            if (context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges) {
-                Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
-                // a matcher to test against all patterns in `actions`
-                WildcardMatcher matcher = WildcardMatcher.from(actions, true);
-                if (matcher.test(action)) {
-                    presponse.allowed = true;
-                    log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());
-                } else {
-                    // TODO check why following addition doesn't reflect in the final response message and find an alternative
-                    presponse.getMissingPrivileges().add(action);
-                    log.debug("User {} has no {} privileges for {}", user.getName(), action, req.id());
-                }
-                latch.countDown();
+            Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
+            // a matcher to test against all patterns in `actions`
+            WildcardMatcher matcher = WildcardMatcher.from(actions, true);
+            if (matcher.test(action)) {
+                presponse.allowed = true;
+                log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());
             } else {
-                // NOTE we don't yet support Plugins to access resources
-                presponse.allowed = false;
-                log.debug(
-                    "Plugin access to resources is currently not supported. Plugin {} is not authorized to access resource {}.",
-                    user.getName(),
-                    req.id()
-                );
-                latch.countDown();
+                // TODO check why following addition doesn't reflect in the final response message and find an alternative
+                // presponse.getMissingPrivileges().add(action);
+                log.debug("User {} has no {} privileges for {}", user.getName(), action, req.id());
             }
+            latch.countDown();
+
             shouldMarkAsComplete.set(true);
 
         }, e -> {

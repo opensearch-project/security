@@ -256,8 +256,12 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
             Set<String> sharingRecipients = new HashSet<>(recipients.getRecipients().getOrDefault(recipientType, Set.of()));
 
-            // if there was at-least 1 element in common then add the access level to final list
-            if (sharingRecipients.removeAll(entities)) {
+            // if there’s a wildcard (i.e. the document is shared publicly at this access-level), or at least one entity in common, add the
+            // level to a final list of groups
+            boolean matchesWildcard = sharingRecipients.contains("*");
+            boolean intersects = !Collections.disjoint(sharingRecipients, entities);
+
+            if (matchesWildcard || intersects) {
                 matchingGroups.add(accessLevel);
             }
         }
