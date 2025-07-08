@@ -107,9 +107,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private void fetchResourcesByIds(@Nullable Set<String> ids, ActionListener<GetResourceResponse> listener) {
         withThreadContext(stashed -> {
             SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000)
-                .query(
-                    ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.idsQuery().addIds(ids.toArray(ids.toArray(String[]::new)))
-                );
+                .query(ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.idsQuery().addIds(ids.toArray(String[]::new)));
 
             SearchRequest req = new SearchRequest(RESOURCE_INDEX_NAME).source(ssb);
             nodeClient.search(req, ActionListener.wrap(searchResponse -> {
