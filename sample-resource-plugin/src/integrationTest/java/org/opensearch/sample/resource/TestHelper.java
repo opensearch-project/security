@@ -212,6 +212,13 @@ public final class TestHelper {
         }
 
         public void assertApiGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
+            // Windows tests are slower and since get all is a POST _search, compared to get one which is a GET, we need to explicitly wait
+            // until all resources are available
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                //
+            }
             assertGetAll(SAMPLE_RESOURCE_GET_ENDPOINT, user, status, expectedResourceName);
         }
 

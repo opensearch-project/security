@@ -62,7 +62,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
     MultiAccessLevelsTests.AdminCertificateAccessTests.class,
     MultiAccessLevelsTests.ReadOnlyAccessTests.class,
     MultiAccessLevelsTests.FullAccessTests.class,
-    MultiAccessLevelsTests.MixedAccessTests.class })
+    MultiAccessLevelsTests.MixedAccessTests.class,
+    MultiAccessLevelsTests.PubliclySharedDocTests.class })
 public class MultiAccessLevelsTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
@@ -309,7 +310,7 @@ public class MultiAccessLevelsTests {
     }
 
     /**
-     * Test resource access to a resource shared with full permissions access-level.
+     * Test resource access to a resource shared with mixed access-levels. Some users are shared at read_only, others at full_access.
      * All tests are against USER_ADMIN's resource created during setup.
      */
     @RunWith(RandomizedRunner.class)
@@ -404,5 +405,72 @@ public class MultiAccessLevelsTests {
             // 4. assert user now has full access
             assertFullAccess(LIMITED_ACCESS_USER);
         }
+    }
+
+    /**
+     * Test resource access to a publicly shared resource at different access-levels.
+     * All tests are against USER_ADMIN's resource created during setup.
+     */
+    @RunWith(RandomizedRunner.class)
+    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    public static class PubliclySharedDocTests extends BaseTests {
+        private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
+        private String resourceId;
+
+        @Before
+        public void setup() {
+            resourceId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry(); // wait until sharing entry is created
+        }
+
+        private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
+            api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
+            api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+
+            api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+        }
+
+        private void assertReadOnly(TestSecurityConfig.User user) {
+            api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
+            api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+            api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+
+            api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+        }
+
+        private void assertFullAccess(TestSecurityConfig.User user) {
+            api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
+            api.assertApiUpdate(resourceId, user, HttpStatus.SC_OK);
+            api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertApiRevoke(resourceId, user, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.awaitSharingEntry();
+            api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
+        }
+
+        @Test
+        public void publiclySharedDoc_readOnly() {
+            assertNoAccessBeforeSharing(FULL_ACCESS_USER);
+            // 1. share at read-only for full-access user and at full-access for limited perms user
+            api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.awaitSharingEntry("*");
+
+            // 2. check read-only access for full-access user
+            assertReadOnly(FULL_ACCESS_USER);
+        }
+
+        @Test
+        public void publiclySharedDoc_fullAccess() {
+            assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
+            // 1. share at read-only for full-access user and at full-access for limited perms user
+            api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleAllAG.name(), HttpStatus.SC_OK);
+            api.awaitSharingEntry("*");
+
+            // 2. check read-only access for full-access user
+            assertFullAccess(LIMITED_ACCESS_USER);
+        }
+
     }
 }
