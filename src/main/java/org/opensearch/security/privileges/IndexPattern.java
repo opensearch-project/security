@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -61,9 +62,53 @@ public class IndexPattern {
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
     }
 
-    public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
+    public boolean matches(
+        String indexOrAliasOrDatastream,
+        PrivilegesEvaluationContext context,
+        Map<String, IndexAbstraction> indexMetadata
+    ) throws PrivilegesEvaluationException {
+
+        if (matchesDirectly(indexOrAliasOrDatastream, context)) {
+            return true;
+        }
+
+        IndexAbstraction indexAbstraction = indexMetadata.get(indexOrAliasOrDatastream);
+
+        if (indexAbstraction instanceof IndexAbstraction.Index) {
+            // Check for the privilege for aliases or data streams containing this index
+
+            if (indexAbstraction.getParentDataStream() != null) {
+                if (matchesDirectly(indexAbstraction.getParentDataStream().getName(), context)) {
+                    return true;
+                }
+            }
+
+            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
+            // alias metadata from here.
+            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
+                if (matchesDirectly(alias, context)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } else {
+            // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
+
+            for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
+                if (!matchesDirectly(memberIndex.getIndex().getName(), context)) {
+                    return false;
+                }
+            }
+
+            // If we could match all members, we have a match
+            return true;
+        }
+    }
+
+    private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context)
         throws PrivilegesEvaluationException {
-        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(index)) {
+        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(indexOrAliasOrDatastream)) {
             return true;
         }
 
@@ -72,7 +117,7 @@ public class IndexPattern {
                 try {
                     WildcardMatcher matcher = context.getRenderedMatcher(patternTemplate);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (ExpressionEvaluationException e) {
@@ -93,31 +138,11 @@ public class IndexPattern {
 
                     WildcardMatcher matcher = WildcardMatcher.from(resolvedExpression);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (Exception e) {
                     throw new PrivilegesEvaluationException("Error while evaluating date math expression: " + dateMathExpression, e);
-                }
-            }
-        }
-
-        IndexAbstraction indexAbstraction = indexMetadata.get(index);
-
-        if (indexAbstraction instanceof IndexAbstraction.Index) {
-            // Check for the privilege for aliases or data streams containing this index
-
-            if (indexAbstraction.getParentDataStream() != null) {
-                if (matches(indexAbstraction.getParentDataStream().getName(), context, indexMetadata)) {
-                    return true;
-                }
-            }
-
-            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
-            // alias metadata from here.
-            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
-                if (matches(alias, context, indexMetadata)) {
-                    return true;
                 }
             }
         }

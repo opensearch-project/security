@@ -21,7 +21,7 @@ import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.metadata.ResolvedIndices;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -39,7 +39,7 @@ public class PrivilegesEvaluationContext {
     private final User user;
     private final String action;
     private final ActionRequest request;
-    private ResolvedIndices resolvedIndices;
+    private OptionallyResolvedIndices resolvedIndices;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
@@ -122,14 +122,14 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
-    public ResolvedIndices getResolvedRequest() {
-        if (PrivilegesEvaluator.isClusterPerm(action)) {
-            return ResolvedIndices.all();
-        }
-
-        ResolvedIndices result = this.resolvedIndices;
+    public OptionallyResolvedIndices getResolvedRequest() {
+        OptionallyResolvedIndices result = this.resolvedIndices;
         if (result == null) {
-            result = this.indicesRequestResolver.resolve(this.request, this.actionRequestMetadata, this.clusterStateSupplier);
+            this.resolvedIndices = result = this.indicesRequestResolver.resolve(
+                this.request,
+                this.actionRequestMetadata,
+                this.clusterStateSupplier
+            );
         }
 
         return result;
@@ -141,18 +141,6 @@ public class PrivilegesEvaluationContext {
 
     public ImmutableSet<String> getMappedRoles() {
         return mappedRoles;
-    }
-
-    /**
-     * Note: Ideally, mappedRoles would be an unmodifiable attribute. PrivilegesEvaluator however contains logic
-     * related to OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION which first validates roles and afterwards modifies
-     * them again. Thus, we need to be able to set this attribute.
-     *
-     * However, this method should be only used for this one particular phase. Normally, all roles should be determined
-     * upfront and stay constant during the whole privilege evaluation process.
-     */
-    void setMappedRoles(ImmutableSet<String> mappedRoles) {
-        this.mappedRoles = mappedRoles;
     }
 
     public ClusterState clusterState() {

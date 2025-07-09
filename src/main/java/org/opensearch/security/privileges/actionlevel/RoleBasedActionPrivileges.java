@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -96,8 +97,22 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
-    public RoleBasedActionPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups, Settings settings) {
-        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups));
+    /**
+     * Creates a new RoleBasedActionPrivileges instance based on the given parameters.
+     *
+     * @param roles the roles form the basis for the privilege configuration
+     * @param actionGroups the action groups will be used to expand the "allowed_actions" attributes in the roles config
+     * @param specialIndexProtection configuration that identifies indices for which additional protections should be applied
+     * @param settings Other settings for this instance. The settings PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE and PRECOMPUTED_PRIVILEGES_ENABLED
+     *                 will be read from this.
+     */
+    public RoleBasedActionPrivileges(
+        SecurityDynamicConfiguration<RoleV7> roles,
+        FlattenedActionGroups actionGroups,
+        SpecialIndexProtection specialIndexProtection,
+        Settings settings
+    ) {
+        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups, specialIndexProtection));
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
@@ -120,7 +135,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
 
-        indices = StatefulIndexPrivileges.relevantOnly(indices);
+        indices = StatefulIndexPrivileges.relevantOnly(indices, this.index.universallyDeniedIndices);
 
         if (statefulIndex == null || !statefulIndex.indices.equals(indices)) {
             long start = System.currentTimeMillis();
@@ -347,7 +362,12 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
          */
-        IndexPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups) {
+        IndexPrivileges(
+            SecurityDynamicConfiguration<RoleV7> roles,
+            FlattenedActionGroups actionGroups,
+            SpecialIndexProtection specialIndexProtection
+        ) {
+            super(specialIndexProtection);
 
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
             Map<String, Map<WildcardMatcher, IndexPattern.Builder>> rolesToActionPatternToIndexPattern = new HashMap<>();
@@ -491,7 +511,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * checkTable instance as checked.
          */
         @Override
-        protected PrivilegesEvaluatorResponse providesPrivilege(
+        protected IntermediateResult providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
             CheckTable<String, String> checkTable
@@ -503,7 +523,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                 if (actionToIndexPattern != null) {
                     checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, actionToIndexPattern, exceptions);
                     if (checkTable.isComplete()) {
-                        return PrivilegesEvaluatorResponse.ok();
+                        return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
                     }
                 }
             }
@@ -521,36 +541,44 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                     if (actionPatternToIndexPattern != null) {
                         checkPrivilegesForNonWellKnownActions(context, actions, checkTable, actionPatternToIndexPattern, exceptions);
                         if (checkTable.isComplete()) {
-                            return PrivilegesEvaluatorResponse.ok();
+                            return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
                         }
                     }
                 }
             }
 
-            return responseForIncompletePrivileges(context, checkTable, exceptions);
+            return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
         }
 
         /**
-         * Returns PrivilegesEvaluatorResponse.ok() if the user identified in the context object has privileges for all
+         * Returns IntermediateResult.ok() if the user identified in the context object has privileges for all
          * indices (using *) for the given actions. Returns null otherwise. Then, further checks must be done to check
          * the user's privileges.
+         * <p>
+         * As a side-effect, this method will mark the available index/action combinations in the provided
+         * checkTable instance as checked.
          */
         @Override
-        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+        protected IntermediateResult checkWildcardIndexPrivilegesOnWellKnownActions(
             PrivilegesEvaluationContext context,
-            Set<String> actions
+            Set<String> actions,
+            CheckTable<String, String> checkTable
         ) {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
             for (String action : actions) {
                 ImmutableCompactSubSet<String> rolesWithWildcardIndexPrivileges = this.actionToRolesWithWildcardIndexPrivileges.get(action);
 
-                if (rolesWithWildcardIndexPrivileges == null || !rolesWithWildcardIndexPrivileges.containsAny(effectiveRoles)) {
-                    return null;
+                if (rolesWithWildcardIndexPrivileges != null && rolesWithWildcardIndexPrivileges.containsAny(effectiveRoles)) {
+                    checkTable.checkIf(index -> true, action);
                 }
             }
 
-            return PrivilegesEvaluatorResponse.ok();
+            if (checkTable.isComplete()) {
+                return new IntermediateResult(checkTable);
+            } else {
+                return null;
+            }
         }
 
         /**
@@ -596,6 +624,40 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
+        }
+
+        @Override
+        protected boolean providesExplicitPrivilege(
+            PrivilegesEvaluationContext context,
+            String index,
+            String action,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
+
+            for (String role : context.getMappedRoles()) {
+                ImmutableMap<String, IndexPattern> actionToIndexPattern = this.rolesToExplicitActionToIndexPattern.get(role);
+
+                if (actionToIndexPattern != null) {
+                    IndexPattern indexPattern = actionToIndexPattern.get(action);
+
+                    if (indexPattern != null) {
+                        try {
+                            if (indexPattern.matches(index, context, indexMetadata)) {
+                                return true;
+                            }
+                        } catch (PrivilegesEvaluationException e) {
+                            // We can ignore these errors, as this max leads to fewer privileges than available
+                            log.error("Error while evaluating index pattern of role {}. Ignoring entry", role, e);
+                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating role " + role, e));
+                        }
+
+                    }
+                }
+
+            }
+
+            return false;
         }
     }
 
@@ -801,7 +863,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * @return PrivilegesEvaluatorResponse.ok() or null.
          */
         @Override
-        protected PrivilegesEvaluatorResponse providesPrivilege(
+        protected IntermediateResult providesPrivilege(
             Set<String> actions,
             PrivilegesEvaluationContext context,
             CheckTable<String, String> checkTable
@@ -828,7 +890,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
                         if (rolesWithPrivileges != null && rolesWithPrivileges.containsAny(effectiveRoles)) {
                             if (checkTable.check(index, action)) {
-                                return PrivilegesEvaluatorResponse.ok();
+                                return new IntermediateResult(checkTable);
                             }
                         }
                     }
@@ -866,31 +928,20 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          *       the privilege evaluation code is able to recognize that an index is member of a data stream and test
          *       its privilege via that data stream. If a privilege is directly assigned to a backing index, we use
          *       the "slowish" code paths.
-         *     <li>Indices which are not matched by includeIndices
+         *     <li>Indices which are universally denied
          * </ul>
          */
-        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices) {
-            // First pass: Check if we need to filter at all
-            boolean doFilter = false;
-
-            for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (indexAbstraction instanceof IndexAbstraction.Index) {
-                    if (indexAbstraction.getParentDataStream() != null
-                        || indexAbstraction.getWriteIndex().getState() == IndexMetadata.State.CLOSE) {
-                        doFilter = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!doFilter) {
-                return indices;
-            }
-
-            // Second pass: Only if we actually need filtering, we will do it
+        static Map<String, IndexAbstraction> relevantOnly(
+            Map<String, IndexAbstraction> indices,
+            Predicate<String> universallyDeniedIndices
+        ) {
             ImmutableMap.Builder<String, IndexAbstraction> builder = ImmutableMap.builder();
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
+                if (universallyDeniedIndices.test(indexAbstraction.getName())) {
+                    continue;
+                }
+
                 if (indexAbstraction instanceof IndexAbstraction.Index) {
                     if (indexAbstraction.getParentDataStream() == null
                         && indexAbstraction.getWriteIndex().getState() != IndexMetadata.State.CLOSE) {

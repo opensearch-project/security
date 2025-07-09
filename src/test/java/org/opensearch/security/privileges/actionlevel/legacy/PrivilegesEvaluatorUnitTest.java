@@ -6,38 +6,22 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.threadpool.ThreadPool;
-
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.DNFOF_MATCHER;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.isClusterPermissionStatic;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PrivilegesEvaluatorUnitTest {
@@ -117,55 +101,6 @@ public class PrivilegesEvaluatorUnitTest {
         "indices:monitor/upgrade"
     );
 
-    @Mock
-    private ClusterService clusterService;
-
-    @Mock
-    private ThreadPool threadPool;
-
-    @Mock
-    private ConfigurationRepository configurationRepository;
-
-    @Mock
-    private IndexNameExpressionResolver resolver;
-
-    @Mock
-    private AuditLog auditLog;
-
-    @Mock
-    private PrivilegesInterceptor privilegesInterceptor;
-
-    @Mock
-    private ClusterInfoHolder clusterInfoHolder;
-
-    @Mock
-    private ClusterState clusterState;
-
-    private Settings settings;
-    private Supplier<ClusterState> clusterStateSupplier;
-    private ThreadContext threadContext;
-    private PrivilegesEvaluator privilegesEvaluator;
-
-    @Before
-    public void setUp() {
-        settings = Settings.builder().build();
-        clusterStateSupplier = () -> clusterState;
-        threadContext = new ThreadContext(Settings.EMPTY);
-
-        privilegesEvaluator = new PrivilegesEvaluator(
-            clusterService,
-            clusterStateSupplier,
-            threadPool,
-            threadContext,
-            configurationRepository,
-            resolver,
-            auditLog,
-            settings,
-            privilegesInterceptor,
-            clusterInfoHolder
-        );
-    }
-
     @Test
     public void testClusterPerm() {
         String multiSearchTemplate = "indices:data/read/msearch/template";
@@ -175,13 +110,13 @@ public class PrivilegesEvaluatorUnitTest {
         String monitorUpgrade = "indices:monitor/upgrade";
 
         // Cluster Permissions
-        assertTrue(isClusterPerm(multiSearchTemplate));
-        assertTrue(isClusterPerm(writeIndex));
-        assertTrue(isClusterPerm(monitorHealth));
+        assertTrue(isClusterPermissionStatic(multiSearchTemplate));
+        assertTrue(isClusterPermissionStatic(writeIndex));
+        assertTrue(isClusterPermissionStatic(monitorHealth));
 
         // Index Permissions
-        assertFalse(isClusterPerm(adminClose));
-        assertFalse(isClusterPerm(monitorUpgrade));
+        assertFalse(isClusterPermissionStatic(adminClose));
+        assertFalse(isClusterPermissionStatic(monitorUpgrade));
     }
 
     @Test
@@ -198,20 +133,4 @@ public class PrivilegesEvaluatorUnitTest {
         }
     }
 
-    @Test
-    public void testEvaluate_NotInitialized_ExceptionThrown() {
-        when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
-        OpenSearchSecurityException exception = assertThrows(
-                OpenSearchSecurityException.class,
-                () -> privilegesEvaluator.evaluate(null)
-        );
-        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized."));
-
-        when(clusterInfoHolder.hasClusterManager()).thenReturn(false);
-        exception = assertThrows(
-                OpenSearchSecurityException.class,
-                () -> privilegesEvaluator.evaluate(null)
-        );
-        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized. Cluster manager not present"));
-    }
 }

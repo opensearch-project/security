@@ -58,8 +58,11 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      * @param actionGroups The FlattenedActionGroups instance that shall be used to resolve the action groups
      *                     specified in the roles configuration.
      */
-    public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
-        super(new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())), new IndexPrivileges(role, actionGroups));
+    public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, SpecialIndexProtection specialIndexProtection) {
+        super(
+            new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
+            new IndexPrivileges(role, actionGroups, specialIndexProtection)
+        );
     }
 
     /**
@@ -214,7 +217,8 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         /**
          * Creates pre-computed index privileges based on the given parameters.
          */
-        IndexPrivileges(RoleV7 role, FlattenedActionGroups actionGroups) {
+        IndexPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, SpecialIndexProtection specialIndexProtection) {
+            super(specialIndexProtection);
 
             Map<String, IndexPattern.Builder> actionToIndexPattern = new HashMap<>();
             Map<WildcardMatcher, IndexPattern.Builder> actionPatternToIndexPattern = new HashMap<>();
@@ -301,7 +305,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          * checkTable instance as checked.
          */
         @Override
-        protected PrivilegesEvaluatorResponse providesPrivilege(
+        protected IntermediateResult providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
             CheckTable<String, String> checkTable
@@ -310,7 +314,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
 
             checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, actionToIndexPattern, exceptions);
             if (checkTable.isComplete()) {
-                return PrivilegesEvaluatorResponse.ok();
+                return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
             }
 
             // If all actions are well-known, the index.actionToIndexPattern data structure that was evaluated above,
@@ -320,11 +324,11 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             if (!allWellKnownIndexActions(actions)) {
                 checkPrivilegesForNonWellKnownActions(context, actions, checkTable, this.actionPatternToIndexPattern, exceptions);
                 if (checkTable.isComplete()) {
-                    return PrivilegesEvaluatorResponse.ok();
+                    return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
                 }
             }
 
-            return responseForIncompletePrivileges(context, checkTable, exceptions);
+            return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
         }
 
         /**
@@ -333,9 +337,10 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          * the user's privileges.
          */
         @Override
-        protected PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+        protected IntermediateResult checkWildcardIndexPrivilegesOnWellKnownActions(
             PrivilegesEvaluationContext context,
-            Set<String> actions
+            Set<String> actions,
+            CheckTable<String, String> checkTable
         ) {
             for (String action : actions) {
                 if (!this.actionsWithWildcardIndexPrivileges.contains(action)) {
@@ -343,7 +348,7 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                 }
             }
 
-            return PrivilegesEvaluatorResponse.ok();
+            return new IntermediateResult(checkTable);
         }
 
         /**
@@ -383,6 +388,33 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
+        }
+
+        @Override
+        protected boolean providesExplicitPrivilege(
+            PrivilegesEvaluationContext context,
+            String index,
+            String action,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            Map<String, IndexAbstraction> indexMetadata = context.getIndicesLookup();
+
+            IndexPattern indexPattern = this.explicitActionToIndexPattern.get(action);
+
+            if (indexPattern != null) {
+                try {
+                    if (indexPattern.matches(index, context, indexMetadata)) {
+                        return true;
+                    }
+                } catch (PrivilegesEvaluationException e) {
+                    // We can ignore these errors, as this max leads to fewer privileges than available
+                    log.error("Error while evaluating {}. Ignoring entry", indexPattern, e);
+                    exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + indexPattern, e));
+                }
+
+            }
+
+            return false;
         }
     }
 

@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,13 +45,14 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.TenantPrivileges;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -77,13 +79,20 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
+    private final Supplier<TenantPrivileges> tenantPrivilegesSupplier;
+    private final Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier;
+
     public PrivilegesInterceptorImpl(
         IndexNameExpressionResolver resolver,
         ClusterService clusterService,
         Client client,
-        ThreadPool threadPool
+        ThreadPool threadPool,
+        Supplier<TenantPrivileges> tenantPrivilegesSupplier,
+        Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier
     ) {
         super(resolver, clusterService, client, threadPool);
+        this.tenantPrivilegesSupplier = tenantPrivilegesSupplier;
+        this.multiTenancyConfigurationSupplier = multiTenancyConfigurationSupplier;
     }
 
     /**
@@ -97,25 +106,31 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final ActionRequest request,
         final String action,
         final User user,
-        final DynamicConfigModel config,
-        final ResolvedIndices requestedResolved,
-        final PrivilegesEvaluationContext context,
-        final TenantPrivileges tenantPrivileges
+        final OptionallyResolvedIndices optionallyResolvedIndices,
+        final PrivilegesEvaluationContext context
     ) {
+        DashboardsMultiTenancyConfiguration config = this.multiTenancyConfigurationSupplier.get();
 
-        final boolean enabled = config.isDashboardsMultitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
+        final boolean enabled = config.multitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
+        TenantPrivileges tenantPrivileges = this.tenantPrivilegesSupplier.get();
+
+        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+            // If we have no information about the indices, it is safe to skip multi tenancy handling
+            return CONTINUE_EVALUATION_REPLACE_RESULT;
+        }
+
         // next two lines needs to be retrieved from configuration
-        final String dashboardsServerUsername = config.getDashboardsServerUsername();// config.dynamic.kibana.server_username;
-        final String dashboardsIndexName = config.getDashboardsIndexname();// config.dynamic.kibana.index;
+        final String dashboardsServerUsername = config.dashboardsServerUsername();// config.dynamic.kibana.server_username;
+        final String dashboardsIndexName = config.dashboardsIndex();// config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
         if (USER_TENANT.equals(requestedTenant)) {
-            final boolean private_tenant_enabled = config.isDashboardsPrivateTenantEnabled();
+            final boolean private_tenant_enabled = config.privateTenantEnabled();
             if (!private_tenant_enabled) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
@@ -129,7 +144,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         // intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias
         // involved
         final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername)
-            && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
+            && resolveToDashboardsIndexOrAlias(resolvedIndices, dashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
 
         TenantPrivileges.ActionType actionType = getActionTypeForAction(action);
@@ -157,12 +172,12 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         if (isDebugEnabled && !user.getName().equals(dashboardsServerUsername)) {
             // log statements only here
-            log.debug("requestedResolved: " + requestedResolved);
+            log.debug("requestedResolved: {}", resolvedIndices);
         }
 
         // request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.local().isAll()) {
-            final Set<String> indices = requestedResolved.local().names();
+        if (!user.getName().equals(dashboardsServerUsername) && resolvedIndices.local().names().size() == 1) {
+            final Set<String> indices = resolvedIndices.local().namesOfIndices(context.clusterState());
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
@@ -201,7 +216,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             if (isTraceEnabled) {
                 log.trace("not a request to only the .kibana index");
                 log.trace(user.getName() + "/" + dashboardsServerUsername);
-                log.trace(requestedResolved + " does not contain only " + dashboardsIndexName);
+                log.trace(resolvedIndices + " does not contain only " + dashboardsIndexName);
             }
 
         }
@@ -394,9 +409,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final ResolvedIndices requestedResolved, final String dashboardsIndexName) {
-        if (requestedResolved.local().isAll()) {
-            return false;
-        }
         return requestedResolved.local().names().size() == 1 && requestedResolved.local().names().contains(dashboardsIndexName);
     }
 }
