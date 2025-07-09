@@ -15,7 +15,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 
 public class SecurityApiDependencies {
@@ -26,12 +26,12 @@ public class SecurityApiDependencies {
     private final AuditLog auditLog;
     private final Settings settings;
 
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
     public SecurityApiDependencies(
         final AdminDNs adminDNs,
         final ConfigurationRepository configurationRepository,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final PrivilegesConfiguration privilegesConfiguration,
         final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator,
         final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator,
         final AuditLog auditLog,
@@ -39,7 +39,7 @@ public class SecurityApiDependencies {
     ) {
         this.adminDNs = adminDNs;
         this.configurationRepository = configurationRepository;
-        this.privilegesEvaluator = privilegesEvaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
         this.restApiPrivilegesEvaluator = restApiPrivilegesEvaluator;
         this.restApiAdminPrivilegesEvaluator = restApiAdminPrivilegesEvaluator;
         this.auditLog = auditLog;
@@ -50,8 +50,8 @@ public class SecurityApiDependencies {
         return adminDNs;
     }
 
-    public PrivilegesEvaluator privilegesEvaluator() {
-        return privilegesEvaluator;
+    public PrivilegesConfiguration privilegesConfiguration() {
+        return privilegesConfiguration;
     }
 
     public ConfigurationRepository configurationRepository() {

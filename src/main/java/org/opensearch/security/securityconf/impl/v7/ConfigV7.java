@@ -86,6 +86,9 @@ public class ConfigV7 {
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
         public OnBehalfOfSettings on_behalf_of = new OnBehalfOfSettings();
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonProperty("privileges_evaluation_type")
+        public String privilegesEvaluationType = null;
 
         @Override
         public String toString() {

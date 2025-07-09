@@ -49,7 +49,9 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.TenantPrivileges;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.CType;
@@ -82,7 +84,7 @@ public class TenantInfoAction extends BaseRestHandler {
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator evaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
     private final AdminDNs adminDns;
@@ -91,7 +93,7 @@ public class TenantInfoAction extends BaseRestHandler {
     public TenantInfoAction(
         final Settings settings,
         final RestController controller,
-        final PrivilegesEvaluator evaluator,
+        final PrivilegesConfiguration privilegesConfiguration,
         final ThreadPool threadPool,
         final ClusterService clusterService,
         final AdminDNs adminDns,
@@ -99,7 +101,7 @@ public class TenantInfoAction extends BaseRestHandler {
     ) {
         super();
         this.threadContext = threadPool.getThreadContext();
-        this.evaluator = evaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
         this.clusterService = clusterService;
         this.adminDns = adminDns;
         this.configurationRepository = configurationRepository;
@@ -134,10 +136,12 @@ public class TenantInfoAction extends BaseRestHandler {
                     } else {
 
                         builder.startObject();
+                        DashboardsMultiTenancyConfiguration multiTenancyConfiguration = privilegesConfiguration.multiTenancyConfiguration();
+                        TenantPrivileges tenantPrivileges = privilegesConfiguration.tenantPrivileges();
 
                         final SortedMap<String, IndexAbstraction> lookup = clusterService.state().metadata().getIndicesLookup();
                         for (final String indexOrAlias : lookup.keySet()) {
-                            final String tenant = tenantNameForIndex(indexOrAlias);
+                            final String tenant = tenantNameForIndex(indexOrAlias, multiTenancyConfiguration, tenantPrivileges);
                             if (tenant != null) {
                                 builder.field(indexOrAlias, tenant);
                             }
@@ -172,8 +176,10 @@ public class TenantInfoAction extends BaseRestHandler {
             return false;
         }
 
+        DashboardsMultiTenancyConfiguration multiTenancyConfiguration = privilegesConfiguration.multiTenancyConfiguration();
+
         // check if the user is a kibanauser or super admin
-        if (user.getName().equals(evaluator.dashboardsServerUsername()) || adminDns.isAdmin(user)) {
+        if (user.getName().equals(multiTenancyConfiguration.dashboardsServerUsername()) || adminDns.isAdmin(user)) {
             return true;
         }
 
@@ -182,7 +188,7 @@ public class TenantInfoAction extends BaseRestHandler {
 
         // check if dashboardsOpenSearchRole is present in RolesMapping and if yes, check if user is a part of this role
         if (rolesMappingConfiguration != null) {
-            String dashboardsOpenSearchRole = evaluator.dashboardsOpenSearchRole();
+            String dashboardsOpenSearchRole = multiTenancyConfiguration.dashboardsOpenSearchRole();
             if (Strings.isNullOrEmpty(dashboardsOpenSearchRole)) {
                 return false;
             }
@@ -201,13 +207,17 @@ public class TenantInfoAction extends BaseRestHandler {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-    private String tenantNameForIndex(String index) {
+    private String tenantNameForIndex(
+        String index,
+        DashboardsMultiTenancyConfiguration multiTenancyConfiguration,
+        TenantPrivileges tenantPrivileges
+    ) {
         String[] indexParts;
         if (index == null || (indexParts = index.split("_")).length != 3) {
             return null;
         }
 
-        if (!indexParts[0].equals(evaluator.dashboardsIndex())) {
+        if (!indexParts[0].equals(multiTenancyConfiguration.dashboardsIndex())) {
             return null;
         }
 
@@ -215,7 +225,7 @@ public class TenantInfoAction extends BaseRestHandler {
             final int expectedHash = Integer.parseInt(indexParts[1]);
             final String sanitizedName = indexParts[2];
 
-            for (String tenant : evaluator.tenantPrivileges().allTenantNames()) {
+            for (String tenant : tenantPrivileges.allTenantNames()) {
                 if (tenant.hashCode() == expectedHash && sanitizedName.equals(tenant.toLowerCase().replaceAll("[^a-z0-9]+", ""))) {
                     return tenant;
                 }

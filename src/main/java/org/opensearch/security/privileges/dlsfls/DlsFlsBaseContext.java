@@ -12,8 +12,8 @@ package org.opensearch.security.privileges.dlsfls;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
@@ -22,12 +22,12 @@ import org.opensearch.security.user.User;
  * Node global context data for DLS/FLS. The lifecycle of an instance of this class is equal to the lifecycle of a running node.
  */
 public class DlsFlsBaseContext {
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
     private final ThreadContext threadContext;
     private final AdminDNs adminDNs;
 
-    public DlsFlsBaseContext(PrivilegesEvaluator privilegesEvaluator, ThreadContext threadContext, AdminDNs adminDNs) {
-        this.privilegesEvaluator = privilegesEvaluator;
+    public DlsFlsBaseContext(PrivilegesConfiguration privilegesConfiguration, ThreadContext threadContext, AdminDNs adminDNs) {
+        this.privilegesConfiguration = privilegesConfiguration;
         this.threadContext = threadContext;
         this.adminDNs = adminDNs;
     }
@@ -43,7 +43,7 @@ public class DlsFlsBaseContext {
             return null;
         }
 
-        return this.privilegesEvaluator.createContext(user, null);
+        return this.privilegesConfiguration.privilegesEvaluator().createContext(user, null);
     }
 
     public boolean isDlsDoneOnFilterLevel() {

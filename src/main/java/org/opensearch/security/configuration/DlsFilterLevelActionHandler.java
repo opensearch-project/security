@@ -39,6 +39,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.document.DocumentField;
@@ -131,7 +132,7 @@ public class DlsFilterLevelActionHandler {
     private final ActionRequest request;
     private final ActionListener<?> listener;
     private final IndexToRuleMap<DlsRestriction> dlsRestrictionMap;
-    private final ResolvedIndices resolved;
+    private final OptionallyResolvedIndices resolved;
     private final boolean requiresIndexScoping;
     private final Client nodeClient;
     private final ClusterService clusterService;
@@ -162,7 +163,9 @@ public class DlsFilterLevelActionHandler {
         this.threadContext = threadContext;
         this.resolver = resolver;
 
-        this.requiresIndexScoping = resolved.local().isAll() || resolved.local().names().size() != 1;
+        this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices
+            ? resolvedIndices.local().names().size() != 1
+            : true;
     }
 
     private boolean handle() {

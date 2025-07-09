@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,9 +21,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.cluster.metadata.ResolvedIndices;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
@@ -71,24 +72,22 @@ public class ProtectedIndexAccessEvaluator {
         final ActionRequest request,
         final Task task,
         final String action,
-        final ResolvedIndices requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
+        final OptionallyResolvedIndices requestedResolved,
         final Set<String> mappedRoles
     ) {
         if (!protectedIndexEnabled) {
-            return presponse;
+            return null;
         }
-        if (indexMatcher.matchAny(requestedResolved.local().names())
-            && deniedActionMatcher.test(action)
-            && !allowedRolesMatcher.matchAny(mappedRoles)) {
+
+        boolean containsProtectedIndex = requestedResolved.local().containsAny(indexMatcher);
+
+        if (containsProtectedIndex && deniedActionMatcher.test(action) && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '{}' index/indices is not allowed for a regular user", action, indexMatcher);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
-        if (indexMatcher.matchAny(requestedResolved.local().names()) && !allowedRolesMatcher.matchAny(mappedRoles)) {
-
+        if (containsProtectedIndex && !allowedRolesMatcher.matchAny(mappedRoles)) {
             final boolean isDebugEnabled = log.isDebugEnabled();
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
@@ -104,6 +103,6 @@ public class ProtectedIndexAccessEvaluator {
                 }
             }
         }
-        return presponse;
+        return null;
     }
 }

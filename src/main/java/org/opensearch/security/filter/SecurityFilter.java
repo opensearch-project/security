@@ -27,7 +27,6 @@
 package org.opensearch.security.filter;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -64,6 +63,7 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -88,16 +88,19 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.privileges.RoleMapper;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.ThreadContextUserInfo;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -109,7 +112,8 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_P
 public class SecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator evalp;
+    private final PrivilegesConfiguration privilegesConfiguration;
+    private final RoleMapper roleMapper;
     private final AdminDNs adminDns;
     private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
@@ -122,10 +126,12 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
+    private final ThreadContextUserInfo threadContextUserInfo;
 
     public SecurityFilter(
         final Settings settings,
-        final PrivilegesEvaluator evalp,
+        PrivilegesConfiguration privilegesConfiguration,
+        RoleMapper roleMapper,
         final AdminDNs adminDns,
         DlsFlsRequestValve dlsFlsValve,
         AuditLog auditLog,
@@ -136,7 +142,8 @@ public class SecurityFilter implements ActionFilter {
         final XFFResolver xffResolver,
         ResourceAccessEvaluator resourceAccessEvaluator
     ) {
-        this.evalp = evalp;
+        this.privilegesConfiguration = privilegesConfiguration;
+        this.roleMapper = roleMapper;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
@@ -150,7 +157,8 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = resourceAccessEvaluator;
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, settings, resourceAccessHandler);
+        this.threadContextUserInfo = new ThreadContextUserInfo(threadPool.getThreadContext(), privilegesConfiguration, settings);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -201,7 +209,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadPool);
+            rolesInjector.injectUserAndRoles(threadPool);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
                 UserInjector.Result injectedUser = userInjector.getInjectedUser();
@@ -329,7 +337,6 @@ public class SecurityFilter implements ActionFilter {
 
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                && (injectedRoles == null)
                 && (user == null)) {
 
                 chain.proceed(task, action, request, listener);
@@ -381,25 +388,14 @@ public class SecurityFilter implements ActionFilter {
                     }
             }
 
-            final PrivilegesEvaluator eval = evalp;
-
-            if (!eval.isInitialized()) {
-                StringBuilder error = new StringBuilder("OpenSearch Security not initialized for ");
-                error.append(action);
-                if (!clusterInfoHolder.hasClusterManager()) {
-                    error.append(String.format(". %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
-                }
-
-                log.error(error.toString());
-                listener.onFailure(new OpenSearchSecurityException(error.toString(), RestStatus.SERVICE_UNAVAILABLE));
-                return;
-            }
+            final PrivilegesEvaluator eval = this.privilegesConfiguration.privilegesEvaluator();
 
             if (log.isTraceEnabled()) {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            PrivilegesEvaluationContext context = eval.createContext(user, action, request, actionRequestMetadata, task, injectedRoles);
+            PrivilegesEvaluationContext context = eval.createContext(user, action, request, actionRequestMetadata, task);
+            this.threadContextUserInfo.setUserInfoInThreadContext(context);
             User finalUser = user;
             Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
                 auditLog.logMissingPrivileges(action, request, task);
@@ -407,13 +403,7 @@ public class SecurityFilter implements ActionFilter {
                 if (!response.getMissingSecurityRoles().isEmpty()) {
                     err = String.format("No mapping for %s on roles %s", finalUser, response.getMissingSecurityRoles());
                 } else {
-                    err = (injectedRoles != null)
-                        ? String.format(
-                            "no permissions for %s and associated roles %s",
-                            response.getMissingPrivileges(),
-                            context.getMappedRoles()
-                        )
-                        : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+                    err = String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
                 }
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
@@ -592,14 +582,11 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private boolean isRequestIndexImmutable(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata) {
-        Optional<ResolvedIndices> optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
-        if (!optionalResolvedIndices.isPresent()) {
+        OptionallyResolvedIndices optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
+        if (optionalResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            return immutableIndicesMatcher.matchAny(resolvedIndices.local().namesOfIndices(cs.state()));
+        } else {
             return true;
         }
-        ResolvedIndices resolvedIndices = optionalResolvedIndices.get();
-        if (resolvedIndices.local().isAll()) {
-            return true;
-        }
-        return immutableIndicesMatcher.matchAny(resolvedIndices.local().names());
     }
 }

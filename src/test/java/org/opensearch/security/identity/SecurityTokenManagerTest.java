@@ -13,7 +13,6 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 
 import com.google.common.io.BaseEncoding;
 import org.junit.After;
@@ -31,7 +30,6 @@ import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
-import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -71,7 +69,7 @@ public class SecurityTokenManagerTest {
 
     @Before
     public void setup() {
-        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService));
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles()));
     }
 
     @After
@@ -84,25 +82,11 @@ public class SecurityTokenManagerTest {
     final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
 
     @Test
-    public void onConfigModelChanged_oboNotSupported() {
-        final ConfigModel configModel = mock(ConfigModel.class);
-
-        tokenManager.onConfigModelChanged(configModel);
-
-        assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
-        verifyNoMoreInteractions(configModel);
-    }
-
-    @Test
     public void onDynamicConfigModelChanged_JwtVendorEnabled() {
-        final ConfigModel configModel = mock(ConfigModel.class);
         final DynamicConfigModel mockConfigModel = createMockJwtVendorInTokenManager(true);
-
-        tokenManager.onConfigModelChanged(configModel);
 
         assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(true));
         verify(mockConfigModel).getDynamicOnBehalfOfSettings();
-        verifyNoMoreInteractions(configModel);
     }
 
     @Test
@@ -211,9 +195,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
         createMockJwtVendorInTokenManager(true);
 
@@ -235,9 +216,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
         createMockJwtVendorInTokenManager(true);
 
@@ -257,9 +235,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
         createMockJwtVendorInTokenManager(true);
 
@@ -280,9 +255,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
         createMockJwtVendorInTokenManager(true);
 
@@ -300,9 +272,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
         createMockJwtVendorInTokenManager(false);
 
@@ -322,9 +291,6 @@ public class SecurityTokenManagerTest {
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-        when(configModel.mapSecurityRoles(any(), any())).thenReturn(null);
 
         createMockJwtVendorInTokenManager(true);
 

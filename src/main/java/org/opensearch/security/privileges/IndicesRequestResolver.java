@@ -10,7 +10,6 @@
  */
 package org.opensearch.security.privileges;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.opensearch.action.ActionRequest;
@@ -18,6 +17,7 @@ import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
 public class IndicesRequestResolver {
@@ -27,21 +27,21 @@ public class IndicesRequestResolver {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
-    public ResolvedIndices resolve(
+    public OptionallyResolvedIndices resolve(
         ActionRequest request,
         ActionRequestMetadata<?, ?> actionRequestMetadata,
         Supplier<ClusterState> clusterStateSupplier
     ) {
-        Optional<ResolvedIndices> providedIndices = actionRequestMetadata.resolvedIndices();
-        if (providedIndices.isPresent()) {
-            return providedIndices.get();
+        OptionallyResolvedIndices providedIndices = actionRequestMetadata.resolvedIndices();
+        if (providedIndices instanceof ResolvedIndices) {
+            return providedIndices;
         } else {
             // The action does not implement the resolution mechanism; we have to do it by ourselves
             return resolveFallback(request, clusterStateSupplier.get());
         }
     }
 
-    public ResolvedIndices resolve(
+    public OptionallyResolvedIndices resolve(
         ActionRequest request,
         ActionRequestMetadata<?, ?> actionRequestMetadata,
         PrivilegesEvaluationContext context
@@ -49,11 +49,11 @@ public class IndicesRequestResolver {
         return resolve(request, actionRequestMetadata, context::clusterState);
     }
 
-    private ResolvedIndices resolveFallback(ActionRequest request, ClusterState clusterState) {
+    private OptionallyResolvedIndices resolveFallback(ActionRequest request, ClusterState clusterState) {
         if (request instanceof IndicesRequest indicesRequest) {
-            return ResolvedIndices.of(this.indexNameExpressionResolver.concreteIndexNames(clusterState, indicesRequest));
+            return ResolvedIndices.of(this.indexNameExpressionResolver.concreteResolvedIndices(clusterState, indicesRequest));
         } else {
-            return ResolvedIndices.all();
+            return ResolvedIndices.unknown();
         }
     }
 

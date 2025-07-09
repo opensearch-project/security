@@ -176,6 +176,13 @@ public class PrivilegesEvaluatorResponse {
         return response;
     }
 
+    public static PrivilegesEvaluatorResponse ok(CreateIndexRequestBuilder createIndexRequestBuilder) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.allowed = true;
+        response.createIndexRequestBuilder = createIndexRequestBuilder;
+        return response;
+    }
+
     public static PrivilegesEvaluatorResponse partiallyOk(
         Set<String> availableIndices,
         CheckTable<String, String> indexToActionCheckTable
