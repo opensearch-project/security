@@ -774,7 +774,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             this.indices = ImmutableMap.copyOf(indices);
             this.metadataVersion = metadataVersion;
 
-            long duration = System.currentTimeMillis();
+            long duration = System.currentTimeMillis() - startTime;
 
             if (duration > 30000) {
                 log.warn("Creation of StatefulIndexPrivileges took {} ms", duration);
