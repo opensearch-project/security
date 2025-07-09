@@ -43,8 +43,7 @@ public class IndicesRequestModifier {
     public boolean setLocalIndicesToEmpty(ActionRequest targetRequest, ResolvedIndices resolvedIndices) {
         if (targetRequest instanceof IndicesRequest.Replaceable replaceable) {
             if (resolvedIndices.remote().isEmpty()) {
-                if (replaceable.indicesOptions().expandWildcardsOpen()
-                    || replaceable.indicesOptions().expandWildcardsClosed()) {
+                if (replaceable.indicesOptions().expandWildcardsOpen() || replaceable.indicesOptions().expandWildcardsClosed()) {
                     // If the request expands wildcards, we use an index expression which resolves to no indices
                     replaceable.indices(".none*,-*");
                     return true;

@@ -31,9 +31,9 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.privileges.ResourceAccessEvaluator;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.RoleMapper;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
@@ -81,7 +81,8 @@ public class SecurityFilterTests {
     public void testImmutableIndicesWildcardMatcher() {
         final SecurityFilter filter = new SecurityFilter(
             settings,
-            mock(PrivilegesEvaluator.class),
+            mock(PrivilegesConfiguration.class),
+            mock(RoleMapper.class),
             mock(AdminDNs.class),
             mock(DlsFlsRequestValve.class),
             mock(AuditLog.class),
@@ -105,7 +106,8 @@ public class SecurityFilterTests {
 
         final SecurityFilter filter = new SecurityFilter(
             settings,
-            mock(PrivilegesEvaluator.class),
+            mock(PrivilegesConfiguration.class),
+            mock(RoleMapper.class),
             mock(AdminDNs.class),
             mock(DlsFlsRequestValve.class),
             auditLog,

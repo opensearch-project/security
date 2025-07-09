@@ -70,6 +70,7 @@ public class ResourceAccessHandlerTest {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
+        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, new PrivilegesConfiguration(privilegesEvaluator));
         handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
 
         // For tests that verify permission with action-group
