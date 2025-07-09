@@ -76,11 +76,24 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         Setting.Property.NodeScope
     );
 
+    /**
+     * This setting controls whether the precomputed/denormalized index privileges (in the inner class StatefulIndexPrivileges)
+     * will be created or not. This is on by default to provide the best action throughput. It can make sense to
+     * disable this when it is seen that the initialisation process takes so much time/resources that it negatively
+     * affects the cluster performance. This come at the price of a reduced action throughput.
+     */
+    public static Setting<Boolean> PRECOMPUTED_PRIVILEGES_ENABLED = Setting.boolSetting(
+        "plugins.security.privileges_evaluation.precomputed_privileges.enabled",
+        true,
+        Setting.Property.NodeScope
+    );
+
     private static final Logger log = LogManager.getLogger(RoleBasedActionPrivileges.class);
 
     private final SecurityDynamicConfiguration<RoleV7> roles;
     private final FlattenedActionGroups actionGroups;
     private final ByteSizeValue statefulIndexMaxHeapSize;
+    private final boolean statefulIndexEnabled;
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
@@ -89,6 +102,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
+        this.statefulIndexEnabled = PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
     }
 
     /**
@@ -101,6 +115,10 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
      * the async method updateStatefulIndexPrivilegesAsync(). Should be preferred.
      */
     public void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices, long metadataVersion) {
+        if (!this.statefulIndexEnabled) {
+            return;
+        }
+
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
 
         indices = StatefulIndexPrivileges.relevantOnly(indices);
@@ -632,6 +650,8 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             long metadataVersion,
             ByteSizeValue statefulIndexMaxHeapSize
         ) {
+            long startTime = System.currentTimeMillis();
+
             Map<
                 String,
                 CompactMapGroupBuilder.MapBuilder<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>>> actionToIndexToRoles =
@@ -753,6 +773,14 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
             this.indices = ImmutableMap.copyOf(indices);
             this.metadataVersion = metadataVersion;
+
+            long duration = System.currentTimeMillis();
+
+            if (duration > 30000) {
+                log.warn("Creation of StatefulIndexPrivileges took {} ms", duration);
+            } else {
+                log.debug("Creation of StatefulIndexPrivileges took {} ms", duration);
+            }
         }
 
         /**
