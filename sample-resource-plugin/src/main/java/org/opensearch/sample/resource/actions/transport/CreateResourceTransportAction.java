@@ -71,7 +71,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         try (XContentBuilder builder = jsonBuilder()) {
             IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
                 .setWaitForActiveShards(1)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL)
                 .setSource(sample.toXContent(builder, ToXContent.EMPTY_PARAMS))
                 .request();
 

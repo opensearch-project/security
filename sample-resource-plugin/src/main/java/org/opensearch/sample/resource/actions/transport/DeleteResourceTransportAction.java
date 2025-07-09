@@ -72,7 +72,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
 
     private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {
         DeleteRequest deleteRequest = new DeleteRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(
-            WriteRequest.RefreshPolicy.IMMEDIATE
+            WriteRequest.RefreshPolicy.WAIT_UNTIL
         );
 
         nodeClient.delete(deleteRequest, listener);

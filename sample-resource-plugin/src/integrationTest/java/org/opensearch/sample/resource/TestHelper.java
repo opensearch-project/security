@@ -10,7 +10,6 @@ package org.opensearch.sample.resource;
 
 import java.time.Duration;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -217,10 +216,10 @@ public final class TestHelper {
         }
 
         private void assertGetAll(String endpoint, TestSecurityConfig.User user, int status, String expectedResourceName) {
-            // Windows test seem to be running into issues when making a get all call which under the hood does a POST /_search
-            if (SystemUtils.IS_OS_WINDOWS) {
-                return;
-            }
+            // // Windows test seem to be running into issues when making a get all call which under the hood does a POST /_search
+            // if (SystemUtils.IS_OS_WINDOWS) {
+            // return;
+            // }
             try (TestRestClient client = cluster.getRestClient(user)) {
                 Awaitility.await("Wait until index is refreshed").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
                     TestRestClient.HttpResponse response = client.get(endpoint);

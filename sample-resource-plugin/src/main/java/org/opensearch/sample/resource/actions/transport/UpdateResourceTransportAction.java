@@ -63,8 +63,9 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             String resourceId = request.getResourceId();
             SampleResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
-                UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
+                UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(
+                    WriteRequest.RefreshPolicy.WAIT_UNTIL
+                ).doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
 
                 log.debug("Update Request: {}", ur.toString());
 

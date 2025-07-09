@@ -15,9 +15,7 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,12 +69,12 @@ public class MultiAccessLevelsTests {
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
     public static abstract class BaseTests {
-        @BeforeClass
-        public static void skipOnWindows() {
-            String os = System.getProperty("os.name");
-            // This test file on Windows produces a flaky behavior which is hard to reproduce, hence skipping on Windows
-            Assume.assumeFalse("Skipping multi-access level tests on Windows", os != null && os.toLowerCase().contains("win"));
-        }
+        // @BeforeClass
+        // public static void skipOnWindows() {
+        // String os = System.getProperty("os.name");
+        // // This test file on Windows produces a flaky behavior which is hard to reproduce, hence skipping on Windows
+        // Assume.assumeFalse("Skipping multi-access level tests on Windows", os != null && os.toLowerCase().contains("win"));
+        // }
 
         @ClassRule
         public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
