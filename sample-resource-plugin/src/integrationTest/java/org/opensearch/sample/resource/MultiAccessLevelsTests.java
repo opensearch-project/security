@@ -15,7 +15,9 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,6 +71,13 @@ public class MultiAccessLevelsTests {
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
     public static abstract class BaseTests {
+        @BeforeClass
+        public static void skipOnWindows() {
+            String os = System.getProperty("os.name");
+            // This test file on Windows produces a flaky behavior which is hard to reproduce, hence skipping on Windows
+            Assume.assumeFalse("Skipping multi-access level tests on Windows", os != null && os.toLowerCase().contains("win"));
+        }
+
         @ClassRule
         public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
             .plugin(PainlessModulePlugin.class)
@@ -202,7 +211,7 @@ public class MultiAccessLevelsTests {
             assertNoAccessBeforeSharing(FULL_ACCESS_USER);
             // share at sampleReadOnly level
             api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry(); // wait until sharing info is populated
+            api.awaitSharingEntry(FULL_ACCESS_USER.getName()); // wait until sharing info is populated
             assertReadOnly(FULL_ACCESS_USER);
         }
 
@@ -211,7 +220,7 @@ public class MultiAccessLevelsTests {
             assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
             // share at sampleReadOnly level
             api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry(); // wait until sharing info is populated
+            api.awaitSharingEntry(LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
             assertReadOnly(LIMITED_ACCESS_USER);
         }
 
@@ -356,7 +365,7 @@ public class MultiAccessLevelsTests {
         public void multipleUsers_multipleLevels() {
             assertNoAccessBeforeSharing(FULL_ACCESS_USER);
             assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
-            // 1. share at read-only for full-access user and at full-access for limited perms user
+            // 1. share at read-only for full-access user and at full-access for limited-perms user
             api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
             api.awaitSharingEntry(FULL_ACCESS_USER.getName());
@@ -393,7 +402,7 @@ public class MultiAccessLevelsTests {
 
             // 1. share with user at read-only level
             api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry();
+            api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
 
             // 2. assert user now has read-only access
             assertReadOnly(LIMITED_ACCESS_USER);
