@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.privileges.IndexPattern;
@@ -132,7 +133,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
      * @throws PrivilegesEvaluationException If something went wrong during privileges evaluation. In such cases, any
      *                                       access should be denied to make sure that no unauthorized information is exposed.
      */
-    public boolean isUnrestricted(PrivilegesEvaluationContext context, ResolvedIndices resolved) throws PrivilegesEvaluationException {
+    public boolean isUnrestricted(PrivilegesEvaluationContext context, OptionallyResolvedIndices optionallyResolvedIndices) throws PrivilegesEvaluationException {
         if (context.getMappedRoles().isEmpty()) {
             return false;
         }
@@ -142,11 +143,12 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
             return true;
         }
 
-        if (resolved == null) {
+        if (this.hasRestrictedRulesWithIndexWildcard(context)) {
             return false;
         }
 
-        if (this.hasRestrictedRulesWithIndexWildcard(context)) {
+        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolved)) {
+            // If we do not have resolved indices information, we can assume a restriction
             return false;
         }
 

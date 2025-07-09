@@ -64,6 +64,7 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -594,14 +595,11 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private boolean isRequestIndexImmutable(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata) {
-        Optional<ResolvedIndices> optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
-        if (!optionalResolvedIndices.isPresent()) {
+        OptionallyResolvedIndices optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
+        if (optionalResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            return immutableIndicesMatcher.matchAny(resolvedIndices.local().namesOfIndices(cs.state()));
+        } else {
             return true;
         }
-        ResolvedIndices resolvedIndices = optionalResolvedIndices.get();
-        if (resolvedIndices.local().isAll()) {
-            return true;
-        }
-        return immutableIndicesMatcher.matchAny(resolvedIndices.local().names());
     }
 }

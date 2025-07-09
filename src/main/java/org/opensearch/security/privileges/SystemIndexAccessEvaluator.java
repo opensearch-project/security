@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
@@ -120,14 +121,14 @@ public class SystemIndexAccessEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(
-        final ActionRequest request,
-        final Task task,
-        final String action,
-        final ResolvedIndices requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
-        final PrivilegesEvaluationContext context,
-        final ActionPrivileges actionPrivileges,
-        final User user
+            final ActionRequest request,
+            final Task task,
+            final String action,
+            final OptionallyResolvedIndices requestedResolved,
+            final PrivilegesEvaluatorResponse presponse,
+            final PrivilegesEvaluationContext context,
+            final ActionPrivileges actionPrivileges,
+            final User user
     ) {
         boolean containsSystemIndex = false; // TODO requestedResolved.local().containsAny(this::isSystemIndex);
 
@@ -197,7 +198,7 @@ public class SystemIndexAccessEvaluator {
      */
     private void evaluateSystemIndicesAccess(
         final String action,
-        final ResolvedIndices requestedResolved,
+        final OptionallyResolvedIndices requestedResolved,
         final ActionRequest request,
         final Task task,
         final PrivilegesEvaluatorResponse presponse,

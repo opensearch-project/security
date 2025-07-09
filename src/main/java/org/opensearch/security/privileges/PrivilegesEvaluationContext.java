@@ -21,6 +21,7 @@ import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -39,7 +40,7 @@ public class PrivilegesEvaluationContext {
     private final User user;
     private final String action;
     private final ActionRequest request;
-    private ResolvedIndices resolvedIndices;
+    private OptionallyResolvedIndices resolvedIndices;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
@@ -122,14 +123,10 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
-    public ResolvedIndices getResolvedRequest() {
-        if (PrivilegesEvaluator.isClusterPerm(action)) {
-            return ResolvedIndices.all();
-        }
-
-        ResolvedIndices result = this.resolvedIndices;
+    public OptionallyResolvedIndices getResolvedRequest() {
+        OptionallyResolvedIndices result = this.resolvedIndices;
         if (result == null) {
-            result = this.indicesRequestResolver.resolve(this.request, this.actionRequestMetadata, this.clusterStateSupplier);
+            this.resolvedIndices = result = this.indicesRequestResolver.resolve(this.request, this.actionRequestMetadata, this.clusterStateSupplier);
         }
 
         return result;

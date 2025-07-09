@@ -41,6 +41,7 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -145,7 +146,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
-        ResolvedIndices resolved = context.getResolvedRequest();
+        OptionallyResolvedIndices resolved = context.getResolvedRequest();
 
         try {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);

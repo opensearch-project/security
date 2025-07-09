@@ -80,6 +80,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -455,7 +456,7 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        ResolvedIndices resolvedIndices = context.getResolvedRequest();
+        OptionallyResolvedIndices resolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
             log.debug("RequestedResolved : {}", resolvedIndices);
