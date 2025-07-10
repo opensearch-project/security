@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -91,6 +92,11 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
      */
     private final boolean dfmEmptyOverridesAll;
 
+    /**
+     * Corresponds to the setting plugins.security.privileges_evaluation.precomputed_privileges.enabled
+     */
+    private final boolean statefulIndexEnabled;
+
     public AbstractRuleBasedPrivileges(
         SecurityDynamicConfiguration<RoleV7> roles,
         Map<String, IndexAbstraction> indexMetadata,
@@ -101,7 +107,8 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         this.roleToRuleFunction = roleToRuleFunction;
         this.staticRules = new StaticRules<>(roles, roleToRuleFunction);
         this.dfmEmptyOverridesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
-        this.statefulRules = new StatefulRules<>(roles, indexMetadata, roleToRuleFunction);
+        this.statefulIndexEnabled = ActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
+        this.statefulRules = this.statefulIndexEnabled ? new StatefulRules<>(roles, indexMetadata, roleToRuleFunction) : null;
     }
 
     /**
@@ -524,6 +531,10 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         throws PrivilegesEvaluationException;
 
     synchronized void updateIndices(Map<String, IndexAbstraction> indexMetadata) {
+        if (!this.statefulIndexEnabled) {
+            return;
+        }
+
         StatefulRules<SingleRule> statefulRules = this.statefulRules;
 
         if (statefulRules == null || !statefulRules.indexMetadata.keySet().equals(indexMetadata.keySet())) {
