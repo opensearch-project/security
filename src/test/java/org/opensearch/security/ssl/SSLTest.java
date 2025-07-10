@@ -50,6 +50,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
@@ -795,7 +796,7 @@ public class SSLTest extends SingleClusterTest {
         serverContext.init(null, null, null);
         final SSLEngine engine = serverContext.createSSLEngine();
         final List<String> jdkSupportedCiphers = new ArrayList<>(Arrays.asList(engine.getSupportedCipherSuites()));
-        jdkSupportedCiphers.retainAll(SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, false));
+        jdkSupportedCiphers.retainAll(SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, CertType.TRANSPORT));
         engine.setEnabledCipherSuites(jdkSupportedCiphers.toArray(new String[0]));
 
         final List<String> jdkEnabledCiphers = Arrays.asList(engine.getEnabledCipherSuites());
@@ -807,11 +808,11 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testUnmodifieableCipherProtocolConfig() throws Exception {
-        SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false)[0] = "bogus";
-        assertThat(SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false)[0], is("TLSv1.3"));
+        SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT)[0] = "bogus";
+        assertThat(SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT)[0], is("TLSv1.3"));
 
         try {
-            SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, false).set(0, "bogus");
+            SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, CertType.TRANSPORT).set(0, "bogus");
             Assert.fail();
         } catch (UnsupportedOperationException e) {
             // expected
