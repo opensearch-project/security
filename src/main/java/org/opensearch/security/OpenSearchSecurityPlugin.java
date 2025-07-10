@@ -1146,6 +1146,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
+        rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool);
         evaluator = new PrivilegesEvaluator(
             clusterService,
             clusterService::state,
@@ -1157,7 +1158,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings,
             privilegesInterceptor,
             cih,
-            irr
+            irr,
+            resourcePluginInfo.getResourceIndices(),
+            rsIndexHandler
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -1254,7 +1257,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         )) {
-            rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool);
 
             ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
