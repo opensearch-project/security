@@ -1,3 +1,13 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
 package org.opensearch.security.dlic.rest.api;
 
 import com.google.common.collect.ImmutableSet;
@@ -37,8 +47,11 @@ import java.util.*;
 import java.util.function.Supplier;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -54,9 +67,19 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 
+/**
+ * Simulation API for simulating user and role-based permissions at index and cluster levels.
+ * Allows administrators to preview permissions before applying configuration changes.
+ *
+ * <p><strong>Endpoint:</strong>  POST /_plugins/_security/api/simulation</p>
+ *
+ * <p><strong>EXPERIMENTAL:</strong> This API is experimental and may change in future versions.
+ * Enable with plugins.security.simulation_api.enabled=true</p>
+ *
+ */
 public class SimulationApiAction extends AbstractApiAction {
 
-    private static final List<Route> routes = addRoutesPrefix(List.of(
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(RestRequest.Method.POST, "/simulation")
     ));
 
@@ -70,13 +93,18 @@ public class SimulationApiAction extends AbstractApiAction {
     private static final String ACTION = "action";
     private static final String INDEX = "index";
     private static final String ID = "id";
+    private static final String USER="user";
+    private static final String ROLE_NAME="role_name";
 
-    public SimulationApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies, IndexResolverReplacer irr,
+    public SimulationApiAction(ClusterService clusterService,
+                               ThreadPool threadPool,
+                               SecurityApiDependencies securityApiDependencies,
+                               IndexResolverReplacer irr,
                                IndexNameExpressionResolver indexNameExpressionResolver)  {
         super(Endpoint.SIMULATION, clusterService, threadPool, securityApiDependencies);
         this.irr = irr;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.requestHandlersBuilder.add(RestRequest.Method.POST, this::handleSimulationRequest).withAccessHandler(request -> true);
+        this.requestHandlersBuilder.add(RestRequest.Method.POST, this::handleSimulationRequest);
     }
 
     @Override
@@ -89,22 +117,42 @@ public class SimulationApiAction extends AbstractApiAction {
         return null;
     }
 
-    private void handleSimulationRequest(RestChannel channel, RestRequest request, Client client){
+    public void handleSimulationRequest(RestChannel channel, RestRequest request, Client client){
+        boolean simulationApiEnabled = securityApiDependencies.settings().getAsBoolean(
+                ConfigConstants.EXPERIMENTAL_SECURITY_SIMULATION_API_ENABLED,
+                ConfigConstants.EXPERIMENTAL_SECURITY_SIMULATION_API_ENABLED_DEFAULT
+        );
+
+        if (!simulationApiEnabled) {
+            ValidationResult<Map<String, Object>> featureDisabledResult = ValidationResult.error(
+                    RestStatus.NOT_IMPLEMENTED,
+                    payload(RestStatus.NOT_IMPLEMENTED, "Simulation API is experimental and disabled by default. Enable with plugins.security.simulation_api.enabled=true")
+            );
+            sendErrorResponse(channel, featureDisabledResult);
+            return;
+        }
+
+        ValidationResult<Map<String, Object>> validationResult = validateRequest(request);
+        if (!validationResult.isValid()) {
+            sendErrorResponse(channel, validationResult);
+            return;
+        }
+
         try {
 
-            Map<String, Object> proposedBody = DefaultObjectMapper.objectMapper.readValue(
-                    request.content().utf8ToString(),
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                    }
-            );
-
-            Boolean usingCurrentConfig = (Boolean) proposedBody.get("using_current_config");
+            Map<String, Object> proposedBody = parseRequest(request);
             PrivilegesEvaluatorResponse response;
 
-            if (Boolean.TRUE.equals(usingCurrentConfig)) {
-                response = evaluateWithCurrentConfig(proposedBody);
-            } else {
+            String roleName = (String) proposedBody.get(ROLE_NAME);
+            boolean hasRoles = proposedBody.containsKey(ROLES);
+            boolean hasRoleMapping = proposedBody.containsKey(ROLES_MAPPING);
+
+            if (roleName != null && !roleName.isEmpty()) {
+                response = evaluateByRoleName(proposedBody, roleName, hasRoles || proposedBody.containsKey(ACTION_GROUPS));
+            } else if (hasRoles && hasRoleMapping) {
                 response = evaluateWithProposedConfig(proposedBody);
+            } else {
+                response = evaluateWithCurrentConfig(proposedBody);
             }
 
             // Build response
@@ -117,31 +165,139 @@ public class SimulationApiAction extends AbstractApiAction {
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
 
         } catch (Exception e) {
-            internalServerError(channel, "Error simulating permissions: " + e.getMessage());
+            ValidationResult<PrivilegesEvaluatorResponse> errorResult = ValidationResult.error(
+                    RestStatus.INTERNAL_SERVER_ERROR, payload(RestStatus.INTERNAL_SERVER_ERROR, "Failed to simulate permissions: " + e.getMessage())
+            );
+            sendErrorResponse(channel, errorResult);
         }
 
     }
+    public  Map<String, Object> parseRequest(RestRequest request) throws IOException {
+        return DefaultObjectMapper.objectMapper.readValue(
+                request.content().utf8ToString(),
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                }
+        );
+    }
+    private ValidationResult<Map<String, Object>> validateRequest(RestRequest request) {
+        try {
+            if (request.content() == null || request.content().length() == 0) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST,
+                        payload(RestStatus.BAD_REQUEST, "Request body cannot be empty"));
+            }
 
-    private PrivilegesEvaluatorResponse evaluateWithCurrentConfig(Map<String, Object> proposedBody) {
+            Map<String, Object> proposedBody = parseRequest(request);
+
+            // Validate action field
+            String action = (String) proposedBody.get(ACTION);
+            if (action == null || action.trim().isEmpty()) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST,
+                        payload(RestStatus.BAD_REQUEST, "Missing required field: 'action'. Action field is required for permission simulation"));
+            }
+            String roleName = (String) proposedBody.get(ROLE_NAME);
+            String simulatedUserName = (String) proposedBody.get(USER);
+
+            if ((roleName == null || roleName.trim().isEmpty()) &&
+                    (simulatedUserName == null || simulatedUserName.trim().isEmpty())) {
+                return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        payload(
+                                RestStatus.BAD_REQUEST,
+                                "Either 'role_name' or 'user' must be provided to simulate permissions."
+                        )
+                );
+            }
+            if (simulatedUserName != null && "admin".equals(simulatedUserName.trim())) {
+                return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        payload(
+                                RestStatus.BAD_REQUEST,
+                                "Permission simulation for admin user is not allowed"
+                        )
+                );
+            }
+            return ValidationResult.success(proposedBody);
+        } catch (Exception e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST,
+                    payload(RestStatus.BAD_REQUEST, "Invalid request: " + e.getMessage()));
+        }
+    }
+
+    private void sendErrorResponse(RestChannel channel, ValidationResult<?> validationResult) {
+        try {
+            validationResult.error((status, errorMessage) -> {
+                XContentBuilder builder = channel.newBuilder();
+                errorMessage.toXContent(builder, null);
+                channel.sendResponse(new BytesRestResponse(status, builder));
+            });
+        } catch (IOException e) {
+            log.error("Failed to send error response", e);
+            internalServerError(channel, "Failed to send error response: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public PrivilegesEvaluatorResponse evaluateByRoleName(Map<String, Object> proposedBody, String roleName, boolean hasProposedConfig) throws IOException {
+        String action = (String) proposedBody.get(ACTION);
+        String index = proposedBody.containsKey(INDEX) ? (String) proposedBody.get(INDEX) : null;
+        String id = proposedBody.containsKey(ID) ? (String) proposedBody.get(ID) : null;
+
+        ActionRequest actionRequest = createActionRequest(action, index, id);
+        ImmutableSet<String> mappedRoles = ImmutableSet.of(roleName);
+
+        User user=new User("role_simulation");
+        Map<String, Object> proposedRoles = (Map<String, Object>) proposedBody.getOrDefault(ROLES, Map.of());
+        ActionPrivileges actionPrivileges;
+
+        if (hasProposedConfig && proposedRoles.containsKey(roleName)) {
+            Map<String, Object> proposedActionGroups = (Map<String, Object>) proposedBody.getOrDefault(ACTION_GROUPS, Map.of());
+
+            actionPrivileges = createActionPrivileges(
+                    proposedRoles,
+                    proposedActionGroups,
+                    securityApiDependencies.settings()
+            );
+
+        } else {
+            SecurityDynamicConfiguration<RoleV7> currentRoles = (SecurityDynamicConfiguration<RoleV7>) load(CType.ROLES, false);
+            SecurityDynamicConfiguration<ActionGroupsV7> currentActionGroups =  (SecurityDynamicConfiguration<ActionGroupsV7>) load(CType.ACTIONGROUPS, false);
+            actionPrivileges =  new RoleBasedActionPrivileges(
+                    currentRoles,
+                    new FlattenedActionGroups(currentActionGroups),
+                    securityApiDependencies.settings()
+            );
+        }
+
+        PrivilegesEvaluationContext context = new PrivilegesEvaluationContext(
+                user,
+                mappedRoles,
+                action,
+                actionRequest,
+                null,
+                irr,
+                indexNameExpressionResolver,
+                clusterService::state,
+                actionPrivileges
+        );
+
+        return securityApiDependencies.privilegesEvaluator().evaluate(context);
+    }
+
+    public PrivilegesEvaluatorResponse evaluateWithCurrentConfig(Map<String, Object> proposedBody) {
         String action = (String) proposedBody.get(ACTION);
 
         ThreadContext threadContext = threadPool.getThreadContext();
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
-        User user;
-        String simulatedUserName = (String) proposedBody.get("user");
-        if (simulatedUserName != null && !simulatedUserName.isEmpty()) {
-            user = new User(simulatedUserName);
-        } else {
-            user = getAuthenticatedUser(threadContext);
-        }
+        String simulatedUserName = (String) proposedBody.get(USER);
+        User user = new User(simulatedUserName);
 
         PrivilegesEvaluationContext cxt = securityApiDependencies.privilegesEvaluator()
                 .createContext(user, action);
         ActionPrivileges currentActionPrivileges = cxt.getActionPrivileges();
-
-        Set<String> currentMappedRoles = securityApiDependencies.privilegesEvaluator().mapRoles(user, caller);
-        ImmutableSet<String> mappedRoles = ImmutableSet.copyOf(currentMappedRoles);
+        ImmutableSet<String> mappedRoles = ImmutableSet.copyOf(
+                securityApiDependencies.privilegesEvaluator().mapRoles(user, caller)
+        );
 
         String index = proposedBody.containsKey(INDEX) ? (String) proposedBody.get(INDEX) : null;
         String id = proposedBody.containsKey(ID) ? (String) proposedBody.get(ID) : null;
@@ -159,11 +315,11 @@ public class SimulationApiAction extends AbstractApiAction {
                 currentActionPrivileges
         );
 
-        log.info("Using current cluster config for user: {} with roles: {}", user.getName(), mappedRoles);
+        log.info("Using current config for user: {} with roles: {}", user.getName(), mappedRoles);
         return securityApiDependencies.privilegesEvaluator().evaluate(context);
     }
 
-    private PrivilegesEvaluatorResponse evaluateWithProposedConfig(Map<String, Object> proposedBody) {
+    public PrivilegesEvaluatorResponse evaluateWithProposedConfig(Map<String, Object> proposedBody) {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> proposedRoles = (Map<String, Object>) proposedBody.getOrDefault(ROLES, Map.of());
@@ -179,7 +335,6 @@ public class SimulationApiAction extends AbstractApiAction {
 
             PrivilegesEvaluationContext context = createPrivilegesEvaluationContext(
                     proposedBody,
-                    threadPool,
                     clusterService,
                     irr,
                     indexNameExpressionResolver,
@@ -195,7 +350,7 @@ public class SimulationApiAction extends AbstractApiAction {
         }
     }
 
-    private ActionPrivileges createActionPrivileges(
+    public ActionPrivileges createActionPrivileges(
             Map<String, Object> proposedRoles,
             Map<String, Object> proposedActionGroups,
             Settings settings
@@ -204,43 +359,30 @@ public class SimulationApiAction extends AbstractApiAction {
         SecurityDynamicConfiguration<RoleV7> rolesConfig = SecurityDynamicConfiguration.fromMap(proposedRoles, CType.ROLES);
 
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfig = SecurityDynamicConfiguration.fromMap(proposedActionGroups, CType.ACTIONGROUPS);
-        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfig.withStaticConfig());
+        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfig);
 
         return new RoleBasedActionPrivileges(
-                rolesConfig.withStaticConfig(),
+                rolesConfig,
                 flattenedActionGroups,
                 settings
         );
     }
 
     @SuppressWarnings("unchecked")
-    private PrivilegesEvaluationContext createPrivilegesEvaluationContext(
+    public PrivilegesEvaluationContext createPrivilegesEvaluationContext(
             Map<String, Object> proposedBody,
-            ThreadPool threadPool,
             ClusterService clusterService,
             IndexResolverReplacer irr,
             IndexNameExpressionResolver indexNameExpressionResolver,
             ActionPrivileges actionPrivileges )
     {
-        ThreadContext threadContext = threadPool.getThreadContext();
         String action = (String) proposedBody.get(ACTION);
-        if (action == null || action.isEmpty()) {
-            throw new IllegalArgumentException("Missing action in request body");
-        }
-
         String index = proposedBody.containsKey(INDEX) ? (String) proposedBody.get(INDEX) : null;
-
         String id= proposedBody.containsKey(ID) ? (String) proposedBody.get(ID) : null;
 
-        User user;
-        String simulatedUserName = (String) proposedBody.get("user");
-        if (simulatedUserName != null && !simulatedUserName.isEmpty()) {
-            user = new User(simulatedUserName);
-            log.info("Using simulated user: {}", simulatedUserName);
-        } else {
-            user = getAuthenticatedUser(threadContext);
-            log.info("Using authenticated user: {}", user.getName());
-        }
+
+        String simulatedUserName = (String) proposedBody.get(USER);
+        User user=new User(simulatedUserName);
 
         Map<String, Object> proposedRoleMappings = (Map<String, Object>) proposedBody.getOrDefault(ROLES_MAPPING, Map.of());
         ImmutableSet<String> mappedRoles = getMappedRolesForUser(user,proposedRoleMappings);
@@ -260,25 +402,26 @@ public class SimulationApiAction extends AbstractApiAction {
                 actionPrivileges
         );
     }
+    public ImmutableSet<String> getMappedRolesForUser(User user, Map<String, Object> proposedRoleMappings){
+        try {
+            SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingConfig = SecurityDynamicConfiguration.fromMap(proposedRoleMappings, CType.ROLESMAPPING);
+            ImmutableSet.Builder<String> mappedRolesBuilder = ImmutableSet.builder();
 
-    @SuppressWarnings("unchecked")
-    private ImmutableSet<String> getMappedRolesForUser(User user, Map<String, Object> proposedRoleMappings) {
-        Set<String> mappedRoles = new HashSet<>();
+            for (Map.Entry<String, RoleMappingsV7> roleMappingEntry : rolesMappingConfig.getCEntries().entrySet()) {
+                String roleName = roleMappingEntry.getKey();
+                RoleMappingsV7 roleMapping = roleMappingEntry.getValue();
 
-        for (Map.Entry<String, Object> roleMappingEntry : proposedRoleMappings.entrySet()) {
-            String roleName = roleMappingEntry.getKey();
-            Map<String, Object> roleMapping = (Map<String, Object>) roleMappingEntry.getValue();
-
-            List<String> users = (List<String>) roleMapping.getOrDefault("users", List.of());
-            if (users.contains(user.getName())) {
-                mappedRoles.add(roleName);
+                if(roleMapping.getUsers()!=null && roleMapping.getUsers().contains(user.getName())){
+                    mappedRolesBuilder.add(roleName);
+                }
             }
+            return  mappedRolesBuilder.build();
+        }catch (IOException e){
+            throw new RuntimeException("Failed to process role mappings: "+e.getMessage());
         }
-
-        return ImmutableSet.copyOf(mappedRoles);
     }
 
-    private ActionRequest createActionRequest(String action, String index, String id) {
+    public ActionRequest createActionRequest(String action, String index, String id) {
         switch (action) {
 
             case "indices:admin/create":
@@ -299,7 +442,10 @@ public class SimulationApiAction extends AbstractApiAction {
 
             // Retrieving  individual or multiple documents
             case "indices:data/read/get":
-                return new GetRequest(index, "1");
+                if(id==null){
+                    return new GetRequest(index);
+                }
+                return new GetRequest(index, id);
 
             case "indices:data/read/mget":
                 return new MultiGetRequest();
@@ -314,10 +460,13 @@ public class SimulationApiAction extends AbstractApiAction {
                 return new IndexRequest(index);
 
             case "indices:data/write/update":
-                return new UpdateRequest(index,"1");
+                return new UpdateRequest(index,id);
 
             case "indices:data/write/delete":
-                return new DeleteRequest(index, "1");
+                if(id==null){
+                    return new DeleteRequest(index);
+                }
+                return new DeleteRequest(index, id);
 
             case "indices:data/write/bulk":
                 return new BulkRequest();
@@ -348,7 +497,7 @@ public class SimulationApiAction extends AbstractApiAction {
 
 
             case "indices:data/read/explain":
-                return new ExplainRequest(index, "1");
+                return new ExplainRequest(index, id);
 
             case "indices:data/read/field_caps":
                 return new  FieldCapabilitiesRequest();
@@ -363,14 +512,6 @@ public class SimulationApiAction extends AbstractApiAction {
                     }
                 };
         }
-    }
-
-    private User getAuthenticatedUser(ThreadContext threadContext) {
-        User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null) {
-            throw new OpenSearchSecurityException("User is not authenticated.");
-        }
-        return user;
     }
 
     @Override
