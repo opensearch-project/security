@@ -316,9 +316,6 @@ public class SystemIndexAccessEvaluator {
                 presponse.markComplete();
                 return;
             } else {
-                System.out.println("Plugin user: " + user.getName() + " requested indices: " + requestedResolved.getAllIndices());
-                System.out.println("action: " + action);
-                Thread.dumpStack();
                 Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices());
                 matchingSystemIndices.removeAll(matchingPluginIndices);
                 // See if request matches other system indices not belong to the plugin
