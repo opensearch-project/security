@@ -2176,12 +2176,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             settings.add(
-                    Setting.boolSetting(
-                            ConfigConstants.EXPERIMENTAL_SECURITY_SIMULATION_API_ENABLED,
-                            ConfigConstants.EXPERIMENTAL_SECURITY_SIMULATION_API_ENABLED_DEFAULT,
-                            Property.NodeScope,
-                            Property.Filtered
-                    )
+                Setting.boolSetting(
+                    ConfigConstants.SECURITY_SIMULATION_API_ENABLED,
+                    ConfigConstants.SECURITY_SIMULATION_API_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
             );
         }
 
