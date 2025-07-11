@@ -72,15 +72,15 @@ import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
- * Simulation API for simulating user and role-based permissions at index and cluster levels.
- * Allows administrators to preview permissions before applying configuration changes.
+ * Simulation API feature for simulating user and role-based permissions at index and cluster levels.
+ * Allows only administrators to preview permissions for users and roles.
  *
  * <p><strong>Endpoint:</strong>  POST /_plugins/_security/api/simulation</p>
  *
- * <p><strong>EXPERIMENTAL:</strong> This API is experimental and may change in future versions.
- * Enable with plugins.security.simulation_api.enabled=true</p>
+ * <p>This feature is enabled by default. To disable: plugins.security.simulation_api.enabled=false</p>
  *
  */
+
 public class SimulationApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(RestRequest.Method.POST, "/simulation")));
