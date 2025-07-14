@@ -67,7 +67,8 @@ public class GrpcHelpers {
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
     private static final String HOST_ADDR = "localhost";
-    private static final Map<String, Object> SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
+
+    public static final Map<String, Object> SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
         ConfigConstants.SECURITY_SSL_ONLY,
         true,
         AUX_TRANSPORT_TYPES_KEY,
@@ -83,15 +84,6 @@ public class GrpcHelpers {
         SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
-
-    public static LocalCluster.Builder baseGrpcCluster() {
-        return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(GrpcPlugin.class)
-            .certificates(TEST_CERTIFICATES)
-            .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
-            .loadConfigurationIntoIndex(false)
-            .sslOnly(true);
-    }
 
     /*
     Plaintext connection.
