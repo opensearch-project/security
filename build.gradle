@@ -68,7 +68,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.2"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.2.1"
+    id "com.github.spotbugs" version "6.2.2"
     id "com.google.osdetector" version "1.7.3"
 }
 
