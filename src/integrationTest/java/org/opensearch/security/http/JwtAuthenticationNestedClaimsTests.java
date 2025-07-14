@@ -47,7 +47,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class JwtAuthenticationNestedClaimsTests {
 
-    public static final String CLAIM_USERNAME = "preferred-username";
+    public static final List<String> CLAIM_USERNAME = List.of("preferred-username");
     public static final List<String> CLAIM_ROLES = List.of("attributes", "roles");
 
     public static final String USER_SUPERHERO = "superhero";
