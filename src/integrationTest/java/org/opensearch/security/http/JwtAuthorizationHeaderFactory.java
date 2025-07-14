@@ -30,13 +30,13 @@ class JwtAuthorizationHeaderFactory {
     public static final String ISSUER = "test-code";
     private final PrivateKey privateKey;
 
-    private final String usernameClaimName;
+    private final List<String> usernameClaimName;
 
     private final List<String> rolesClaimName;
 
     private final String headerName;
 
-    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, String usernameClaimName, List<String> rolesClaimName, String headerName) {
+    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, List<String> usernameClaimName, List<String> rolesClaimName, String headerName) {
         this.privateKey = requireNonNull(privateKey, "Private key is required");
         this.usernameClaimName = requireNonNull(usernameClaimName, "Username claim name is required");
         this.rolesClaimName = requireNonNull(rolesClaimName, "Roles claim name is required.");
@@ -60,9 +60,32 @@ class JwtAuthorizationHeaderFactory {
 
     private Map<String, Object> customClaimsMap(String username, String[] roles) {
         ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder();
+        // Handle username claim
         if (StringUtils.isNoneEmpty(username)) {
-            builder.put(usernameClaimName, username);
+            if (usernameClaimName instanceof List && !((List<?>) usernameClaimName).isEmpty()) {
+                // Handle nested username claim
+                List<String> usernamePath = (List<String>) usernameClaimName;
+                Map<String, Object> nestedUserMap = new HashMap<>();
+                Map<String, Object> currentUserMap = nestedUserMap;
+
+                // Build the nested structure for username
+                for (int i = 0; i < usernamePath.size() - 1; i++) {
+                    Map<String, Object> nextMap = new HashMap<>();
+                    currentUserMap.put(usernamePath.get(i), nextMap);
+                    currentUserMap = nextMap;
+                }
+
+                // Add the username at the deepest level
+                currentUserMap.put(usernamePath.get(usernamePath.size() - 1), username);
+
+                // Add the entire nested username structure to the builder
+                builder.putAll(nestedUserMap);
+            } else {
+                // Simple case - no nesting for username
+                builder.put(usernameClaimName.toString(), username);
+            }
         }
+
         if (roles != null && roles.length > 0) {
             if (rolesClaimName.size() == 1) {
                 // Simple case - no nesting
