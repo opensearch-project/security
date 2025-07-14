@@ -16,13 +16,16 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.plugin.transport.grpc.GrpcPlugin;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import io.grpc.StatusRuntimeException;
 
 import static org.opensearch.security.grpc.GrpcClientAuthNoneTests.assertBulkAndSearchTestIndex;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_REQUIRE;
-import static org.opensearch.security.grpc.GrpcHelpers.baseGrpcCluster;
+import static org.opensearch.security.grpc.GrpcHelpers.SECURE_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -30,7 +33,13 @@ import static org.junit.Assert.assertThrows;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class GrpcClientAuthRequireTests {
     @ClassRule
-    public static LocalCluster cluster = baseGrpcCluster().nodeSettings(CLIENT_AUTH_REQUIRE).build();
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .plugin(GrpcPlugin.class)
+            .certificates(TEST_CERTIFICATES)
+            .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
+            .loadConfigurationIntoIndex(false)
+            .sslOnly(true)
+            .nodeSettings(CLIENT_AUTH_REQUIRE).build();
 
     @Test
     public void testPlaintextChannel() {
