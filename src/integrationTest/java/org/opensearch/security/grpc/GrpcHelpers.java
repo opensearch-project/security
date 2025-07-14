@@ -128,7 +128,11 @@ public class GrpcHelpers {
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
         BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE);
         for (int i = 0; i < numDocs; i++) {
-            String docBody = "{\"field\": \"doc " + i + " body\"}";
+            String docBody = """
+            {
+                "field": "doc %d body"
+            }
+            """.formatted(i);
             IndexOperation indexOp = IndexOperation.newBuilder().setIndex(index).setId(String.valueOf(i)).build();
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
                 .setIndex(indexOp)
