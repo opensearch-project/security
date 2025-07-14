@@ -58,10 +58,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.5");
-        this.staticNodesDnFromEsYml = WildcardMatcher.from(
-            settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList()),
-            false
-        );
+        this.staticNodesDnFromEsYml = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList()))
+            .ignoreCase();
         this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
         this.dynamicNodesDn = Collections.emptyMap();
     }
