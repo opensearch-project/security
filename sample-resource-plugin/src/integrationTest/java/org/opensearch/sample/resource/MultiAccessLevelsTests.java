@@ -60,44 +60,38 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     MultiAccessLevelsTests.AdminCertificateAccessTests.class,
-    MultiAccessLevelsTests.ReadOnlyAccessTests.class,
-    MultiAccessLevelsTests.FullAccessTests.class,
-    MultiAccessLevelsTests.MixedAccessTests.class,
-    MultiAccessLevelsTests.PubliclySharedDocTests.class })
+    MultiAccessLevelsTests.ReadOnlyAccess.class,
+    MultiAccessLevelsTests.FullAccess.class,
+    MultiAccessLevelsTests.MixedAccess.class,
+    MultiAccessLevelsTests.PubliclySharedDoc.class })
 public class MultiAccessLevelsTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
-    public static abstract class BaseTests {
-        @ClassRule
-        public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(PainlessModulePlugin.class)
-            .plugin(
-                new PluginInfo(
-                    SampleResourcePlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "1.8",
-                    SampleResourcePlugin.class.getName(),
-                    null,
-                    List.of(OpenSearchSecurityPlugin.class.getName()),
-                    false
-                )
-            )
-            .anonymousAuth(true)
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
-            .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
-            .build();
+    static abstract class Base {
 
-        @After
-        public void cleanup() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-                client.delete(RESOURCE_SHARING_INDEX);
-            }
+        static LocalCluster newCluster() {
+            return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+                .plugin(PainlessModulePlugin.class)
+                .plugin(
+                    new PluginInfo(
+                        SampleResourcePlugin.class.getName(),
+                        "classpath plugin",
+                        "NA",
+                        Version.CURRENT,
+                        "1.8",
+                        SampleResourcePlugin.class.getName(),
+                        null,
+                        List.of(OpenSearchSecurityPlugin.class.getName()),
+                        false
+                    )
+                )
+                .anonymousAuth(true)
+                .authc(AUTHC_HTTPBASIC_INTERNAL)
+                .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+                .actionGroups(sampleReadOnlyAG, sampleAllAG)
+                .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
+                .build();
         }
 
     }
@@ -107,7 +101,10 @@ public class MultiAccessLevelsTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class AdminCertificateAccessTests extends BaseTests {
+    public static class AdminCertificateAccessTests extends Base {
+
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
 
         @Test
         public void adminCertificate_canCRUD() {
@@ -161,7 +158,10 @@ public class MultiAccessLevelsTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class ReadOnlyAccessTests extends BaseTests {
+    public static class ReadOnlyAccess extends Base {
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String resourceId;
 
@@ -231,7 +231,10 @@ public class MultiAccessLevelsTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class FullAccessTests extends BaseTests {
+    public static class FullAccess extends Base {
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String resourceId;
 
@@ -315,7 +318,10 @@ public class MultiAccessLevelsTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class MixedAccessTests extends BaseTests {
+    public static class MixedAccess extends Base {
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String resourceId;
 
@@ -413,7 +419,10 @@ public class MultiAccessLevelsTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class PubliclySharedDocTests extends BaseTests {
+    public static class PubliclySharedDoc extends Base {
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String resourceId;
 

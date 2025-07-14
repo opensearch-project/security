@@ -14,7 +14,6 @@ import java.util.Map;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
-import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,41 +56,36 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * User with resource index permissions will have access to all resources via plugin APIs but not through direct index access requests
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ RACDisabledSIPEnabledTests.ApiAccessTests.class, RACDisabledSIPEnabledTests.DirectIndexAccessTests.class })
+@Suite.SuiteClasses({ RACDisabledSIPEnabledTests.ApiAccess.class, RACDisabledSIPEnabledTests.DirectIndexAccess.class })
 public class RACDisabledSIPEnabledTests {
 
     /**
      * Base test class providing shared cluster setup and teardown
      */
-    public static abstract class BaseTests {
-        @ClassRule
-        public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(
-                new PluginInfo(
-                    SampleResourcePlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "1.8",
-                    SampleResourcePlugin.class.getName(),
-                    null,
-                    List.of(OpenSearchSecurityPlugin.class.getName()),
-                    false
-                )
-            )
-            .plugin(PainlessModulePlugin.class)
-            .anonymousAuth(true)
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
-            .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
-            .build();
+    static abstract class Base {
 
-        @After
-        public void clearIndices() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-            }
+        static LocalCluster newCluster() {
+            return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+                .plugin(
+                    new PluginInfo(
+                        SampleResourcePlugin.class.getName(),
+                        "classpath plugin",
+                        "NA",
+                        Version.CURRENT,
+                        "1.8",
+                        SampleResourcePlugin.class.getName(),
+                        null,
+                        List.of(OpenSearchSecurityPlugin.class.getName()),
+                        false
+                    )
+                )
+                .plugin(PainlessModulePlugin.class)
+                .anonymousAuth(true)
+                .authc(AUTHC_HTTPBASIC_INTERNAL)
+                .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+                .actionGroups(sampleReadOnlyAG, sampleAllAG)
+                .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, false, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
+                .build();
         }
     }
 
@@ -101,7 +95,10 @@ public class RACDisabledSIPEnabledTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class ApiAccessTests extends BaseTests {
+    public static class ApiAccess extends Base {
+
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
 
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
 
@@ -269,7 +266,11 @@ public class RACDisabledSIPEnabledTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class DirectIndexAccessTests extends BaseTests {
+    public static class DirectIndexAccess extends Base {
+
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
 
         @Test

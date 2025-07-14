@@ -14,7 +14,6 @@ import java.util.Map;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -61,42 +60,36 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * Only user's with appropriate permissions be able to access a resource. SIP prevents any direct index accesses.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ RACEnabledTests.ApiAccessTests.class, RACEnabledTests.DirectIndexAccessTests.class })
+@Suite.SuiteClasses({ RACEnabledTests.ApiAccess.class, RACEnabledTests.DirectIndexAccess.class })
 public class RACEnabledTests {
 
     /**
      * Base test class providing shared cluster setup and teardown
      */
-    public static abstract class BaseTests {
-        @ClassRule
-        public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(
-                new PluginInfo(
-                    SampleResourcePlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "1.8",
-                    SampleResourcePlugin.class.getName(),
-                    null,
-                    List.of(OpenSearchSecurityPlugin.class.getName()),
-                    false
+    static abstract class Base {
+        static LocalCluster newCluster() {
+            return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+                .plugin(
+                    new PluginInfo(
+                        SampleResourcePlugin.class.getName(),
+                        "classpath plugin",
+                        "NA",
+                        Version.CURRENT,
+                        "1.8",
+                        SampleResourcePlugin.class.getName(),
+                        null,
+                        List.of(OpenSearchSecurityPlugin.class.getName()),
+                        false
+                    )
                 )
-            )
-            .plugin(PainlessModulePlugin.class)
-            .anonymousAuth(true)
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
-            .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
-            .build();
+                .plugin(PainlessModulePlugin.class)
+                .anonymousAuth(true)
+                .authc(AUTHC_HTTPBASIC_INTERNAL)
+                .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+                .actionGroups(sampleReadOnlyAG, sampleAllAG)
+                .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
+                .build();
 
-        @After
-        public void clearIndices() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.delete(RESOURCE_INDEX_NAME);
-                client.delete(RESOURCE_SHARING_INDEX);
-            }
         }
     }
 
@@ -106,7 +99,9 @@ public class RACEnabledTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class ApiAccessTests extends BaseTests {
+    public static class ApiAccess extends Base {
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
 
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String adminResId;
@@ -293,7 +288,11 @@ public class RACEnabledTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    public static class DirectIndexAccessTests extends BaseTests {
+    public static class DirectIndexAccess extends Base {
+
+        @ClassRule
+        public static LocalCluster cluster = newCluster();
+
         private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
         private String id;
 
