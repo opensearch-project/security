@@ -314,7 +314,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     public void testSubjectAndRolesInNestedClaim() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .putList("subject_key", TestJwts.NESTED_MCCOY_SUBJECT)
+            .putList("subject_key", TestJwts.NESTED_ROLES_AND_SUBJECT_CLAIM)
             .putList("roles_key", TestJwts.NESTED_ROLES_CLAIM)
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
