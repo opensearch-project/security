@@ -65,7 +65,7 @@ public class GrpcHelpers {
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
     private static final String HOST_ADDR = "localhost";
 
-    public static final Map<String, Object> SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
+    public static final Map<String, Object> SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
         ConfigConstants.SECURITY_SSL_ONLY,
         true,
         AUX_TRANSPORT_TYPES_KEY,
