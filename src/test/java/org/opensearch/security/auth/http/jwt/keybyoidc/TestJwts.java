@@ -119,51 +119,59 @@ class TestJwts {
 
     static JWTClaimsSet create(String subject, String audience, String issuer, Object... moreClaims) {
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-        // Handle only simple subject case
-        if (subject != null) {
-            claimsBuilder.subject(String.valueOf(subject));
-        }
+            
+            // Handle only simple subject case
+            if (subject != null) {
+                claimsBuilder.subject(String.valueOf(subject));
+            }
+            if (audience != null) {
+                claimsBuilder.audience(audience);
+            }
+            if (issuer != null) {
+                claimsBuilder.issuer(issuer);
+            }
 
-        if (audience != null) {
-            claimsBuilder.audience(audience);
-        }
-        if (issuer != null) {
-            claimsBuilder.issuer(issuer);
-        }
+            Map<String, Object> topLevelClaims = new HashMap<>();
 
-        if (moreClaims != null) {
-            for (int i = 0; i < moreClaims.length; i += 2) {
-                Object claimPath = moreClaims[i];
-                Object claimValue = moreClaims[i + 1];
+            if (moreClaims != null) {
+                for (int i = 0; i < moreClaims.length; i += 2) {
+                    Object claimPath = moreClaims[i];
+                    Object claimValue = moreClaims[i + 1];
 
-                if (claimPath instanceof List<?> pathParts) {
-                    // Handle nested path specified as List<String>
-                    if (!pathParts.isEmpty()) {
-                        Map<String, Object> nestedMap = new HashMap<>();
-                        Map<String, Object> currentMap = nestedMap;
+                    if (claimPath instanceof List<?> pathParts) {
+                        if (!pathParts.isEmpty()) {
+                            // Get or create the top-level map
+                            String topLevelKey = String.valueOf(pathParts.get(0));
+                            Map<String, Object> currentMap = (Map<String, Object>) topLevelClaims
+                                .computeIfAbsent(topLevelKey, k -> new HashMap<String, Object>());
 
-                        // Build nested structure for all but last element
-                        for (int j = 0; j < pathParts.size() - 1; j++) {
-                            Map<String, Object> nextMap = new HashMap<>();
-                            currentMap.put(String.valueOf(pathParts.get(j)), nextMap);
-                            currentMap = nextMap;
+                            // Navigate to the correct nested level
+                            for (int j = 1; j < pathParts.size() - 1; j++) {
+                                String key = String.valueOf(pathParts.get(j));
+                                currentMap = (Map<String, Object>) currentMap
+                                    .computeIfAbsent(key, k -> new HashMap<String, Object>());
+                            }
+
+                            // Set the final value
+                            String lastKey = String.valueOf(pathParts.get(pathParts.size() - 1));
+                            if (claimValue instanceof String && lastKey.equals("roles")) {
+                                // Handle roles as array
+                                currentMap.put(lastKey, Arrays.asList(((String) claimValue).split(",")));
+                            } else {
+                                currentMap.put(lastKey, claimValue);
+                            }
                         }
-
-                        // Set the final value at the deepest level
-                        currentMap.put(String.valueOf(pathParts.get(pathParts.size() - 1)), claimValue);
-
-                        // Add the top-level claim
-                        claimsBuilder.claim(String.valueOf(pathParts.get(0)), nestedMap.get(pathParts.get(0)));
+                    } else {
+                        // Handle simple claim
+                        topLevelClaims.put(String.valueOf(claimPath), claimValue);
                     }
-                } else {
-                    // Handle simple claim
-                    claimsBuilder.claim(String.valueOf(claimPath), claimValue);
                 }
             }
-        }
 
-        // JwtToken result = new JwtToken(claimsBuilder);
-        return claimsBuilder.build();
+            // Add all claims to the builder
+            topLevelClaims.forEach(claimsBuilder::claim);
+
+            return claimsBuilder.build();
     }
 
     static String createSigned(JWTClaimsSet jwtClaimsSet, JWK jwk) {
