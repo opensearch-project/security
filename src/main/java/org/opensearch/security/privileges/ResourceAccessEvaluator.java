@@ -179,7 +179,7 @@ public class ResourceAccessEvaluator {
             // Expand access-levels and check if any actions match the action supplied
             Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
             // a matcher to test against all patterns in `actions`
-            WildcardMatcher matcher = WildcardMatcher.from(actions, true);
+            WildcardMatcher matcher = WildcardMatcher.from(actions);
             if (matcher.test(action)) {
                 presponse.allowed = true;
                 log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());

@@ -490,7 +490,6 @@ public class ResourceSharingIndexHandler {
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */
-    @SuppressWarnings("unchecked")
     public void updateSharingInfo(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
@@ -514,7 +513,7 @@ public class ResourceSharingIndexHandler {
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -605,7 +604,7 @@ public class ResourceSharingIndexHandler {
 
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
