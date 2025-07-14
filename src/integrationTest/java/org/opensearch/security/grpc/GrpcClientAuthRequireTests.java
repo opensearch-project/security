@@ -34,12 +34,13 @@ import static org.junit.Assert.assertThrows;
 public class GrpcClientAuthRequireTests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(GrpcPlugin.class)
-            .certificates(TEST_CERTIFICATES)
-            .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
-            .loadConfigurationIntoIndex(false)
-            .sslOnly(true)
-            .nodeSettings(CLIENT_AUTH_REQUIRE).build();
+        .plugin(GrpcPlugin.class)
+        .certificates(TEST_CERTIFICATES)
+        .nodeSettings(SECURE_GRPC_TRANSPORT_SETTINGS)
+        .loadConfigurationIntoIndex(false)
+        .sslOnly(true)
+        .nodeSettings(CLIENT_AUTH_REQUIRE)
+        .build();
 
     @Test
     public void testPlaintextChannel() {

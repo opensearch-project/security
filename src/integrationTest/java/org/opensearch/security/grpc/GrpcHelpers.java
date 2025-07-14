@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.opensearch.common.transport.PortsRange;
-import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
@@ -127,10 +126,10 @@ public class GrpcHelpers {
         BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE);
         for (int i = 0; i < numDocs; i++) {
             String docBody = """
-            {
-                "field": "doc %d body"
-            }
-            """.formatted(i);
+                {
+                    "field": "doc %d body"
+                }
+                """.formatted(i);
             IndexOperation indexOp = IndexOperation.newBuilder().setIndex(index).setId(String.valueOf(i)).build();
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
                 .setIndex(indexOp)
