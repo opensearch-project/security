@@ -154,7 +154,6 @@ class TestJwts {
                         // Navigate to the correct nested level
                         for (int j = 1; j < pathParts.size() - 1; j++) {
                             String key = String.valueOf(pathParts.get(j));
-                            @SuppressWarnings("unchecked")
                             Map<String, Object> nextMap = currentMap.containsKey(key)
                                 ? (Map<String, Object>) currentMap.get(key)
                                 : new HashMap<>();
