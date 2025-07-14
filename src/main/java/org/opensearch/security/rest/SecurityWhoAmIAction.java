@@ -111,7 +111,7 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
 
                         final String dn = sslInfo.getPrincipal();
                         final boolean isAdmin = adminDns.isAdminDN(dn);
-                        final boolean isNodeCertificateRequest = dn != null && WildcardMatcher.from(nodesDn, true).matchAny(dn);
+                        final boolean isNodeCertificateRequest = dn != null && WildcardMatcher.from(nodesDn).ignoreCase().matchAny(dn);
 
                         builder.startObject();
                         builder.field("dn", dn);
