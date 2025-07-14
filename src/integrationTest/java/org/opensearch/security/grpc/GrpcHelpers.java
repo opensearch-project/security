@@ -28,8 +28,6 @@ import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
-import org.opensearch.test.framework.cluster.ClusterManager;
-import org.opensearch.test.framework.cluster.LocalCluster;
 
 import io.grpc.ChannelCredentials;
 import io.grpc.Grpc;
