@@ -118,61 +118,73 @@ class TestJwts {
         static final String MC_COY_SIGNED_RSA_1 = createSignedWithPeculiarEscaping(MC_COY, TestJwk.RSA_1);
     }
 
+    @SuppressWarnings("unchecked")
     static JWTClaimsSet create(String subject, String audience, String issuer, Object... moreClaims) {
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-            
-            // Handle only simple subject case
-            if (subject != null) {
-                claimsBuilder.subject(String.valueOf(subject));
-            }
-            if (audience != null) {
-                claimsBuilder.audience(audience);
-            }
-            if (issuer != null) {
-                claimsBuilder.issuer(issuer);
-            }
+    
+        if (subject != null) {
+            claimsBuilder.subject(String.valueOf(subject));
+        }
+        if (audience != null) {
+            claimsBuilder.audience(audience);
+        }
+        if (issuer != null) {
+            claimsBuilder.issuer(issuer);
+        }
 
-            Map<String, Object> topLevelClaims = new HashMap<>();
+        Map<String, Object> topLevelClaims = new HashMap<>();
 
-            if (moreClaims != null) {
-                for (int i = 0; i < moreClaims.length; i += 2) {
-                    Object claimPath = moreClaims[i];
-                    Object claimValue = moreClaims[i + 1];
+        if (moreClaims != null) {
+            for (int i = 0; i < moreClaims.length; i += 2) {
+                Object claimPath = moreClaims[i];
+                Object claimValue = moreClaims[i + 1];
 
-                    if (claimPath instanceof List<?> pathParts) {
-                        if (!pathParts.isEmpty()) {
-                            // Get or create the top-level map
-                            String topLevelKey = String.valueOf(pathParts.get(0));
-                            Map<String, Object> currentMap = (Map<String, Object>) topLevelClaims
-                                .computeIfAbsent(topLevelKey, k -> new HashMap<String, Object>());
-
-                            // Navigate to the correct nested level
-                            for (int j = 1; j < pathParts.size() - 1; j++) {
-                                String key = String.valueOf(pathParts.get(j));
-                                currentMap = (Map<String, Object>) currentMap
-                                    .computeIfAbsent(key, k -> new HashMap<String, Object>());
-                            }
-
-                            // Set the final value
-                            String lastKey = String.valueOf(pathParts.get(pathParts.size() - 1));
-                            if (claimValue instanceof String && lastKey.equals("roles")) {
-                                // Handle roles as array
-                                currentMap.put(lastKey, Arrays.asList(((String) claimValue).split(",")));
-                            } else {
-                                currentMap.put(lastKey, claimValue);
-                            }
+                if (claimPath instanceof List<?> pathParts) {
+                    if (!pathParts.isEmpty()) {
+                        String topLevelKey = String.valueOf(pathParts.get(0));
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> currentMap = topLevelClaims.containsKey(topLevelKey) 
+                            ? (Map<String, Object>) topLevelClaims.get(topLevelKey)
+                            : new HashMap<>();
+                        
+                        if (!topLevelClaims.containsKey(topLevelKey)) {
+                            topLevelClaims.put(topLevelKey, currentMap);
                         }
-                    } else {
-                        // Handle simple claim
-                        topLevelClaims.put(String.valueOf(claimPath), claimValue);
+
+                        // Navigate to the correct nested level
+                        for (int j = 1; j < pathParts.size() - 1; j++) {
+                            String key = String.valueOf(pathParts.get(j));
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> nextMap = currentMap.containsKey(key)
+                                ? (Map<String, Object>) currentMap.get(key)
+                                : new HashMap<>();
+                            
+                            if (!currentMap.containsKey(key)) {
+                                currentMap.put(key, nextMap);
+                            }
+                            currentMap = nextMap;
+                        }
+
+                        // Set the final value
+                        String lastKey = String.valueOf(pathParts.get(pathParts.size() - 1));
+                        if (claimValue instanceof String && lastKey.equals("roles")) {
+                            // Handle roles as array
+                            currentMap.put(lastKey, Arrays.asList(((String) claimValue).split(",")));
+                        } else {
+                            currentMap.put(lastKey, claimValue);
+                        }
                     }
+                } else {
+                    // Handle simple claim
+                    topLevelClaims.put(String.valueOf(claimPath), claimValue);
                 }
             }
+        }
 
-            // Add all claims to the builder
-            topLevelClaims.forEach(claimsBuilder::claim);
+        // Add all claims to the builder
+        topLevelClaims.forEach(claimsBuilder::claim);
 
-            return claimsBuilder.build();
+        return claimsBuilder.build();
     }
 
     static String createSigned(JWTClaimsSet jwtClaimsSet, JWK jwk) {
