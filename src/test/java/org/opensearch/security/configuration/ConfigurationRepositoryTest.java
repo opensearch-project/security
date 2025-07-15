@@ -616,15 +616,7 @@ public class ConfigurationRepositoryTest {
         when(mockClusterState.custom(RestoreInProgress.TYPE)).thenReturn(mockRestore);
         when(threadPool.generic()).thenReturn(executorService);
 
-        // when replica shard updated
-        when(shardRouting.primary()).thenReturn(false);
-        configurationRepository.afterIndexShardStarted(indexShard);
-        verify(executorService, never()).execute(any());
-        verify(configurationRepository, never()).reloadConfiguration(any());
-
-        // when primary shard updated
         doReturn(true).when(configurationRepository).reloadConfiguration(any());
-        when(shardRouting.primary()).thenReturn(true);
         when(mockRestore.iterator()).thenReturn(Collections.singletonList(mockEntry).iterator());
         when(mockEntry.indices()).thenReturn(Collections.singletonList(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
         ArgumentCaptor<Runnable> successRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
@@ -637,7 +629,6 @@ public class ConfigurationRepositoryTest {
         Mockito.reset(configurationRepository, executorService);
         ArgumentCaptor<Runnable> errorRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
         when(clusterService.state()).thenThrow(new RuntimeException("ClusterState exception"));
-        when(shardRouting.primary()).thenReturn(true);
         configurationRepository.afterIndexShardStarted(indexShard);
         verify(executorService).execute(errorRunnableCaptor.capture());
         errorRunnableCaptor.getValue().run();
