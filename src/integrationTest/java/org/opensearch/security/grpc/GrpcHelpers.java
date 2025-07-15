@@ -115,7 +115,7 @@ public class GrpcHelpers {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.getAddress(), addr.getPort(), credentials).build();
     }
 
     /*
@@ -126,7 +126,7 @@ public class GrpcHelpers {
             .keyManager(TEST_CERTIFICATES.getNodeCertificate(0), TEST_CERTIFICATES.getNodeKey(0, null))
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.getAddress(), addr.getPort(), credentials).build();
     }
 
     /*
@@ -137,7 +137,7 @@ public class GrpcHelpers {
             .keyManager(UN_TRUSTED_TEST_CERTIFICATES.getNodeCertificate(0), UN_TRUSTED_TEST_CERTIFICATES.getNodeKey(0, null))
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.getAddress(), addr.getPort(), credentials).build();
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
