@@ -9,12 +9,20 @@
 package org.opensearch.sample.resource;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
+import org.opensearch.Version;
+import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.plugins.PluginInfo;
+import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -24,11 +32,15 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
+import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
  * Provides common constants and utility methods for testing.
  */
-public final class TestHelper {
+public final class TestUtils {
 
     public static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 
@@ -72,7 +84,33 @@ public final class TestHelper {
 
     static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
 
-    static String shareWithPayload(String user, String accessLevel) {
+    public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
+        return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .plugin(
+                new PluginInfo(
+                    SampleResourcePlugin.class.getName(),
+                    "classpath plugin",
+                    "NA",
+                    Version.CURRENT,
+                    "21",
+                    SampleResourcePlugin.class.getName(),
+                    null,
+                    List.of(OpenSearchSecurityPlugin.class.getName()),
+                    false
+                )
+            )
+            .plugin(PainlessModulePlugin.class)
+            .anonymousAuth(true)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+            .actionGroups(sampleReadOnlyAG, sampleAllAG)
+            .nodeSettings(
+                Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, featureEnabled, SECURITY_SYSTEM_INDICES_ENABLED_KEY, systemIndexEnabled)
+            )
+            .build();
+    }
+
+    public static String shareWithPayload(String user, String accessLevel) {
         return """
             {
               "share_with": {
@@ -84,7 +122,7 @@ public final class TestHelper {
             """.formatted(accessLevel, user);
     }
 
-    static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
+    public static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
         return """
             {
               "resource_id": "%s",
