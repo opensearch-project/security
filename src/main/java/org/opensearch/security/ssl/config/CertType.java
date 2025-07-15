@@ -110,9 +110,6 @@ public class CertType implements Writeable {
         }
 
         public void register(CertType certType) {
-            if (registeredCertType.contains(certType)) {
-                throw new IllegalArgumentException("Cert type " + certType + " is already registered in CertType registry");
-            }
             registeredCertType.add(certType);
         }
 
