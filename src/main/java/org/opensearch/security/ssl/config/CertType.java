@@ -96,12 +96,12 @@ public class CertType implements Writeable {
         return Objects.hash(this.id());
     }
 
-    /*
-    Write only set for tracking certificate types discovered and registered on a node.
-    Not all ssl context configurations are known at compile time, so we track newly discovered CertTypes here.
-    */
+    /**
+     * Write only set for tracking certificate types discovered and registered on a node.
+     * Not all ssl context configurations are known at compile time, so we track newly discovered CertTypes here.
+     */
     public static class NodeCertTypeRegistry implements Iterable<CertType> {
-        private final Set<CertType> RegisteredCertType = new HashSet<>();
+        private final Set<CertType> registeredCertType = new HashSet<>();
 
         public NodeCertTypeRegistry(CertType... initialCertTypes) {
             for (CertType certType : initialCertTypes) {
@@ -110,18 +110,18 @@ public class CertType implements Writeable {
         }
 
         public void register(CertType certType) {
-            if (RegisteredCertType.contains(certType)) {
+            if (registeredCertType.contains(certType)) {
                 throw new IllegalArgumentException("Cert type " + certType + " is already registered in CertType registry");
             }
-            RegisteredCertType.add(certType);
+            registeredCertType.add(certType);
         }
 
         public boolean contains(CertType certType) {
-            return RegisteredCertType.contains(certType);
+            return registeredCertType.contains(certType);
         }
 
         public boolean contains(String certID) {
-            for (CertType certType : RegisteredCertType) {
+            for (CertType certType : registeredCertType) {
                 if (Objects.equals(certType.id(), certID)) {
                     return true;
                 }
@@ -132,7 +132,7 @@ public class CertType implements Writeable {
         @Nonnull
         @Override
         public Iterator<CertType> iterator() {
-            return Collections.unmodifiableSet(RegisteredCertType).iterator();
+            return Collections.unmodifiableSet(registeredCertType).iterator();
         }
     }
 
