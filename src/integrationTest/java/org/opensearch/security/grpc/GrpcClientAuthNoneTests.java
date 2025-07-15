@@ -75,9 +75,7 @@ public class GrpcClientAuthNoneTests {
     @Test
     public void testPlaintextChannel() {
         ManagedChannel channel = GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster));
-        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(channel);
-        });
+        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> { assertBulkAndSearchTestIndex(channel); });
         assertEquals("UNAVAILABLE: Network closed for unknown reason", exception.getMessage());
         channel.shutdown();
     }
