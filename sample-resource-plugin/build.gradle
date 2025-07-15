@@ -61,7 +61,7 @@ configurations.all {
         // Force versions present in security plugin
         force "com.google.errorprone:error_prone_annotations:2.36.0"
         force "com.google.protobuf:protobuf-java:${versions.protobuf}"
-        force "com.google.guava:guava:33.4.8-jre"
+        force "com.google.guava:guava:${guava_version}"
         force "com.google.guava:failureaccess:1.0.3"
     }
 }
