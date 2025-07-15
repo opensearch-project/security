@@ -12,6 +12,7 @@ package org.opensearch.security.grpc;
 import java.io.IOException;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.grpc.ManagedChannel;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,18 +46,22 @@ public class GrpcClientAuthRequireTests {
 
     @Test
     public void testPlaintextChannel() {
+        ManagedChannel channel = GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster));
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster)));
+            assertBulkAndSearchTestIndex(channel);
         });
         assertEquals("UNAVAILABLE: Network closed for unknown reason", exception.getMessage());
+        channel.shutdown();
     }
 
     @Test
     public void testBulkAndSearchInsecureChannel() {
+        ManagedChannel channel = GrpcHelpers.insecureChannel(getSecureGrpcEndpoint(cluster));
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster)));
+            assertBulkAndSearchTestIndex(channel);
         });
         assertEquals("UNAVAILABLE: ssl exception", exception.getMessage());
+        channel.shutdown();
     }
 
     @Test
@@ -65,10 +70,12 @@ public class GrpcClientAuthRequireTests {
     }
 
     @Test
-    public void testBulkAndSearchUntrustedSecureChannel() {
+    public void testBulkAndSearchUntrustedSecureChannel() throws IOException {
+        ManagedChannel channel = GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster));
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster)));
+            assertBulkAndSearchTestIndex(channel);
         });
         assertEquals("UNAVAILABLE: ssl exception", exception.getMessage());
+        channel.shutdown();
     }
 }
