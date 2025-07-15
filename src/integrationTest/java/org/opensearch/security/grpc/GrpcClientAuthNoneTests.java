@@ -47,6 +47,9 @@ public class GrpcClientAuthNoneTests {
         .nodeSettings(CLIENT_AUTH_NONE)
         .build();
 
+    /**
+     * Closes the provided managed channel.
+     */
     public static void assertBulkAndSearchTestIndex(ManagedChannel channel) {
         int testDocs = (int) (Math.random() * 101);
         String testIndex = UUID.randomUUID().toString().substring(0, 10);
@@ -66,14 +69,17 @@ public class GrpcClientAuthNoneTests {
             "Search response has correct hits count",
             searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue() == testDocs
         );
+        channel.shutdown();
     }
 
     @Test
     public void testPlaintextChannel() {
+        ManagedChannel channel = GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster));
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster)));
+            assertBulkAndSearchTestIndex(channel);
         });
         assertEquals("UNAVAILABLE: Network closed for unknown reason", exception.getMessage());
+        channel.shutdown();
     }
 
     @Test
