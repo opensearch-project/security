@@ -26,6 +26,7 @@ import static org.opensearch.security.grpc.GrpcClientAuthNoneTests.assertBulkAnd
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_REQUIRE;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
+import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -45,7 +46,7 @@ public class GrpcClientAuthRequireTests {
     @Test
     public void testPlaintextChannel() {
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.plaintextChannel());
+            assertBulkAndSearchTestIndex(GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster)));
         });
         assertEquals("UNAVAILABLE: Network closed for unknown reason", exception.getMessage());
     }
@@ -53,20 +54,20 @@ public class GrpcClientAuthRequireTests {
     @Test
     public void testBulkAndSearchInsecureChannel() {
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel());
+            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster)));
         });
         assertEquals("UNAVAILABLE: ssl exception", exception.getMessage());
     }
 
     @Test
     public void testBulkAndSearchSecureChannel() throws IOException {
-        assertBulkAndSearchTestIndex(GrpcHelpers.secureChannel());
+        assertBulkAndSearchTestIndex(GrpcHelpers.secureChannel(getSecureGrpcEndpoint(cluster)));
     }
 
     @Test
     public void testBulkAndSearchUntrustedSecureChannel() {
         StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel());
+            assertBulkAndSearchTestIndex(GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster)));
         });
         assertEquals("UNAVAILABLE: ssl exception", exception.getMessage());
     }

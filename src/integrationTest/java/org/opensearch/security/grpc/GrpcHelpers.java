@@ -10,9 +10,13 @@
 package org.opensearch.security.grpc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.opensearch.common.transport.PortsRange;
+import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
@@ -27,6 +31,8 @@ import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
 
 import io.grpc.ChannelCredentials;
 import io.grpc.Grpc;
@@ -44,6 +50,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_KEY;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomFrom;
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
@@ -63,7 +70,6 @@ public class GrpcHelpers {
     );
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
-    private static final String HOST_ADDR = "localhost";
 
     public static final Map<String, Object> SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
         ConfigConstants.SECURITY_SSL_ONLY,
@@ -82,44 +88,56 @@ public class GrpcHelpers {
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
+    public static TransportAddress getSecureGrpcEndpoint(LocalCluster cluster) {
+        List<TransportAddress> transportAddresses = new ArrayList<>();
+        List<LocalOpenSearchCluster.Node> nodeList = cluster.nodes();
+        for (LocalOpenSearchCluster.Node node : nodeList) {
+            TransportAddress boundAddress = new TransportAddress(
+                node.getInjectable(SecureNetty4GrpcServerTransport.class).getBoundAddress().publishAddress().address()
+            );
+            transportAddresses.add(boundAddress);
+        }
+        return randomFrom(transportAddresses);
+    }
+
     /*
     Plaintext connection.
     No encryption in transit.
     */
-    public static ManagedChannel plaintextChannel() {
-        return NettyChannelBuilder.forAddress(HOST_ADDR, PORTS_RANGE.ports()[0]).proxyDetector(NOOP_PROXY_DETECTOR).usePlaintext().build();
+    public static ManagedChannel plaintextChannel(TransportAddress addr) {
+        return NettyChannelBuilder.forAddress(addr.getAddress(), addr.getPort()).proxyDetector(NOOP_PROXY_DETECTOR).usePlaintext().build();
     }
 
     /*
     TLS with no client certificate.
     */
-    public static ManagedChannel insecureChannel() {
+    public static ManagedChannel insecureChannel(TransportAddress addr) {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
     }
 
     /*
     TLS with client certificate trusted by server.
     */
-    public static ManagedChannel secureChannel() throws IOException {
+    public static ManagedChannel secureChannel(TransportAddress addr) throws IOException {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
             .keyManager(TEST_CERTIFICATES.getNodeCertificate(0), TEST_CERTIFICATES.getNodeKey(0, null))
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
     }
 
     /*
     TLS with client certificate not trusted by server.
     */
-    public static ManagedChannel secureUntrustedChannel() throws IOException {
+    public static ManagedChannel secureUntrustedChannel(TransportAddress addr) throws IOException {
         ChannelCredentials credentials = TlsChannelCredentials.newBuilder()
             .keyManager(UN_TRUSTED_TEST_CERTIFICATES.getNodeCertificate(0), UN_TRUSTED_TEST_CERTIFICATES.getNodeKey(0, null))
             .trustManager(InsecureTrustManagerFactory.INSTANCE.getTrustManagers())
             .build();
-        return Grpc.newChannelBuilderForAddress(HOST_ADDR, PORTS_RANGE.ports()[0], credentials).build();
+        return Grpc.newChannelBuilderForAddress(addr.address().getHostName(), addr.getPort(), credentials).build();
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
