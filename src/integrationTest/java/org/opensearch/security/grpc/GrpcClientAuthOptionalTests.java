@@ -12,7 +12,6 @@ package org.opensearch.security.grpc;
 import java.io.IOException;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.grpc.ManagedChannel;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +20,7 @@ import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
+import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
 import static org.opensearch.security.grpc.GrpcClientAuthNoneTests.assertBulkAndSearchTestIndex;
@@ -47,9 +47,7 @@ public class GrpcClientAuthOptionalTests {
     @Test
     public void testPlaintextChannel() {
         ManagedChannel channel = GrpcHelpers.plaintextChannel(getSecureGrpcEndpoint(cluster));
-        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(channel);
-        });
+        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> { assertBulkAndSearchTestIndex(channel); });
         assertEquals("UNAVAILABLE: Network closed for unknown reason", exception.getMessage());
         channel.shutdown();
     }
@@ -67,9 +65,7 @@ public class GrpcClientAuthOptionalTests {
     @Test
     public void testBulkAndSearchUntrustedSecureChannel() throws IOException {
         ManagedChannel channel = GrpcHelpers.secureUntrustedChannel(getSecureGrpcEndpoint(cluster));
-        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
-            assertBulkAndSearchTestIndex(channel);
-        });
+        StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> { assertBulkAndSearchTestIndex(channel); });
         assertEquals("UNAVAILABLE: ssl exception", exception.getMessage());
         channel.shutdown();
     }
