@@ -6,5 +6,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 2.19.x]
 
 ### Maintenance
-- Bump `kafka_version` from 3.7.1 to 4.0.0 ([#5480](https://github.com/opensearch-project/security/pull/5480))
+- Bump `kafka_version` from 3.7.1 to 3.9.1 ([#5480](https://github.com/opensearch-project/security/pull/5480))
 - Bump `com.nimbusds:nimbus-jose-jwt:10.0.2` from 9.48 to 10.0.2 ([#5480](https://github.com/opensearch-project/security/pull/5480))
