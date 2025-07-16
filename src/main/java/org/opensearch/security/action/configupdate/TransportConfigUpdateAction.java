@@ -44,7 +44,6 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -59,7 +58,6 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     protected Logger logger = LogManager.getLogger(getClass());
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
-    private DynamicConfigFactory dynamicConfigFactory;
     private static final Set<CType<?>> SELECTIVE_VALIDATION_TYPES = Set.of(CType.INTERNALUSERS);
     // Note: While INTERNALUSERS is used as a marker, the cache invalidation
     // applies to all user types (internal, LDAP, etc.)
@@ -72,8 +70,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
         final TransportService transportService,
         final ConfigurationRepository configurationRepository,
         final ActionFilters actionFilters,
-        Provider<BackendRegistry> backendRegistry,
-        DynamicConfigFactory dynamicConfigFactory
+        Provider<BackendRegistry> backendRegistry
     ) {
         super(
             ConfigUpdateAction.NAME,
@@ -89,7 +86,6 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
 
         this.configurationRepository = configurationRepository;
         this.backendRegistry = backendRegistry;
-        this.dynamicConfigFactory = dynamicConfigFactory;
     }
 
     public static class NodeConfigUpdateRequest extends TransportRequest {
@@ -133,10 +129,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
         if (canHandleSelectively(configupdateRequest)) {
             backendRegistry.get().invalidateUserCache(configupdateRequest.getEntityNames());
         } else {
-            boolean didReload = configurationRepository.reloadConfiguration(CType.fromStringValues((configupdateRequest.getConfigTypes())));
-            if (didReload) {
-                backendRegistry.get().invalidateCache();
-            }
+            configurationRepository.reloadConfiguration(CType.fromStringValues((configupdateRequest.getConfigTypes())));
         }
         return new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null);
     }

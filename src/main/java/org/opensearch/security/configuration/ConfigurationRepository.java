@@ -28,13 +28,10 @@ package org.opensearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,14 +41,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -71,6 +68,7 @@ import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Priority;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.core.action.ActionListener;
@@ -92,7 +90,6 @@ import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityIndexHandler;
-import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -124,6 +121,8 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
     private final SecurityIndexHandler securityIndexHandler;
 
+    private final ReloadThread reloadThread;
+
     // visible for testing
     protected ConfigurationRepository(
         final String securityIndex,
@@ -148,6 +147,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         this.cl = configurationLoaderSecurity7;
         configCache = CacheBuilder.newBuilder().build();
         this.securityIndexHandler = securityIndexHandler;
+        this.reloadThread = new ReloadThread(settings, this::doReload);
     }
 
     private Path resolveConfigDir() {
@@ -280,7 +280,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             while (!dynamicConfigFactory.isInitialized()) {
                 try {
                     LOGGER.debug("Try to load config ...");
-                    reloadConfiguration(CType.values(), true);
+                    doReload(CType.values());
                     break;
                 } catch (Exception e) {
                     LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
@@ -414,6 +414,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                         setupAuditConfigurationIfAny(auditConfigDocPresent);
                         auditHotReloadingEnabled.getAndSet(auditConfigDocPresent);
                         initalizeConfigTask.complete(null);
+                        this.reloadThread.start();
                         LOGGER.info(
                             "Security configuration initialized. Applied hashes: {}",
                             securityMetadata.configuration()
@@ -435,8 +436,13 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
         final Supplier<CompletableFuture<Boolean>> startInitialization = () -> {
             new Thread(() -> {
-                initalizeClusterConfiguration(installDefaultConfig);
-                initalizeConfigTask.complete(null);
+                try {
+                    initalizeClusterConfiguration(installDefaultConfig);
+                    initalizeConfigTask.complete(null);
+                } finally {
+                    // After initialization is complete, start the update thread so that we execute any pending update requests
+                    this.reloadThread.start();
+                }
             }).start();
             return initalizeConfigTask.thenApply(result -> installDefaultConfig);
         };
@@ -458,6 +464,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                     securityIndex
                 );
                 initalizeConfigTask.complete(null);
+                this.reloadThread.start();
                 return initalizeConfigTask.thenApply(result -> installDefaultConfig);
             }
         } catch (Throwable e2) {
@@ -518,40 +525,23 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         return SecurityDynamicConfiguration.empty(configurationType);
     }
 
-    private final Lock LOCK = new ReentrantLock();
+    /**
+     * Requests a reload of the currently used configuration. If a configuration update is currently in progress,
+     * another update will be queued. This method will not queue several updates; rather, it will combine several
+     * updates into one.
 
-    public boolean reloadConfiguration(final Collection<CType<?>> configTypes) throws ConfigUpdateAlreadyInProgressException {
-        return reloadConfiguration(configTypes, false);
+     * @param configTypes the configuration types to be reloaded.
+     */
+    public void reloadConfiguration(Collection<CType<?>> configTypes) {
+        this.reloadThread.requestReload(configTypes);
     }
 
-    private boolean reloadConfiguration(final Collection<CType<?>> configTypes, final boolean fromBackgroundThread)
-        throws ConfigUpdateAlreadyInProgressException {
-        if (!fromBackgroundThread && !initalizeConfigTask.isDone()) {
-            LOGGER.warn("Unable to reload configuration, initalization thread has not yet completed.");
-            return false;
-        }
-        return loadConfigurationWithLock(configTypes);
-    }
-
-    private boolean loadConfigurationWithLock(Collection<CType<?>> configTypes) {
-        try {
-            if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
-                try {
-                    reloadConfiguration0(configTypes, this.acceptInvalid);
-                    return true;
-                } finally {
-                    LOCK.unlock();
-                }
-            } else {
-                throw new ConfigUpdateAlreadyInProgressException("A config update is already in progress");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ConfigUpdateAlreadyInProgressException("Interrupted config update");
-        }
-    }
-
-    private void reloadConfiguration0(Collection<CType<?>> configTypes, boolean acceptInvalid) {
+    /**
+     * Reloads the currently used configuration.  Usually, you should not call this directly. Rather, use the reloadConfiguration() methods.
+     * This method should be only called directly via the update or initialization threads in order to make sure that only one
+     * reload is active at the same time.
+     */
+    private void doReload(Set<CType<?>> configTypes) {
         ConfigurationMap loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
         notifyConfigurationListeners(loaded);
     }
@@ -645,33 +635,8 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         return conf;
     }
 
-    private static String formatDate(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd", SecurityUtils.EN_Locale).format(new Date(date));
-    }
-
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
-    }
-
-    @SuppressWarnings("removal")
-    private class AccessControllerWrappedThread extends Thread {
-        private final Thread innerThread;
-
-        public AccessControllerWrappedThread(Thread innerThread) {
-            this.innerThread = innerThread;
-        }
-
-        @Override
-        public void run() {
-            AccessController.doPrivileged(new PrivilegedAction<Void>() {
-
-                @Override
-                public Void run() {
-                    innerThread.run();
-                    return null;
-                }
-            });
-        }
     }
 
     @Override
@@ -689,6 +654,161 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                         reloadConfiguration(CType.values());
                     }
                 });
+            }
+        }
+    }
+
+    /**
+     * This class is responsible for managing requests to reload the security index. Its main purpose
+     * is to make sure that there is no unbounded queue of reload requests. Rather, it works this way:
+     * <ul>
+     *     <li>If there is no reload activity, just schedule it immediately.</li>
+     *     <li>If a reload is currently in process, schedule a further reload right afterwards.</li>
+     *     <li>If a reload is currently in process and a further reload is already scheduled, just rely on the already scheduled reload.
+     *     If there are configuration types requested to be reloaded, which are not scheduled so far, the requested configuration
+     *     types of the scheduled reload are expanded.</li>
+     * </ul>
+     * Reloading will always take place on a single, dedicated thread.
+     * <p>
+     * After an instance of this class has been created, the thread won't be running yet. You need to manually
+     * call the start() method to start the thread. This is to allow initialization code to run without having the
+     * thread already interfering. However, this also means that you must sure that you do not forget to call the
+     * start() method. Not calling it means that a cluster won't be able to get security updates.
+     */
+    static class ReloadThread {
+
+        private final Consumer<Set<CType<?>>> performFunction;
+        private final Thread thread;
+        private final Object requestLock = new Object();
+        private boolean started = false;
+
+        /**
+         * This is the request queue - even though it is not actually a queue. We collect here
+         * the configuration types for which a reload was requested but not yet performed.
+         * Several consecutive requests will just extend this collection - if necessary.
+         */
+        private ImmutableSet<CType<?>> reloadRequestedFor = ImmutableSet.of();
+
+        /**
+         * The time we got the first currently queued reload request.
+         */
+        private Instant reloadRequestedAt;
+
+        /**
+         * This contains the configuration types for which a reload is in progress just right now.
+         */
+        private ImmutableSet<CType<?>> reloadInProgressFor = ImmutableSet.of();
+
+        ReloadThread(Settings settings, Consumer<Set<CType<?>>> performFunction) {
+            this.performFunction = performFunction;
+            this.thread = OpenSearchExecutors.daemonThreadFactory(settings, "ConfigurationRepository#ReloadThread").newThread(this::run);
+        }
+
+        /**
+         * Requests an async configuration reload for the given configuration types. Calling this method
+         * will not wait for the configuration reload to complete.
+         */
+        void requestReload(Collection<CType<?>> configurationTypes) {
+            synchronized (this.requestLock) {
+                if (!this.started) {
+                    LOGGER.info("Cannot reload configuration yet, because the initialization process did not complete yet");
+                }
+
+                if (this.reloadRequestedFor.isEmpty()) {
+                    LOGGER.debug("Configuration reload request received for {}; notifying update thread", configurationTypes);
+                    this.reloadRequestedAt = Instant.now();
+                    this.reloadRequestedFor = ImmutableSet.copyOf(configurationTypes);
+                    this.requestLock.notifyAll();
+                } else if (!this.reloadRequestedFor.containsAll(configurationTypes)) {
+                    LOGGER.debug(
+                        "Configuration reload request received for {}; adding new configuration types to already requested {}",
+                        configurationTypes,
+                        this.reloadRequestedFor
+                    );
+                    this.reloadRequestedFor = ImmutableSet.<CType<?>>builder()
+                        .addAll(this.reloadRequestedFor)
+                        .addAll(configurationTypes)
+                        .build();
+                } else {
+                    if (Duration.between(this.reloadRequestedAt, Instant.now()).toMillis() > 30000) {
+                        // Reload request is queued for more than 30 seconds; let us log a warning about that
+                        LOGGER.warn(
+                            "Configuration reload request received; another update request is already queued since {}",
+                            this.reloadRequestedAt
+                        );
+                    } else {
+                        LOGGER.debug(
+                            "Configuration reload request received; another update request is already queued since {}",
+                            this.reloadRequestedAt
+                        );
+                    }
+                }
+            }
+        }
+
+        /**
+         * Starts the reload thread. Calling this method after the thread was already started will have no further effect.
+         */
+        void start() {
+            synchronized (this.requestLock) {
+                if (!this.started) {
+                    this.thread.start();
+                    this.started = true;
+                }
+            }
+        }
+
+        /**
+         * Returns true if no reload is in progress and no reload has been queued.
+         */
+        boolean isIdle() {
+            synchronized (this.requestLock) {
+                return this.reloadRequestedFor.isEmpty() && this.reloadInProgressFor.isEmpty();
+            }
+        }
+
+        /**
+         * Returns true if nothing is queued. Still, an active reload might be in progress.
+         */
+        boolean queueIsEmpty() {
+            synchronized (this.requestLock) {
+                return this.reloadRequestedFor.isEmpty();
+            }
+        }
+
+        private void run() {
+            for (;;) {
+                try {
+                    ImmutableSet<CType<?>> localReloadRequestedFor;
+
+                    synchronized (this.requestLock) {
+                        this.reloadInProgressFor = ImmutableSet.of();
+
+                        while (this.reloadRequestedFor.isEmpty()) {
+                            this.requestLock.wait();
+                        }
+
+                        // We save here the requested configuration types in order to pass them to the updateFunction later
+                        localReloadRequestedFor = this.reloadRequestedFor;
+
+                        // this.reloadRequestedAt != null: This means, that we got an update request
+                        LOGGER.info(
+                            "Performing configuration reload for request at {} on {}",
+                            this.reloadRequestedAt,
+                            localReloadRequestedFor
+                        );
+
+                        // Already set updateRequestedAt to null now. Thus, any further updates that come in during the
+                        // following update process will be already recognized again and queued.
+                        this.reloadRequestedAt = null;
+                        this.reloadRequestedFor = ImmutableSet.of();
+                        this.reloadInProgressFor = localReloadRequestedFor;
+                    }
+
+                    this.performFunction.accept(localReloadRequestedFor);
+                } catch (Exception e) {
+                    LOGGER.error("Error in {}", this.thread.getName(), e);
+                }
             }
         }
     }
