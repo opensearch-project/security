@@ -34,6 +34,7 @@ import org.apache.lucene.util.BytesRef;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.RealtimeRequest;
@@ -98,6 +99,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final boolean dfmEmptyOverwritesAll;
     private final NamedXContentRegistry namedXContentRegistry;
     private volatile ConfigModel configModel;
+    private final ClusterInfoHolder clusterInfoHolder;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -105,7 +107,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ClusterService clusterService,
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
-        ThreadContext threadContext
+        ThreadContext threadContext,
+        ClusterInfoHolder clusterInfoHolder
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -116,6 +119,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.dlsQueryParser = new DlsQueryParser(namedXContentRegistry);
         this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
         this.namedXContentRegistry = namedXContentRegistry;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     @Subscribe
@@ -192,6 +196,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         EvaluatedDlsFlsConfig dlsFlsConfigHeaders = filteredDlsFlsConfig;
+        if (clusterInfoHolder.getMinimumNodeVersion().onOrBefore(Version.V_2_19_3)) {
+            dlsFlsConfigHeaders = evaluatedDlsFlsConfig;
+        }
 
         if (!doFilterLevelDls) {
             setDlsHeaders(dlsFlsConfigHeaders, request);

@@ -1100,7 +1100,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 clusterService,
                 resolver,
                 xContentRegistry,
-                threadPool.getThreadContext()
+                threadPool.getThreadContext(),
+                cih
             );
             auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
             privilegesInterceptor = new PrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
