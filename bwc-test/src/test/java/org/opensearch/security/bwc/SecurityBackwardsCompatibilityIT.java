@@ -77,12 +77,9 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     @After
-    public void tearDown() {
-        try {
-            testUserRestClient.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public void tearDown() throws Exception {
+        super.tearDown();
+        testUserRestClient.close();
     }
 
     @Override
