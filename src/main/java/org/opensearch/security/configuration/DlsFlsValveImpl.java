@@ -462,17 +462,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     log.debug("added response header for DLS info: {}", dlsQueries);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
-                    Object deserializedDlsQueries = Base64Helper.deserializeObject(
-                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER),
-                        threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                    );
-                    if (!dlsQueries.equals(deserializedDlsQueries)) {
-                        throw new OpenSearchSecurityException(
-                            ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)"
-                        );
-                    }
-                } else {
+                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) == null) {
                     threadContext.putHeader(
                         ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
                         Base64Helper.serializeObject((Serializable) dlsQueries)
@@ -525,12 +515,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     log.debug("added response header for masked fields info: {}", maskedFieldsMap);
                 }
             } else {
-                threadContext.putHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
-                    Base64Helper.serializeObject((Serializable) maskedFieldsMap)
-                );
-                if (log.isDebugEnabled()) {
-                    log.debug("attach masked fields info: {}", maskedFieldsMap);
+                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) == null) {
+                    threadContext.putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
+                        Base64Helper.serializeObject((Serializable) maskedFieldsMap)
+                    );
+                    if (log.isDebugEnabled()) {
+                        log.debug("attach masked fields info: {}", maskedFieldsMap);
+                    }
                 }
             }
         }
@@ -547,27 +539,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     log.debug("added response header for FLS info: {}", flsFields);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
-                    if (!flsFields.equals(
-                        Base64Helper.deserializeObject(
-                            threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER),
-                            threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                        )
-                    )) {
-                        throw new OpenSearchSecurityException(
-                            ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER
-                                + " does not match (SG 901D) "
-                                + flsFields
-                                + "---"
-                                + Base64Helper.deserializeObject(
-                                    threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER),
-                                    threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                                )
-                        );
-                    } else {
-                        if (log.isDebugEnabled()) {
-                            log.debug(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " already set");
-                        }
+                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) == null) {
+                    if (log.isDebugEnabled()) {
+                        log.debug(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " already set");
                     }
                 } else {
                     threadContext.putHeader(
