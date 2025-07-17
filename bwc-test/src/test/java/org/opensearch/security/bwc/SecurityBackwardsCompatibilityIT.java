@@ -67,14 +67,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
         CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
         CLUSTER_NAME = System.getProperty("tests.clustername");
-        if (testUserRestClient == null) {
-            testUserRestClient = buildClient(
-                super.restClientSettings(),
-                super.getClusterHosts().toArray(new HttpHost[0]),
-                TEST_USER,
-                TEST_PASSWORD
-            );
-        }
+        testUserRestClient = buildClient(
+            super.restClientSettings(),
+            super.getClusterHosts().toArray(new HttpHost[0]),
+            TEST_USER,
+            TEST_PASSWORD
+        );
     }
 
     @Override
