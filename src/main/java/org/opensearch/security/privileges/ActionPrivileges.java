@@ -70,6 +70,18 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         Setting.Property.NodeScope
     );
 
+    /**
+     * This setting controls whether the precomputed/denormalized index privileges (in the inner class StatefulIndexPrivileges)
+     * will be created or not. This is on by default to provide the best action throughput. It can make sense to
+     * disable this when it is seen that the initialisation process takes so much time/resources that it negatively
+     * affects the cluster performance. This come at the price of a reduced action throughput.
+     */
+    public static Setting<Boolean> PRECOMPUTED_PRIVILEGES_ENABLED = Setting.boolSetting(
+        "plugins.security.privileges_evaluation.precomputed_privileges.enabled",
+        true,
+        Setting.Property.NodeScope
+    );
+
     private static final Logger log = LogManager.getLogger(ActionPrivileges.class);
 
     private final ClusterPrivileges cluster;
@@ -80,6 +92,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
     private final ImmutableSet<String> wellKnownIndexActions;
     private final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
     private final ByteSizeValue statefulIndexMaxHeapSize;
+    private final boolean statefulIndexEnabled;
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
@@ -101,6 +114,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         this.wellKnownIndexActions = wellKnownIndexActions;
         this.indexMetadataSupplier = indexMetadataSupplier;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
+        this.statefulIndexEnabled = PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
     }
 
     public ActionPrivileges(
@@ -238,6 +252,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
      * updateStatefulIndexPrivilegesAsync(). Package visible for testing.
      */
     void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices, long metadataVersion) {
+        if (!this.statefulIndexEnabled) {
+            return;
+        }
+
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
 
         indices = StatefulIndexPrivileges.relevantOnly(indices);
@@ -963,6 +981,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             long metadataVersion,
             ByteSizeValue statefulIndexMaxHeapSize
         ) {
+            long startTime = System.currentTimeMillis();
+
             Map<
                 String,
                 CompactMapGroupBuilder.MapBuilder<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>>> actionToIndexToRoles =
@@ -1082,6 +1102,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             this.indices = ImmutableMap.copyOf(indices);
             this.metadataVersion = metadataVersion;
             this.wellKnownIndexActions = wellKnownIndexActions;
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (duration > 30000) {
+                log.warn("Creation of StatefulIndexPrivileges took {} ms", duration);
+            } else {
+                log.debug("Creation of StatefulIndexPrivileges took {} ms", duration);
+            }
         }
 
         /**

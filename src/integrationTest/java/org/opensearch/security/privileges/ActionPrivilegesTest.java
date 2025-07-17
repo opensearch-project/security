@@ -960,6 +960,26 @@ public class ActionPrivilegesTest {
             );
             assertThat(resultForIndexNotCoveredByAlias, isForbidden());
         }
+
+        @Test
+        public void statefulDisabled() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
+                "test_role:\n" + "  index_permissions:\n" + "  - index_patterns: ['test_*']\n" + "    allowed_actions: ['indices:*']",
+                CType.ROLES
+            );
+            Map<String, IndexAbstraction> metadata = indices("test_1", "test_2", "test_3")//
+                .build()
+                .getIndicesLookup();
+
+            ActionPrivileges subject = new ActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                Map::of,
+                Settings.builder().put(ActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build()
+            );
+            subject.updateStatefulIndexPrivileges(metadata, 1);
+            assertEquals(0, subject.getEstimatedStatefulIndexByteSize());
+        }
     }
 
     /**

@@ -51,6 +51,7 @@ import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -537,7 +538,13 @@ public class DocumentPrivilegesTest {
                 roleConfig,
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
                 xContentRegistry,
-                Settings.builder().put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll).build()
+                Settings.builder()
+                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                    .put(
+                        ActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                    )
+                    .build()
             );
         }
     }
@@ -852,7 +859,13 @@ public class DocumentPrivilegesTest {
                 roleConfig,
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
                 xContentRegistry,
-                Settings.builder().put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll).build()
+                Settings.builder()
+                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                    .put(
+                        ActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                    )
+                    .build()
             );
         }
     }
@@ -1104,7 +1117,13 @@ public class DocumentPrivilegesTest {
                 roleConfig,
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
                 xContentRegistry,
-                Settings.builder().put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll).build()
+                Settings.builder()
+                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                    .put(
+                        ActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                    )
+                    .build()
             );
         }
 
@@ -1231,7 +1250,8 @@ public class DocumentPrivilegesTest {
      */
     static enum Statefulness {
         STATEFUL,
-        NON_STATEFUL
+        NON_STATEFUL,
+        DISABLED
     }
 
     /**
