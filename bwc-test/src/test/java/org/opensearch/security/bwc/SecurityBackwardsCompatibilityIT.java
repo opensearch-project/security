@@ -180,6 +180,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             createTestRoleIfNotExists(TEST_ROLE);
             createUserIfNotExists(TEST_USER, TEST_PASSWORD, TEST_ROLE);
             createIndexIfNotExists(index);
+            createIndexIfNotExists("other-index");
         }
         ingestData(index);
         searchMatchAll(index);
