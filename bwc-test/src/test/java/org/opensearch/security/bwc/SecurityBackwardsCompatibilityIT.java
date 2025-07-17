@@ -28,6 +28,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
@@ -73,6 +74,15 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             TEST_USER,
             TEST_PASSWORD
         );
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            testUserRestClient.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
