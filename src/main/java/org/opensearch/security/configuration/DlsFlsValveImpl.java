@@ -191,11 +191,17 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
+        EvaluatedDlsFlsConfig dlsFlsConfigHeaders = filteredDlsFlsConfig;
+
         if (!doFilterLevelDls) {
-            setDlsHeaders(evaluatedDlsFlsConfig, request);
+            setDlsHeaders(dlsFlsConfigHeaders, request);
         }
 
-        setFlsHeaders(evaluatedDlsFlsConfig, request);
+        setFlsHeaders(dlsFlsConfigHeaders, request);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Filtered DLS/FLS Config: " + filteredDlsFlsConfig);
+        }
 
         if (filteredDlsFlsConfig.isEmpty()) {
             return true;
@@ -519,30 +525,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     log.debug("added response header for masked fields info: {}", maskedFieldsMap);
                 }
             } else {
-
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) != null) {
-                    if (!maskedFieldsMap.equals(
-                        Base64Helper.deserializeObject(
-                            threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
-                            threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                        )
-                    )) {
-                        throw new OpenSearchSecurityException(
-                            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)"
-                        );
-                    } else {
-                        if (log.isDebugEnabled()) {
-                            log.debug(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " already set");
-                        }
-                    }
-                } else {
-                    threadContext.putHeader(
-                        ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
-                        Base64Helper.serializeObject((Serializable) maskedFieldsMap)
-                    );
-                    if (log.isDebugEnabled()) {
-                        log.debug("attach masked fields info: {}", maskedFieldsMap);
-                    }
+                threadContext.putHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
+                    Base64Helper.serializeObject((Serializable) maskedFieldsMap)
+                );
+                if (log.isDebugEnabled()) {
+                    log.debug("attach masked fields info: {}", maskedFieldsMap);
                 }
             }
         }
