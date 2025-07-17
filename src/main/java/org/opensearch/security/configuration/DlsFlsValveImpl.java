@@ -34,7 +34,6 @@ import org.apache.lucene.util.BytesRef;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.RealtimeRequest;
@@ -196,9 +195,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         EvaluatedDlsFlsConfig dlsFlsConfigHeaders = filteredDlsFlsConfig;
-        if (clusterInfoHolder.getMinimumNodeVersion().onOrBefore(Version.V_2_19_2)) {
-            dlsFlsConfigHeaders = evaluatedDlsFlsConfig;
-        }
+        // if (clusterInfoHolder.getMinimumNodeVersion().onOrBefore(Version.V_2_19_2)) {
+        // dlsFlsConfigHeaders = evaluatedDlsFlsConfig;
+        // }
 
         if (!doFilterLevelDls) {
             setDlsHeaders(dlsFlsConfigHeaders, request);
