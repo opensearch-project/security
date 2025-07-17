@@ -8,6 +8,7 @@
 package org.opensearch.security.bwc;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,12 +29,12 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 
 import org.opensearch.Version;
+import org.opensearch.client.Node;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
@@ -68,18 +69,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
         CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
         CLUSTER_NAME = System.getProperty("tests.clustername");
-        testUserRestClient = buildClient(
-            super.restClientSettings(),
-            super.getClusterHosts().toArray(new HttpHost[0]),
-            TEST_USER,
-            TEST_PASSWORD
-        );
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        super.tearDown();
-        testUserRestClient.close();
+        if (testUserRestClient == null) {
+            testUserRestClient = buildClient(
+                super.restClientSettings(),
+                super.getClusterHosts().toArray(new HttpHost[0]),
+                TEST_USER,
+                TEST_PASSWORD
+            );
+        }
+        List<Node> newNodes = new ArrayList<>();
+        for (HttpHost host : super.getClusterHosts()) {
+            newNodes.add(new Node(host));
+        }
+        testUserRestClient.setNodes(newNodes);
     }
 
     @Override
