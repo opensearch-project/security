@@ -383,7 +383,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.3.3"
+    toolVersion "10.26.1"
     configDirectory.set(rootProject.file("checkstyle/"))
 }
 
