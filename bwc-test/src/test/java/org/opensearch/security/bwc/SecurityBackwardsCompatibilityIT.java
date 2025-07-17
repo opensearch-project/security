@@ -313,7 +313,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             + "  \"index_permissions\": [\n"
             + "    {\n"
             + "      \"index_patterns\": [\n"
-            + "        \"test_index*\"\n"
+            + "        \"*\"\n"
             + "      ],\n"
             + "      \"dls\": \"{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }\",\n"
             + "      \"fls\": [\n"
