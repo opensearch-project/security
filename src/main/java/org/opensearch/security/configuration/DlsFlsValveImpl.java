@@ -196,7 +196,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         EvaluatedDlsFlsConfig dlsFlsConfigHeaders = filteredDlsFlsConfig;
-        if (clusterInfoHolder.getMinimumNodeVersion().onOrBefore(Version.V_2_19_3)) {
+        if (clusterInfoHolder.getMinimumNodeVersion().onOrBefore(Version.V_2_19_2)) {
             dlsFlsConfigHeaders = evaluatedDlsFlsConfig;
         }
 
@@ -546,7 +546,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     log.debug("added response header for FLS info: {}", flsFields);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) == null) {
+                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
                     if (log.isDebugEnabled()) {
                         log.debug(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " already set");
                     }
