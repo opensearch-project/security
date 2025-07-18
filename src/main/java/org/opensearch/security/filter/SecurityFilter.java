@@ -77,6 +77,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -104,14 +105,13 @@ public class SecurityFilter implements ActionFilter {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
-    private DlsFlsRequestValve dlsFlsValve;
+    private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
-    private final ThreadContext threadContext;
+    private final ThreadPool threadPool;
     private final ClusterService cs;
     private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
-    private final XFFResolver xffResolver;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
@@ -133,12 +133,11 @@ public class SecurityFilter implements ActionFilter {
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
-        this.threadContext = threadPool.getThreadContext();
+        this.threadPool = threadPool;
         this.cs = cs;
         this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
-        this.xffResolver = xffResolver;
         this.immutableIndicesMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
         );
@@ -165,7 +164,7 @@ public class SecurityFilter implements ActionFilter {
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
-        try (StoredContext ctx = threadContext.newStoredContext(true)) {
+        try (StoredContext ctx = threadPool.getThreadContext().newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
@@ -183,7 +182,7 @@ public class SecurityFilter implements ActionFilter {
         ActionFilterChain<Request, Response> chain
     ) {
         try {
-
+            ThreadContext threadContext = threadPool.getThreadContext();
             if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
@@ -192,7 +191,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadPool);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
                 UserInjector.Result injectedUser = userInjector.getInjectedUser();
@@ -200,6 +199,9 @@ public class SecurityFilter implements ActionFilter {
                     user = injectedUser.getUser();
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
+            }
+            if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -343,6 +345,12 @@ public class SecurityFilter implements ActionFilter {
                         log.info("Transport auth in passive mode and no user found. Injecting default user");
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                        if (threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+                            threadContext.putPersistent(
+                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                                new UserSubjectImpl(threadPool, user)
+                            );
+                        }
                     } else {
                         log.error(
                             "No user found for "
@@ -493,7 +501,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-
+        final ThreadContext threadContext = threadPool.getThreadContext();
         if (request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));

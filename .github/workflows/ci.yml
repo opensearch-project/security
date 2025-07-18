@@ -297,9 +297,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [ 21 ]
-        platform: [ ubuntu-latest ]
-    runs-on: ubuntu-latest
+        jdk: [21,24]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
       # this image tag is subject to change as more dependencies and updates will arrive over time

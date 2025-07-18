@@ -178,7 +178,7 @@ public class ResourceSharingIndexHandler {
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
-                    LOGGER.warn("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
+                    LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
                     listener.onResponse(entry);
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
@@ -251,7 +251,7 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to fetch shared documents based on action-group match.
+     * Helper method to fetch own and shared documents based on action-group match.
      * This method uses scroll API to handle large result sets efficiently.
      *
      *
@@ -270,7 +270,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public void fetchSharedDocuments(
+    public void fetchAccessibleResourceIds(
         String resourceIndex,
         Set<String> entities,
         BoolQueryBuilder actionGroupQuery,
@@ -284,7 +284,7 @@ public class ResourceSharingIndexHandler {
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
-            boolQuery.must(QueryBuilders.existsQuery("share_with")).must(actionGroupQuery);
+            boolQuery.must(actionGroupQuery);
 
             executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
@@ -365,12 +365,7 @@ public class ResourceSharingIndexHandler {
             return;
         }
         String resourceSharingIndex = getSharingIndex(resourceIndex);
-        LOGGER.debug(
-            "Fetching document from {}, matching source_idx: {}, resource_id: {}",
-            resourceSharingIndex,
-            resourceIndex,
-            resourceId
-        );
+        LOGGER.debug("Fetching document from {}, matching resource_id: {}", resourceSharingIndex, resourceId);
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
@@ -381,7 +376,7 @@ public class ResourceSharingIndexHandler {
                     try {
                         if (!getResponse.isExists()) {
                             LOGGER.debug(
-                                "No document found in {} matching resource_id: {} and source_idx: {}",
+                                "No document found in {} matching resource_id: {} and source_idx {}",
                                 resourceSharingIndex,
                                 resourceId,
                                 resourceIndex
@@ -412,7 +407,7 @@ public class ResourceSharingIndexHandler {
                         }
                     } catch (Exception e) {
                         LOGGER.error(
-                            "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
+                            "Failed to parse documents matching resource_id: {} and source_idx {} from {}",
                             resourceId,
                             resourceIndex,
                             resourceSharingIndex,
@@ -478,13 +473,12 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, String, boolean, ActionListener)}
+     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
      * @param resourceId      The unique identifier of the resource whose sharing configuration needs to be updated
      * @param resourceIndex   The source index where the original resource is stored
-     * @param requestUserName The user requesting to revoke the resource
      * @param shareWith       Updated sharing configuration object containing access control settings:
      *                        {
      *                        "action-group": {
@@ -493,19 +487,10 @@ public class ResourceSharingIndexHandler {
      *                        "backend_roles": ["backend_role1"]
      *                        }
      *                        }
-     * @param isAdmin         Boolean indicating whether the user requesting to revoke is an admin or not
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */
-    @SuppressWarnings("unchecked")
-    public void updateSharingInfo(
-        String resourceId,
-        String resourceIndex,
-        String requestUserName,
-        ShareWith shareWith,
-        boolean isAdmin,
-        ActionListener<ResourceSharing> listener
-    ) {
+    public void updateSharingInfo(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc
@@ -513,31 +498,22 @@ public class ResourceSharingIndexHandler {
 
         // build update script
         sharingInfoListener.whenComplete(sharingInfo -> {
-            // Check if user can share. At present only the resource creator and admin is allowed to share the resource
-            if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
-
-                LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "User " + requestUserName + " is not authorized to share resource " + resourceId,
-                        RestStatus.FORBIDDEN
-                    )
-                );
+            if (sharingInfo == null) {
+                LOGGER.debug("No sharing record found for resource {}", resourceId);
+                listener.onResponse(null);
                 return;
             }
-
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
-                assert sharingInfo != null;
+
                 sharingInfo.share(accessLevel, target);
             }
 
             String resourceSharingIndex = getSharingIndex(resourceIndex);
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                assert sharingInfo != null;
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -588,8 +564,6 @@ public class ResourceSharingIndexHandler {
      * @param resourceIndex   The name of the system index where the resource exists
      * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
-     * @param requestUserName The user trying to revoke the accesses
-     * @param isAdmin         Boolean indicating whether the user is an admin or not
      * @param listener        Listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException         if the update operation fails or encounters an error
@@ -598,55 +572,38 @@ public class ResourceSharingIndexHandler {
      * @see Recipient
      * @see ResourceSharing
      */
-    public void revoke(
-        String resourceId,
-        String resourceIndex,
-        ShareWith revokeAccess,
-        String requestUserName,
-        boolean isAdmin,
-        ActionListener<ResourceSharing> listener
-    ) {
+    public void revoke(String resourceId, String resourceIndex, ShareWith revokeAccess, ActionListener<ResourceSharing> listener) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
             listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
             return;
         }
         String resourceSharingIndex = getSharingIndex(resourceIndex);
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
-            StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
-            // Fetch the current ResourceSharing document
-            fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-            // Check permissions & build revoke script
-            sharingInfoListener.whenComplete(sharingInfo -> {
-                // Only admin or the creator of the resource is currently allowed to revoke access
-                if (!isAdmin && sharingInfo != null && !sharingInfo.getCreatedBy().getUsername().equals(requestUserName)) {
-                    listener.onFailure(
-                        new OpenSearchStatusException(
-                            "User " + requestUserName + " is not authorized to revoke access to resource " + resourceId,
-                            RestStatus.FORBIDDEN
-                        )
-                    );
-                }
+        // Check permissions & build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
 
-                for (String accessLevel : revokeAccess.accessLevels()) {
-                    Recipients target = revokeAccess.atAccessLevel(accessLevel);
-                    LOGGER.debug(
-                        "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                        resourceId,
-                        resourceIndex,
-                        target,
-                        accessLevel
-                    );
+            assert sharingInfo != null;
+            for (String accessLevel : revokeAccess.accessLevels()) {
+                Recipients target = revokeAccess.atAccessLevel(accessLevel);
+                LOGGER.debug(
+                    "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
+                    resourceId,
+                    resourceIndex,
+                    target,
+                    accessLevel
+                );
 
-                    assert sharingInfo != null;
-                    sharingInfo.revoke(accessLevel, target);
-                }
-                assert sharingInfo != null;
+                sharingInfo.revoke(accessLevel, target);
+            }
+            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -661,8 +618,8 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
-            }, listener::onFailure);
-        }
+            }
+        }, listener::onFailure);
     }
 
     /**
@@ -787,54 +744,49 @@ public class ResourceSharingIndexHandler {
      * This is specifically to replace multi-match queries for wild-card expansions.
      * @param scroll        Search scroll context
      * @param searchRequest Initial search request
-     * @param query         Query builder for the request
+     * @param filterQuery   Query builder for the request
      * @param listener      Listener to receive the collected resource IDs
      */
     private void executeFlattenedSearchRequest(
         Scroll scroll,
         SearchRequest searchRequest,
-        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        BoolQueryBuilder filterQuery,
         ActionListener<Set<String>> listener
     ) {
-        // Painless script to pull out every user/role/backend_role from share_with.* into one array
+        // Painless script to emit all share_with principals
         String scriptSource = """
-              if (params._source.share_with instanceof Map) {
-                for (def grp : params._source.share_with.values()) {
-                  if (grp.users instanceof List) {
-                    for (u in grp.users) {
-                      emit("user:" + u);
+                // handle shared
+                if (params._source.share_with instanceof Map) {
+                  for (def grp : params._source.share_with.values()) {
+                    if (grp.users instanceof List) {
+                      for (u in grp.users) {
+                        emit("user:" + u);
+                      }
                     }
-                  }
-                  if (grp.roles instanceof List) {
-                    for (r in grp.roles) {
-                      emit("role:" + r);
+                    if (grp.roles instanceof List) {
+                      for (r in grp.roles) {
+                        emit("role:" + r);
+                      }
                     }
-                  }
-                  if (grp.backend_roles instanceof List) {
-                    for (b in grp.backend_roles) {
-                      emit("backend:" + b);
+                    if (grp.backend_roles instanceof List) {
+                      for (b in grp.backend_roles) {
+                        emit("backend:" + b);
+                      }
                     }
                   }
                 }
-              }
             """;
 
-        Script script = new Script(
-            ScriptType.INLINE,
-            "painless",
-            scriptSource,
-            Map.of()  // no params
-        );
+        Script script = new Script(ScriptType.INLINE, "painless", scriptSource, Map.of());
 
         SearchSourceBuilder ssb = new SearchSourceBuilder().derivedField(
-            "all_shared_principals",   // synthetic flattened field
+            "all_shared_principals",   // flattened runtime field
             "keyword",                 // type
-            script                     // inline script
-        ).query(query).size(1000).fetchSource(new String[] { "resource_id" }, null);
+            script
+        ).query(filterQuery).size(1000).fetchSource(new String[] { "resource_id" }, null);
 
         searchRequest.source(ssb);
 
-        // … the rest stays exactly the same …
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
         searchStep.whenComplete(initialResponse -> {

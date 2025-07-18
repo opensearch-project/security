@@ -28,12 +28,10 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
 
 import reactor.util.annotation.NonNull;
 
@@ -52,11 +50,11 @@ public class ResourceAccessHandler {
     private final AdminDNs adminDNs;
 
     public ResourceAccessHandler(
-        final ThreadPool threadPool,
+        final ThreadContext threadContext,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns
     ) {
-        this.threadContext = threadPool.getThreadContext();
+        this.threadContext = threadContext;
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
     }
@@ -67,12 +65,12 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to check for accessible resources.
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
-    public void getAccessibleResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
+    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
         UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         User user = userSub == null ? null : userSub.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user; returning empty set");
+            LOGGER.warn("No authenticated user; returning empty sets");
             listener.onResponse(Collections.emptySet());
             return;
         }
@@ -106,86 +104,12 @@ public class ResourceAccessHandler {
         ).collect(Collectors.toSet());
 
         BoolQueryBuilder query = QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
+            .should(QueryBuilders.termQuery("created_by.user", user.getName()))
             .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
             .minimumShouldMatch(1);
 
         // 3) Fetch all accessible resource IDs
-        resourceSharingIndexHandler.fetchSharedDocuments(resourceIndex, flatPrincipals, query, listener);
-    }
-
-    /**
-     * Checks whether current user has permission to access given resource.
-     *
-     * @param resourceId    The resource ID to check access for.
-     * @param resourceIndex The resource index containing the resource.
-     * @param accessLevel   The access level to check permission for.
-     * @param listener      The listener to be notified with the permission check result.
-     */
-    public void hasPermission(
-        @NonNull String resourceId,
-        @NonNull String resourceIndex,
-        @NonNull String accessLevel,
-        ActionListener<Boolean> listener
-    ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
-
-        if (user == null) {
-            LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
-            listener.onResponse(false);
-            return;
-        }
-
-        LOGGER.info("Checking if user '{}' has permission to resource '{}'", user.getName(), resourceId);
-
-        if (adminDNs.isAdmin(user)) {
-            LOGGER.debug("User '{}' is admin, automatically granted permission on '{}'", user.getName(), resourceId);
-            listener.onResponse(true);
-            return;
-        }
-
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
-            if (document == null) {
-                LOGGER.warn(
-                    "ResourceSharing entry not found for '{}' and index '{}'. Access to this resource will be allowed.",
-                    resourceId,
-                    resourceIndex
-                );
-                // Since no sharing entry exists, requests is allowed to implement a non-breaking behaviour
-                listener.onResponse(true);
-                return;
-            }
-
-            // All public entities are designated with "*"
-            userRoles.add("*");
-            userBackendRoles.add("*");
-            if (document.isCreatedBy(user.getName())
-                || document.isSharedWithEveryone()
-                || document.isSharedWithEntity(Recipient.USERS, Set.of(user.getName(), "*"), accessLevel)
-                || document.isSharedWithEntity(Recipient.ROLES, userRoles, accessLevel)
-                || document.isSharedWithEntity(Recipient.BACKEND_ROLES, userBackendRoles, accessLevel)) {
-
-                LOGGER.debug("User '{}' has permission to resource '{}'", user.getName(), resourceId);
-                listener.onResponse(true);
-            } else {
-                LOGGER.debug("User '{}' does not have permission to resource '{}'", user.getName(), resourceId);
-                listener.onResponse(false);
-            }
-        }, exception -> {
-            LOGGER.error(
-                "Failed to fetch resource sharing document for resource '{}' and index '{}': {}",
-                resourceId,
-                resourceIndex,
-                exception.getMessage()
-            );
-            listener.onFailure(exception);
-        }));
+        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, query, listener);
     }
 
     /**
@@ -220,22 +144,13 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
-        boolean isAdmin = adminDNs.isAdmin(user);
-
-        this.resourceSharingIndexHandler.updateSharingInfo(
-            resourceId,
-            resourceIndex,
-            user.getName(),
-            target,
-            isAdmin,
-            ActionListener.wrap(sharingInfo -> {
-                LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
-                listener.onResponse(sharingInfo);
-            }, e -> {
-                LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
-                listener.onFailure(e);
-            })
-        );
+        this.resourceSharingIndexHandler.updateSharingInfo(resourceId, resourceIndex, target, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
+            listener.onResponse(sharingInfo);
+        }, e -> {
+            LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
+            listener.onFailure(e);
+        }));
     }
 
     /**
@@ -258,7 +173,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user found. Failed to revoker access to resource {}", resourceId);
+            LOGGER.warn("No authenticated user found. Failed to revoke access to resource {}", resourceId);
             listener.onFailure(
                 new OpenSearchStatusException(
                     "No authenticated user found. Failed to revoke access to resource {}" + resourceId,
@@ -270,19 +185,10 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
-        boolean isAdmin = adminDNs.isAdmin(user);
-
-        this.resourceSharingIndexHandler.revoke(
-            resourceId,
-            resourceIndex,
-            target,
-            user.getName(),
-            isAdmin,
-            ActionListener.wrap(listener::onResponse, exception -> {
-                LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
-                listener.onFailure(exception);
-            })
-        );
+        this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
+            LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
+            listener.onFailure(exception);
+        }));
     }
 
     /**
