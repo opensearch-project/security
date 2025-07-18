@@ -180,7 +180,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             createTestRoleIfNotExists(TEST_ROLE);
             createUserIfNotExists(TEST_USER, TEST_PASSWORD, TEST_ROLE);
             createIndexIfNotExists(index);
-            createIndexIfNotExists("other-index");
         }
         ingestData(index);
         searchMatchAll(index);
@@ -313,7 +312,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             + "  \"index_permissions\": [\n"
             + "    {\n"
             + "      \"index_patterns\": [\n"
-            + "        \"*\"\n"
+            + "        \"test_index*\"\n"
             + "      ],\n"
             + "      \"dls\": \"{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }\",\n"
             + "      \"fls\": [\n"
