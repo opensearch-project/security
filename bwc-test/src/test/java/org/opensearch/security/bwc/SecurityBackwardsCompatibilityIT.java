@@ -8,7 +8,6 @@
 package org.opensearch.security.bwc;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,7 +33,6 @@ import org.junit.Assume;
 import org.junit.Before;
 
 import org.opensearch.Version;
-import org.opensearch.client.Node;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
@@ -77,11 +75,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 TEST_PASSWORD
             );
         }
-        List<Node> newNodes = new ArrayList<>();
-        for (HttpHost host : super.getClusterHosts()) {
-            newNodes.add(new Node(host));
-        }
-        testUserRestClient.setNodes(newNodes);
     }
 
     @Override
