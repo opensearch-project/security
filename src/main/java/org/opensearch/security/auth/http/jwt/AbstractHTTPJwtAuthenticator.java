@@ -60,7 +60,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtHeaderName;
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
-    private final String subjectKey;
+    private final List<String> subjectKey;
     private final List<String> rolesKey;
     private final List<String> requiredAudience;
     private final String requiredIssuer;
@@ -73,7 +73,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.getAsList("roles_key");
-        subjectKey = settings.get("subject_key");
+        subjectKey = settings.getAsList("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
@@ -183,12 +183,30 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return jwtToken;
     }
 
+    @SuppressWarnings("unchecked")
     @VisibleForTesting
     public String extractSubject(JWTClaimsSet claims) {
         String subject = claims.getSubject();
+        log.warn("subject is '{}' ", subject);
+        log.warn("subjectKey is '{}' ", subjectKey);
+        log.warn("claims is '{}' ", claims);
 
-        if (subjectKey != null) {
-            Object subjectObject = claims.getClaim(subjectKey);
+        if (subjectKey != null && !subjectKey.isEmpty()) {
+            Object subjectObject = null;
+            Map<String, Object> claimsMap = claims.getClaims();
+            // This loop is necessary for nested claim traversal
+            for (int i = 0; i < subjectKey.size(); i++) {
+                if (i == subjectKey.size() - 1) {
+                    subjectObject = claimsMap.get(subjectKey.get(i));
+                } else if (claimsMap.get(subjectKey.get(i)) instanceof Map) {
+                    claimsMap = (Map<String, Object>) claimsMap.get(subjectKey.get(i));
+                } else {
+                    log.warn("Failed to get subject from JWT claims with subject_key '{}'.", subjectKey);
+                    return null;
+                }
+            }
+
+            log.warn("subjectObject is '{}' ", subjectObject);
 
             if (subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
@@ -219,6 +237,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return new String[0];
         }
 
+        log.warn("rolesKey is '{}' ", rolesKey);
         Object rolesObject = null;
         Map<String, Object> claimsMap = claims.getClaims();
         for (int i = 0; i < rolesKey.size(); i++) {
@@ -242,7 +261,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             );
             return new String[0];
         }
-
+        
+        log.warn("rolesObject is '{}' ", rolesObject);
         String[] roles = String.valueOf(rolesObject).split(",");
 
         // We expect a String or Collection. If we find something else, convert to

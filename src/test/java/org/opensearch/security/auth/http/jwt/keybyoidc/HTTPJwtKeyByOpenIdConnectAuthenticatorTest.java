@@ -286,6 +286,56 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
+    public void testSubjectInNestedClaim() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .putList("subject_key", TestJwts.NESTED_MCCOY_SUBJECT)
+            .put("roles_key", TestJwts.ROLES_CLAIM)
+            .put("required_issuer", TestJwts.TEST_ISSUER)
+            .put("required_audience", TestJwts.TEST_AUDIENCE)
+            .build();
+
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(
+                ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NESTED_SUBJECT_OCT_1),
+                new HashMap<String, String>()
+            ).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), Matchers.is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getBackendRoles(), Matchers.is(TestJwts.TEST_ROLES));
+    }
+
+    @Test
+    public void testSubjectAndRolesInNestedClaim() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .putList("subject_key", TestJwts.NESTED_ROLES_AND_SUBJECT_CLAIM)
+            .putList("roles_key", TestJwts.NESTED_ROLES_CLAIM)
+            .put("required_issuer", TestJwts.TEST_ISSUER)
+            .put("required_audience", TestJwts.TEST_AUDIENCE)
+            .build();
+
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(
+                ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NESTED_ROLES_AND_SUBJECT_OCT_1),
+                new HashMap<String, String>()
+            ).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), Matchers.is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getBackendRoles(), Matchers.is(TestJwts.TEST_ROLES));
+    }
+
+    @Test
     public void testExp() {
         Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
