@@ -23,8 +23,8 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.setting.SecurableLegacySetting;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SECURE_SUFFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
@@ -99,7 +99,7 @@ public class SslCertificatesLoader {
     }
 
     private char[] resolvePassword(final String legacyPasswordSettings, final Settings settings, final String defaultPassword) {
-        final var securePasswordSetting = String.format("%s%s", legacyPasswordSettings, SECURE_SUFFIX);
+        final var securePasswordSetting = String.format("%s%s", legacyPasswordSettings, SecurableLegacySetting.SECURE_SUFFIX);
         final var securePassword = SecureSetting.secureString(securePasswordSetting, null).get(settings);
         final var legacyPassword = settings.get(legacyPasswordSettings, defaultPassword);
         if (!securePassword.isEmpty() && legacyPassword != null && !legacyPassword.equals(defaultPassword)) {
