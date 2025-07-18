@@ -32,7 +32,6 @@ import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
 
 import reactor.util.annotation.NonNull;
 
@@ -51,11 +50,11 @@ public class ResourceAccessHandler {
     private final AdminDNs adminDNs;
 
     public ResourceAccessHandler(
-        final ThreadPool threadPool,
+        final ThreadContext threadContext,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns
     ) {
-        this.threadContext = threadPool.getThreadContext();
+        this.threadContext = threadContext;
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
     }
@@ -71,7 +70,7 @@ public class ResourceAccessHandler {
         User user = userSub == null ? null : userSub.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user; returning empty set");
+            LOGGER.warn("No authenticated user; returning empty sets");
             listener.onResponse(Collections.emptySet());
             return;
         }
@@ -174,7 +173,7 @@ public class ResourceAccessHandler {
         final User user = (userSubject == null) ? null : userSubject.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user found. Failed to revoker access to resource {}", resourceId);
+            LOGGER.warn("No authenticated user found. Failed to revoke access to resource {}", resourceId);
             listener.onFailure(
                 new OpenSearchStatusException(
                     "No authenticated user found. Failed to revoke access to resource {}" + resourceId,

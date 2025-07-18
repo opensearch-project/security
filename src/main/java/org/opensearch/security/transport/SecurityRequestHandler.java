@@ -46,6 +46,7 @@ import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -54,6 +55,7 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -110,6 +112,18 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         }
 
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
+
+        String userHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+
+        // restore a persistent user-subject from header, if null
+        if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null && userHdr != null) {
+            User user = this.userFactory.fromSerializedBase64(userHdr);
+
+            getThreadContext().putPersistent(
+                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                new UserSubjectImpl(getThreadPool(), user)
+            );
+        }
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 

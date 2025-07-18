@@ -73,7 +73,6 @@ public class ResourceAccessEvaluator {
      *
      * @param request                         may contain information about the index and the resource being requested
      * @param action                          the action being requested to be performed on the resource
-     * @param isResourceSharingFeatureEnabled flag to indicate whether this feature is enabled
      * @param context                         the evaluation context to be used when performing authorization
      * @param presponse                       the response which tells whether the action is allowed for user, or should the request be checked with another evaluator
      * @return PrivilegesEvaluatorResponse may be complete if the request is for a resource and authz check was successful, incomplete otherwise
@@ -81,16 +80,9 @@ public class ResourceAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
         final String action,
-        boolean isResourceSharingFeatureEnabled,
         final PrivilegesEvaluationContext context,
         final PrivilegesEvaluatorResponse presponse
     ) {
-
-        // If feature is disabled we skip evaluation through this evaluator
-        if (!isResourceSharingFeatureEnabled) {
-            return presponse;
-        }
-
         // Skip evaluation if request is not a DocRequest type
         if (!(request instanceof DocRequest req)) {
             return presponse;
@@ -116,6 +108,7 @@ public class ResourceAccessEvaluator {
         final User user = userSubject.getUser();
 
         // If user is a plugin or api-token
+        // TODO Check if user.isPluginUser() can be used here
         if (!(context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
             // NOTE we don't yet support Plugins to access resources
             log.debug(
@@ -138,10 +131,11 @@ public class ResourceAccessEvaluator {
 
         // Fetch the ResourceSharing document and evaluate access
         this.resourceSharingIndexHandler.fetchSharingInfo(req.index(), req.id(), ActionListener.wrap(document -> {
+            // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
             if (document == null) {
                 // TODO check whether we should mark response as not allowed. At present, it just returns incomplete response and hence is
                 // delegated to next evaluator
-                log.debug("No resource sharing record found for resource {} and index {}, skipping evaluation.", req.id(), req.index());
+                log.warn("No resource sharing record found for resource {} and index {}, skipping evaluation.", req.id(), req.index());
                 latch.countDown();
                 return;
             }
@@ -150,9 +144,7 @@ public class ResourceAccessEvaluator {
             if (document.isCreatedBy(user.getName())) {
                 presponse.allowed = true;
                 shouldMarkAsComplete.set(true);
-                String message = document.isSharedWithEveryone()
-                    ? "Publicly shared resource"
-                    : "User " + user.getName() + " is the owner of the resource";
+                String message = "User " + user.getName() + " is the owner of the resource";
                 log.debug("{} {}, granting access.", message, req.id());
                 latch.countDown();
                 return;

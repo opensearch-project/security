@@ -178,7 +178,7 @@ public class ResourceSharingIndexHandler {
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
-                    LOGGER.warn("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
+                    LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
                     listener.onResponse(entry);
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
@@ -513,7 +513,7 @@ public class ResourceSharingIndexHandler {
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // TODO check this policy
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -578,33 +578,32 @@ public class ResourceSharingIndexHandler {
             return;
         }
         String resourceSharingIndex = getSharingIndex(resourceIndex);
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
-            StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
-            // Fetch the current ResourceSharing document
-            fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-            // Check permissions & build revoke script
-            sharingInfoListener.whenComplete(sharingInfo -> {
+        // Check permissions & build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
 
-                assert sharingInfo != null;
-                for (String accessLevel : revokeAccess.accessLevels()) {
-                    Recipients target = revokeAccess.atAccessLevel(accessLevel);
-                    LOGGER.debug(
-                        "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                        resourceId,
-                        resourceIndex,
-                        target,
-                        accessLevel
-                    );
+            assert sharingInfo != null;
+            for (String accessLevel : revokeAccess.accessLevels()) {
+                Recipients target = revokeAccess.atAccessLevel(accessLevel);
+                LOGGER.debug(
+                    "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
+                    resourceId,
+                    resourceIndex,
+                    target,
+                    accessLevel
+                );
 
-                    sharingInfo.revoke(accessLevel, target);
-                }
-
+                sharingInfo.revoke(accessLevel, target);
+            }
+            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // TODO check this policy
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -619,8 +618,8 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
                 client.index(ir, irListener);
-            }, listener::onFailure);
-        }
+            }
+        }, listener::onFailure);
     }
 
     /**

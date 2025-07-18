@@ -55,6 +55,7 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -155,6 +156,10 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
         final DlsFlsLegacyHeaders dlsFlsLegacyHeaders = getThreadContext().getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
+        final UserSubjectImpl authUserSubj = (UserSubjectImpl) getThreadContext().getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
@@ -171,6 +176,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
@@ -240,7 +246,7 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
+            ensureCorrectHeaders(remoteAddress0, user0, authUserSubj, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
 
             if (actionTraceEnabled.get()) {
                 getThreadContext().putHeader(
@@ -264,6 +270,7 @@ public class SecurityInterceptor {
     private void ensureCorrectHeaders(
         final Object remoteAdr,
         final User origUser,
+        final UserSubjectImpl authSubject,
         final String origin,
         final String injectedUserString,
         final String injectedRolesString,
@@ -312,6 +319,14 @@ public class SecurityInterceptor {
                 );
             }
 
+            // put user as userSubject, we'll recreate it in messageReceivedDecorate
+            String authSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+            if (authSubjectHeader == null && authSubject != null) {
+                getThreadContext().putHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
+                    authSubject.getUser().toSerializedBase64()
+                );
+            }
             final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
             if (userHeader == null) {
                 // put as headers for other requests

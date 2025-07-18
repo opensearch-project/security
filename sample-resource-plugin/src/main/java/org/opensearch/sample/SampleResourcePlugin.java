@@ -14,9 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -75,8 +72,7 @@ import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENS
  *
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, IdentityAwarePlugin {
-    private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
-    private boolean isResourceSharingEnabled = false;
+    private final boolean isResourceSharingEnabled;
 
     private PluginClient pluginClient;
 

@@ -458,7 +458,7 @@ public class PrivilegesEvaluator {
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
-        if (resourceAccessEvaluator.evaluate(request, action0, isResourceSharingFeatureEnabled, context, presponse).isComplete()) {
+        if (isResourceSharingFeatureEnabled && resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
             return presponse;
         }
 

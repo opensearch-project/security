@@ -72,6 +72,10 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         this.errorHandler = errorHandler;
     }
 
+    protected ThreadPool getThreadPool() {
+        return threadPool;
+    }
+
     protected ThreadContext getThreadContext() {
         if (threadPool == null) {
             return null;
