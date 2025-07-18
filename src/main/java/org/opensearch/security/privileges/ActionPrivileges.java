@@ -1027,25 +1027,27 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                             continue;
                         }
 
+                        List<IndexAbstraction> matchingIndices = indexMatcher.matching(indices.values(), IndexAbstraction::getName);
+                        if (matchingIndices.isEmpty()) {
+                            continue;
+                        }
+
                         for (String permission : permissions) {
                             WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
                             Collection<String> matchedActions = actionMatcher.getMatchAny(wellKnownIndexActions, Collectors.toList());
 
-                            for (Map.Entry<String, IndexAbstraction> indicesEntry : indexMatcher.iterateMatching(
-                                indices.entrySet(),
-                                Map.Entry::getKey
-                            )) {
+                            for (IndexAbstraction index : matchingIndices) {
                                 for (String action : matchedActions) {
                                     CompactMapGroupBuilder.MapBuilder<
                                         String,
                                         DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexToRoles = actionToIndexToRoles
                                             .computeIfAbsent(action, k -> indexMapBuilder.createMapBuilder());
 
-                                    indexToRoles.get(indicesEntry.getKey()).add(roleName);
+                                    indexToRoles.get(index.getName()).add(roleName);
 
-                                    if (indicesEntry.getValue() instanceof IndexAbstraction.Alias) {
+                                    if (index instanceof IndexAbstraction.Alias) {
                                         // For aliases we additionally add the sub-indices to the privilege map
-                                        for (IndexMetadata subIndex : indicesEntry.getValue().getIndices()) {
+                                        for (IndexMetadata subIndex : index.getIndices()) {
                                             String subIndexName = subIndex.getIndex().getName();
                                             // We need to check whether the subIndex is part of the global indices
                                             // metadata map because that map has been filtered by relevantOnly().
@@ -1060,7 +1062,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                                                 log.debug(
                                                     "Ignoring member index {} of alias {}. This is usually the case because the index is closed or a data stream backing index.",
                                                     subIndexName,
-                                                    indicesEntry.getKey()
+                                                    index.getName()
                                                 );
                                             }
                                         }
