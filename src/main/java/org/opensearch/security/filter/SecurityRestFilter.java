@@ -164,6 +164,11 @@ public class SecurityRestFilter {
                 return;
             }
 
+            boolean isSimulation = request.paramAsBoolean(ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM, false);
+            if (isSimulation) {
+                threadContext.putTransient(ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM, Boolean.TRUE);
+            }
+
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
