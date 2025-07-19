@@ -1,0 +1,63 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+# Role with DLS restriction - only allows access to engineering department
+startree_dls_role:
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "startree_sales"
+        - "regular_sales"
+      dls: '{"term": {"department": "engineering"}}'
+      allowed_actions:
+        - "indices:data/read/search*"
+        - "indices:data/read/get*"
+        - "indices:admin/mappings/get*"
+        - "indices:monitor/stats*"
+
+# Role with FLS restriction - hides sensitive_data field
+startree_fls_role:
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "startree_sales"
+        - "regular_sales"
+      fls:
+        - "department"
+        - "region"
+        - "sales_amount"
+        - "employee_id"
+        # Note: sensitive_data is excluded
+      allowed_actions:
+        - "indices:data/read/search*"
+        - "indices:data/read/get*"
+        - "indices:admin/mappings/get*"
+        - "indices:monitor/stats*"
+
+# Role with field masking - masks sensitive_data field
+startree_masked_role:
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "startree_sales"
+        - "regular_sales"
+      masked_fields:
+        - "sensitive_data"
+      allowed_actions:
+        - "indices:data/read/search*"
+        - "indices:data/read/get*"
+        - "indices:admin/mappings/get*"
+        - "indices:monitor/stats*"
+
+# Admin role for stats access
+startree_admin_role:
+  cluster_permissions:
+    - "cluster:monitor/stats*"
+    - "cluster:admin/indices/stats*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "*"
