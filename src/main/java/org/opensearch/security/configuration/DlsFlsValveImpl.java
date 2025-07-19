@@ -75,6 +75,7 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
+import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -385,7 +386,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (privilegesEvaluationContext == null) {
                 return;
             }
-
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
             DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
@@ -404,6 +404,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
                     dlsRestriction = DlsRestriction.NONE;
                     log.debug("Lifting DLS for {} due to present document allowlist", index);
+                }
+            }
+
+            // Restrict access for star tree index if there are any DLS/FLS/field masking restrictions
+            if (searchContext.getQueryShardContext().getStarTreeQueryContext() != null) {
+                FieldPrivileges.FlsRule fls = config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index);
+                FieldMasking.FieldMaskingRule rule = config.getFieldMasking().getRestriction(privilegesEvaluationContext, index);
+                if (!dlsRestriction.isUnrestricted() || !fls.isUnrestricted() || !rule.isUnrestricted()) {
+                    searchContext.getQueryShardContext().setStarTreeQueryContext(null);
                 }
             }
 
