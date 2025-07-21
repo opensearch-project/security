@@ -11,4 +11,7 @@ project(":spi").name = rootProject.name + "-spi"
 
 include "sample-resource-plugin"
 project(":sample-resource-plugin").name = "opensearch-sample-resource-plugin"
+
+include "bwc-test"
+project(":bwc-test").name = rootProject.name + "-bwc-test"
 include 'libs:opensaml'

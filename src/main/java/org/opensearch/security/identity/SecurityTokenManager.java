@@ -11,9 +11,10 @@
 
 package org.opensearch.security.identity;
 
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,6 +30,7 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -38,6 +40,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import joptsimple.internal.Strings;
 import org.greenrobot.eventbus.Subscribe;
+
+import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 /**
  * This class is the Security Plugin's implementation of the TokenManager used by all Identity Plugins.
@@ -50,8 +54,10 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
 
-    private JwtVendor jwtVendor = null;
+    private Settings oboSettings = null;
     private ConfigModel configModel = null;
+    private final LongSupplier timeProvider = System::currentTimeMillis;
+    private static final Integer OBO_MAX_EXPIRY_SECONDS = 600;
 
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
         this.cs = cs;
@@ -66,19 +72,17 @@ public class SecurityTokenManager implements TokenManager {
 
     @Subscribe
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
-        final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
-        final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
-        if (enabled) {
-            jwtVendor = createJwtVendor(oboSettings);
-        } else {
-            jwtVendor = null;
+        final Settings oboSettingsFromDcm = dcm.getDynamicOnBehalfOfSettings();
+        final Boolean oboEnabled = oboSettingsFromDcm.getAsBoolean("enabled", false);
+        if (oboEnabled) {
+            oboSettings = oboSettingsFromDcm;
         }
     }
 
     /** For testing */
     JwtVendor createJwtVendor(final Settings settings) {
         try {
-            return new JwtVendor(settings, Optional.empty());
+            return new JwtVendor(settings);
         } catch (final Exception ex) {
             logger.error("Unable to create the JwtVendor instance", ex);
             return null;
@@ -86,7 +90,7 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public boolean issueOnBehalfOfTokenAllowed() {
-        return jwtVendor != null && configModel != null;
+        return oboSettings != null && configModel != null;
     }
 
     @Override
@@ -115,16 +119,36 @@ public class SecurityTokenManager implements TokenManager {
         final TransportAddress callerAddress = null; /* OBO tokens must not roles based on location from network address */
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
 
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date(currentTimeMs);
+
+        final long expirySeconds = Math.min(claims.getExpiration(), OBO_MAX_EXPIRY_SECONDS);
+        if (expirySeconds <= 0) {
+            throw new IllegalArgumentException("The expiration time should be a positive integer");
+        }
+        if (mappedRoles == null) {
+            throw new IllegalArgumentException("Roles cannot be null");
+        }
+        if (isKeyNull(oboSettings, "encryption_key")) {
+            throw new IllegalArgumentException("encryption_key cannot be null");
+        }
+
+        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
+
+        // Add obo claims
+        claimsBuilder.issuer(cs.getClusterName().value());
+        claimsBuilder.issueTime(now);
+        claimsBuilder.subject(user.getName());
+        claimsBuilder.audience(claims.getAudience());
+        claimsBuilder.notBeforeTime(now);
+        claimsBuilder.addBackendRoles(false, new ArrayList<>(user.getRoles()));
+        claimsBuilder.addRoles(new ArrayList<>(mappedRoles));
+
+        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
+        claimsBuilder.expirationTime(expiryTime);
+
         try {
-            return jwtVendor.createJwt(
-                cs.getClusterName().value(),
-                user.getName(),
-                claims.getAudience(),
-                claims.getExpiration(),
-                mappedRoles.stream().collect(Collectors.toList()),
-                user.getRoles().stream().collect(Collectors.toList()),
-                false
-            );
+            return createJwtVendor(oboSettings).createJwt(claimsBuilder, user.getName(), expiryTime, expirySeconds);
         } catch (final Exception ex) {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");

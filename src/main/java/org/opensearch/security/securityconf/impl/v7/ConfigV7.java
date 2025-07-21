@@ -450,7 +450,7 @@ public class ConfigV7 {
 
     public static class OnBehalfOfSettings {
         @JsonProperty("enabled")
-        private Boolean oboEnabled = Boolean.FALSE;
+        private Boolean enabled = Boolean.FALSE;
         @JsonProperty("signing_key")
         private String signingKey;
         @JsonProperty("encryption_key")
@@ -465,12 +465,12 @@ public class ConfigV7 {
             }
         }
 
-        public Boolean getOboEnabled() {
-            return oboEnabled;
+        public Boolean isEnabled() {
+            return enabled;
         }
 
-        public void setOboEnabled(Boolean oboEnabled) {
-            this.oboEnabled = oboEnabled;
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
         }
 
         public String getSigningKey() {
@@ -491,7 +491,7 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "OnBehalfOfSettings [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return "OnBehalfOfSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
     }
 

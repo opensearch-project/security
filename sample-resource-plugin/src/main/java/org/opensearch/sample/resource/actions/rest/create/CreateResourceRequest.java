@@ -22,21 +22,25 @@ import org.opensearch.sample.SampleResource;
 public class CreateResourceRequest extends ActionRequest {
 
     private final SampleResource resource;
+    private final boolean shouldStoreUser;
 
     /**
      * Default constructor
      */
-    public CreateResourceRequest(SampleResource resource) {
+    public CreateResourceRequest(SampleResource resource, boolean shouldStoreUser) {
         this.resource = resource;
+        this.shouldStoreUser = shouldStoreUser;
     }
 
     public CreateResourceRequest(StreamInput in) throws IOException {
         this.resource = in.readNamedWriteable(SampleResource.class);
+        this.shouldStoreUser = in.readBoolean();
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         resource.writeTo(out);
+        out.writeBoolean(shouldStoreUser);
     }
 
     @Override
@@ -46,5 +50,9 @@ public class CreateResourceRequest extends ActionRequest {
 
     public SampleResource getResource() {
         return this.resource;
+    }
+
+    public boolean shouldStoreUser() {
+        return this.shouldStoreUser;
     }
 }
