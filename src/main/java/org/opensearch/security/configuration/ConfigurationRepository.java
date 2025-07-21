@@ -681,11 +681,10 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
         // Check if this is a security index shard
         if (securityIndex.equals(index.getName())) {
-            // Only trigger on primary shard to avoid multiple reloads
-            if (indexShard.routingEntry() != null && indexShard.routingEntry().primary()) {
+            if (indexShard.routingEntry() != null) {
                 threadPool.generic().execute(() -> {
                     if (isSecurityIndexRestoredFromSnapshot(clusterService, index, securityIndex)) {
-                        LOGGER.info("Security index primary shard {} started - config reloading for snapshot restore", shardId);
+                        LOGGER.info("Security index shard {} started - config reloading for snapshot restore", shardId);
                         reloadConfiguration(CType.values());
                     }
                 });
