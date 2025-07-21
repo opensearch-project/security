@@ -303,7 +303,7 @@ public class PrivilegesEvaluator {
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(escapePipe(requestedTenant));
             } else {
-                joiner.add("null")
+                joiner.add("null");
             }
 
             String tenantAccessToCheck = getTenancyAccess(context);
