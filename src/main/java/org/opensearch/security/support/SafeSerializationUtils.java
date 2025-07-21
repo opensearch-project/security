@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.AbstractLdapBean;
@@ -58,7 +59,8 @@ public final class SafeSerializationUtils {
         Number.class,
         Collection.class,
         Map.class,
-        Enum.class
+        Enum.class,
+        ImmutableMap.class
     );
 
     private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton("org.ldaptive.LdapAttribute$LdapAttributeValues");
