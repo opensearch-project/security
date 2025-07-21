@@ -14,7 +14,6 @@ package org.opensearch.security.authtoken.jwt;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import com.google.common.io.BaseEncoding;
@@ -30,6 +29,7 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
 import com.nimbusds.jose.JWSSigner;
@@ -41,10 +41,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -66,7 +64,7 @@ public class JwtVendorTest {
         final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
         assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
         assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
-        Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
+        assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
     }
 
     @Test
@@ -100,8 +98,21 @@ public class JwtVendorTest {
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+
+        JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+                .addBackendRoles(false, backendRoles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -137,8 +148,21 @@ public class JwtVendorTest {
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
             // CS-ENFORCE-SINGLE
             .build();
-        final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+                .addBackendRoles(true, backendRoles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -152,87 +176,6 @@ public class JwtVendorTest {
 
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
-    }
-
-    @Test
-    public void testCreateJwtWithNegativeExpiry() {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = List.of("admin");
-        Integer expirySeconds = -300;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
-
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: The expiration time should be a positive integer"));
-    }
-
-    @Test
-    public void testCreateJwtWithExceededExpiry() throws Exception {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
-        int expirySeconds = 900_000;
-        LongSupplier currentTime = () -> (long) 100;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-
-        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
-        // Expiry is a hint, the max value is controlled by the JwtVendor and reduced as is seen fit.
-        assertThat(authToken.getExpiresInSeconds(), not(equalTo(expirySeconds)));
-        assertThat(authToken.getExpiresInSeconds(), equalTo(600L));
-    }
-
-    @Test
-    public void testCreateJwtWithBadEncryptionKey() {
-        final String issuer = "cluster_0";
-        final String subject = "admin";
-        final String audience = "audience_0";
-        final List<String> roles = List.of("admin");
-        final Integer expirySeconds = 300;
-
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
-
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
-    }
-
-    @Test
-    public void testCreateJwtWithBadRoles() {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = null;
-        Integer expirySeconds = 300;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
-
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
     }
 
     @Test
@@ -255,11 +198,22 @@ public class JwtVendorTest {
         final String audience = "audience_0";
         final List<String> roles = List.of("IT", "HR");
         final List<String> backendRoles = List.of("Sales", "Support");
-        final int expirySeconds = 300;
+        int expirySeconds = 300;
 
-        final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-
-        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+        OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+                .addBackendRoles(true, backendRoles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
 
         verify(mockAppender, times(1)).append(logEventCaptor.capture());
 

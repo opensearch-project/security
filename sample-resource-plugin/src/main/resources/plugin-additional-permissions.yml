@@ -1,5 +1,6 @@
 cluster_permissions:
   - "cluster:monitor/health"
+  - "cluster:monitor/state"
 index_permissions:
   - index_patterns:
       - "test-index*"

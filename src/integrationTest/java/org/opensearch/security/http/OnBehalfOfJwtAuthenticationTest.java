@@ -62,7 +62,6 @@ public class OnBehalfOfJwtAuthenticationTest {
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/generateonbehalfoftoken";
-    private static Boolean oboEnabled = true;
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
             "jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(
@@ -118,7 +117,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         .roles(HOST_MAPPING_ROLE, ROLE_WITH_OBO_PERM);
 
     private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
-        return new OnBehalfOfConfig().oboEnabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey);
+        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(encryptionKey);
     }
 
     @ClassRule
@@ -155,7 +154,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     }
 
     @Test
-    public void shouldNotAuthenticateWithATemperedOBOToken() {
+    public void shouldNotAuthenticateWithATamperedOBOToken() {
         String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
         oboToken = oboToken.substring(0, oboToken.length() - 1); // tampering the token
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
@@ -242,11 +241,11 @@ public class OnBehalfOfJwtAuthenticationTest {
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
 
         // Disable OBO via config and see that the authenticator doesn't authorize
-        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(false));
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().enabled(false));
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_UNAUTHORIZED);
 
         // Reenable OBO via config and see that the authenticator is working again
-        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(true));
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().enabled(true));
         authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
     }
 

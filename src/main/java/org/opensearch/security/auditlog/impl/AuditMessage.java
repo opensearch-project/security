@@ -64,7 +64,7 @@ public final class AuditMessage {
     private static final Logger log = LogManager.getLogger(AuditMessage.class);
 
     // clustername and cluster uuid
-    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
+    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization").ignoreCase();
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 
@@ -75,7 +75,9 @@ public final class AuditMessage {
     @VisibleForTesting
     public static final String BCRYPT_REGEX = "\\$2[ayb]\\$.{56}";
     public static final String PBKDF2_REGEX = "\\$\\d+\\$\\d+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
-    public static final Pattern HASH_REGEX_PATTERN = Pattern.compile(BCRYPT_REGEX + "|" + PBKDF2_REGEX);
+    public static final String ARGON2_REGEX =
+        "\\$argon2(?:id|i|d)\\$v=\\d+\\$(?:[a-z]=\\d+,?)+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
+    public static final Pattern HASH_REGEX_PATTERN = Pattern.compile(BCRYPT_REGEX + "|" + PBKDF2_REGEX + "|" + ARGON2_REGEX);
     private static final String HASH_REPLACEMENT_VALUE = "__HASH__";
     private static final String INTERNALUSERS_DOC_ID = CType.INTERNALUSERS.toLCString();
 

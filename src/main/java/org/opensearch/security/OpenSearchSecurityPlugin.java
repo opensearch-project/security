@@ -37,7 +37,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
-import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,10 +65,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.bulk.BulkAction;
@@ -167,8 +166,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.ContextProvidingPluginSubject;
-import org.opensearch.security.identity.NoopPluginSubject;
+import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -680,7 +678,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         sslSettingsManager,
                         Objects.requireNonNull(userService),
                         sslCertReloadEnabled,
-                        passwordHasher
+                        passwordHasher,
+                        rsIndexHandler
                     )
                 );
 
@@ -1437,6 +1436,55 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
         if (!SSLConfig.isSslOnlyMode()) {
             settings.add(
                 Setting.listSetting(
@@ -2132,6 +2180,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Privileges evaluation
             settings.add(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+            settings.add(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED);
 
             // Resource Sharing
             settings.add(
@@ -2292,9 +2341,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        PluginSubject subject;
+        PluginSubject subject = new SecurePluginSubject(threadPool, settings, plugin);
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
-            subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
             String pluginPrincipal = subject.getPrincipal().getName();
             URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
             RoleV7 pluginPermissions;
@@ -2314,8 +2362,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
             pluginPermissions.getCluster_permissions().add(BulkAction.NAME);
             evaluator.updatePluginToActionPrivileges(pluginPrincipal, pluginPermissions);
-        } else {
-            subject = new NoopPluginSubject(threadPool);
         }
         return subject;
     }
@@ -2335,23 +2381,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        // Add provider if on the classpath.
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            if (Security.getProvider("BC") == null) {
-                try {
-                    Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
-                    Security.addProvider(provider);
-                    log.debug("Bouncy Castle Provider added");
-                } catch (Exception e) {
-                    log.debug("Bouncy Castle Provider could not be added", e);
-                }
+        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            if (Security.getProvider("BCFIPS") == null) {
+                Security.addProvider(new BouncyCastleFipsProvider());
+                log.debug("Bouncy Castle FIPS Provider added");
             }
             return null;
         });
