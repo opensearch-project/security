@@ -349,6 +349,49 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
     }
 
     @Test
+    public void testStarTreeWithDlsRestrictionForDFSThenFetchQuery() throws Exception {
+        setupStarTreeTest();
+
+        String aggregationQuery = "{"
+            + "\"size\": 0,"
+            + "\"aggs\": {"
+            + "  \"departments\": {"
+            + "    \"terms\": {"
+            + "      \"field\": \"department\""
+            + "    },"
+            + "    \"aggs\": {"
+            + "      \"total_sales\": {"
+            + "        \"sum\": {"
+            + "          \"field\": \"sales_amount\""
+            + "        }"
+            + "      }"
+            + "    }"
+            + "  }"
+            + "}"
+            + "}";
+
+        HttpResponse response = rh.executePostRequest(
+            "/" + STARTREE_INDEX_NAME + "/_search?search_type=dfs_query_then_fetch",
+            aggregationQuery,
+            encodeBasicHeader("startree_dls_user", "password")
+        );
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+        HttpResponse statsResponse = rh.executeGetRequest(
+            "/" + STARTREE_INDEX_NAME + "/_stats/search?pretty",
+            encodeBasicHeader("startree_admin", "password")
+        );
+        assertThat(statsResponse.getStatusCode(), is(HttpStatus.SC_OK));
+        String statsBody = statsResponse.getBody();
+        // Assert that star tree queries are 0 (disabled due to FLS)
+        Assert.assertTrue("Star tree query total should be 0 when FLS is applied", statsBody.contains("\"startree_query_total\" : 0"));
+
+        Assert.assertTrue(
+            "Regular query total should be > 0",
+            statsBody.contains("\"query_total\" : 1") || statsBody.matches(".*\"query_total\"\\s*:\\s*[1-9]\\d*.*")
+        );
+    }
+
+    @Test
     public void testStarTreeWithFlsRestriction() throws Exception {
         setupStarTreeTest();
 
