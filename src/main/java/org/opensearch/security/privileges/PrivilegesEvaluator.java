@@ -26,6 +26,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -293,10 +294,19 @@ public class PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", context.getMappedRoles())));
 
             String requestedTenant = context.getUser().getRequestedTenant();
-            joiner.add(requestedTenant);
+            if (!Strings.isNullOrEmpty(requestedTenant)) {
+                joiner.add(escapePipe(requestedTenant));
+            } else {
+                joiner.add("null");
+            }
+
             String tenantAccessToCheck = getTenancyAccess(context);
             joiner.add(tenantAccessToCheck);
             log.debug(joiner);
+
+
+            joiner.add(Base64Helper.serializeObject((Serializable) context.getUser().getCustomAttributesMap()));
+
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
