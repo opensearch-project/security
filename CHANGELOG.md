@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 ### Fixed
-
+* Fix config update with deprecated config types failing in mixed clusters ([#5497](https://github.com/opensearch-project/security/pull/5497))
 
 ### Security
 
