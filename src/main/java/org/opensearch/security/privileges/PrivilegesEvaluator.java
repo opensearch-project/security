@@ -297,6 +297,8 @@ public class PrivilegesEvaluator {
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(escapePipe(requestedTenant));
+            } else {
+                joiner.add("null")
             }
 
             if (this.isUserAttributeSerializationEnabled()) {
