@@ -12,9 +12,9 @@ startree_dls_role:
         - "regular_sales"
       dls: '{"term": {"department": "engineering"}}'
       allowed_actions:
-        - "indices:data/read/search*"
-        - "indices:data/read/get*"
         - "indices:admin/mappings/get*"
+        - "indices:data/read/get*"
+        - "indices:data/read/search*"
         - "indices:monitor/stats*"
 
 # Role with FLS restriction - hides sensitive_data field
@@ -31,9 +31,9 @@ startree_fls_role:
         - "employee_id"
         # Note: sensitive_data is excluded
       allowed_actions:
-        - "indices:data/read/search*"
-        - "indices:data/read/get*"
         - "indices:admin/mappings/get*"
+        - "indices:data/read/get*"
+        - "indices:data/read/search*"
         - "indices:monitor/stats*"
 
 # Role with field masking - masks sensitive_data field
@@ -46,16 +46,16 @@ startree_masked_role:
       masked_fields:
         - "sensitive_data"
       allowed_actions:
-        - "indices:data/read/search*"
-        - "indices:data/read/get*"
         - "indices:admin/mappings/get*"
+        - "indices:data/read/get*"
+        - "indices:data/read/search*"
         - "indices:monitor/stats*"
 
 # Admin role for stats access
 startree_admin_role:
   cluster_permissions:
-    - "cluster:monitor/stats*"
     - "cluster:admin/indices/stats*"
+    - "cluster:monitor/stats*"
   index_permissions:
     - index_patterns:
         - "*"
