@@ -117,6 +117,9 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 import static org.opensearch.security.support.SecurityUtils.escapePipe;
 
+import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT;
+
 public class PrivilegesEvaluator {
 
     private static final String USER_TENANT = "__user__";
@@ -285,6 +288,13 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
+    private boolean isUserAttributeSerializationEnabled() {
+        return this.settings.getAsBoolean(
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED,
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT
+        );
+    }
+
     private void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
@@ -305,7 +315,9 @@ public class PrivilegesEvaluator {
 
             joiner.add(Base64Helper.serializeObject((Serializable) context.getUser().getCustomAttributesMap()));
 
-            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+            if (this.isUserAttributeSerializationEnabled()) {
+                threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+            }
         }
     }
 
