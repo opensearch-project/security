@@ -72,6 +72,7 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.security.action.simulate.SimulateResponse;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -386,6 +387,21 @@ public class SecurityFilter implements ActionFilter {
 
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
+            }
+
+            String isSimulation = threadContext.getHeader(ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM);
+            if ("true".equals(isSimulation)) {
+                log.info("Simulation mode detected");
+                try {
+                    @SuppressWarnings("unchecked")
+                    Response response = (Response) new SimulateResponse(pres.isAllowed(), pres.getMissingPrivileges());
+                    listener.onResponse(response);
+
+                } catch (Exception e) {
+                    log.error("Error creating simulation response", e);
+                    listener.onFailure(new OpenSearchException("Error creating simulation response", e));
+                }
+                return;
             }
 
             if (pres.isAllowed()) {

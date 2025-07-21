@@ -17,10 +17,12 @@ import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Currently tests that the allowlisting functionality works correctly.
@@ -299,5 +301,39 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
             adminCredsHeader
         );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+    }
+
+    /**
+     * Tests that the simulate_authz param works correctly.
+     * When simulate_authz=true is added to a request, returns
+     * whether the request would be allowed or Denied, without actually executing the request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSimulateAuthzParam() throws Exception {
+        setup();
+
+        // ALLOWLIST GET /_cluster/health
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/health\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
+
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_cluster/health?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertTrue(response.getBody().contains("\"accessAllowed\":"));
+        assertTrue(response.getBody().contains("\"missingPrivileges\":"));
+
+        response = rh.executeGetRequest("_search?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        response = rh.executeGetRequest("_cat/nodes?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
     }
 }
