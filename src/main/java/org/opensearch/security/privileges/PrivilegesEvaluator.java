@@ -296,8 +296,6 @@ public class PrivilegesEvaluator {
             String requestedTenant = context.getUser().getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(escapePipe(requestedTenant));
-            } else {
-                joiner.add("null");
             }
 
             String tenantAccessToCheck = getTenancyAccess(context);
