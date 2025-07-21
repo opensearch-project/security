@@ -115,10 +115,9 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
-import static org.opensearch.security.support.SecurityUtils.escapePipe;
-
 import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT;
+import static org.opensearch.security.support.SecurityUtils.escapePipe;
 
 public class PrivilegesEvaluator {
 
@@ -289,10 +288,7 @@ public class PrivilegesEvaluator {
     }
 
     private boolean isUserAttributeSerializationEnabled() {
-        return this.settings.getAsBoolean(
-            USER_ATTRIBUTE_SERIALIZATION_ENABLED,
-            USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT
-        );
+        return this.settings.getAsBoolean(USER_ATTRIBUTE_SERIALIZATION_ENABLED, USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT);
     }
 
     private void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {
@@ -316,8 +312,10 @@ public class PrivilegesEvaluator {
             joiner.add(Base64Helper.serializeObject((Serializable) context.getUser().getCustomAttributesMap()));
 
             if (this.isUserAttributeSerializationEnabled()) {
-                threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+                joiner.add(Base64Helper.serializeObject((Serializable) context.getUser().getCustomAttributesMap()));
             }
+
+            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
