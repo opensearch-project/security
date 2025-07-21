@@ -162,8 +162,6 @@ public class ConfigConstants {
     public static final String SECURITY_SIMULATION_API_ENABLED = SECURITY_SETTINGS_PREFIX + "simulation_api.enabled";
     public static final boolean SECURITY_SIMULATION_API_ENABLED_DEFAULT = true;
 
-    public static final String SECURITY_SIMULATE_AUTHZ_PARAM = "simulate_authz";
-
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
 
