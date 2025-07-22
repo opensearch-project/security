@@ -531,9 +531,11 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
      * updates into one.
 
      * @param configTypes the configuration types to be reloaded.
+     * @param listener an listener to be notified when the reload was finished. You can provide null if you do not want
+     *                 such a notification
      */
-    public void reloadConfiguration(Collection<CType<?>> configTypes) {
-        this.reloadThread.requestReload(configTypes);
+    public void reloadConfiguration(Collection<CType<?>> configTypes, ActionListener<ConfigReloadResponse> listener) {
+        this.reloadThread.requestReload(configTypes, listener);
     }
 
     /**
@@ -651,7 +653,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                 threadPool.generic().execute(() -> {
                     if (isSecurityIndexRestoredFromSnapshot(clusterService, index, securityIndex)) {
                         LOGGER.info("Security index primary shard {} started - config reloading for snapshot restore", shardId);
-                        reloadConfiguration(CType.values());
+                        reloadConfiguration(CType.values(), null);
                     }
                 });
             }
@@ -690,6 +692,12 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         private ImmutableSet<CType<?>> reloadRequestedFor = ImmutableSet.of();
 
         /**
+         * Action listeners to be called when the reload was finished. We collect the action listeners here until
+         * the reload is actually in progress.
+         */
+        private List<ActionListener<ConfigReloadResponse>> reloadRequestedForActionListeners = new ArrayList<>();
+
+        /**
          * The time we got the first currently queued reload request.
          */
         private Instant reloadRequestedAt;
@@ -708,10 +716,14 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
          * Requests an async configuration reload for the given configuration types. Calling this method
          * will not wait for the configuration reload to complete.
          */
-        void requestReload(Collection<CType<?>> configurationTypes) {
+        void requestReload(Collection<CType<?>> configurationTypes, ActionListener<ConfigReloadResponse> actionListener) {
             synchronized (this.requestLock) {
                 if (!this.started) {
                     LOGGER.info("Cannot reload configuration yet, because the initialization process did not complete yet");
+                }
+
+                if (actionListener != null) {
+                    this.reloadRequestedForActionListeners.add(actionListener);
                 }
 
                 if (this.reloadRequestedFor.isEmpty()) {
@@ -778,8 +790,9 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
         private void run() {
             for (;;) {
+                ImmutableSet<CType<?>> localReloadRequestedFor;
+                List<ActionListener<ConfigReloadResponse>> localReloadRequestedForActionListeners = null;
                 try {
-                    ImmutableSet<CType<?>> localReloadRequestedFor;
 
                     synchronized (this.requestLock) {
                         this.reloadInProgressFor = ImmutableSet.of();
@@ -790,8 +803,8 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
                         // We save here the requested configuration types in order to pass them to the updateFunction later
                         localReloadRequestedFor = this.reloadRequestedFor;
+                        localReloadRequestedForActionListeners = new ArrayList<>(this.reloadRequestedForActionListeners);
 
-                        // this.reloadRequestedAt != null: This means, that we got an update request
                         LOGGER.info(
                             "Performing configuration reload for request at {} on {}",
                             this.reloadRequestedAt,
@@ -802,14 +815,35 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                         // following update process will be already recognized again and queued.
                         this.reloadRequestedAt = null;
                         this.reloadRequestedFor = ImmutableSet.of();
+                        this.reloadRequestedForActionListeners.clear();
                         this.reloadInProgressFor = localReloadRequestedFor;
                     }
 
                     this.performFunction.accept(localReloadRequestedFor);
+                    for (ActionListener<ConfigReloadResponse> listener : localReloadRequestedForActionListeners) {
+                        listener.onResponse(new ConfigReloadResponse(localReloadRequestedFor));
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Error in {}", this.thread.getName(), e);
+                    if (localReloadRequestedForActionListeners != null) {
+                        for (ActionListener<ConfigReloadResponse> listener : localReloadRequestedForActionListeners) {
+                            listener.onFailure(e);
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    public static class ConfigReloadResponse {
+        private final Set<CType<?>> reloadedConfigTypes;
+
+        ConfigReloadResponse(Set<CType<?>> reloadedConfigTypes) {
+            this.reloadedConfigTypes = reloadedConfigTypes;
+        }
+
+        public Set<CType<?>> getReloadedConfigTypes() {
+            return reloadedConfigTypes;
         }
     }
 }

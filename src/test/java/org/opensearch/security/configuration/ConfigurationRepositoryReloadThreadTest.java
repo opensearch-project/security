@@ -40,7 +40,7 @@ public class ConfigurationRepositoryReloadThreadTest {
             reloadedConfigTypes.addAll(configTypes);
         });
         subject.start();
-        subject.requestReload(requestedConfigTypes);
+        subject.requestReload(requestedConfigTypes, null);
 
         await().until(subject::isIdle);
         assertEquals("Exactly one reload should have been performed after the reload request", 1, reloadCounter.get());
@@ -55,8 +55,8 @@ public class ConfigurationRepositoryReloadThreadTest {
             reloadCounter.incrementAndGet();
             reloadedConfigTypes.addAll(configTypes);
         });
-        subject.requestReload(Set.of(CType.INTERNALUSERS));
-        subject.requestReload(Set.of(CType.ROLES));
+        subject.requestReload(Set.of(CType.INTERNALUSERS), null);
+        subject.requestReload(Set.of(CType.ROLES), null);
         subject.start();
 
         await().until(subject::isIdle);
@@ -81,10 +81,10 @@ public class ConfigurationRepositoryReloadThreadTest {
             await().until(reloadContinueCondition::get);
         });
         subject.start();
-        subject.requestReload(Set.of(CType.INTERNALUSERS));
+        subject.requestReload(Set.of(CType.INTERNALUSERS), null);
         await().until(subject::queueIsEmpty);
 
-        subject.requestReload(Set.of(CType.ROLES));
+        subject.requestReload(Set.of(CType.ROLES), null);
 
         // Signal the reload function to finish
         reloadContinueCondition.set(true);
@@ -111,11 +111,11 @@ public class ConfigurationRepositoryReloadThreadTest {
             await().until(reloadContinueCondition::get);
         });
         subject.start();
-        subject.requestReload(Set.of(CType.INTERNALUSERS));
+        subject.requestReload(Set.of(CType.INTERNALUSERS), null);
         await().until(subject::queueIsEmpty);
 
-        subject.requestReload(Set.of(CType.ROLES));
-        subject.requestReload(Set.of(CType.ROLESMAPPING));
+        subject.requestReload(Set.of(CType.ROLES), null);
+        subject.requestReload(Set.of(CType.ROLESMAPPING), null);
 
         // Signal the reload function to finish
         reloadContinueCondition.set(true);
@@ -142,11 +142,11 @@ public class ConfigurationRepositoryReloadThreadTest {
             await().until(reloadContinueCondition::get);
         });
         subject.start();
-        subject.requestReload(Set.of(CType.INTERNALUSERS));
+        subject.requestReload(Set.of(CType.INTERNALUSERS), null);
         await().until(subject::queueIsEmpty);
 
-        subject.requestReload(Set.of(CType.ROLES, CType.ROLESMAPPING));
-        subject.requestReload(Set.of(CType.ROLESMAPPING));
+        subject.requestReload(Set.of(CType.ROLES, CType.ROLESMAPPING), null);
+        subject.requestReload(Set.of(CType.ROLESMAPPING), null);
 
         // Signal the reload function to finish
         reloadContinueCondition.set(true);
@@ -173,10 +173,10 @@ public class ConfigurationRepositoryReloadThreadTest {
             }
         });
         subject.start();
-        subject.requestReload(Set.of(CType.AUDIT));
+        subject.requestReload(Set.of(CType.AUDIT), null);
         await().until(subject::queueIsEmpty);
 
-        subject.requestReload(Set.of(CType.ROLES));
+        subject.requestReload(Set.of(CType.ROLES), null);
 
         await().until(subject::isIdle);
         assertEquals("Two reload requests have been performed now", 2, reloadCounter.get());
