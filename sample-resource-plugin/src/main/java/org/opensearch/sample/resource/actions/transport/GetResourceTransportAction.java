@@ -15,9 +15,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -34,10 +31,10 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -51,21 +48,27 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  * Transport action for getting a resource
  */
 public class GetResourceTransportAction extends HandledTransportAction<GetResourceRequest, GetResourceResponse> {
-    private static final Logger log = LogManager.getLogger(GetResourceTransportAction.class);
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
+    private final SampleResourceExtension sampleResourceExtension;
 
     @Inject
-    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public GetResourceTransportAction(
+        TransportService transportService,
+        ActionFilters actionFilters,
+        NodeClient nodeClient,
+        SampleResourceExtension sampleResourceExtension
+    ) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
+        this.sampleResourceExtension = sampleResourceExtension;
     }
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+        ResourceSharingClient client = sampleResourceExtension.getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {

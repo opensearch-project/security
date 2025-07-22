@@ -26,9 +26,7 @@ import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -186,9 +184,6 @@ public class ResourceSharingIndexHandler {
                 }
             });
             client.index(ir, irListener);
-        } catch (Exception e) {
-            LOGGER.error("Failed to submit index request for [{}] in [{}]", resourceId, resourceSharingIndex, e);
-            listener.onFailure(e);
         }
     }
 
@@ -245,8 +240,6 @@ public class ResourceSharingIndexHandler {
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
-        } catch (Exception e) {
-            listener.onFailure(e);
         }
     }
 
@@ -295,15 +288,6 @@ public class ResourceSharingIndexHandler {
                 listener.onFailure(exception);
 
             }));
-        } catch (Exception e) {
-            LOGGER.error(
-                "Failed to initiate fetch from {} for criteria - resourceIndex: {}, entities: {}",
-                resourceSharingIndex,
-                resourceIndex,
-                entities,
-                e
-            );
-            listener.onFailure(new RuntimeException("Failed to fetch documents: " + e.getMessage(), e));
         }
     }
 
@@ -367,107 +351,53 @@ public class ResourceSharingIndexHandler {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug("Fetching document from {}, matching resource_id: {}", resourceSharingIndex, resourceId);
 
+        String failureResponse = "Failed to parse document matching resource_id: "
+            + resourceId
+            + " and source_idx: "
+            + resourceIndex
+            + " from "
+            + resourceSharingIndex;
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
 
-            client.get(getRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(GetResponse getResponse) {
-                    try {
-                        if (!getResponse.isExists()) {
-                            LOGGER.debug(
-                                "No document found in {} matching resource_id: {} and source_idx {}",
-                                resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
-                            );
-                            listener.onResponse(null);
-                            return;
-                        }
-                        try (
-                            XContentParser parser = XContentType.JSON.xContent()
-                                .createParser(
-                                    NamedXContentRegistry.EMPTY,
-                                    LoggingDeprecationHandler.INSTANCE,
-                                    getResponse.getSourceAsString()
-                                )
-                        ) {
-                            parser.nextToken();
-                            ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
-                            resourceSharing.setResourceId(getResponse.getId());
-
-                            LOGGER.debug(
-                                "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
-                                resourceSharingIndex,
-                                resourceId,
-                                resourceIndex
-                            );
-
-                            listener.onResponse(resourceSharing);
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error(
-                            "Failed to parse documents matching resource_id: {} and source_idx {} from {}",
-                            resourceId,
-                            resourceIndex,
+            client.get(getRequest, ActionListener.wrap(getResponse -> {
+                try {
+                    if (!getResponse.isExists()) {
+                        LOGGER.debug(
+                            "No document found in {} matching resource_id: {} and source_idx {}",
                             resourceSharingIndex,
-                            e
+                            resourceId,
+                            resourceIndex
                         );
-                        listener.onFailure(
-                            new OpenSearchStatusException(
-                                "Failed to parse document matching resource_id: "
-                                    + resourceId
-                                    + " and source_idx: "
-                                    + resourceIndex
-                                    + " from "
-                                    + resourceSharingIndex,
-                                RestStatus.INTERNAL_SERVER_ERROR
-                            )
-                        );
+                        listener.onResponse(null);
+                        return;
                     }
-                }
+                    try (
+                        XContentParser parser = XContentType.JSON.xContent()
+                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
+                    ) {
+                        parser.nextToken();
+                        ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                        resourceSharing.setResourceId(getResponse.getId());
 
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error(
-                        "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
-                        resourceId,
-                        resourceIndex,
-                        resourceSharingIndex,
-                        e
-                    );
-                    listener.onFailure(
-                        new OpenSearchStatusException(
-                            "Failed to parse document matching resource_id: "
-                                + resourceId
-                                + " and source_idx: "
-                                + resourceIndex
-                                + " from "
-                                + resourceSharingIndex,
-                            RestStatus.INTERNAL_SERVER_ERROR
-                        )
-                    );
+                        LOGGER.debug(
+                            "Successfully fetched document from {} matching resource_id: {} and source_idx: {}",
+                            resourceSharingIndex,
+                            resourceId,
+                            resourceIndex
+                        );
+
+                        listener.onResponse(resourceSharing);
+                    }
+                } catch (Exception e) {
+                    LOGGER.error(failureResponse, e);
+                    listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR));
                 }
-            });
-        } catch (Exception e) {
-            LOGGER.error(
-                "Failed to parse documents matching resource_id: {} and source_idx: {} from {}",
-                resourceId,
-                resourceIndex,
-                resourceSharingIndex,
-                e
-            );
-            listener.onFailure(
-                new OpenSearchStatusException(
-                    "Failed to parse document matching resource_id: "
-                        + resourceId
-                        + " and source_idx: "
-                        + resourceIndex
-                        + " from "
-                        + resourceSharingIndex,
-                    RestStatus.INTERNAL_SERVER_ERROR
-                )
-            );
+            }, exception -> {
+                LOGGER.error(failureResponse, exception);
+                listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR));
+            }));
+
         }
     }
 
@@ -526,7 +456,10 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
                     listener.onResponse(sharingInfo);
-                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                }, (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    listener.onFailure(failResponse);
+                });
                 client.index(ir, irListener);
             }
         }, listener::onFailure);
@@ -609,14 +542,12 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    LOGGER.info(
-                        "Successfully updated {} entry for resource {} in index {}.",
-                        resourceSharingIndex,
-                        resourceId,
-                        resourceIndex
-                    );
+                    LOGGER.info("Successfully revoked access of {} to resource {} in index {}.", revokeAccess, resourceId, resourceIndex);
                     listener.onResponse(sharingInfo);
-                }, (failResponse) -> { LOGGER.error(failResponse.getMessage()); });
+                }, (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    listener.onFailure(failResponse);
+                });
                 client.index(ir, irListener);
             }
         }, listener::onFailure);
@@ -673,39 +604,30 @@ public class ResourceSharingIndexHandler {
             resourceId
         );
 
+        // Delete it as super-admin. This method is only called in postDelete handler for resource-index
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteRequest deleteRequest = new DeleteRequest(resourceSharingIndex, resourceId);
 
-            client.delete(deleteRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(DeleteResponse response) {
-
-                    boolean deleted = DocWriteResponse.Result.DELETED.equals(response.getResult());
-                    if (deleted) {
-                        LOGGER.debug("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
-                        listener.onResponse(true);
-                    } else {
-                        LOGGER.debug(
-                            "No documents found to delete in {} for source_idx: {} and resource_id: {}",
-                            resourceSharingIndex,
-                            resourceIndex,
-                            resourceId
-                        );
-                        // No documents were deleted
-                        listener.onResponse(false);
-                    }
+            client.delete(deleteRequest, ActionListener.wrap(deleteResponse -> {
+                boolean deleted = DocWriteResponse.Result.DELETED.equals(deleteResponse.getResult());
+                if (deleted) {
+                    LOGGER.debug("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);
+                    listener.onResponse(true);
+                } else {
+                    LOGGER.debug(
+                        "No documents found to delete in {} for source_idx: {} and resource_id: {}",
+                        resourceSharingIndex,
+                        resourceIndex,
+                        resourceId
+                    );
+                    // No documents were deleted
+                    listener.onResponse(false);
                 }
+            }, failResponse -> {
+                LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, failResponse);
+                listener.onFailure(failResponse);
+            }));
 
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, e);
-                    listener.onFailure(e);
-
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.error("Failed to delete documents from {} before request submission", resourceSharingIndex, e);
-            listener.onFailure(e);
         }
     }
 

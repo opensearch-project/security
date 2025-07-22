@@ -291,6 +291,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
+    private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
     public static boolean isActionTraceEnabled() {
 
@@ -1273,7 +1274,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             });
             // CS-ENFORCE-SINGLE
             components.add(resourcePluginInfo);
+            components.add(resourceAccessControlClient);
             components.add(resourceAccessHandler);
+            components.addAll(resourceSharingExtensions);
         }
 
         components.add(sslSettingsManager);
@@ -2406,7 +2409,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
             )) {
             // load all resource-sharing extensions
-            Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
+            resourceSharingExtensions.addAll(new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class)));
             resourcePluginInfo.setResourceSharingExtensions(resourceSharingExtensions);
         }
     }
