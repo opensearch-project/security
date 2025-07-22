@@ -14,11 +14,12 @@ import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -36,6 +37,61 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
     private static final String STARTREE_INDEX_NAME = "startree_sales";
     private static final String REGULAR_INDEX_NAME = "regular_sales";
 
+    // Test data for consistent use across indices
+    private static final String[] TEST_DOCUMENTS = { """
+        {
+          "department": "engineering",
+          "region": "us-west",
+          "sales_amount": 1000.0,
+          "employee_id": "emp1",
+          "sensitive_data": "confidential info 1"
+        }
+        """, """
+        {
+          "department": "engineering",
+          "region": "us-east",
+          "sales_amount": 1500.0,
+          "employee_id": "emp2",
+          "sensitive_data": "confidential info 2"
+        }
+        """, """
+        {
+          "department": "sales",
+          "region": "us-west",
+          "sales_amount": 2000.0,
+          "employee_id": "emp3",
+          "sensitive_data": "confidential info 3"
+        }
+        """, """
+        {
+          "department": "sales",
+          "region": "us-east",
+          "sales_amount": 2500.0,
+          "employee_id": "emp4",
+          "sensitive_data": "confidential info 4"
+        }
+        """ };
+
+    /**
+     * Helper method to bulk index documents to multiple indices efficiently
+     */
+    private void bulkIndexDocuments(Client tc, String[] documents, String... indexNames) {
+        BulkRequest bulkRequest = new BulkRequest().setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+
+        for (String document : documents) {
+            for (String indexName : indexNames) {
+                bulkRequest.add(new IndexRequest(indexName).source(document, XContentType.JSON));
+            }
+        }
+
+        BulkResponse bulkResponse = tc.bulk(bulkRequest).actionGet();
+
+        // Check for failures
+        if (bulkResponse.hasFailures()) {
+            throw new RuntimeException("Bulk indexing failed: " + bulkResponse.buildFailureMessage());
+        }
+    }
+
     protected void setupStarTreeTest() throws Exception {
         final Settings settings = Settings.EMPTY;
         final DynamicSecurityConfig dynamicSecurityConfig = new DynamicSecurityConfig().setSecurityRoles("roles_startree.yml")
@@ -49,6 +105,32 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
     protected void populateData(Client tc) {
         // Create star tree index with composite mapping
         try {
+            String starTreeMapping = """
+                {
+                  "composite": {
+                    "sales_star_tree": {
+                      "type": "star_tree",
+                      "config": {
+                        "ordered_dimensions": [
+                          {"name": "department"},
+                          {"name": "region"}
+                        ],
+                        "metrics": [
+                          {"name": "sales_amount", "stats": ["sum", "value_count"]}
+                        ]
+                      }
+                    }
+                  },
+                  "properties": {
+                    "department": {"type": "keyword"},
+                    "region": {"type": "keyword"},
+                    "sales_amount": {"type": "double"},
+                    "employee_id": {"type": "keyword"},
+                    "sensitive_data": {"type": "text"}
+                  }
+                }
+                """;
+
             tc.admin()
                 .indices()
                 .create(
@@ -60,55 +142,23 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
                             .put("index.append_only.enabled", true)
                             .put("index.search.star_tree_index.enabled", true)
                             .build()
-                    )
-                        .mapping(
-                            XContentFactory.jsonBuilder()
-                                .startObject()
-                                .startObject("composite")
-                                .startObject("sales_star_tree")
-                                .field("type", "star_tree")
-                                .startObject("config")
-                                .startArray("ordered_dimensions")
-                                .startObject()
-                                .field("name", "department")
-                                .endObject()
-                                .startObject()
-                                .field("name", "region")
-                                .endObject()
-                                .endArray()
-                                .startArray("metrics")
-                                .startObject()
-                                .field("name", "sales_amount")
-                                .field("stats", new String[] { "sum", "value_count" })
-                                .endObject()
-                                .endArray()
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                                .startObject("properties")
-                                .startObject("department")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("region")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("sales_amount")
-                                .field("type", "double")
-                                .endObject()
-                                .startObject("employee_id")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("sensitive_data")
-                                .field("type", "text")
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                                .toString()
-                        )
+                    ).mapping(starTreeMapping)
                 )
                 .actionGet();
 
             // Create regular index for comparison
+            String regularMapping = """
+                {
+                  "properties": {
+                    "department": {"type": "keyword"},
+                    "region": {"type": "keyword"},
+                    "sales_amount": {"type": "double"},
+                    "employee_id": {"type": "keyword"},
+                    "sensitive_data": {"type": "text"}
+                  }
+                }
+                """;
+
             tc.admin()
                 .indices()
                 .create(
@@ -117,30 +167,7 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
                             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
                             .build()
-                    )
-                        .mapping(
-                            XContentFactory.jsonBuilder()
-                                .startObject()
-                                .startObject("properties")
-                                .startObject("department")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("region")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("sales_amount")
-                                .field("type", "double")
-                                .endObject()
-                                .startObject("employee_id")
-                                .field("type", "keyword")
-                                .endObject()
-                                .startObject("sensitive_data")
-                                .field("type", "text")
-                                .endObject()
-                                .endObject()
-                                .endObject()
-                                .toString()
-                        )
+                    ).mapping(regularMapping)
                 )
                 .actionGet();
 
@@ -148,71 +175,11 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
             throw new RuntimeException("Failed to create indices", e);
         }
 
-        // Populate star tree index with test data
-        tc.index(
-            new IndexRequest(STARTREE_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"engineering\", \"region\": \"us-west\", \"sales_amount\": 1000.0, \"employee_id\": \"emp1\", \"sensitive_data\": \"confidential info 1\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
+        // Define test data once to avoid duplication
+        String[] testDocuments = TEST_DOCUMENTS;
 
-        tc.index(
-            new IndexRequest(STARTREE_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"engineering\", \"region\": \"us-east\", \"sales_amount\": 1500.0, \"employee_id\": \"emp2\", \"sensitive_data\": \"confidential info 2\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        tc.index(
-            new IndexRequest(STARTREE_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"sales\", \"region\": \"us-west\", \"sales_amount\": 2000.0, \"employee_id\": \"emp3\", \"sensitive_data\": \"confidential info 3\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        tc.index(
-            new IndexRequest(STARTREE_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"sales\", \"region\": \"us-east\", \"sales_amount\": 2500.0, \"employee_id\": \"emp4\", \"sensitive_data\": \"confidential info 4\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        // Populate regular index with same data
-        tc.index(
-            new IndexRequest(REGULAR_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"engineering\", \"region\": \"us-west\", \"sales_amount\": 1000.0, \"employee_id\": \"emp1\", \"sensitive_data\": \"confidential info 1\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        tc.index(
-            new IndexRequest(REGULAR_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"engineering\", \"region\": \"us-east\", \"sales_amount\": 1500.0, \"employee_id\": \"emp2\", \"sensitive_data\": \"confidential info 2\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        tc.index(
-            new IndexRequest(REGULAR_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"sales\", \"region\": \"us-west\", \"sales_amount\": 2000.0, \"employee_id\": \"emp3\", \"sensitive_data\": \"confidential info 3\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
-
-        tc.index(
-            new IndexRequest(REGULAR_INDEX_NAME).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(
-                    "{\"department\": \"sales\", \"region\": \"us-east\", \"sales_amount\": 2500.0, \"employee_id\": \"emp4\", \"sensitive_data\": \"confidential info 4\"}",
-                    XContentType.JSON
-                )
-        ).actionGet();
+        // Populate both indices with the same test data using a single bulk request
+        bulkIndexDocuments(tc, testDocuments, STARTREE_INDEX_NAME, REGULAR_INDEX_NAME);
 
         // Force merge to create star tree segments
         tc.admin().indices().forceMerge(new ForceMergeRequest(STARTREE_INDEX_NAME).maxNumSegments(1)).actionGet();
@@ -230,23 +197,25 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
         setupStarTreeTest();
 
         // Test aggregation query that should use star tree (no DLS/FLS restrictions)
-        String aggregationQuery = "{"
-            + "\"size\": 0,"
-            + "\"aggs\": {"
-            + "  \"departments\": {"
-            + "    \"terms\": {"
-            + "      \"field\": \"department\""
-            + "    },"
-            + "    \"aggs\": {"
-            + "      \"total_sales\": {"
-            + "        \"sum\": {"
-            + "          \"field\": \"sales_amount\""
-            + "        }"
-            + "      }"
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+        String aggregationQuery = """
+            {
+              "size": 0,
+              "aggs": {
+                "departments": {
+                  "terms": {
+                    "field": "department"
+                  },
+                  "aggs": {
+                    "total_sales": {
+                      "sum": {
+                        "field": "sales_amount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 
         // Execute query as admin (no restrictions)
         HttpResponse response = rh.executePostRequest(
@@ -309,23 +278,25 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
     public void testStarTreeWithDlsRestriction() throws Exception {
         setupStarTreeTest();
 
-        String aggregationQuery = "{"
-            + "\"size\": 0,"
-            + "\"aggs\": {"
-            + "  \"departments\": {"
-            + "    \"terms\": {"
-            + "      \"field\": \"department\""
-            + "    },"
-            + "    \"aggs\": {"
-            + "      \"total_sales\": {"
-            + "        \"sum\": {"
-            + "          \"field\": \"sales_amount\""
-            + "        }"
-            + "      }"
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+        String aggregationQuery = """
+            {
+              "size": 0,
+              "aggs": {
+                "departments": {
+                  "terms": {
+                    "field": "department"
+                  },
+                  "aggs": {
+                    "total_sales": {
+                      "sum": {
+                        "field": "sales_amount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 
         HttpResponse response = rh.executePostRequest(
             "/" + STARTREE_INDEX_NAME + "/_search?pretty",
@@ -352,23 +323,25 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
     public void testStarTreeWithDlsRestrictionForDFSThenFetchQuery() throws Exception {
         setupStarTreeTest();
 
-        String aggregationQuery = "{"
-            + "\"size\": 0,"
-            + "\"aggs\": {"
-            + "  \"departments\": {"
-            + "    \"terms\": {"
-            + "      \"field\": \"department\""
-            + "    },"
-            + "    \"aggs\": {"
-            + "      \"total_sales\": {"
-            + "        \"sum\": {"
-            + "          \"field\": \"sales_amount\""
-            + "        }"
-            + "      }"
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+        String aggregationQuery = """
+            {
+              "size": 0,
+              "aggs": {
+                "departments": {
+                  "terms": {
+                    "field": "department"
+                  },
+                  "aggs": {
+                    "total_sales": {
+                      "sum": {
+                        "field": "sales_amount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 
         HttpResponse response = rh.executePostRequest(
             "/" + STARTREE_INDEX_NAME + "/_search?search_type=dfs_query_then_fetch",
@@ -396,23 +369,25 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
         setupStarTreeTest();
 
         // Test aggregation query with FLS restriction
-        String aggregationQuery = "{"
-            + "\"size\": 0,"
-            + "\"aggs\": {"
-            + "  \"departments\": {"
-            + "    \"terms\": {"
-            + "      \"field\": \"department\""
-            + "    },"
-            + "    \"aggs\": {"
-            + "      \"total_sales\": {"
-            + "        \"sum\": {"
-            + "          \"field\": \"sales_amount\""
-            + "        }"
-            + "      }"
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+        String aggregationQuery = """
+            {
+              "size": 0,
+              "aggs": {
+                "departments": {
+                  "terms": {
+                    "field": "department"
+                  },
+                  "aggs": {
+                    "total_sales": {
+                      "sum": {
+                        "field": "sales_amount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 
         HttpResponse response = rh.executePostRequest(
             "/" + STARTREE_INDEX_NAME + "/_search?pretty",
@@ -441,12 +416,14 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
         setupStarTreeTest();
 
         // Test query with field masking
-        String searchQuery = "{"
-            + "\"query\": {"
-            + "  \"match_all\": {}"
-            + "},"
-            + "\"_source\": [\"department\", \"sales_amount\", \"sensitive_data\"]"
-            + "}";
+        String searchQuery = """
+            {
+              "query": {
+                "match_all": {}
+              },
+              "_source": ["department", "sales_amount", "sensitive_data"]
+            }
+            """;
 
         // Execute query as user with field masking
         HttpResponse response = rh.executePostRequest(
