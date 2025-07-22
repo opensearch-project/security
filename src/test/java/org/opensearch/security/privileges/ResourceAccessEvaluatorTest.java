@@ -59,7 +59,6 @@ public class ResourceAccessEvaluatorTest {
     private ResourceAccessEvaluator evaluator;
 
     private static final String IDX = "resource-index";
-    private boolean isResourceSharingFeatureEnabled = true;
 
     @Before
     public void setup() {
@@ -78,19 +77,6 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testFeatureDisabled() {
-        isResourceSharingFeatureEnabled = false;
-        stubAuthenticatedUser("alice");
-        var req = new IndexRequest(IDX).id("res1");
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = false;
-        var out = evaluator.evaluate(req, "any:action", isResourceSharingFeatureEnabled, context, presponse);
-
-        assertThat(out.allowed, equalTo(false));
-        assertThat(out.isComplete(), equalTo(false));
-    }
-
-    @Test
     public void testPublicResource_NotAutomaticallyAllowed() {
         stubAuthenticatedUser("alice");
         var req = new IndexRequest(IDX).id("res1");
@@ -104,7 +90,7 @@ public class ResourceAccessEvaluatorTest {
 
         var presponse = new PrivilegesEvaluatorResponse();
         presponse.allowed = false;
-        var out = evaluator.evaluate(req, "any:action", isResourceSharingFeatureEnabled, context, presponse);
+        var out = evaluator.evaluate(req, "any:action", context, presponse);
 
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
@@ -126,7 +112,7 @@ public class ResourceAccessEvaluatorTest {
 
         var presponse = new PrivilegesEvaluatorResponse();
         presponse.allowed = true;
-        var out = evaluator.evaluate(req, "read", isResourceSharingFeatureEnabled, context, presponse);
+        var out = evaluator.evaluate(req, "read", context, presponse);
 
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
@@ -147,7 +133,7 @@ public class ResourceAccessEvaluatorTest {
 
         var presponse = new PrivilegesEvaluatorResponse();
         presponse.allowed = false;
-        var out = evaluator.evaluate(req, "write", isResourceSharingFeatureEnabled, context, presponse);
+        var out = evaluator.evaluate(req, "write", context, presponse);
 
         assertThat(out.allowed, equalTo(true));
         assertThat(out.isComplete(), equalTo(true));
@@ -173,7 +159,7 @@ public class ResourceAccessEvaluatorTest {
 
         var presponse = new PrivilegesEvaluatorResponse();
         presponse.allowed = false;
-        var out = evaluator.evaluate(req, "read", isResourceSharingFeatureEnabled, context, presponse);
+        var out = evaluator.evaluate(req, "read", context, presponse);
 
         assertThat(out.allowed, equalTo(true));
         assertThat(out.isComplete(), equalTo(true));
@@ -187,7 +173,7 @@ public class ResourceAccessEvaluatorTest {
         var req = new IndexRequest(IDX).id("resShared");
         var presponse = new PrivilegesEvaluatorResponse();
         presponse.allowed = false;
-        var out = evaluator.evaluate(req, "read", isResourceSharingFeatureEnabled, context, presponse);
+        var out = evaluator.evaluate(req, "read", context, presponse);
 
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
