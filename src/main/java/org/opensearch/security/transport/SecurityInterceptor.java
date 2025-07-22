@@ -163,10 +163,10 @@ public class SecurityInterceptor {
 
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
         final Set<String> requestHeadersToCopy = new HashSet<>();
-        if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS) != null) {
+        if (getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS) != null) {
             Collections.addAll(
                 requestHeadersToCopy,
-                getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS).split(",")
+                getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS).split(",")
             );
             requestHeadersToCopy.remove(Task.X_OPAQUE_ID); // Special case where this header is preserved during stashContext.
         }
@@ -190,7 +190,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS)
+                            || k.equals(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS)
                             || (k.equals("_opendistro_security_source_field_context")
                                 && !(request instanceof SearchRequest)
                                 && !(request instanceof GetRequest))

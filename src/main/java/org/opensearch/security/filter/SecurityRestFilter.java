@@ -72,7 +72,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_REQUEST_HEADERS;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS;
 
 public class SecurityRestFilter {
 
@@ -145,7 +145,7 @@ public class SecurityRestFilter {
                     threadContext.putHeader(header.getKey(), header.getValue());
                 }
                 if (!tmpHeaders.isEmpty()) {
-                    threadContext.putHeader(OPENDISTRO_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
+                    threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
 
