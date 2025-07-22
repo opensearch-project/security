@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.awaitility.Awaitility;
@@ -66,9 +67,7 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertExactlyScanAll(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
-        List<AuditMessage> auditMessages = new ArrayList<>(currentTestAuditMessages);
-        auditMessages.addAll(currentTransportTestAuditMessages);
-        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), auditMessages);
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate));
 
     }
 
@@ -79,23 +78,23 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertExactly(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
-        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), currentTestAuditMessages);
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate));
     }
 
-    private void assertExactly(Matcher<List<AuditMessage>> matcher, List<AuditMessage> currentTestAuditMessages) {
+    private void assertExactly(Matcher<List<AuditMessage>> matcher) {
         // pollDelay - initial delay before first evaluation
         Awaitility.await("Await for audit logs")
             .atMost(3, TimeUnit.SECONDS)
             .pollDelay(0, TimeUnit.MICROSECONDS)
-            .until(() -> new ArrayList<>(currentTestAuditMessages), matcher);
+            .until(() -> ListUtils.union(currentTestAuditMessages, currentTransportTestAuditMessages), matcher);
     }
 
     public void assertAtLeast(long minCount, Predicate<AuditMessage> predicate) {
-        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTestAuditMessages);
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate));
     }
 
     public void assertAtLeastTransportMessages(long minCount, Predicate<AuditMessage> predicate) {
-        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTransportTestAuditMessages);
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate));
     }
 
     private static String auditMessagesToString(List<AuditMessage> audits) {
