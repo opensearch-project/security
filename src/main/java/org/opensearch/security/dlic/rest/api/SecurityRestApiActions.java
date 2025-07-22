@@ -26,6 +26,8 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.migrate.MigrateResourceSharingInfoApiAction;
 import org.opensearch.security.ssl.SslSettingsManager;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;
@@ -53,7 +55,8 @@ public class SecurityRestApiActions {
         final boolean certificatesReloadEnabled,
         final PasswordHasher passwordHasher,
         final IndexResolverReplacer irr,
-        final IndexNameExpressionResolver indexNameExpressionResolver
+        final IndexNameExpressionResolver indexNameExpressionResolver,
+        final ResourceSharingIndexHandler resourceSharingIndexHandler
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
@@ -107,7 +110,8 @@ public class SecurityRestApiActions {
                 securityApiDependencies
             ),
             new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
-            new SimulationApiAction(clusterService, threadPool, securityApiDependencies, irr, indexNameExpressionResolver)
+            new SimulationApiAction(clusterService, threadPool, securityApiDependencies, irr, indexNameExpressionResolver),
+            new MigrateResourceSharingInfoApiAction(clusterService, threadPool, securityApiDependencies, resourceSharingIndexHandler)
         );
     }
 

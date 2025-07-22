@@ -30,5 +30,6 @@ public enum Endpoint {
     ALLOWLIST,
     NODESDN,
     SSL,
-    SIMULATION;
+    SIMULATION,
+    RESOURCE_SHARING;
 }
