@@ -35,21 +35,22 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
-import org.opensearch.action.support.nodes.TransportNodesAction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Provider;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.util.TransportNodesAsyncAction;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportService;
 
-public class TransportConfigUpdateAction extends TransportNodesAction<
+public class TransportConfigUpdateAction extends TransportNodesAsyncAction<
     ConfigUpdateRequest,
     ConfigUpdateResponse,
     TransportConfigUpdateAction.NodeConfigUpdateRequest,
@@ -81,6 +82,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
             ConfigUpdateRequest::new,
             TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
             ThreadPool.Names.MANAGEMENT,
+            ThreadPool.Names.SAME,
             ConfigUpdateNodeResponse.class
         );
 
@@ -124,14 +126,29 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
     }
 
     @Override
-    protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
+    protected void nodeOperation(NodeConfigUpdateRequest request, ActionListener<ConfigUpdateNodeResponse> listener) {
         final var configupdateRequest = request.request;
         if (canHandleSelectively(configupdateRequest)) {
             backendRegistry.get().invalidateUserCache(configupdateRequest.getEntityNames());
+            listener.onResponse(new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null));
         } else {
-            configurationRepository.reloadConfiguration(CType.fromStringValues((configupdateRequest.getConfigTypes())));
+            configurationRepository.reloadConfiguration(
+                CType.fromStringValues((configupdateRequest.getConfigTypes())),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(ConfigurationRepository.ConfigReloadResponse configReloadResponse) {
+                        listener.onResponse(
+                            new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null)
+                        );
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        listener.onFailure(e);
+                    }
+                }
+            );
         }
-        return new ConfigUpdateNodeResponse(clusterService.localNode(), configupdateRequest.getConfigTypes(), null);
     }
 
     private boolean canHandleSelectively(ConfigUpdateRequest request) {
