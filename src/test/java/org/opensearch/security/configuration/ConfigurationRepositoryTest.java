@@ -620,10 +620,10 @@ public class ConfigurationRepositoryTest {
         when(shardRouting.primary()).thenReturn(false);
         configurationRepository.afterIndexShardStarted(indexShard);
         verify(executorService, never()).execute(any());
-        verify(configurationRepository, never()).reloadConfiguration(any());
+        verify(configurationRepository, never()).reloadConfiguration(any(), null);
 
         // when primary shard updated
-        doReturn(true).when(configurationRepository).reloadConfiguration(any());
+        doReturn(true).when(configurationRepository).reloadConfiguration(any(), null);
         when(shardRouting.primary()).thenReturn(true);
         when(mockRestore.iterator()).thenReturn(Collections.singletonList(mockEntry).iterator());
         when(mockEntry.indices()).thenReturn(Collections.singletonList(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
@@ -631,7 +631,7 @@ public class ConfigurationRepositoryTest {
         configurationRepository.afterIndexShardStarted(indexShard);
         verify(executorService).execute(successRunnableCaptor.capture());
         successRunnableCaptor.getValue().run();
-        verify(configurationRepository).reloadConfiguration(CType.values());
+        verify(configurationRepository).reloadConfiguration(CType.values(), null);
 
         // When there is error in checking if restored from snapshot
         Mockito.reset(configurationRepository, executorService);
@@ -641,7 +641,7 @@ public class ConfigurationRepositoryTest {
         configurationRepository.afterIndexShardStarted(indexShard);
         verify(executorService).execute(errorRunnableCaptor.capture());
         errorRunnableCaptor.getValue().run();
-        verify(configurationRepository, never()).reloadConfiguration(any());
+        verify(configurationRepository, never()).reloadConfiguration(any(), null);
     }
 
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {
