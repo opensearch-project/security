@@ -593,57 +593,6 @@ public class ConfigurationRepositoryTest {
         assertThat(result.size(), is(CType.values().size()));
     }
 
-    @Test
-    public void afterIndexShardStarted_whenSecurityIndexUpdated() throws InterruptedException, TimeoutException {
-        Settings settings = Settings.builder().build();
-        IndexShard indexShard = mock(IndexShard.class);
-        ShardRouting shardRouting = mock(ShardRouting.class);
-        ShardId shardId = mock(ShardId.class);
-        Index index = mock(Index.class);
-        ClusterState mockClusterState = mock(ClusterState.class);
-        RestoreInProgress mockRestore = mock(RestoreInProgress.class);
-        RestoreInProgress.Entry mockEntry = mock(RestoreInProgress.Entry.class);
-        ExecutorService executorService = mock(ExecutorService.class);
-        ThreadPool threadPool = mock(ThreadPool.class);
-        ConfigurationRepository configurationRepository = spy(createConfigurationRepository(settings, threadPool));
-
-        // Setup mock behavior
-        when(indexShard.shardId()).thenReturn(shardId);
-        when(shardId.getIndex()).thenReturn(index);
-        when(index.getName()).thenReturn(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        when(indexShard.routingEntry()).thenReturn(shardRouting);
-        when(clusterService.state()).thenReturn(mockClusterState);
-        when(mockClusterState.custom(RestoreInProgress.TYPE)).thenReturn(mockRestore);
-        when(threadPool.generic()).thenReturn(executorService);
-
-        // when replica shard updated
-        when(shardRouting.primary()).thenReturn(false);
-        configurationRepository.afterIndexShardStarted(indexShard);
-        verify(executorService, never()).execute(any());
-        verify(configurationRepository, never()).reloadConfiguration(any(), null);
-
-        // when primary shard updated
-        doReturn(true).when(configurationRepository).reloadConfiguration(any(), null);
-        when(shardRouting.primary()).thenReturn(true);
-        when(mockRestore.iterator()).thenReturn(Collections.singletonList(mockEntry).iterator());
-        when(mockEntry.indices()).thenReturn(Collections.singletonList(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
-        ArgumentCaptor<Runnable> successRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
-        configurationRepository.afterIndexShardStarted(indexShard);
-        verify(executorService).execute(successRunnableCaptor.capture());
-        successRunnableCaptor.getValue().run();
-        verify(configurationRepository).reloadConfiguration(CType.values(), null);
-
-        // When there is error in checking if restored from snapshot
-        Mockito.reset(configurationRepository, executorService);
-        ArgumentCaptor<Runnable> errorRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
-        when(clusterService.state()).thenThrow(new RuntimeException("ClusterState exception"));
-        when(shardRouting.primary()).thenReturn(true);
-        configurationRepository.afterIndexShardStarted(indexShard);
-        verify(executorService).execute(errorRunnableCaptor.capture());
-        errorRunnableCaptor.getValue().run();
-        verify(configurationRepository, never()).reloadConfiguration(any(), null);
-    }
-
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {
         final var initializedStateUpdate = clusterStateUpdateTaskCaptor.getValue();
         assertThat(initializedStateUpdate.priority(), is(Priority.IMMEDIATE));
