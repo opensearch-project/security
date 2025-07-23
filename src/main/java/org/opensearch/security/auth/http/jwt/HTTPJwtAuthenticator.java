@@ -68,6 +68,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String subjectKey;
     private final List<String> requiredAudience;
     private final String requireIssuer;
+    private final int clockSkewToleranceSeconds;
 
     @SuppressWarnings("removal")
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -82,6 +83,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         subjectKey = settings.get("subject_key");
         requiredAudience = settings.getAsList("required_audience");
         requireIssuer = settings.get("required_issuer");
+        clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -99,6 +101,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 if (requireIssuer != null) {
                     jwtParserBuilder.requireIssuer(requireIssuer);
                 }
+
+                jwtParserBuilder.clockSkewSeconds(clockSkewToleranceSeconds);
 
                 final SecurityManager sm = System.getSecurityManager();
                 if (sm != null) {
