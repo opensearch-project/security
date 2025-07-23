@@ -9,7 +9,6 @@
 package org.opensearch.security.privileges;
 
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -28,7 +27,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
@@ -151,9 +149,6 @@ public class PrivilegesEvaluatorUnitTest {
     @Mock
     private ClusterState clusterState;
 
-    @Mock
-    private ResourceSharingIndexHandler resourceSharingIndexHandler;
-
     private Settings settings;
     private Supplier<ClusterState> clusterStateSupplier;
     private ThreadContext threadContext;
@@ -176,9 +171,7 @@ public class PrivilegesEvaluatorUnitTest {
             settings,
             privilegesInterceptor,
             clusterInfoHolder,
-            irr,
-            Set.of(),
-            resourceSharingIndexHandler
+            irr
         );
     }
 

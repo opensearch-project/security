@@ -1159,9 +1159,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings,
             privilegesInterceptor,
             cih,
-            irr,
-            resourcePluginInfo.getResourceIndices(),
-            rsIndexHandler
+            irr
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);
@@ -1181,7 +1179,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, cih, compatConfig, irr, xffResolver);
+        sf = new SecurityFilter(
+            settings,
+            evaluator,
+            adminDns,
+            dlsFlsValve,
+            auditLog,
+            threadPool,
+            cs,
+            cih,
+            compatConfig,
+            irr,
+            xffResolver,
+            resourcePluginInfo.getResourceIndices(),
+            rsIndexHandler
+        );
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 

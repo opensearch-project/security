@@ -93,7 +93,6 @@ import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -104,7 +103,6 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -156,7 +154,6 @@ public class PrivilegesEvaluator {
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
-    private final ResourceAccessEvaluator resourceAccessEvaluator;
     private DynamicConfigModel dcm;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
@@ -182,9 +179,7 @@ public class PrivilegesEvaluator {
         final Settings settings,
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
-        final IndexResolverReplacer irr,
-        Set<String> resourceIndices,
-        final ResourceSharingIndexHandler resourceSharingIndexHandler
+        final IndexResolverReplacer irr
     ) {
 
         super();
@@ -233,8 +228,6 @@ public class PrivilegesEvaluator {
                 }
             });
         }
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, resourceSharingIndexHandler);
-
     }
 
     void updateConfiguration(
@@ -450,15 +443,6 @@ public class PrivilegesEvaluator {
 
         // Protected index access
         if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
-            return presponse;
-        }
-
-        // Protected Resources access
-        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        if (isResourceSharingFeatureEnabled && resourceAccessEvaluator.evaluate(request, action0, context, presponse).isComplete()) {
             return presponse;
         }
 

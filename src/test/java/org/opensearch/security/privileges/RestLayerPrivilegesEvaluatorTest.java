@@ -33,7 +33,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
@@ -64,8 +63,6 @@ public class RestLayerPrivilegesEvaluatorTest {
     private DynamicConfigModel dynamicConfigModel;
     @Mock
     private ClusterInfoHolder clusterInfoHolder;
-    @Mock
-    private ResourceSharingIndexHandler resourceSharingIndexHandler;
 
     private static final User TEST_USER = new User("test_user");
 
@@ -171,9 +168,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             Settings.EMPTY,
             null,
             clusterInfoHolder,
-            null,
-            Set.of(),
-            resourceSharingIndexHandler
+            null
         );
         privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
         privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);

@@ -12,7 +12,6 @@ package org.opensearch.security.privileges;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
@@ -20,11 +19,13 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -50,15 +51,18 @@ public class ResourceAccessEvaluator {
     private final Set<String> resourceIndices;
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
+    private final Settings settings;
 
     public ResourceAccessEvaluator(
         Set<String> resourceIndices,
         ThreadPool threadPool,
-        ResourceSharingIndexHandler resourceSharingIndexHandler
+        ResourceSharingIndexHandler resourceSharingIndexHandler,
+        Settings settings
     ) {
         this.resourceIndices = resourceIndices;
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
+        this.settings = settings;
     }
 
     /**
@@ -74,18 +78,23 @@ public class ResourceAccessEvaluator {
      * @param request                         may contain information about the index and the resource being requested
      * @param action                          the action being requested to be performed on the resource
      * @param context                         the evaluation context to be used when performing authorization
-     * @param presponse                       the response which tells whether the action is allowed for user, or should the request be checked with another evaluator
-     * @return PrivilegesEvaluatorResponse may be complete if the request is for a resource and authz check was successful, incomplete otherwise
+     * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
-    public PrivilegesEvaluatorResponse evaluate(
+    public void evaluateAsync(
         final ActionRequest request,
         final String action,
         final PrivilegesEvaluationContext context,
-        final PrivilegesEvaluatorResponse presponse
+        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
-        // Skip evaluation if request is not a DocRequest type
-        if (!(request instanceof DocRequest req)) {
-            return presponse;
+        PrivilegesEvaluatorResponse pResponse = new PrivilegesEvaluatorResponse();
+        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        // Skip evaluation if feature is disabled or if request is not a DocRequest type
+        if (!isResourceSharingFeatureEnabled || !(request instanceof DocRequest req)) {
+            pResponseListener.onResponse(pResponse);
+            return;
         }
 
         log.debug("Evaluating resource access");
@@ -93,13 +102,15 @@ public class ResourceAccessEvaluator {
         // Resource Creation requests must be checked by regular index access evaluator
         if (req.id() == null) {
             log.debug("Request id is null, request is of type {}", req.getClass().getName());
-            return presponse;
+            pResponseListener.onResponse(pResponse);
+            return;
         }
 
         // if requested index is not a resource sharing index, move on to the next evaluator
         if (!resourceIndices.contains(req.index())) {
             log.debug("Request index {} is not a protected resource index", req.index());
-            return presponse;
+            pResponseListener.onResponse(pResponse);
+            return;
         }
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
@@ -116,13 +127,11 @@ public class ResourceAccessEvaluator {
                 user.getName(),
                 req.id()
             );
-            presponse.markComplete();
-            return presponse;
+            pResponseListener.onResponse(pResponse.markComplete());
+            return;
         }
 
         // If the user is a super-admin, the request would have already been granted. So no need to check whether user is admin.
-
-        CountDownLatch latch = new CountDownLatch(1);
 
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
@@ -136,17 +145,16 @@ public class ResourceAccessEvaluator {
                 // TODO check whether we should mark response as not allowed. At present, it just returns incomplete response and hence is
                 // delegated to next evaluator
                 log.warn("No resource sharing record found for resource {} and index {}, skipping evaluation.", req.id(), req.index());
-                latch.countDown();
+                pResponseListener.onResponse(pResponse);
                 return;
             }
 
             // If user is the owner, action is allowed
             if (document.isCreatedBy(user.getName())) {
-                presponse.allowed = true;
-                shouldMarkAsComplete.set(true);
+                pResponse.allowed = true;
                 String message = "User " + user.getName() + " is the owner of the resource";
                 log.debug("{} {}, granting access.", message, req.id());
-                latch.countDown();
+                pResponseListener.onResponse(pResponse.markComplete());
                 return;
             }
 
@@ -161,10 +169,9 @@ public class ResourceAccessEvaluator {
 
             // if no access-levels match, then action is not allowed
             if (accessLevels.isEmpty()) {
-                presponse.allowed = false;
+                pResponse.allowed = false;
                 log.debug("Resource {} is not shared with user {}", req.id(), user.getName());
-                shouldMarkAsComplete.set(true);
-                latch.countDown();
+                pResponseListener.onResponse(pResponse.markComplete());
                 return;
             }
 
@@ -173,29 +180,19 @@ public class ResourceAccessEvaluator {
             // a matcher to test against all patterns in `actions`
             WildcardMatcher matcher = WildcardMatcher.from(actions);
             if (matcher.test(action)) {
-                presponse.allowed = true;
+                pResponse.allowed = true;
                 log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());
             } else {
                 // TODO check why following addition doesn't reflect in the final response message and find an alternative
                 // presponse.getMissingPrivileges().add(action);
                 log.debug("User {} has no {} privileges for {}", user.getName(), action, req.id());
             }
-            latch.countDown();
-
-            shouldMarkAsComplete.set(true);
+            pResponseListener.onResponse(pResponse.markComplete());
 
         }, e -> {
-            presponse.allowed = false;
+            pResponse.allowed = false;
             log.debug("Something went wrong while evaluating resource {}. Marking request as unauthorized.", req.id());
-            shouldMarkAsComplete.set(true);
-            latch.countDown();
+            pResponseListener.onResponse(pResponse.markComplete());
         }));
-        try {
-            latch.await();
-        } catch (InterruptedException ie) {
-            log.error("Interrupted while evaluating resource {} access for user {}", req.id(), user.getName(), ie);
-        }
-
-        return shouldMarkAsComplete.get() ? presponse.markComplete() : presponse;
     }
 }

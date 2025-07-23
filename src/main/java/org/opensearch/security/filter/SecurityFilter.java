@@ -29,6 +29,7 @@ package org.opensearch.security.filter;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -48,7 +49,6 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -87,7 +87,9 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -115,6 +117,7 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
+    private final ResourceAccessEvaluator resourceAccessEvaluator;
 
     public SecurityFilter(
         final Settings settings,
@@ -127,7 +130,9 @@ public class SecurityFilter implements ActionFilter {
         final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
-        final XFFResolver xffResolver
+        final XFFResolver xffResolver,
+        Set<String> resourceIndices,
+        ResourceSharingIndexHandler rsIndexHandler
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -143,6 +148,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, rsIndexHandler, settings);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -390,95 +396,108 @@ public class SecurityFilter implements ActionFilter {
             }
 
             PrivilegesEvaluationContext context = eval.createContext(user, action, request, task, injectedRoles);
-            PrivilegesEvaluatorResponse pres = eval.evaluate(context);
-
-            if (log.isDebugEnabled()) {
-                log.debug(pres.toString());
-            }
-
-            if (pres.isAllowed()) {
-                auditLog.logGrantedPrivileges(action, request, task);
-                auditLog.logIndexEvent(action, request, task);
-                if (!dlsFlsValve.invoke(context, listener)) {
-                    return;
-                }
-                final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
-                if (createIndexRequestBuilder == null) {
-                    chain.proceed(task, action, request, listener);
-                } else {
-                    CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
-                    log.info(
-                        "Request {} requires new tenant index {} with aliases {}",
-                        request.getClass().getSimpleName(),
-                        createIndexRequest.index(),
-                        alias2Name(createIndexRequest.aliases())
-                    );
-                    createIndexRequestBuilder.execute(new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            if (createIndexResponse.isAcknowledged()) {
-                                log.debug(
-                                    "Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName()
-                                );
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                String message = LoggerMessageFormat.format(
-                                    "Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName()
-                                );
-                                log.error(message);
-                                listener.onFailure(new OpenSearchException(message));
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            Throwable cause = ExceptionsHelper.unwrapCause(e);
-                            if (cause instanceof ResourceAlreadyExistsException) {
-                                log.warn(
-                                    "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName(),
-                                    e
-                                );
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                log.error(
-                                    "Request to create index {} with aliases {} failed, failing {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName(),
-                                    e
-                                );
-                                listener.onFailure(e);
-                            }
-                        }
-                    });
-                }
-            } else {
+            User finalUser = user;
+            Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
                 auditLog.logMissingPrivileges(action, request, task);
                 String err;
-                if (!pres.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
+                if (!response.getMissingSecurityRoles().isEmpty()) {
+                    err = String.format("No mapping for %s on roles %s", finalUser, response.getMissingSecurityRoles());
                 } else {
                     err = (injectedRoles != null)
                         ? String.format(
                             "no permissions for %s and associated roles %s",
-                            pres.getMissingPrivileges(),
+                            response.getMissingPrivileges(),
                             context.getMappedRoles()
                         )
-                        : String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                        : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
                 }
                 log.debug(err);
-
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
-            }
+            };
+            // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
+            // require blocking transport threads leading to thread exhaustion and request timeouts
+            // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
+            resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
+                if (response.isComplete()) {
+                    if (response.isAllowed()) {
+                        auditLog.logGrantedPrivileges(action, request, task);
+                        auditLog.logIndexEvent(action, request, task);
+                        chain.proceed(task, action, request, listener);
+                    } else {
+                        handleUnauthorized.accept(response);
+                    }
+                } else {
+                    // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
+                    PrivilegesEvaluatorResponse pres = eval.evaluate(context);
+
+                    if (log.isDebugEnabled()) {
+                        log.debug(pres.toString());
+                    }
+
+                    if (pres.isAllowed()) {
+                        auditLog.logGrantedPrivileges(action, request, task);
+                        auditLog.logIndexEvent(action, request, task);
+                        if (!dlsFlsValve.invoke(context, listener)) {
+                            return;
+                        }
+                        final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
+                        if (createIndexRequestBuilder == null) {
+                            chain.proceed(task, action, request, listener);
+                        } else {
+                            CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
+                            log.info(
+                                "Request {} requires new tenant index {} with aliases {}",
+                                request.getClass().getSimpleName(),
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases())
+                            );
+                            createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
+                                if (createIndexResponse.isAcknowledged()) {
+                                    log.debug(
+                                        "Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                        createIndexRequest.index(),
+                                        alias2Name(createIndexRequest.aliases()),
+                                        request.getClass().getSimpleName()
+                                    );
+                                    chain.proceed(task, action, request, listener);
+                                } else {
+                                    String message = LoggerMessageFormat.format(
+                                        "Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                        createIndexRequest.index(),
+                                        alias2Name(createIndexRequest.aliases()),
+                                        request.getClass().getSimpleName()
+                                    );
+                                    log.error(message);
+                                    listener.onFailure(new OpenSearchException(message));
+                                }
+                            }, e -> {
+                                Throwable cause = ExceptionsHelper.unwrapCause(e);
+                                if (cause instanceof ResourceAlreadyExistsException) {
+                                    log.warn(
+                                        "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
+                                        createIndexRequest.index(),
+                                        alias2Name(createIndexRequest.aliases()),
+                                        request.getClass().getSimpleName(),
+                                        e
+                                    );
+                                    chain.proceed(task, action, request, listener);
+                                } else {
+                                    log.error(
+                                        "Request to create index {} with aliases {} failed, failing {}",
+                                        createIndexRequest.index(),
+                                        alias2Name(createIndexRequest.aliases()),
+                                        request.getClass().getSimpleName(),
+                                        e
+                                    );
+                                    listener.onFailure(e);
+                                }
+                            }));
+                        }
+                    } else {
+                        handleUnauthorized.accept(response);
+                    }
+                }
+            }, listener::onFailure));
         } catch (OpenSearchException e) {
             if (task != null) {
                 log.debug("Failed to apply filter. Task id: {} ({}). Action: {}", task.getId(), task.getDescription(), action, e);

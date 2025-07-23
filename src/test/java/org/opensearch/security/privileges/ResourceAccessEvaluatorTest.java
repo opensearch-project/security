@@ -25,12 +25,14 @@ import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -41,6 +43,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -62,9 +65,10 @@ public class ResourceAccessEvaluatorTest {
 
     @Before
     public void setup() {
+        Settings settings = Settings.builder().put(FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
         doReturn(threadContext).when(threadPool).getThreadContext();
-        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), threadPool, sharingHandler);
+        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), threadPool, sharingHandler, settings);
     }
 
     private void stubAuthenticatedUser(String username) {
@@ -88,10 +92,15 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(sharingHandler).fetchSharingInfo(eq(IDX), eq("res1"), any());
 
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = false;
-        var out = evaluator.evaluate(req, "any:action", context, presponse);
+        @SuppressWarnings("unchecked")
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 
+        evaluator.evaluateAsync(req, "any:action", context, callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+
+        PrivilegesEvaluatorResponse out = captor.getValue();
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
     }
@@ -110,9 +119,15 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(sharingHandler).fetchSharingInfo(eq(IDX), eq("res2"), any());
 
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = true;
-        var out = evaluator.evaluate(req, "read", context, presponse);
+        @SuppressWarnings("unchecked")
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+
+        evaluator.evaluateAsync(req, "read", context, callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+
+        PrivilegesEvaluatorResponse out = captor.getValue();
 
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
@@ -131,9 +146,15 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(sharingHandler).fetchSharingInfo(eq(IDX), eq("resOwner"), any());
 
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = false;
-        var out = evaluator.evaluate(req, "write", context, presponse);
+        @SuppressWarnings("unchecked")
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+
+        evaluator.evaluateAsync(req, "write", context, callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+
+        PrivilegesEvaluatorResponse out = captor.getValue();
 
         assertThat(out.allowed, equalTo(true));
         assertThat(out.isComplete(), equalTo(true));
@@ -157,9 +178,15 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(sharingHandler).fetchSharingInfo(eq(IDX), eq("resShared"), any());
 
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = false;
-        var out = evaluator.evaluate(req, "read", context, presponse);
+        @SuppressWarnings("unchecked")
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+
+        evaluator.evaluateAsync(req, "read", context, callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+
+        PrivilegesEvaluatorResponse out = captor.getValue();
 
         assertThat(out.allowed, equalTo(true));
         assertThat(out.isComplete(), equalTo(true));
@@ -171,9 +198,15 @@ public class ResourceAccessEvaluatorTest {
         when(context.getActionPrivileges()).thenReturn(mock(SubjectBasedActionPrivileges.class));
 
         var req = new IndexRequest(IDX).id("resShared");
-        var presponse = new PrivilegesEvaluatorResponse();
-        presponse.allowed = false;
-        var out = evaluator.evaluate(req, "read", context, presponse);
+        @SuppressWarnings("unchecked")
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+
+        evaluator.evaluateAsync(req, "read", context, callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+
+        PrivilegesEvaluatorResponse out = captor.getValue();
 
         assertThat(out.allowed, equalTo(false));
         assertThat(out.isComplete(), equalTo(true));
