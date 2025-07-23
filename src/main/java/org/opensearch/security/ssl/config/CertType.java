@@ -61,18 +61,14 @@ public class CertType implements Writeable {
     }
 
     public CertType(final StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_3_2_0)) {
-            this.certSettingPrefix = in.readString();
-            this.certID = in.readString();
-        }
+        this.certSettingPrefix = in.readString();
+        this.certID = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_3_2_0)) {
-            out.writeString(this.certSettingPrefix);
-            out.writeString(this.certID);
-        }
+        out.writeString(this.certSettingPrefix);
+        out.writeString(this.certID);
     }
 
     public String sslSettingPrefix() {
