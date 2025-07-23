@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import org.opensearch.Version;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
@@ -60,14 +61,18 @@ public class CertType implements Writeable {
     }
 
     public CertType(final StreamInput in) throws IOException {
-        this.certSettingPrefix = in.readString();
-        this.certID = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_3_2_0)) {
+            this.certSettingPrefix = in.readString();
+            this.certID = in.readString();
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(this.certSettingPrefix);
-        out.writeString(this.certID);
+        if (out.getVersion().onOrAfter(Version.V_3_2_0)) {
+            out.writeString(this.certSettingPrefix);
+            out.writeString(this.certID);
+        }
     }
 
     public String sslSettingPrefix() {
