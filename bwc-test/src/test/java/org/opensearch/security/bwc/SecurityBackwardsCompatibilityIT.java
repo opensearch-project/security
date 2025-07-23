@@ -206,6 +206,76 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
     }
 
+//    /**
+//     * Tests backwards compatibility for SSL certificates info endpoint with aux transport certificates.
+//     * This test ensures that the /ssl/certs/info endpoint works correctly during cluster upgrades
+//     * when auxiliary transport certificates are registered and loaded.
+//     */
+//    public void testSslCertsInfoWithAuxTransportBackwardsCompatibility() throws Exception {
+//        /*
+//        We cannot expect any aux transport certificates to be visible on a cluster with previous version nodes.
+//        Old nodes have no concept of aux transports and are only able to provide http/transport cert info.
+//         */
+//        String round = System.getProperty("tests.rest.bwcsuite_round");
+//        if (round.equals("third")) {
+//            testSslCertsInfoEndpoint(List.of(http_certificates_list, transport_certificates_list, ));
+//        } else {
+//            testSslCertsInfoEndpoint(List.of());
+//        }
+//    }
+
+    /**
+     * Tests the basic SSL certificates info endpoint functionality.
+     * @param expectedCertificateLists certificates we expect to be registered on this cluster.
+     */
+    private void testSslCertsInfoEndpoint(List<String> expectedCertificateLists) throws IOException {
+        List<Response> responses = RestHelper.requestAgainstAllNodes(
+            client(),
+            "GET",
+            "_plugins/_security/api/ssl/certs/info",
+            null
+        );
+        responses.forEach(response -> {
+            assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+            Map<String, Object> responseMap = null;
+            try {
+                responseMap = responseAsMap(response);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to parse certs info response", e);
+            }
+            for (String certListName : expectedCertificateLists) {
+                assertTrue("Response should contain " + certListName, responseMap.containsKey(certListName));
+                assertTrue(certListName + " should be a list", responseMap.get(certListName) instanceof List);
+                List<Map<String, Object>> certs = (List<Map<String, Object>>) responseMap.get(certListName);
+                if (!certs.isEmpty()) {
+                    verifyCertificateInfo(certs.getFirst());
+                }
+            }
+        });
+    }
+
+    /**
+     * Some basic validation on the structure of certificates info response items.
+     */
+    private void verifyCertificateInfo(Map<String, Object> certInfo) {
+        assertThat("Certificate should have subject_dn", certInfo, hasKey("subject_dn"));
+        assertThat("Certificate should have issuer_dn", certInfo, hasKey("issuer_dn"));
+        assertThat("Certificate should have not_before", certInfo, hasKey("not_before"));
+        assertThat("Certificate should have not_after", certInfo, hasKey("not_after"));
+
+        Object subjectDn = certInfo.get("subject_dn");
+        if (subjectDn != null) {
+            assertTrue("subject_dn should be a string", subjectDn instanceof String);
+            assertFalse("subject_dn should not be empty", ((String) subjectDn).isEmpty());
+        }
+
+        Object issuerDn = certInfo.get("issuer_dn");
+        if (issuerDn != null) {
+            assertTrue("issuer_dn should be a string", issuerDn instanceof String);
+            assertFalse("issuer_dn should not be empty", ((String) issuerDn).isEmpty());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void assertPluginUpgrade(String uri) throws Exception {
         Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
