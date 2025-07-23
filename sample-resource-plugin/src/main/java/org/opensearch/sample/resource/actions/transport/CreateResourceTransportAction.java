@@ -56,6 +56,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         String userStr = threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
         User user = User.parse(userStr);
+        System.out.println("Parsed User: " + user);
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             createResource(request, user, listener);
         } catch (Exception e) {
