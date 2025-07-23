@@ -33,8 +33,4 @@ jobs:
           SONATYPE_PASSWORD: op://opensearch-infra-secrets/maven-central-portal-credentials/password
       - name: publish snapshots to maven
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
           ./gradlew --no-daemon publishPluginZipPublicationToSnapshotsRepository
