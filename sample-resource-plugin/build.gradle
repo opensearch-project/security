@@ -80,6 +80,7 @@ dependencies {
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
     integrationTestImplementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3'
 
     // To be removed once integration test framework supports extended plugins
     integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
