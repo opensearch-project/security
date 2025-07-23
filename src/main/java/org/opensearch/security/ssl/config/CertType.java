@@ -139,11 +139,9 @@ public class CertType implements Writeable {
     public static CertType HTTP = new CertType(SSL_HTTP_PREFIX);
     public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX);
     public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX, "transport_client");
-    public static CertType TRANSPORT_SERVER = new CertType(SSL_TRANSPORT_SERVER_PREFIX, "transport_server");
     public static final NodeCertTypeRegistry CERT_TYPE_REGISTRY = new NodeCertTypeRegistry(
         HTTP,
         TRANSPORT,
-        TRANSPORT_CLIENT,
-        TRANSPORT_SERVER
+        TRANSPORT_CLIENT
     );
 }
