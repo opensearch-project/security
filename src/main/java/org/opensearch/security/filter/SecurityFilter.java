@@ -494,7 +494,7 @@ public class SecurityFilter implements ActionFilter {
                             }));
                         }
                     } else {
-                        handleUnauthorized.accept(response);
+                        handleUnauthorized.accept(pres);
                     }
                 }
             }, listener::onFailure));

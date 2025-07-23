@@ -291,7 +291,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexHandler rsIndexHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
+    // CS-ENFORCE-SINGLE
 
     public static boolean isActionTraceEnabled() {
 
@@ -1284,11 +1286,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });
+            components.addAll(resourceSharingExtensions);
             // CS-ENFORCE-SINGLE
             components.add(resourcePluginInfo);
             components.add(resourceAccessControlClient);
             components.add(resourceAccessHandler);
-            components.addAll(resourceSharingExtensions);
         }
 
         components.add(sslSettingsManager);

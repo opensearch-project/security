@@ -85,7 +85,7 @@ public final class TestUtils {
     static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
-        return new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
+        return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
             .plugin(
                 new PluginInfo(
                     SampleResourcePlugin.class.getName(),

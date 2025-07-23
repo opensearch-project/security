@@ -12,7 +12,6 @@ package org.opensearch.security.privileges;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,7 +65,7 @@ public class ResourceAccessEvaluator {
     }
 
     /**
-     * Evaluate access to resources (example, docs in an index).
+     * Asynchronously evaluates access to resources (example, docs in an index).
      * The permissions will be evaluated based on the access-level the resource is shared at rather than roles that the requesting user is mapped to.
      * This allows for a standalone authorization flow for users requesting access to resource.
      * <p>
@@ -131,12 +130,9 @@ public class ResourceAccessEvaluator {
             return;
         }
 
-        // If the user is a super-admin, the request would have already been granted. So no need to check whether user is admin.
-
+        // If the user is a super-admin, the request would have already been granted. So no need to check whether the user is an admin.
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        AtomicBoolean shouldMarkAsComplete = new AtomicBoolean(false);
 
         // Fetch the ResourceSharing document and evaluate access
         this.resourceSharingIndexHandler.fetchSharingInfo(req.index(), req.id(), ActionListener.wrap(document -> {
@@ -182,12 +178,12 @@ public class ResourceAccessEvaluator {
             if (matcher.test(action)) {
                 pResponse.allowed = true;
                 log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());
+                pResponseListener.onResponse(pResponse.markComplete());
             } else {
                 // TODO check why following addition doesn't reflect in the final response message and find an alternative
-                // presponse.getMissingPrivileges().add(action);
                 log.debug("User {} has no {} privileges for {}", user.getName(), action, req.id());
+                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
             }
-            pResponseListener.onResponse(pResponse.markComplete());
 
         }, e -> {
             pResponse.allowed = false;
