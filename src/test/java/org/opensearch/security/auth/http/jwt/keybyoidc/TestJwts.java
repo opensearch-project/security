@@ -11,11 +11,11 @@
 
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -121,7 +121,7 @@ class TestJwts {
     @SuppressWarnings("unchecked")
     static JWTClaimsSet create(String subject, String audience, String issuer, Object... moreClaims) {
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-    
+
         if (subject != null) {
             claimsBuilder.subject(String.valueOf(subject));
         }
@@ -143,10 +143,10 @@ class TestJwts {
                     if (!pathParts.isEmpty()) {
                         String topLevelKey = String.valueOf(pathParts.get(0));
                         @SuppressWarnings("unchecked")
-                        Map<String, Object> currentMap = topLevelClaims.containsKey(topLevelKey) 
+                        Map<String, Object> currentMap = topLevelClaims.containsKey(topLevelKey)
                             ? (Map<String, Object>) topLevelClaims.get(topLevelKey)
                             : new HashMap<>();
-                        
+
                         if (!topLevelClaims.containsKey(topLevelKey)) {
                             topLevelClaims.put(topLevelKey, currentMap);
                         }
@@ -157,7 +157,7 @@ class TestJwts {
                             Map<String, Object> nextMap = currentMap.containsKey(key)
                                 ? (Map<String, Object>) currentMap.get(key)
                                 : new HashMap<>();
-                            
+
                             if (!currentMap.containsKey(key)) {
                                 currentMap.put(key, nextMap);
                             }

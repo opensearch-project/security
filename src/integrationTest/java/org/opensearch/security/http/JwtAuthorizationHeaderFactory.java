@@ -36,7 +36,12 @@ class JwtAuthorizationHeaderFactory {
 
     private final String headerName;
 
-    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, List<String> usernameClaimName, List<String> rolesClaimName, String headerName) {
+    public JwtAuthorizationHeaderFactory(
+        PrivateKey privateKey,
+        List<String> usernameClaimName,
+        List<String> rolesClaimName,
+        String headerName
+    ) {
         this.privateKey = requireNonNull(privateKey, "Private key is required");
         this.usernameClaimName = requireNonNull(usernameClaimName, "Username claim name is required");
         this.rolesClaimName = requireNonNull(rolesClaimName, "Roles claim name is required.");

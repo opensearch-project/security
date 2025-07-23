@@ -267,12 +267,12 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                         node,
                         node.getClass()
                     );
-                    return subject;  // Return default subject on error
+                    return null;  // Subject cannot be extracted from the configured path
                 }
                 node = map.get(key);
                 if (node == null) {                                      // key missing
                     log.warn("Failed to find '{}' in JWT claims while following subject_key path {}.", key, subjectKey);
-                    return subject;  // Return default subject on error
+                    return null;  // Subject cannot be extracted from the configured path
                 }
             }
             // ── 2. Interpret the leaf value ────────────────────────────────────────────

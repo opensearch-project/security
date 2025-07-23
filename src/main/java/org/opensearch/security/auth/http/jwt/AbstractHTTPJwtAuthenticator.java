@@ -261,7 +261,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             );
             return new String[0];
         }
-        
+
         log.warn("rolesObject is '{}' ", rolesObject);
         String[] roles = String.valueOf(rolesObject).split(",");
 
