@@ -38,7 +38,7 @@ ext {
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
 
-    common_utils_version = System.getProperty("common_utils.version", "3.1.0.0")
+    common_utils_version = System.getProperty("common_utils.version", "3.2.0.0-SNAPSHOT")
 }
 
 repositories {
