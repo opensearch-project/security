@@ -66,11 +66,7 @@ public class JwtAuthenticationNestedClaimsTests {
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(CLAIM_USERNAME).rolesKey(NESTED_ROLES).build(
-            new HashMap<>(
-                Map.of(
-                    "noop", List.of("noop")
-                
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(CLAIM_USERNAME).rolesKey(NESTED_ROLES)
     ).backend("noop");
 
     @ClassRule
