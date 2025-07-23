@@ -107,7 +107,7 @@ public class SampleResourcePluginTests {
         }
     }
 
-   @Test
+    @Test
     public void testUserSerializationAndDeserialization() throws Exception {
         String resourceId;
         // create sample resource
