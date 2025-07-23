@@ -151,7 +151,7 @@ class JwtAuthorizationHeaderFactory {
         requireNonNull(username, "Username is required");
         Date now = new Date(1000);
         String token = Jwts.builder()
-            .setClaims(Map.of(usernameClaimName, username))
+            .setClaims(customClaimsMap(username, null))
             .setIssuer(ISSUER)
             .setSubject(subject(username))
             .setAudience(AUDIENCE)
@@ -167,7 +167,7 @@ class JwtAuthorizationHeaderFactory {
         requireNonNull(username, "Username is required");
         Date now = new Date();
         String token = Jwts.builder()
-            .setClaims(Map.of(usernameClaimName, username))
+            .setClaims(customClaimsMap(username, null))
             .setIssuer(ISSUER)
             .setSubject(subject(username))
             .setAudience(AUDIENCE)
