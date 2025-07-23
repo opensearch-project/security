@@ -575,7 +575,7 @@ public class FlsAndFieldMaskingTests {
         return user;
     }
 
-    private static void assertSearchHitsDoNotContainField(SearchResponse response, String excludedField) {
+    static void assertSearchHitsDoNotContainField(SearchResponse response, String excludedField) {
         assertThat(response, isSuccessfulSearchResponse());
         assertThat(response.getHits().getHits().length, greaterThan(0));
         IntStream.range(0, response.getHits().getHits().length)
