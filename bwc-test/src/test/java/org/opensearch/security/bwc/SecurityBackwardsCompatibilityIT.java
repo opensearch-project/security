@@ -206,6 +206,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
     }
 
+    /**
+     * DEBUG
+     */
+    public void testDebugCertInfo() throws Exception {
+        Response response = RestHelper.makeRequest(
+            adminClient(),
+            "GET",
+            "_plugins/_security/api/certificates",
+            null
+        );
+        assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+    }
+
 //    /**
 //     * Tests backwards compatibility for SSL certificates info endpoint with aux transport certificates.
 //     * This test ensures that the /ssl/certs/info endpoint works correctly during cluster upgrades
