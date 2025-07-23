@@ -48,7 +48,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC
 public class JwtAuthenticationNestedClaimsTests {
 
     public static final List<String> CLAIM_USERNAME = List.of("preferred-username");
-    public static final List<String> CLAIM_ROLES = List.of("attributes", "roles");
+    public static final List<String> NESTED_ROLES = List.of("attributes", "roles");
+    public static final List<String> NESTED_SUBJECT = List.of("attributes_sub", "sub");
 
     public static final String USER_SUPERHERO = "superhero";
     private static final KeyPair KEY_PAIR1 = Keys.keyPairFor(SignatureAlgorithm.RS256);
@@ -58,14 +59,18 @@ public class JwtAuthenticationNestedClaimsTests {
     private static final JwtAuthorizationHeaderFactory tokenFactory1 = new JwtAuthorizationHeaderFactory(
         KEY_PAIR1.getPrivate(),
         CLAIM_USERNAME,
-        CLAIM_ROLES,
+        NESTED_ROLES,
         JWT_AUTH_HEADER
     );
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(CLAIM_USERNAME).rolesKey(NESTED_ROLES).build(
+            new HashMap<>(
+                Map.of(
+                    "noop", List.of("noop")
+                
     ).backend("noop");
 
     @ClassRule
