@@ -190,4 +190,33 @@ public class RestMatchers {
             }
         };
     }
+
+    public static DiagnosingMatcher<HttpResponse> isNotFound() {
+        return new DiagnosingMatcher<HttpResponse>() {
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Response has status 404 Not Found");
+            }
+
+            @Override
+            protected boolean matches(Object item, Description mismatchDescription) {
+                if (!(item instanceof HttpResponse)) {
+                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
+                    return false;
+                }
+
+                HttpResponse response = (HttpResponse) item;
+
+                if (response.getStatusCode() == 404) {
+                    return true;
+                } else {
+                    mismatchDescription.appendText("Status is not 404 Not Found: ").appendValue(item);
+                    return false;
+                }
+
+            }
+
+        };
+    }
 }

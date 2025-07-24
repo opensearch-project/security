@@ -32,7 +32,10 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
 
-public class TestIndex {
+import java.util.Map;
+import java.util.Set;
+
+public class TestIndex implements TestIndexLike {
 
     private final String name;
     private final Settings settings;
@@ -52,8 +55,23 @@ public class TestIndex {
         }
     }
 
+    @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public Set<String> documentIds() {
+        return testData.documents().allIds();
+    }
+
+    @Override
+    public Map<String, TestData.TestDocument> documents() {
+        return testData.documents().allDocs();
+    }
+
+    public TestData.TestDocument anyDocument() {
+        return testData.anyDocument();
     }
 
     public static Builder name(String name) {
@@ -63,6 +81,7 @@ public class TestIndex {
     public static class Builder {
         private String name;
         private Settings.Builder settings = Settings.builder();
+        private TestData.Builder testDataBuilder = new TestData.Builder();
         private TestData testData;
 
         public Builder name(String name) {
@@ -80,12 +99,31 @@ public class TestIndex {
             return this;
         }
 
+        public Builder hidden() {
+            settings.put("index.hidden", true);
+            return this;
+        }
+
         public Builder data(TestData testData) {
             this.testData = testData;
             return this;
         }
 
+        public Builder seed(int seed) {
+            testDataBuilder.seed(seed);
+            return this;
+        }
+
+        public Builder documentCount(int size) {
+            testDataBuilder.documentCount(size);
+            return this;
+        }
+
         public TestIndex build() {
+            if (testData == null) {
+                testData = testDataBuilder.get();
+            }
+
             return new TestIndex(name, settings.build(), testData);
         }
 

@@ -139,6 +139,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig respectRequestIndicesOptions(boolean respectRequestIndicesOptions) {
+        config.respectRequestIndicesOptions(respectRequestIndicesOptions);
+        return this;
+    }
+
     public TestSecurityConfig xff(XffConfig xffConfig) {
         config.xffConfig(xffConfig);
         return this;
@@ -263,6 +268,7 @@ public class TestSecurityConfig {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private Boolean respectRequestIndicesOptions;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
@@ -277,6 +283,11 @@ public class TestSecurityConfig {
 
         public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
             this.doNotFailOnForbidden = doNotFailOnForbidden;
+            return this;
+        }
+
+        public Config respectRequestIndicesOptions(Boolean respectRequestIndicesOptions) {
+            this.respectRequestIndicesOptions = respectRequestIndicesOptions;
             return this;
         }
 
@@ -324,6 +335,9 @@ public class TestSecurityConfig {
             }
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
+            }
+            if (respectRequestIndicesOptions != null) {
+                xContentBuilder.field("respect_request_indices_options", respectRequestIndicesOptions);
             }
 
             xContentBuilder.field("authc", authcDomainMap);
@@ -460,6 +474,8 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private Map<String, IndexApiMatchers.IndexMatcher> indexMatchers = new HashMap<>();
+        private boolean adminCertUser = false;
 
         private Boolean hidden = null;
 
@@ -513,6 +529,21 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public User indexMatcher(String key, IndexApiMatchers.IndexMatcher indexMatcher) {
+            this.indexMatchers.put(key, indexMatcher);
+            return this;
+        }
+
+        public IndexApiMatchers.IndexMatcher indexMatcher(String key) {
+            IndexApiMatchers.IndexMatcher result = this.indexMatchers.get(key);
+
+            if (result != null) {
+                return result;
+            } else {
+                throw new RuntimeException("Unknown index matcher " + key + " in user " + this.name);
+            }
+        }
+
         public User hash(String hash) {
             this.hash = hash;
             return this;
@@ -537,6 +568,20 @@ public class TestSecurityConfig {
 
         public Set<String> getRoleNames() {
             return roles.stream().map(Role::getName).collect(Collectors.toSet());
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public boolean isAdminCertUser() {
+            return adminCertUser;
+        }
+
+        public User adminCertUser() {
+            this.adminCertUser = true;
+            return this;
         }
 
         public Object getAttribute(String attributeName) {

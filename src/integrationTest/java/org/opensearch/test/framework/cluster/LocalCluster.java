@@ -57,6 +57,7 @@ import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
+import org.opensearch.test.framework.TestAlias;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -98,6 +99,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private final Map<String, LocalCluster> remotes;
     private volatile LocalOpenSearchCluster localOpenSearchCluster;
     private final List<TestIndex> testIndices;
+    private final List<TestAlias> testAliases;
 
     private boolean loadConfigurationIntoIndex;
 
@@ -114,6 +116,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         List<LocalCluster> clusterDependencies,
         Map<String, LocalCluster> remotes,
         List<TestIndex> testIndices,
+        List<TestAlias> testAliases,
         boolean loadConfigurationIntoIndex,
         String defaultConfigurationInitDirectory,
         Integer expectedNodeStartupCount
@@ -131,6 +134,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         this.remotes = remotes;
         this.clusterDependencies = clusterDependencies;
         this.testIndices = testIndices;
+        this.testAliases = testAliases;
         this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
         if (StringUtils.isNoneBlank(defaultConfigurationInitDirectory)) {
             System.setProperty(INIT_CONFIGURATION_DIR, defaultConfigurationInitDirectory);
@@ -268,6 +272,12 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                 }
             }
 
+            try (Client client = getInternalNodeClient()) {
+                for (TestAlias alias : this.testAliases) {
+                    alias.create(client);
+                }
+            }
+
         } catch (Exception e) {
             log.error("Local ES cluster start failed", e);
             throw new RuntimeException(e);
@@ -335,6 +345,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private Map<String, LocalCluster> remoteClusters = new HashMap<>();
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
+        private List<TestAlias> testAliases = new ArrayList<>();
         private ClusterManager clusterManager = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
@@ -472,6 +483,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder aliases(TestAlias... aliases) {
+            this.testAliases.addAll(Arrays.asList(aliases));
+            return this;
+        }
+
         public Builder users(TestSecurityConfig.User... users) {
             return this.users(Arrays.asList(users));
         }
@@ -576,6 +592,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder respectRequestIndicesOptions(boolean respectRequestIndicesOptions) {
+            testSecurityConfig.respectRequestIndicesOptions(respectRequestIndicesOptions);
+            return this;
+        }
+
         public Builder defaultConfigurationInitDirectory(String defaultConfigurationInitDirectory) {
             this.defaultConfigurationInitDirectory = defaultConfigurationInitDirectory;
             return this;
@@ -605,6 +626,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     clusterDependencies,
                     remoteClusters,
                     testIndices,
+                    testAliases,
                     loadConfigurationIntoIndex,
                     defaultConfigurationInitDirectory,
                     expectedNodeStartupCount
