@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Introduced setting `plugins.security.privileges_evaluation.precomputed_privileges.enabled` ([#5465](https://github.com/opensearch-project/security/pull/5465))
 * Optimized wildcard matching runtime performance ([#5470](https://github.com/opensearch-project/security/pull/5470))
 * Optimized performance for construction of internal action privileges data structure  ([#5470](https://github.com/opensearch-project/security/pull/5470))
+* Restricting query optimization via star tree index for users with queries on indices with DLS/FLS/FieldMasked restrictions ([#5492](https://github.com/opensearch-project/security/pull/5492))
 
 ### Bug Fixes
 
@@ -38,7 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Maintenance
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.33.0 to 3.33.100 ([#5400](https://github.com/opensearch-project/security/pull/5400))
 - Bump `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.0 to 3.20.100 ([#5402](https://github.com/opensearch-project/security/pull/5402))
-- Bump `spring_version` from 6.2.7 to 6.2.8 ([#5403](https://github.com/opensearch-project/security/pull/5403))
+- Bump `spring_version` from 6.2.7 to 6.2.9 ([#5403](https://github.com/opensearch-project/security/pull/5403), [#5493](https://github.com/opensearch-project/security/pull/5493))
 - Bump `stefanzweifel/git-auto-commit-action` from 5 to 6 ([#5401](https://github.com/opensearch-project/security/pull/5401))
 - Bump `com.github.spotbugs` from 5.2.5 to 6.2.2 ([#5409](https://github.com/opensearch-project/security/pull/5409), [#5450](https://github.com/opensearch-project/security/pull/5450), [#5474](https://github.com/opensearch-project/security/pull/5474))
 - Bump `org.codehaus.plexus:plexus-utils` from 3.3.0 to 3.6.0 ([#5429](https://github.com/opensearch-project/security/pull/5429))
@@ -52,6 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.googlejavaformat:google-java-format` from 1.27.0 to 1.28.0 ([#5475](https://github.com/opensearch-project/security/pull/5475))
 - Bump `commons-validator:commons-validator` from 1.9.0 to 1.10.0 ([#5476](https://github.com/opensearch-project/security/pull/5476))
 - Bumps checkstyle to 10.26.1 that fixes CVE-2025-48734 ([#5485](https://github.com/opensearch-project/security/pull/5485))
+- Bump `commons-io:commons-io` from 2.19.0 to 2.20.0 ([#5494](https://github.com/opensearch-project/security/pull/5494))
+- Bump `org.xerial.snappy:snappy-java` from 1.1.10.7 to 1.1.10.8 ([#5495](https://github.com/opensearch-project/security/pull/5495))
 
 ### Documentation
 
