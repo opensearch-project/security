@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -57,6 +58,7 @@ public class ResourceAccessHandler {
     private final AdminDNs adminDNs;
     private final PrivilegesEvaluator privilegesEvaluator;
 
+    @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,

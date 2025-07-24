@@ -10,7 +10,6 @@ package org.opensearch.sample.resource;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,14 +23,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import org.opensearch.Version;
-import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.sample.SampleResourcePlugin;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -39,18 +32,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.sample.resource.TestHelper.FULL_ACCESS_USER;
-import static org.opensearch.sample.resource.TestHelper.LIMITED_ACCESS_USER;
-import static org.opensearch.sample.resource.TestHelper.NO_ACCESS_USER;
-import static org.opensearch.sample.resource.TestHelper.RESOURCE_SHARING_INDEX;
-import static org.opensearch.sample.resource.TestHelper.SECURITY_SHARE_ENDPOINT;
-import static org.opensearch.sample.resource.TestHelper.putSharingInfoPayload;
-import static org.opensearch.sample.resource.TestHelper.sampleAllAG;
-import static org.opensearch.sample.resource.TestHelper.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
+import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -65,27 +56,7 @@ public class ShareApiTests {
      */
     public static abstract class BaseTests {
         @ClassRule
-        public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .plugin(
-                new PluginInfo(
-                    SampleResourcePlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "1.8",
-                    SampleResourcePlugin.class.getName(),
-                    null,
-                    List.of(OpenSearchSecurityPlugin.class.getName()),
-                    false
-                )
-            )
-            .plugin(PainlessModulePlugin.class)
-            .anonymousAuth(true)
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
-            .nodeSettings(Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, true, SECURITY_SYSTEM_INDICES_ENABLED_KEY, true))
-            .build();
+        public static LocalCluster cluster = newCluster(true, true);
 
         @After
         public void clearIndices() {
@@ -102,7 +73,7 @@ public class ShareApiTests {
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
     public static class RoutesTests extends BaseTests {
-        private final TestHelper.ApiHelper api = new TestHelper.ApiHelper(cluster);
+        private final TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
         private String adminResId;
 
         @Before
@@ -182,7 +153,7 @@ public class ShareApiTests {
             recs.put(Recipient.USERS, users);
             Recipients recipients = new Recipients(recs);
 
-            TestHelper.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestHelper.PatchSharingInfoPayloadBuilder();
+            TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             patchSharingInfoPayloadBuilder.resourceId(adminResId).resourceIndex(RESOURCE_INDEX_NAME).share(recipients, sampleAllAG.name());
 
             // full-access user cannot share with itself since user doesn't have permission to share
