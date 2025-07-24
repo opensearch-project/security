@@ -21,11 +21,11 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
-public class SimulateResponse extends ActionResponse implements StatusToXContentObject {
+public class PermissionCheckResponse extends ActionResponse implements StatusToXContentObject {
     private final boolean accessAllowed;
     private final Set<String> missingPrivileges;
 
-    public SimulateResponse(boolean accessAllowed, Set<String> missingPrivileges) {
+    public PermissionCheckResponse(boolean accessAllowed, Set<String> missingPrivileges) {
         this.accessAllowed = accessAllowed;
         this.missingPrivileges = missingPrivileges;
     }
@@ -36,7 +36,7 @@ public class SimulateResponse extends ActionResponse implements StatusToXContent
         out.writeStringCollection(missingPrivileges);
     }
 
-    public SimulateResponse(final StreamInput in) throws IOException {
+    public PermissionCheckResponse(final StreamInput in) throws IOException {
         this.accessAllowed = in.readBoolean();
         this.missingPrivileges = in.readSet(StreamInput::readString);
     }

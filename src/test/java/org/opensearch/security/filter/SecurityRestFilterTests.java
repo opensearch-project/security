@@ -22,6 +22,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -304,14 +305,13 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
     }
 
     /**
-     * Tests that the simulate_authz param works correctly.
-     * When simulate_authz=true is added to a request, returns
-     * whether the request would be allowed or Denied, without actually executing the request.
+     * Tests that when has_permission_check param is absent;
+     * the normal request flow is executed.
      *
      * @throws Exception
      */
     @Test
-    public void testSimulateAuthzParam() throws Exception {
+    public void testWithoutHasPermissionCheckParam() throws Exception {
         setup();
 
         // ALLOWLIST GET /_cluster/health
@@ -324,15 +324,57 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         );
 
         rh.sendAdminCertificate = false;
-        response = rh.executeGetRequest("_cluster/health?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
+
+        response = rh.executeGetRequest("_cluster/health", nonAdminCredsHeader);
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertFalse(response.getBody().contains("\"accessAllowed\""));
+        assertFalse(response.getBody().contains("\"missingPrivileges\""));
+
+    }
+
+    /**
+     * Tests that the has_permission_check param works correctly.
+     * When has_permission_check=true is added to a request, returns
+     * whether the request would be allowed or Denied, without actually executing the request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testHasPermissionCheckParam() throws Exception {
+        setup();
+
+        // ALLOWLIST GET /_cluster/health
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/health\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
+
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest(
+            "_cluster/health?" + ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM + "=true",
+            nonAdminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertTrue(response.getBody().contains("\"accessAllowed\":"));
         assertTrue(response.getBody().contains("\"missingPrivileges\":"));
 
-        response = rh.executeGetRequest("_search?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
-        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_search\": [\"GET\"]}}",
+            adminCredsHeader
+        );
 
-        response = rh.executeGetRequest("_cat/nodes?" + ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM + "=true", nonAdminCredsHeader);
+        rh.sendAdminCertificate = false;
+        response = rh.executeGetRequest("_search?" + ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM + "=false", nonAdminCredsHeader);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertFalse(response.getBody().contains("\"accessAllowed\":"));
+        assertFalse(response.getBody().contains("\"missingPrivileges\":"));
+
+        response = rh.executeGetRequest("_cat/nodes?" + ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM + "=true", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
     }

@@ -72,7 +72,7 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
-import org.opensearch.security.action.simulate.SimulateResponse;
+import org.opensearch.security.action.simulate.PermissionCheckResponse;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -388,19 +388,7 @@ public class SecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
-
-            String isSimulation = threadContext.getHeader(ConfigConstants.SECURITY_SIMULATE_AUTHZ_PARAM);
-            if ("true".equals(isSimulation)) {
-                log.info("Simulation mode detected");
-                try {
-                    @SuppressWarnings("unchecked")
-                    Response response = (Response) new SimulateResponse(pres.isAllowed(), pres.getMissingPrivileges());
-                    listener.onResponse(response);
-
-                } catch (Exception e) {
-                    log.error("Error creating simulation response", e);
-                    listener.onFailure(new OpenSearchException("Error creating simulation response", e));
-                }
+            if (handlePermissionCheckRequest(listener, pres)) {
                 return;
             }
 
@@ -521,6 +509,31 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
+    }
+
+    private <Response extends ActionResponse> boolean handlePermissionCheckRequest(
+        ActionListener<Response> listener,
+        PrivilegesEvaluatorResponse pres
+    ) {
+        String isSimulation = threadContext.getHeader(ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM);
+        if (Boolean.parseBoolean(isSimulation)) {
+
+            try {
+
+                @SuppressWarnings("unchecked")
+                Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
+                listener.onResponse(response);
+
+                log.info("accessAllowed {}", pres.isAllowed());
+                log.info("missing privileges {}", pres.getMissingPrivileges());
+
+            } catch (Exception e) {
+                log.error("Error creating Permission Check response", e);
+                listener.onFailure(new OpenSearchException("Error creating Permission Check response", e));
+            }
+            return true;
+        }
+        return false;
     }
 
     @SuppressWarnings("rawtypes")

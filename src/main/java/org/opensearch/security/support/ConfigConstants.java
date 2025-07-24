@@ -159,10 +159,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = SECURITY_SETTINGS_PREFIX + "authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = SECURITY_SETTINGS_PREFIX + "authcz.rest_impersonation_user";
 
-    public static final String SECURITY_SIMULATION_API_ENABLED = SECURITY_SETTINGS_PREFIX + "simulation_api.enabled";
-    public static final boolean SECURITY_SIMULATION_API_ENABLED_DEFAULT = true;
-
-    public static final String SECURITY_SIMULATE_AUTHZ_PARAM = "simulate_authz";
+    public static final String SECURITY_HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
