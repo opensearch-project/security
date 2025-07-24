@@ -43,7 +43,7 @@ public class PermissionCheckResponse extends ActionResponse implements StatusToX
 
     @Override
     public RestStatus status() {
-        return accessAllowed ? RestStatus.OK : RestStatus.FORBIDDEN;
+        return RestStatus.OK;
     }
 
     @Override

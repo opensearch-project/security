@@ -92,6 +92,7 @@ public class SecurityRestFilter {
 
     public static final String HEALTH_SUFFIX = "health";
     public static final String WHO_AM_I_SUFFIX = "whoami";
+    private static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     public static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
@@ -167,9 +168,9 @@ public class SecurityRestFilter {
                 return;
             }
 
-            boolean hasPermissionCheck = request.paramAsBoolean(ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM, false);
+            boolean hasPermissionCheck = request.paramAsBoolean(HAS_PERMISSION_CHECK_PARAM, false);
             if (hasPermissionCheck) {
-                threadContext.putHeader(ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM, Boolean.TRUE.toString());
+                threadContext.putHeader(HAS_PERMISSION_CHECK_PARAM, Boolean.TRUE.toString());
             }
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -178,7 +179,7 @@ public class SecurityRestFilter {
                 // Super admins are always authorized
                 auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
                 if (hasPermissionCheck) {
-                    log.info("Permission check skipped: Super admin has full access");
+                    log.debug("Permission check skipped: Super admin has full access");
                     handleSuperAdminPermissionCheck(channel);
                     return;
                 }

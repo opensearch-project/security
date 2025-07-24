@@ -116,6 +116,8 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
+    public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
+
 
     public SecurityFilter(
         final Settings settings,
@@ -388,7 +390,7 @@ public class SecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
-            if (handlePermissionCheckRequest(listener, pres)) {
+            if (handlePermissionCheckRequest(listener, pres, action)) {
                 return;
             }
 
@@ -513,9 +515,10 @@ public class SecurityFilter implements ActionFilter {
 
     private <Response extends ActionResponse> boolean handlePermissionCheckRequest(
         ActionListener<Response> listener,
-        PrivilegesEvaluatorResponse pres
+        PrivilegesEvaluatorResponse pres,
+        String action
     ) {
-        String isSimulation = threadContext.getHeader(ConfigConstants.SECURITY_HAS_PERMISSION_CHECK_PARAM);
+        String isSimulation = threadContext.getHeader(HAS_PERMISSION_CHECK_PARAM);
         if (Boolean.parseBoolean(isSimulation)) {
 
             try {
@@ -524,10 +527,10 @@ public class SecurityFilter implements ActionFilter {
                 Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
                 listener.onResponse(response);
 
-                log.info("accessAllowed {}", pres.isAllowed());
-                log.info("missing privileges {}", pres.getMissingPrivileges());
+                log.debug("Permission check for action '{}': accessAllowed={}, missingPrivileges={}",
+                        action, pres.isAllowed(), pres.getMissingPrivileges());
 
-            } catch (Exception e) {
+            } catch (ClassCastException e) {
                 log.error("Error creating Permission Check response", e);
                 listener.onFailure(new OpenSearchException("Error creating Permission Check response", e));
             }
