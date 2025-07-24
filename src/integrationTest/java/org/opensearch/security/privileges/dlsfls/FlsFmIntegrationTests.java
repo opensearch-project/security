@@ -69,6 +69,7 @@ public class FlsFmIntegrationTests {
     static final TestData TEST_DATA = TestData.DEFAULT;
     static final TestData.TestDocuments TEST_DOCUMENTS = TEST_DATA.documents();
     static final TestIndex TEST_INDEX = TestIndex.name("test_index").setting("index.number_of_shards", 5).data(TEST_DATA).build();
+    static final String GEOPOINT_INDEX = "geopoint_index";
     static final String FIELD_MASKING_SALT = "mytestsaresalted";
     static byte[] FIELD_MASKING_SALT_BYTES = FIELD_MASKING_SALT.getBytes(StandardCharsets.UTF_8);
 
@@ -929,6 +930,112 @@ public class FlsFmIntegrationTests {
                 isTermVectorsResultWithFields(correspondingToDocument(testDocument.applyTransform(user.reference(DOC_WITH_FLS_FM_APPLIED))))
             );
         }
+    }
+
+    @Test
+    public void search_sortBy_geopoint_field() {
+        createGeopointIndex();
+
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = client.postJson(GEOPOINT_INDEX + "/_search", """
+                {
+                    "query": {
+                        "bool": {
+                            "filter": {
+                                "exists": {
+                                    "field": "coordinates"
+                                }
+                            }
+                        }
+                    },
+                    "sort": [
+                        {
+                            "_geo_distance": {
+                                "coordinates": {
+                                    "lat": 40.7128,
+                                    "lon": -74.0060
+                                },
+                                "ignore_unmapped": true,
+                                "order": "desc",
+                                "unit": "km"
+                            }
+                        }
+                    ],
+                    "size": 1
+                }""");
+            assertThat(response, isOk());
+        }
+    }
+
+    private void createGeopointIndex() {
+        String mapping = """
+            {
+                "properties": {
+                    "admin1": {
+                        "type": "keyword"
+                    },
+                    "admin2": {
+                        "type": "keyword"
+                    },
+                    "admin3": {
+                        "type": "keyword"
+                    },
+                    "admin4": {
+                        "type": "keyword"
+                    },
+                    "coordinates": {
+                        "type": "geo_point"
+                    },
+                    "countryCode": {
+                        "type": "keyword"
+                    },
+                    "elevation": {
+                        "type": "long",
+                        "index": false
+                    },
+                    "featureClass": {
+                        "type": "keyword"
+                    },
+                    "featureCode": {
+                        "type": "keyword"
+                    },
+                    "id": {
+                        "type": "long"
+                    },
+                    "population": {
+                        "type": "long"
+                    },
+                    "timezone": {
+                        "type": "text",
+                        "index": false
+                    }
+                }
+            }
+        }""";
+
+        String document = """
+            {
+                "admin1": "11",
+                "admin2": "75",
+                "admin3": "751",
+                "admin4": "75056",
+                "coordinates": {
+                    "lat": 48.8331,
+                    "lon": 2.3264
+                },
+                "countryCode" : "FR",
+                "elevation" : 0,
+                "featureClass" : "A",
+                "featureCode" : "ADM5",
+                "id" : 6618620,
+                "population" : 137105,
+                "timezone" : "Europe/Paris"
+            }""";  
+      
+        TestRestClient client = cluster.getRestClient(user);
+        client.putJson(GEOPOINT_INDEX, mapping);
+        client.postJson(GEOPOINT_INDEX + "/_doc/1", document);
+        
     }
 
     TestSecurityConfig.User user;
