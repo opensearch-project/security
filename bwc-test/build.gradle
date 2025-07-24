@@ -153,6 +153,15 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
                 node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
                 node.setting("plugins.security.system_indices.enabled", "true")
+
+                // // Register pemcert/pemkey for an auxiliary transport.
+                // // Necessary for testing bwc of /ssl/certs/info	across the transport layer.
+                // node.setting("transport.types", "[\"grpc_transport\"]")
+                // node.setting("plugins.security.ssl.aux.grpc_transport.enabled", "true")
+                // node.setting("plugins.security.ssl.aux.grpc_transport.pemcert_filepath", "esnode.pem")
+                // node.setting("plugins.security.ssl.aux.grpc_transport.pemkey_filepath", "esnode-key.pem")
+                // node.setting("plugins.security.ssl.aux.grpc_transport.pemtrustedcas_filepath", "root-ca.pem")
+                // node.setting("plugins.security.ssl.aux.grpc_transport.enforce_hostname_verification", "false")
             }
 
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"

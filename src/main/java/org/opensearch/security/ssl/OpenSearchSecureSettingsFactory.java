@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
@@ -25,7 +26,6 @@ import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureAuxTransportSettingsProvider;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
-import org.opensearch.plugins.SecureHttpTransportSettingsProvider.SecureHttpTransportParameters;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.TransportExceptionHandler;
@@ -232,6 +232,33 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
 
     @Override
     public Optional<SecureAuxTransportSettingsProvider> getSecureAuxTransportSettingsProvider(Settings settings) {
-        return Optional.empty();
+        return Optional.of(new SecureAuxTransportSettingsProvider() {
+
+            @Override
+            public Optional<SSLContext> buildSecureAuxServerTransportContext(Settings settings, String auxTransportSettingKey) {
+                CertType auxCertType = new CertType(auxTransportSettingKey);
+                return sslSettingsManager.sslContextHandler(auxCertType).map(SslContextHandler::tryFetchSSLContext);
+            }
+
+            @Override
+            public Optional<SecureAuxTransportParameters> parameters(Settings settings, String auxTransportSettingKey) {
+                return Optional.of(new SecureAuxTransportParameters() {
+
+                    @Override
+                    public Optional<String> clientAuth() {
+                        CertType auxCertType = new CertType(auxTransportSettingKey);
+                        return sslSettingsManager.sslConfiguration(auxCertType).map(config -> config.sslParameters().clientAuth().name());
+                    }
+
+                    @Override
+                    public Collection<String> cipherSuites() {
+                        CertType auxCertType = new CertType(auxTransportSettingKey);
+                        return sslSettingsManager.sslConfiguration(auxCertType)
+                            .map(config -> config.sslParameters().allowedCiphers())
+                            .orElse(Collections.emptyList());
+                    }
+                });
+            }
+        });
     }
 }
