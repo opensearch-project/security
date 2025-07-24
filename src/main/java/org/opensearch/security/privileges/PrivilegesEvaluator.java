@@ -295,11 +295,7 @@ public class PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", mappedRoles)));
 
             String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(escapePipe(requestedTenant));
-            } else {
-                joiner.add("null");
-            }
+            joiner.add(escapePipe(requestedTenant));
 
             if (this.isUserAttributeSerializationEnabled()) {
                 joiner.add(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap()));
