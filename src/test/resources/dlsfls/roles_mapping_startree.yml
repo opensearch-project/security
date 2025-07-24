@@ -1,0 +1,32 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+startree_dls_role:
+  reserved: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "startree_dls_user"
+
+startree_fls_role:
+  reserved: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "startree_fls_user"
+
+startree_masked_role:
+  reserved: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "startree_masked_user"
+
+startree_admin_role:
+  reserved: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "startree_admin"

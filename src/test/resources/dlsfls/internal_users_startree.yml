@@ -1,0 +1,28 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+startree_dls_user:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  reserved: false
+  backend_roles: []
+  description: "User with DLS restrictions for star tree testing"
+
+startree_fls_user:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  reserved: false
+  backend_roles: []
+  description: "User with FLS restrictions for star tree testing"
+
+startree_masked_user:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  reserved: false
+  backend_roles: []
+  description: "User with field masking for star tree testing"
+
+startree_admin:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  reserved: false
+  backend_roles: []
+  description: "Admin user for star tree testing"
