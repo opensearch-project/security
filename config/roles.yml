@@ -174,6 +174,8 @@ ppl_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/mappings/get'
+        - 'indices:data/read/point_in_time/create'
+        - 'indices:data/read/point_in_time/delete'
         - 'indices:data/read/search*'
         - 'indices:monitor/settings/get'
 
