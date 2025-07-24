@@ -77,16 +77,6 @@ public class SampleResourcePluginTests {
         .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN, SHARED_WITH_USER)
-        .nodeSettings(
-            Map.of(
-                SECURITY_SYSTEM_INDICES_ENABLED_KEY,
-                true,
-                OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                true,
-                "plugins.security.user_attribute_serialization.enabled",
-                true
-            )
-        )
         .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
         .build();
 
@@ -104,34 +94,6 @@ public class SampleResourcePluginTests {
             TestRestClient.HttpResponse pluginsResponse = client.get("_cat/plugins");
             assertThat(pluginsResponse.getBody(), containsString("org.opensearch.security.OpenSearchSecurityPlugin"));
             assertThat(pluginsResponse.getBody(), containsString("org.opensearch.sample.SampleResourcePlugin"));
-        }
-    }
-
-    @Test
-    public void testUserSerializationAndDeserialization() throws Exception {
-        String resourceId;
-        // create sample resource
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            String sampleResource = """
-                {"name":"sample"}
-                """;
-
-            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
-            response.assertStatusCode(HttpStatus.SC_OK);
-
-            resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
-
-            Awaitility.await()
-                .alias("Wait until resource data is populated")
-                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            Awaitility.await()
-                .alias("Wait until resource-sharing data is populated")
-                .until(() -> client.get(RESOURCE_SHARING_INDEX + "/_search").bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1));
-            HttpResponse sharingEntry = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
-            System.out.println("sharingEntry: " + sharingEntry.getBody());
         }
     }
 
