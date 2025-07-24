@@ -113,7 +113,8 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
                       "config": {
                         "ordered_dimensions": [
                           {"name": "department"},
-                          {"name": "region"}
+                          {"name": "region"},
+                          {"name": "sensitive_data"}
                         ],
                         "metrics": [
                           {"name": "sales_amount", "stats": ["sum", "value_count"]}
@@ -126,7 +127,7 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
                     "region": {"type": "keyword"},
                     "sales_amount": {"type": "double"},
                     "employee_id": {"type": "keyword"},
-                    "sensitive_data": {"type": "text"}
+                    "sensitive_data": {"type": "keyword"}
                   }
                 }
                 """;
@@ -154,7 +155,7 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
                     "region": {"type": "keyword"},
                     "sales_amount": {"type": "double"},
                     "employee_id": {"type": "keyword"},
-                    "sensitive_data": {"type": "text"}
+                    "sensitive_data": {"type": "keyword"}
                   }
                 }
                 """;
@@ -308,6 +309,7 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
             "/" + STARTREE_INDEX_NAME + "/_stats/search?pretty",
             encodeBasicHeader("startree_admin", "password")
         );
+        Assert.assertTrue("Should contain correct sales total", response.getBody().contains("2500.0"));
         assertThat(statsResponse.getStatusCode(), is(HttpStatus.SC_OK));
         String statsBody = statsResponse.getBody();
         // Assert that star tree queries are 0 (disabled due to FLS)
@@ -353,6 +355,7 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
             "/" + STARTREE_INDEX_NAME + "/_stats/search?pretty",
             encodeBasicHeader("startree_admin", "password")
         );
+        Assert.assertTrue("Should contain correct sales total", response.getBody().contains("2500.0"));
         assertThat(statsResponse.getStatusCode(), is(HttpStatus.SC_OK));
         String statsBody = statsResponse.getBody();
         // Assert that star tree queries are 0 (disabled due to FLS)
@@ -399,6 +402,10 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
             "/" + STARTREE_INDEX_NAME + "/_stats/search?pretty",
             encodeBasicHeader("startree_admin", "password")
         );
+        Assert.assertTrue(
+            "Should contain correct sales total",
+            response.getBody().contains("2500.0") && response.getBody().contains("4500.0")
+        );
         assertThat(statsResponse.getStatusCode(), is(HttpStatus.SC_OK));
 
         String statsBody = statsResponse.getBody();
@@ -421,7 +428,13 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
               "query": {
                 "match_all": {}
               },
-              "_source": ["department", "sales_amount", "sensitive_data"]
+              "aggs": {
+                "departments": {
+                  "terms": {
+                    "field": "sensitive_data"
+                  }
+                }
+              }
             }
             """;
 
@@ -431,8 +444,51 @@ public class StarTreeDlsFlsTest extends AbstractDlsFlsTest {
             searchQuery,
             encodeBasicHeader("startree_masked_user", "password")
         );
+        /**
+         * {
+         *   "took" : 74,
+         *   "timed_out" : false,
+         *   "_shards" : {
+         *     "total" : 1,
+         *     "successful" : 1,
+         *     "skipped" : 0,
+         *     "failed" : 0
+         *   },
+         *   "hits" : {
+         *     "total" : {
+         *       "value" : 4,
+         *       "relation" : "eq"
+         *     },
+         *   },
+         *   "aggregations" : {
+         *     "departments" : {
+         *       "doc_count_error_upper_bound" : 0,
+         *       "sum_other_doc_count" : 0,
+         *       "buckets" : [
+         *         {
+         *           "key" : "5e08a7aba0e2e1620a3f2bc533dbde2a132d7fec92e1d5bcf093addd99da51e8",
+         *           "doc_count" : 1
+         *         },
+         *         {
+         *           "key" : "aef40b3afd324a3124d3ba026f124ee2d745cbc833866a711db976f6a728d4f4",
+         *           "doc_count" : 1
+         *         },
+         *         {
+         *           "key" : "bc95c2aa20960646cd245b07ff5c369d69786bf6fec08d3e7d37ce620f86720b",
+         *           "doc_count" : 1
+         *         },
+         *         {
+         *           "key" : "dfdb4f84a0dc572ec9e3f8fa61b60a64710a66edddb8c78b584759ac73099eb1",
+         *           "doc_count" : 1
+         *         }
+         *       ]
+         *     }
+         *   }
+         * }
+         */
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
-
+        Assert.assertTrue(response.getBody().contains("dfdb4f84a0dc572ec9e3f8fa61b60a64710a66edddb8c78b584759ac73099eb1"));
+        Assert.assertTrue(response.getBody().contains("\"value\" : 4"));
         // Check star tree stats - should show NO star tree queries were used due to field masking
         HttpResponse statsResponse = rh.executeGetRequest(
             "/" + STARTREE_INDEX_NAME + "/_stats/search?pretty",
