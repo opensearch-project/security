@@ -157,29 +157,29 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testClockSkewInvalid() {
         Settings settings = Settings.builder()
-                .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
-                .put("jwt_clock_skew_tolerance_seconds", 0)
-                .build();
+            .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
+            .put("jwt_clock_skew_tolerance_seconds", 0)
+            .build();
 
         final Instant now = Instant.now().atZone(ZoneId.systemDefault()).toInstant();
         final Date notBefore = Date.from(now.minusSeconds(10));
         final Date expiration = Date.from(now);
 
         String jwsToken = Jwts.builder()
-                .setSubject("Leonard McCoy")
-                .setAudience("myaud")
-                .notBefore(notBefore)
-                .expiration(expiration) // the token will be expired already. Clock skew set to 0, zero tolerance.
-                .signWith(secretKey, SignatureAlgorithm.HS512)
-                .compact();
+            .setSubject("Leonard McCoy")
+            .setAudience("myaud")
+            .notBefore(notBefore)
+            .expiration(expiration) // the token will be expired already. Clock skew set to 0, zero tolerance.
+            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .compact();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNull(credentials);
@@ -188,29 +188,29 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testClockSkewValid() {
         Settings settings = Settings.builder()
-                .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
-                .put("jwt_clock_skew_tolerance_seconds", 60)
-                .build();
+            .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
+            .put("jwt_clock_skew_tolerance_seconds", 60)
+            .build();
 
         final Instant now = Instant.now().atZone(ZoneId.systemDefault()).toInstant();
         final Date notBefore = Date.from(now.minusSeconds(10));
         final Date expiration = Date.from(now);
 
         String jwsToken = Jwts.builder()
-                .setSubject("Leonard McCoy")
-                .setAudience("myaud")
-                .notBefore(notBefore)
-                .expiration(expiration) // the token will be expired already. Clock skew should ignore this difference
-                .signWith(secretKey, SignatureAlgorithm.HS512)
-                .compact();
+            .setSubject("Leonard McCoy")
+            .setAudience("myaud")
+            .notBefore(notBefore)
+            .expiration(expiration) // the token will be expired already. Clock skew should ignore this difference
+            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .compact();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(credentials);

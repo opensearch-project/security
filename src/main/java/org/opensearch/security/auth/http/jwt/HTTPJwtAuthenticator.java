@@ -83,7 +83,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         subjectKey = settings.get("subject_key");
         requiredAudience = settings.getAsList("required_audience");
         requireIssuer = settings.get("required_issuer");
-        clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
+        clockSkewToleranceSeconds = settings.getAsInt(
+            "jwt_clock_skew_tolerance_seconds",
+            AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
+        );
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
