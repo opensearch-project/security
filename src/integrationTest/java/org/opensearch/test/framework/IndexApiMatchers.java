@@ -11,20 +11,6 @@
 
 package org.opensearch.test.framework;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import org.hamcrest.Description;
-import org.hamcrest.DiagnosingMatcher;
-import org.hamcrest.Matcher;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.test.framework.cluster.TestRestClient;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +20,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.hamcrest.Description;
+import org.hamcrest.DiagnosingMatcher;
+import org.hamcrest.Matcher;
+
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.test.framework.cluster.TestRestClient;
+
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 
 import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
 
@@ -107,8 +109,12 @@ public class IndexApiMatchers {
             super(indexNameMap, containsOpenSearchIndices);
         }
 
-        public ContainsExactlyMatcher(Map<String, TestIndexLike> indexNameMap, boolean containsOpenSearchIndices,
-                                      String jsonPath, int statusCodeWhenEmpty) {
+        public ContainsExactlyMatcher(
+            Map<String, TestIndexLike> indexNameMap,
+            boolean containsOpenSearchIndices,
+            String jsonPath,
+            int statusCodeWhenEmpty
+        ) {
             super(indexNameMap, containsOpenSearchIndices, jsonPath, statusCodeWhenEmpty);
         }
 
@@ -121,8 +127,9 @@ public class IndexApiMatchers {
                     description.appendText("a response with status code " + this.statusCodeWhenEmpty);
                 }
             } else {
-                description
-                        .appendText("a 200 OK response with exactly the indices " + indexNameMap.keySet().stream().collect(Collectors.joining(", ")));
+                description.appendText(
+                    "a 200 OK response with exactly the indices " + indexNameMap.keySet().stream().collect(Collectors.joining(", "))
+                );
             }
         }
 
@@ -132,8 +139,9 @@ public class IndexApiMatchers {
             boolean checkDocs = false;
 
             // Flatten the collection
-            collection = collection.stream().flatMap(e -> e instanceof Collection ? ((Collection<?>) e).stream() : Stream.of(e))
-                    .collect(Collectors.toSet());
+            collection = collection.stream()
+                .flatMap(e -> e instanceof Collection ? ((Collection<?>) e).stream() : Stream.of(e))
+                .collect(Collectors.toSet());
 
             for (Object object : collection) {
                 if (object instanceof String) {
@@ -171,9 +179,12 @@ public class IndexApiMatchers {
                 TestIndexLike index = indexNameMap.get(indexName);
 
                 if (index == null) {
-                    mismatchDescription.appendText("result contains unknown index: ").appendValue(node.get("_index").asText())
-                            .appendText("; expected: ").appendValue(indexNameMap.keySet()).appendText("\ndocument: ")
-                            .appendText(node.toString());
+                    mismatchDescription.appendText("result contains unknown index: ")
+                        .appendValue(node.get("_index").asText())
+                        .appendText("; expected: ")
+                        .appendValue(indexNameMap.keySet())
+                        .appendText("\ndocument: ")
+                        .appendText(node.toString());
                     mismatchDescription.appendText("\n\n").appendValue(formatResponse(response));
 
                     return false;
@@ -182,9 +193,12 @@ public class IndexApiMatchers {
                 TestData.TestDocument document = index.documents().get(node.get("_id").asText());
 
                 if (document == null) {
-                    mismatchDescription.appendText("result contains unknown document id ").appendValue(node.get("_id").asText())
-                            .appendText(" for index ").appendValue(node.get("_index").asText()).appendText("\ndocument: ")
-                            .appendText(node.toString());
+                    mismatchDescription.appendText("result contains unknown document id ")
+                        .appendValue(node.get("_id").asText())
+                        .appendText(" for index ")
+                        .appendValue(node.get("_index").asText())
+                        .appendText("\ndocument: ")
+                        .appendText(node.toString());
                     mismatchDescription.appendText("\n\n").appendValue(formatResponse(response));
 
                     return false;
@@ -192,10 +206,14 @@ public class IndexApiMatchers {
 
                 Map source = DefaultObjectMapper.objectMapper.convertValue(node.get("_source"), Map.class);
                 if (!document.content().equals(source)) {
-                    mismatchDescription.appendText("result document ").appendValue(node.get("_id").asText()).appendText(" in index ")
-                            .appendValue(node.get("_index").asText()).appendText(" does not match expected document:\n")
-                            .appendText(node.get("_source").toString()).appendText("\n")
-                            .appendText(DefaultObjectMapper.objectMapper.valueToTree(document.content()).toString());
+                    mismatchDescription.appendText("result document ")
+                        .appendValue(node.get("_id").asText())
+                        .appendText(" in index ")
+                        .appendValue(node.get("_index").asText())
+                        .appendText(" does not match expected document:\n")
+                        .appendText(node.get("_source").toString())
+                        .appendText("\n")
+                        .appendText(DefaultObjectMapper.objectMapper.valueToTree(document.content()).toString());
                     mismatchDescription.appendText("\n\n").appendValue(formatResponse(response));
 
                     return false;
@@ -222,7 +240,11 @@ public class IndexApiMatchers {
             return true;
         }
 
-        protected boolean matchesByIndices(Collection<?> collection, Description mismatchDescription, TestRestClient.HttpResponse response) {
+        protected boolean matchesByIndices(
+            Collection<?> collection,
+            Description mismatchDescription,
+            TestRestClient.HttpResponse response
+        ) {
             ImmutableSet<String> expectedIndices = this.getExpectedIndices();
             ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
             ImmutableSet.Builder<String> seenOpenSearchIndicesBuilder = new ImmutableSet.Builder<String>();
@@ -239,28 +261,33 @@ public class IndexApiMatchers {
 
             ImmutableSet<String> seenIndices = seenIndicesBuilder.build();
 
-
             ImmutableSet<String> unexpectedIndices = Sets.difference(seenIndices, expectedIndices).immutableCopy();
             ImmutableSet<String> missingIndices = Sets.difference(expectedIndices, seenIndices).immutableCopy();
 
             if (containsOpenSearchIndices && seenOpenSearchIndicesBuilder.build().size() == 0) {
                 missingIndices = ImmutableSet.<String>builderWithExpectedSize(missingIndices.size() + 1)
-                        .addAll(missingIndices)
-                        .add(".opensearch indices")
-                        .build();
+                    .addAll(missingIndices)
+                    .add(".opensearch indices")
+                    .build();
             }
 
             if (unexpectedIndices.isEmpty() && missingIndices.isEmpty()) {
                 return true;
             } else {
                 if (!missingIndices.isEmpty()) {
-                    mismatchDescription.appendText("result does not contain expected indices; found: ").appendValue(seenIndices)
-                            .appendText("; missing: ").appendValue(missingIndices).appendText("\n\n").appendText(formatResponse(response));
+                    mismatchDescription.appendText("result does not contain expected indices; found: ")
+                        .appendValue(seenIndices)
+                        .appendText("; missing: ")
+                        .appendValue(missingIndices)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
                 }
 
                 if (!unexpectedIndices.isEmpty()) {
-                    mismatchDescription.appendText("result does contain indices that were not expected: ").appendValue(unexpectedIndices)
-                            .appendText("\n\n").appendText(formatResponse(response));
+                    mismatchDescription.appendText("result does contain indices that were not expected: ")
+                        .appendValue(unexpectedIndices)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
                 }
                 return false;
             }
@@ -281,17 +308,26 @@ public class IndexApiMatchers {
         @Override
         public IndexMatcher but(IndexMatcher other) {
             if (other instanceof LimitedToMatcher) {
-                return new ContainsExactlyMatcher(testIndicesIntersection(this.indexNameMap, ((LimitedToMatcher) other).indexNameMap), //
-                        this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                        this.jsonPath, this.statusCodeWhenEmpty);
+                return new ContainsExactlyMatcher(
+                    testIndicesIntersection(this.indexNameMap, ((LimitedToMatcher) other).indexNameMap), //
+                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
             } else if (other instanceof ContainsExactlyMatcher) {
-                return new ContainsExactlyMatcher(testIndicesIntersection(this.indexNameMap, ((ContainsExactlyMatcher) other).indexNameMap), //
-                        this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                        this.jsonPath, this.statusCodeWhenEmpty);
+                return new ContainsExactlyMatcher(
+                    testIndicesIntersection(this.indexNameMap, ((ContainsExactlyMatcher) other).indexNameMap), //
+                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
             } else if (other instanceof UnlimitedMatcher) {
-                return new ContainsExactlyMatcher(this.indexNameMap, //
-                        this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                        this.jsonPath, this.statusCodeWhenEmpty);
+                return new ContainsExactlyMatcher(
+                    this.indexNameMap, //
+                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
             } else {
                 throw new RuntimeException("Unexpected argument " + other);
             }
@@ -302,11 +338,11 @@ public class IndexApiMatchers {
             // Returns true of other provides at least all indices as this
             // Examples:
             //
-            // this:  a, b, c
-            // other:    b, c
+            // this: a, b, c
+            // other: b, c
             // -> a missing -> false
             //
-            // this:  a, b
+            // this: a, b
             // other: a, b, c
             // -> true
 
@@ -357,7 +393,9 @@ public class IndexApiMatchers {
                     description.appendText("a response with status code " + this.statusCodeWhenEmpty);
                 }
             } else {
-                description.appendText("a 200 OK response no indices other than " + indexNameMap.keySet().stream().collect(Collectors.joining(", ")));
+                description.appendText(
+                    "a 200 OK response no indices other than " + indexNameMap.keySet().stream().collect(Collectors.joining(", "))
+                );
             }
         }
 
@@ -373,9 +411,12 @@ public class IndexApiMatchers {
                     checkDocs = true;
                     break;
                 } else {
-                    mismatchDescription.appendText("unexpected value ").appendValue(object).appendText(" (")
-                            .appendValue(object != null ? object.getClass().toString() : "null").appendText(")\n\n")
-                            .appendText(formatResponse(response));
+                    mismatchDescription.appendText("unexpected value ")
+                        .appendValue(object)
+                        .appendText(" (")
+                        .appendValue(object != null ? object.getClass().toString() : "null")
+                        .appendText(")\n\n")
+                        .appendText(formatResponse(response));
                     return false;
                 }
             }
@@ -391,19 +432,24 @@ public class IndexApiMatchers {
         public IndexMatcher but(IndexMatcher other) {
             if (other instanceof LimitedToMatcher) {
 
-                return new LimitedToMatcher(filterTestIndices(this.indexNameMap, ((LimitedToMatcher) other).getExpectedIndices()),
-                        this.jsonPath, this.statusCodeWhenEmpty);
+                return new LimitedToMatcher(
+                    filterTestIndices(this.indexNameMap, ((LimitedToMatcher) other).getExpectedIndices()),
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
             } else if (other instanceof ContainsExactlyMatcher) {
                 return new ContainsExactlyMatcher(
-                        filterTestIndices(this.indexNameMap, ((ContainsExactlyMatcher) other).getExpectedIndices()), false,
-                        this.jsonPath, this.statusCodeWhenEmpty);
+                    filterTestIndices(this.indexNameMap, ((ContainsExactlyMatcher) other).getExpectedIndices()),
+                    false,
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
             } else if (other instanceof UnlimitedMatcher) {
                 return this;
             } else {
                 throw new RuntimeException("Unexpected argument " + other);
             }
         }
-
 
         @Override
         public boolean covers(TestIndex testIndex) {
@@ -437,13 +483,19 @@ public class IndexApiMatchers {
             if (unexpectedIndices.isEmpty()) {
                 return true;
             } else {
-                mismatchDescription.appendText("result does contain indices that were not expected: ").appendValue(unexpectedIndices)
-                        .appendText("\n\n").appendValue(formatResponse(response));
+                mismatchDescription.appendText("result does contain indices that were not expected: ")
+                    .appendValue(unexpectedIndices)
+                    .appendText("\n\n")
+                    .appendValue(formatResponse(response));
                 return false;
             }
         }
 
-        protected boolean matchesByIndices(Collection<?> collection, Description mismatchDescription, TestRestClient.HttpResponse response) {
+        protected boolean matchesByIndices(
+            Collection<?> collection,
+            Description mismatchDescription,
+            TestRestClient.HttpResponse response
+        ) {
             ImmutableSet<String> expectedIndices = this.getExpectedIndices();
             ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
 
@@ -457,8 +509,10 @@ public class IndexApiMatchers {
             if (unexpectedIndices.isEmpty()) {
                 return true;
             } else {
-                mismatchDescription.appendText("result does contain indices that were not expected: ").appendValue(unexpectedIndices)
-                        .appendText("\n\n").appendValue(formatResponse(response));
+                mismatchDescription.appendText("result does contain indices that were not expected: ")
+                    .appendValue(unexpectedIndices)
+                    .appendText("\n\n")
+                    .appendValue(formatResponse(response));
                 return false;
             }
         }
@@ -499,7 +553,7 @@ public class IndexApiMatchers {
 
                 if (response.getStatusCode() != 200) {
                     mismatchDescription.appendText("Expected status code 200 but status was: ")
-                            .appendValue(response.getStatusCode() + " " + response.getStatusReason());
+                        .appendValue(response.getStatusCode() + " " + response.getStatusReason());
                     return false;
                 }
             }
@@ -556,7 +610,6 @@ public class IndexApiMatchers {
             return true;
         }
 
-
         @Override
         public boolean covers(TestIndex testIndex) {
             return true;
@@ -606,8 +659,10 @@ public class IndexApiMatchers {
                 TestRestClient.HttpResponse response = (TestRestClient.HttpResponse) item;
 
                 if (response.getStatusCode() != this.expectedStatusCode) {
-                    mismatchDescription.appendText("Status was: ").appendValue(response.getStatusCode() + " " + response.getStatusReason())
-                            .appendText("\n\n").appendText(formatResponse(response));
+                    mismatchDescription.appendText("Status was: ")
+                        .appendValue(response.getStatusCode() + " " + response.getStatusReason())
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
                     return false;
                 } else {
                     return true;
@@ -689,8 +744,12 @@ public class IndexApiMatchers {
             this.containsOpenSearchIndices = containsOpenSearchIndices;
         }
 
-        AbstractIndexMatcher(Map<String, TestIndexLike> indexNameMap, boolean containsOpenSearchIndices,
-                             String jsonPath, int statusCodeWhenEmpty) {
+        AbstractIndexMatcher(
+            Map<String, TestIndexLike> indexNameMap,
+            boolean containsOpenSearchIndices,
+            String jsonPath,
+            int statusCodeWhenEmpty
+        ) {
             this.indexNameMap = indexNameMap;
             this.jsonPath = jsonPath;
             this.statusCodeWhenEmpty = statusCodeWhenEmpty;
@@ -706,8 +765,10 @@ public class IndexApiMatchers {
 
                 if (indexNameMap.isEmpty()) {
                     if (response.getStatusCode() != this.statusCodeWhenEmpty) {
-                        mismatchDescription.appendText("Status was: ").appendValue(response.getStatusCode() + " " + response.getStatusReason())
-                                .appendText("\n\n").appendText(formatResponse(response));
+                        mismatchDescription.appendText("Status was: ")
+                            .appendValue(response.getStatusCode() + " " + response.getStatusReason())
+                            .appendText("\n\n")
+                            .appendText(formatResponse(response));
                         return false;
                     }
 
@@ -729,14 +790,15 @@ public class IndexApiMatchers {
             }
 
             if (jsonPath != null) {
-                Configuration config = Configuration.builder()
-                        .jsonProvider(new JacksonJsonProvider()).build();
+                Configuration config = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
 
                 item = JsonPath.using(config).parse(item).read(jsonPath);
 
                 if (item == null) {
-                    mismatchDescription.appendText("Unable to find JSON Path: ").appendValue(jsonPath).appendText("\n\n")
-                            .appendText(formatResponse(response));
+                    mismatchDescription.appendText("Unable to find JSON Path: ")
+                        .appendValue(jsonPath)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
                     return false;
                 }
             }
@@ -748,7 +810,11 @@ public class IndexApiMatchers {
             return matchesImpl((Collection<?>) item, mismatchDescription, response);
         }
 
-        protected abstract boolean matchesImpl(Collection<?> collection, Description mismatchDescription, TestRestClient.HttpResponse response);
+        protected abstract boolean matchesImpl(
+            Collection<?> collection,
+            Description mismatchDescription,
+            TestRestClient.HttpResponse response
+        );
 
         @Override
         public IndexMatcher butFailIfIncomplete(IndexMatcher other, int statusCode) {
@@ -815,9 +881,10 @@ public class IndexApiMatchers {
         }
 
         protected Map<String, TestIndexLike> filterTestIndices(Map<String, TestIndexLike> indexMap, Set<String> keysToKeep) {
-            return indexMap.entrySet().stream()
-                    .filter(entry -> keysToKeep.contains(entry.getKey()))
-                    .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+            return indexMap.entrySet()
+                .stream()
+                .filter(entry -> keysToKeep.contains(entry.getKey()))
+                .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         protected ImmutableSet<String> getExpectedIndices() {

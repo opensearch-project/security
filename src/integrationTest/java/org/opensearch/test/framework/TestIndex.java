@@ -28,12 +28,12 @@
 
 package org.opensearch.test.framework;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
-
-import java.util.Map;
-import java.util.Set;
 
 public class TestIndex implements TestIndexLike {
 

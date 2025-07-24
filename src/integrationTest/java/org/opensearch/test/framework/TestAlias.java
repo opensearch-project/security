@@ -11,16 +11,17 @@
 
 package org.opensearch.test.framework;
 
-import com.google.common.collect.ImmutableSet;
-import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.opensearch.transport.client.Client;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.transport.client.Client;
 
 public class TestAlias implements TestIndexLike {
 
@@ -46,13 +47,24 @@ public class TestAlias implements TestIndexLike {
     }
 
     public void create(Client client) {
-        client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices(getIndexNamesAsArray()).alias(name)))
-                .actionGet();
+        client.admin()
+            .indices()
+            .aliases(
+                new IndicesAliasesRequest().addAliasAction(
+                    IndicesAliasesRequest.AliasActions.add().indices(getIndexNamesAsArray()).alias(name)
+                )
+            )
+            .actionGet();
 
         if (writeIndex != null) {
-            client.admin().indices()
-                    .aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().index(writeIndex.name()).alias(name).writeIndex(true)))
-                    .actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        IndicesAliasesRequest.AliasActions.add().index(writeIndex.name()).alias(name).writeIndex(true)
+                    )
+                )
+                .actionGet();
         }
     }
 
