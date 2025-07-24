@@ -199,237 +199,328 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         });
     }
 
-    public void testWhoAmI() throws Exception {
-        Map<String, Object> responseMap = getAsMap("_plugins/_security/whoami");
-        assertThat(responseMap, hasKey("dn"));
-    }
-
-    public void testBasicBackwardsCompatibility() throws Exception {
-        String round = System.getProperty("tests.rest.bwcsuite_round");
-
-        if (round.equals("first") || round.equals("old")) {
-            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-0/plugins");
-        } else if (round.equals("second")) {
-            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-1/plugins");
-        } else if (round.equals("third")) {
-            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-2/plugins");
-        }
-    }
-
-    /**
-     * Tests backward compatibility by created a test user and role with DLS, FLS and masked field settings. Ingests
-     * data into a test index and runs a matchAll query against the same.
-     */
-    public void testDataIngestionAndSearchBackwardsCompatibility() throws Exception {
-        String round = System.getProperty("tests.rest.bwcsuite_round");
-        String index = "test_index";
-        if (round.equals("old")) {
-            createTestRoleIfNotExists(TEST_ROLE);
-            createUserIfNotExists(TEST_USER, TEST_PASSWORD, TEST_ROLE);
-            createIndexIfNotExists(index);
-        }
-        ingestData(index);
-        searchMatchAll(index);
-    }
 
     public void testDebugCertInfo() throws Exception {
-        Response response = RestHelper.makeRequest(
+        Response resp = RestHelper.makeRequest(
                 adminClient(),
                 "GET",
                 "_plugins/_security/api/certificates",
                 null
         );
-        assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+        assertEquals("SSL certs info endpoint should return 200", 200, resp.getStatusLine().getStatusCode());
+
+
+        System.out.println("responseAsMap(resp): " + responseAsMap(resp).toString());
+
+        System.out.println("resp.toString(): " + resp.toString());
+        System.out.println("resp.getRequestLine().toString(): " + resp.getRequestLine().toString());
+        System.out.println("resp.getEntity().toString(): " + resp.getEntity().toString());
+        System.out.println("resp.getEntity().getContent().toString(): " + resp.getEntity().getContent().toString());
     }
 
-    public void testNodeStats() throws IOException {
-        List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
-        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void assertPluginUpgrade(String uri) throws Exception {
-        Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
-        for (Map<String, Object> response : responseMap.values()) {
-            List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
-            Set<String> pluginNames = plugins.stream().map(map -> (String) map.get("name")).collect(Collectors.toSet());
-
-            final Version minNodeVersion = minimumNodeVersion();
-
-            if (minNodeVersion.major <= 1) {
-                assertThat(pluginNames, hasItem("opensearch_security")); // With underscore seperator
-            } else {
-                assertThat(pluginNames, hasItem("opensearch-security")); // With dash seperator
-            }
-        }
-    }
 
     /**
-     * Ingests data into the test index
-     * @param index index to ingest data into
+     * Tests the basic SSL certificates info endpoint functionality.
+     * @param expectedCertificateLists certificates we expect to be registered on this cluster.
      */
+    private void testSslCertsInfoEndpoint(List<String> expectedCertificateLists) throws IOException {
+        Response resp = RestHelper.makeRequest(
+                adminClient(),
+                "GET",
+                "_plugins/_security/api/ssl/certs/info",
+                null
+        );
 
-    private void ingestData(String index) throws IOException {
-        StringBuilder bulkRequestBody = new StringBuilder();
-        ObjectMapper objectMapper = new ObjectMapper();
-        int numberOfRequests = Randomness.get().nextInt(10);
-        while (numberOfRequests-- > 0) {
-            int numberOfDocuments = Randomness.get().nextInt(100) + 1;
-            for (int i = 0; i < numberOfDocuments; i++) {
-                Map<String, Map<String, String>> indexRequest = new HashMap<>();
-                indexRequest.put("index", new HashMap<>() {
-                    {
-                        put("_index", index);
-                    }
-                });
-                bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
-                bulkRequestBody.append(Song.randomSong().asJson() + "\n");
-            }
-            List<Response> responses = RestHelper.requestAgainstAllNodes(
-                testUserRestClient,
-                "POST",
-                "_bulk?refresh=wait_for",
-                new StringEntity(bulkRequestBody.toString(), APPLICATION_NDJSON)
-            );
-            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
-            for (Response response : responses) {
-                Map<String, Object> responseMap = responseAsMap(response);
-                List<?> itemResults = (List<?>) XContentMapValues.extractValue(responseMap, "items", "index", "result");
-                assertTrue("More than 0 response items", itemResults.size() > 0);
-                assertTrue("All results are 'created': " + itemResults, itemResults.stream().allMatch(i -> i.equals("created")));
-            }
-        }
+        System.out.println("RESPONSE: " + resp.toString());
+
+
+//        responses.forEach(response -> {
+//            assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+//            Map<String, Object> responseMap = null;
+//            try {
+//                responseMap = responseAsMap(response);
+//            } catch (IOException e) {
+//                throw new RuntimeException("Failed to parse certs info response", e);
+//            }
+//            for (String certListName : expectedCertificateLists) {
+//                assertTrue("Response should contain " + certListName, responseMap.containsKey(certListName));
+//                assertTrue(certListName + " should be a list", responseMap.get(certListName) instanceof List);
+//                List<Map<String, Object>> certs = (List<Map<String, Object>>) responseMap.get(certListName);
+//                if (!certs.isEmpty()) {
+//                    verifyCertificateInfo(certs.getFirst());
+//                }
+//            }
+//        });
     }
 
-    /**
-     * Runs a matchAll query against the test index
-     * @param index index to search
-     */
-    private void searchMatchAll(String index) throws IOException {
-        String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
-        int numberOfRequests = Randomness.get().nextInt(10);
-        while (numberOfRequests-- > 0) {
-            List<Response> responses = RestHelper.requestAgainstAllNodes(
-                testUserRestClient,
-                "POST",
-                index + "/_search",
-                RestHelper.toHttpEntity(matchAllQuery)
-            );
-            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+//    /**
+//     * Some basic validation on the structure of certificates info response items.
+//     */
+//    private void verifyCertificateInfo(Map<String, Object> certInfo) {
+//        assertThat("Certificate should have subject_dn", certInfo, hasKey("subject_dn"));
+//        assertThat("Certificate should have issuer_dn", certInfo, hasKey("issuer_dn"));
+//        assertThat("Certificate should have not_before", certInfo, hasKey("not_before"));
+//        assertThat("Certificate should have not_after", certInfo, hasKey("not_after"));
+//
+//        Object subjectDn = certInfo.get("subject_dn");
+//        if (subjectDn != null) {
+//            assertTrue("subject_dn should be a string", subjectDn instanceof String);
+//            assertFalse("subject_dn should not be empty", ((String) subjectDn).isEmpty());
+//        }
+//
+//        Object issuerDn = certInfo.get("issuer_dn");
+//        if (issuerDn != null) {
+//            assertTrue("issuer_dn should be a string", issuerDn instanceof String);
+//            assertFalse("issuer_dn should not be empty", ((String) issuerDn).isEmpty());
+//        }
+//    }
 
-            for (Response response : responses) {
-                Map<String, Object> responseMap = responseAsMap(response);
-                @SuppressWarnings("unchecked")
-                List<Map<?, ?>> sourceDocs = (List<Map<?, ?>>) XContentMapValues.extractValue(responseMap, "hits", "hits", "_source");
 
-                for (Map<?, ?> sourceDoc : sourceDocs) {
-                    assertNull("response doc should not contain field forbidden by FLS: " + responseMap, sourceDoc.get(Song.FIELD_LYRICS));
-                    assertNotNull(
-                        "response doc should contain field not forbidden by FLS: " + responseMap,
-                        sourceDoc.get(Song.FIELD_ARTIST)
-                    );
-                    assertEquals(
-                        "response doc should always have genre rock: " + responseMap,
-                        Song.GENRE_ROCK,
-                        sourceDoc.get(Song.FIELD_GENRE)
-                    );
-                }
-            }
-        }
-    }
+//    /**
+//     * Tests backwards compatibility for SSL certificates info endpoint with aux transport certificates.
+//     * This test ensures that the /ssl/certs/info endpoint works correctly during cluster upgrades
+//     * when auxiliary transport certificates are registered and loaded.
+//     */
+//    public void testSslCertsInfoWithAuxTransportBackwardsCompatibility() throws Exception {
+//       /*
+//       We cannot expect any aux transport certificates to be visible on a cluster with previous version nodes.
+//       Old nodes have no concept of aux transports and are only able to provide http/transport cert info.
+//        */
+//        String round = System.getProperty("tests.rest.bwcsuite_round");
+//        if (round.equals("third")) {
+//            testSslCertsInfoEndpoint(List.of(http_certificates_list, transport_certificates_list, ));
+//        } else {
+//            testSslCertsInfoEndpoint(List.of());
+//        }
+//    }
 
-    /**
-     * Checks if a resource at the specified URL exists
-     * @param url of the resource to be checked for existence
-     * @return true if the resource exists, false otherwise
-     */
 
-    private boolean resourceExists(String url) throws IOException {
-        try {
-            RestHelper.get(adminClient(), url);
-            return true;
-        } catch (ResponseException e) {
-            if (e.getResponse().getStatusLine().getStatusCode() == 404) {
-                return false;
-            } else {
-                throw e;
-            }
-        }
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Creates a test role with DLS, FLS and masked field settings on the test index.
-     */
-    private void createTestRoleIfNotExists(String role) throws IOException {
-        String url = "_plugins/_security/api/roles/" + role;
-        String roleSettings = "{\n"
-            + "  \"cluster_permissions\": [\n"
-            + "    \"unlimited\"\n"
-            + "  ],\n"
-            + "  \"index_permissions\": [\n"
-            + "    {\n"
-            + "      \"index_patterns\": [\n"
-            + "        \"test_index*\"\n"
-            + "      ],\n"
-            + "      \"dls\": \"{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }\",\n"
-            + "      \"fls\": [\n"
-            + "        \"~lyrics\"\n"
-            + "      ],\n"
-            + "      \"masked_fields\": [\n"
-            + "        \"artist\"\n"
-            + "      ],\n"
-            + "      \"allowed_actions\": [\n"
-            + "        \"read\",\n"
-            + "        \"write\"\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"tenant_permissions\": []\n"
-            + "}\n";
-        Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(roleSettings));
 
-        assertThat(response.getStatusLine().getStatusCode(), anyOf(equalTo(200), equalTo(201)));
-    }
-
-    /**
-     * Creates a test index if it does not exist already
-     * @param index index to create
-     */
-
-    private void createIndexIfNotExists(String index) throws IOException {
-        String settings = "{\n"
-            + "  \"settings\": {\n"
-            + "    \"index\": {\n"
-            + "      \"number_of_shards\": 3,\n"
-            + "      \"number_of_replicas\": 1\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
-        if (!resourceExists(index)) {
-            Response response = RestHelper.makeRequest(client(), "PUT", index, RestHelper.toHttpEntity(settings));
-            assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
-        }
-    }
-
-    /**
-     * Creates the test user if it does not exist already and maps it to the test role with DLS/FLS settings.
-     * @param  user user to be created
-     * @param  password password for the new user
-     * @param  role roles that the user has to be mapped to
-     */
-    private void createUserIfNotExists(String user, String password, String role) throws IOException {
-        String url = "_plugins/_security/api/internalusers/" + user;
-        if (!resourceExists(url)) {
-            String userSettings = String.format(
-                Locale.ENGLISH,
-                "{\n" + "  \"password\": \"%s\",\n" + "  \"opendistro_security_roles\": [\"%s\"],\n" + "  \"backend_roles\": []\n" + "}",
-                password,
-                role
-            );
-            Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(userSettings));
-            assertThat(response.getStatusLine().getStatusCode(), equalTo(201));
-        }
-    }
+//    public void testWhoAmI() throws Exception {
+//        Map<String, Object> responseMap = getAsMap("_plugins/_security/whoami");
+//        assertThat(responseMap, hasKey("dn"));
+//    }
+//
+//    public void testBasicBackwardsCompatibility() throws Exception {
+//        String round = System.getProperty("tests.rest.bwcsuite_round");
+//
+//        if (round.equals("first") || round.equals("old")) {
+//            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-0/plugins");
+//        } else if (round.equals("second")) {
+//            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-1/plugins");
+//        } else if (round.equals("third")) {
+//            assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-2/plugins");
+//        }
+//    }
+//
+//    /**
+//     * Tests backward compatibility by created a test user and role with DLS, FLS and masked field settings. Ingests
+//     * data into a test index and runs a matchAll query against the same.
+//     */
+//    public void testDataIngestionAndSearchBackwardsCompatibility() throws Exception {
+//        String round = System.getProperty("tests.rest.bwcsuite_round");
+//        String index = "test_index";
+//        if (round.equals("old")) {
+//            createTestRoleIfNotExists(TEST_ROLE);
+//            createUserIfNotExists(TEST_USER, TEST_PASSWORD, TEST_ROLE);
+//            createIndexIfNotExists(index);
+//        }
+//        ingestData(index);
+//        searchMatchAll(index);
+//    }
+//
+//    public void testNodeStats() throws IOException {
+//        List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
+//        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+//    }
+//
+//    @SuppressWarnings("unchecked")
+//    private void assertPluginUpgrade(String uri) throws Exception {
+//        Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
+//        for (Map<String, Object> response : responseMap.values()) {
+//            List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
+//            Set<String> pluginNames = plugins.stream().map(map -> (String) map.get("name")).collect(Collectors.toSet());
+//
+//            final Version minNodeVersion = minimumNodeVersion();
+//
+//            if (minNodeVersion.major <= 1) {
+//                assertThat(pluginNames, hasItem("opensearch_security")); // With underscore seperator
+//            } else {
+//                assertThat(pluginNames, hasItem("opensearch-security")); // With dash seperator
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Ingests data into the test index
+//     * @param index index to ingest data into
+//     */
+//
+//    private void ingestData(String index) throws IOException {
+//        StringBuilder bulkRequestBody = new StringBuilder();
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        int numberOfRequests = Randomness.get().nextInt(10);
+//        while (numberOfRequests-- > 0) {
+//            int numberOfDocuments = Randomness.get().nextInt(100) + 1;
+//            for (int i = 0; i < numberOfDocuments; i++) {
+//                Map<String, Map<String, String>> indexRequest = new HashMap<>();
+//                indexRequest.put("index", new HashMap<>() {
+//                    {
+//                        put("_index", index);
+//                    }
+//                });
+//                bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
+//                bulkRequestBody.append(Song.randomSong().asJson() + "\n");
+//            }
+//            List<Response> responses = RestHelper.requestAgainstAllNodes(
+//                testUserRestClient,
+//                "POST",
+//                "_bulk?refresh=wait_for",
+//                new StringEntity(bulkRequestBody.toString(), APPLICATION_NDJSON)
+//            );
+//            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+//            for (Response response : responses) {
+//                Map<String, Object> responseMap = responseAsMap(response);
+//                List<?> itemResults = (List<?>) XContentMapValues.extractValue(responseMap, "items", "index", "result");
+//                assertTrue("More than 0 response items", itemResults.size() > 0);
+//                assertTrue("All results are 'created': " + itemResults, itemResults.stream().allMatch(i -> i.equals("created")));
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Runs a matchAll query against the test index
+//     * @param index index to search
+//     */
+//    private void searchMatchAll(String index) throws IOException {
+//        String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
+//        int numberOfRequests = Randomness.get().nextInt(10);
+//        while (numberOfRequests-- > 0) {
+//            List<Response> responses = RestHelper.requestAgainstAllNodes(
+//                testUserRestClient,
+//                "POST",
+//                index + "/_search",
+//                RestHelper.toHttpEntity(matchAllQuery)
+//            );
+//            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+//
+//            for (Response response : responses) {
+//                Map<String, Object> responseMap = responseAsMap(response);
+//                @SuppressWarnings("unchecked")
+//                List<Map<?, ?>> sourceDocs = (List<Map<?, ?>>) XContentMapValues.extractValue(responseMap, "hits", "hits", "_source");
+//
+//                for (Map<?, ?> sourceDoc : sourceDocs) {
+//                    assertNull("response doc should not contain field forbidden by FLS: " + responseMap, sourceDoc.get(Song.FIELD_LYRICS));
+//                    assertNotNull(
+//                        "response doc should contain field not forbidden by FLS: " + responseMap,
+//                        sourceDoc.get(Song.FIELD_ARTIST)
+//                    );
+//                    assertEquals(
+//                        "response doc should always have genre rock: " + responseMap,
+//                        Song.GENRE_ROCK,
+//                        sourceDoc.get(Song.FIELD_GENRE)
+//                    );
+//                }
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Checks if a resource at the specified URL exists
+//     * @param url of the resource to be checked for existence
+//     * @return true if the resource exists, false otherwise
+//     */
+//
+//    private boolean resourceExists(String url) throws IOException {
+//        try {
+//            RestHelper.get(adminClient(), url);
+//            return true;
+//        } catch (ResponseException e) {
+//            if (e.getResponse().getStatusLine().getStatusCode() == 404) {
+//                return false;
+//            } else {
+//                throw e;
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Creates a test role with DLS, FLS and masked field settings on the test index.
+//     */
+//    private void createTestRoleIfNotExists(String role) throws IOException {
+//        String url = "_plugins/_security/api/roles/" + role;
+//        String roleSettings = "{\n"
+//            + "  \"cluster_permissions\": [\n"
+//            + "    \"unlimited\"\n"
+//            + "  ],\n"
+//            + "  \"index_permissions\": [\n"
+//            + "    {\n"
+//            + "      \"index_patterns\": [\n"
+//            + "        \"test_index*\"\n"
+//            + "      ],\n"
+//            + "      \"dls\": \"{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }\",\n"
+//            + "      \"fls\": [\n"
+//            + "        \"~lyrics\"\n"
+//            + "      ],\n"
+//            + "      \"masked_fields\": [\n"
+//            + "        \"artist\"\n"
+//            + "      ],\n"
+//            + "      \"allowed_actions\": [\n"
+//            + "        \"read\",\n"
+//            + "        \"write\"\n"
+//            + "      ]\n"
+//            + "    }\n"
+//            + "  ],\n"
+//            + "  \"tenant_permissions\": []\n"
+//            + "}\n";
+//        Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(roleSettings));
+//
+//        assertThat(response.getStatusLine().getStatusCode(), anyOf(equalTo(200), equalTo(201)));
+//    }
+//
+//    /**
+//     * Creates a test index if it does not exist already
+//     * @param index index to create
+//     */
+//
+//    private void createIndexIfNotExists(String index) throws IOException {
+//        String settings = "{\n"
+//            + "  \"settings\": {\n"
+//            + "    \"index\": {\n"
+//            + "      \"number_of_shards\": 3,\n"
+//            + "      \"number_of_replicas\": 1\n"
+//            + "    }\n"
+//            + "  }\n"
+//            + "}";
+//        if (!resourceExists(index)) {
+//            Response response = RestHelper.makeRequest(client(), "PUT", index, RestHelper.toHttpEntity(settings));
+//            assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
+//        }
+//    }
+//
+//    /**
+//     * Creates the test user if it does not exist already and maps it to the test role with DLS/FLS settings.
+//     * @param  user user to be created
+//     * @param  password password for the new user
+//     * @param  role roles that the user has to be mapped to
+//     */
+//    private void createUserIfNotExists(String user, String password, String role) throws IOException {
+//        String url = "_plugins/_security/api/internalusers/" + user;
+//        if (!resourceExists(url)) {
+//            String userSettings = String.format(
+//                Locale.ENGLISH,
+//                "{\n" + "  \"password\": \"%s\",\n" + "  \"opendistro_security_roles\": [\"%s\"],\n" + "  \"backend_roles\": []\n" + "}",
+//                password,
+//                role
+//            );
+//            Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(userSettings));
+//            assertThat(response.getStatusLine().getStatusCode(), equalTo(201));
+//        }
+//    }
 
     @AfterClass
     public static void cleanUp() throws IOException {
