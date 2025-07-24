@@ -8,10 +8,14 @@
 package org.opensearch.security.bwc;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,10 +46,12 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.Randomness;
+import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.common.xcontent.support.XContentMapValues;
+import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
@@ -56,6 +62,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -119,6 +126,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .build();
     }
 
+    @Override
+    protected Settings restAdminSettings() {
+        return Settings.builder()
+                .put("http.port", 9200)
+                .put("plugins.security.ssl.http.enabled", true)
+                // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
+                .put("plugins.security.ssl.http.pemcert_filepath", "sample.pem")
+                .put("plugins.security.ssl.http.keystore_filepath", "test-kirk.jks")
+                .put("plugins.security.ssl.http.keystore_password", "changeit")
+                .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
+                .build();
+    }
+
     protected RestClient buildClient(Settings settings, HttpHost[] hosts, String username, String password) {
         RestClientBuilder builder = RestClient.builder(hosts);
         configureHttpsClient(builder, settings, username, password);
@@ -128,7 +148,18 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     @Override
-    protected RestClient buildClient(Settings settings, HttpHost[] hosts) {
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+        String keystore = settings.get("plugins.security.ssl.http.keystore_filepath");
+        if (Objects.nonNull(keystore)) {
+            URI uri = null;
+            try {
+                uri = this.getClass().getClassLoader().getResource("security/test-kirk.jks").toURI();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            Path configPath = PathUtils.get(uri).getParent().toAbsolutePath();
+            return new SecureRestClientBuilder(settings, configPath, hosts).build();
+        }
         String username = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
             .orElseThrow(() -> new RuntimeException("user name is missing"));
         String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
@@ -199,6 +230,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         }
         ingestData(index);
         searchMatchAll(index);
+    }
+
+    public void testDebugCertInfo() throws Exception {
+        Response response = RestHelper.makeRequest(
+                adminClient(),
+                "GET",
+                "_plugins/_security/api/certificates",
+                null
+        );
+        assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
     }
 
     public void testNodeStats() throws IOException {
