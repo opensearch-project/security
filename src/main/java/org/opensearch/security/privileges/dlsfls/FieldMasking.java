@@ -321,7 +321,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
         }
 
         static String stripKeywordSuffix(String field) {
-            if (field.endsWith(".keyword")) {
+            if (field != null && field.endsWith(".keyword")) {
                 return field.substring(0, field.length() - ".keyword".length());
             } else {
                 return field;
