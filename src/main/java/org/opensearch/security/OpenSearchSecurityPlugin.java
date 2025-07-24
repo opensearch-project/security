@@ -1283,11 +1283,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         )) {
 
-            ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(
-                threadPool.getThreadContext(),
-                rsIndexHandler,
-                adminDns
-            );
+            ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             // Assign resource sharing client to each extension
@@ -1296,11 +1292,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });
-            components.addAll(resourceSharingExtensions);
-            // CS-ENFORCE-SINGLE
             components.add(resourcePluginInfo);
             components.add(resourceAccessControlClient);
             components.add(resourceAccessHandler);
+            components.addAll(resourceSharingExtensions);
+            // CS-ENFORCE-SINGLE
         }
 
         components.add(sslSettingsManager);
