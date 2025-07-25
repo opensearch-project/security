@@ -200,49 +200,85 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
 
-    public void testDebugCertInfo() throws Exception {
-        Response resp = RestHelper.makeRequest(
+//    public void testDebugCertInfo() throws Exception {
+//        Response resp = RestHelper.makeRequest(
+//                adminClient(),
+//                "GET",
+//                "_plugins/_security/api/certificates",
+//                null
+//        );
+//        assertEquals("SSL certs info endpoint should return 200", 200, resp.getStatusLine().getStatusCode());
+//
+//
+//        System.out.println("responseAsMap(resp): " + responseAsMap(resp).toString());
+//
+//        System.out.println("resp.toString(): " + resp.toString());
+//        System.out.println("resp.getRequestLine().toString(): " + resp.getRequestLine().toString());
+//        System.out.println("resp.getEntity().toString(): " + resp.getEntity().toString());
+//        System.out.println("resp.getEntity().getContent().toString(): " + resp.getEntity().getContent().toString());
+//    }
+
+    /**
+     * Test /certificates endpoint.
+     * Validate certificate info for correctness and check for errors.
+     */
+    public void testSslCertsInfoEndpoint() throws IOException {
+        List<String> expectCertificates = List.of("http", "transport", "transport_client");
+        List<Response> resp = RestHelper.requestAgainstAllNodes(
                 adminClient(),
                 "GET",
                 "_plugins/_security/api/certificates",
                 null
         );
-        assertEquals("SSL certs info endpoint should return 200", 200, resp.getStatusLine().getStatusCode());
+        resp.forEach(response -> {
+            assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+            Map<String, Object> responseMap;
+            try {
+                responseMap = responseAsMap(response);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to parse certs info response", e);
+            }
 
+            System.out.println("------------------------------------------------------");
+            System.out.println(responseMap.toString());
+            System.out.println("------------------------------------------------------");
 
-        System.out.println("responseAsMap(resp): " + responseAsMap(resp).toString());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nodeFailureMap = (Map<String, Object>) responseMap.get("_nodes");
+            assertEquals(3, nodeFailureMap.get("total"));
+            assertEquals(3, nodeFailureMap.get("successful"));
+            assertEquals(0, nodeFailureMap.get("failed"));
 
-        System.out.println("resp.toString(): " + resp.toString());
-        System.out.println("resp.getRequestLine().toString(): " + resp.getRequestLine().toString());
-        System.out.println("resp.getEntity().toString(): " + resp.getEntity().toString());
-        System.out.println("resp.getEntity().getContent().toString(): " + resp.getEntity().getContent().toString());
-    }
-
-
-    /**
-     * Tests the basic SSL certificates info endpoint functionality.
-     * @param expectedCertificateLists certificates we expect to be registered on this cluster.
-     */
-    private void testSslCertsInfoEndpoint(List<String> expectedCertificateLists) throws IOException {
-        Response resp = RestHelper.makeRequest(
-                adminClient(),
-                "GET",
-                "_plugins/_security/api/ssl/certs/info",
-                null
-        );
-
-        System.out.println("RESPONSE: " + resp.toString());
-
-
-//        responses.forEach(response -> {
-//            assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
-//            Map<String, Object> responseMap = null;
-//            try {
-//                responseMap = responseAsMap(response);
-//            } catch (IOException e) {
-//                throw new RuntimeException("Failed to parse certs info response", e);
+//            @SuppressWarnings("unchecked")
+//            Map<String, Object> nodesMap = (Map<String, Object>) responseMap.get("nodes");
+//            for (String nodeKey : nodesMap.keySet()) {
+//                @SuppressWarnings("unchecked")
+//                Map<String, Object> nodeInfo = (Map<String, Object>) nodesMap.get(nodeKey);
+//                @SuppressWarnings("unchecked")
+//                Map<String, Object> nodeCerts = (Map<String, Object>) nodeInfo.get("certificates");
+//                for (String expectCert : expectCertificates) {
+//                    assertTrue(nodeCerts.containsKey(expectCert));
+//
+//                }
+//
+////                System.out.println("------------------------------------------------------");
+////                System.out.println(nodeCerts.toString());
+////                System.out.println("------------------------------------------------------");
+//
 //            }
-//            for (String certListName : expectedCertificateLists) {
+
+//            for (Map<String, Object> node : nodesMap) {
+//                System.out.println(node.toString());
+////
+////                for (String cert : expectCertificates){
+////                    assertTrue(node.containsKey(cert));
+////
+////                }
+//            }
+
+
+//
+//            for (String certKey : expectCertificates) {
 //                assertTrue("Response should contain " + certListName, responseMap.containsKey(certListName));
 //                assertTrue(certListName + " should be a list", responseMap.get(certListName) instanceof List);
 //                List<Map<String, Object>> certs = (List<Map<String, Object>>) responseMap.get(certListName);
@@ -250,7 +286,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 //                    verifyCertificateInfo(certs.getFirst());
 //                }
 //            }
-//        });
+        });
     }
 
 //    /**
