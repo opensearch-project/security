@@ -72,6 +72,7 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.security.action.simulate.PermissionCheckResponse;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -118,6 +119,7 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
+    public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public SecurityFilter(
         final Settings settings,
@@ -419,6 +421,9 @@ public class SecurityFilter implements ActionFilter {
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
                 if (response.isComplete()) {
+                    if (isDryRunRequest(action, response, listener)) {
+                        return;
+                    }
                     if (response.isAllowed()) {
                         auditLog.logGrantedPrivileges(action, request, task);
                         auditLog.logIndexEvent(action, request, task);
@@ -432,6 +437,9 @@ public class SecurityFilter implements ActionFilter {
 
                     if (log.isDebugEnabled()) {
                         log.debug(pres.toString());
+                    }
+                    if (isDryRunRequest(action, pres, listener)) {
+                        return;
                     }
 
                     if (pres.isAllowed()) {
@@ -506,17 +514,13 @@ public class SecurityFilter implements ActionFilter {
             }
             listener.onFailure(e);
         } catch (Throwable e) {
-            log.error("Unexpected exception " + e, e);
+            log.error("Unexpected exception {}", e, e);
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
-        if (user != null && adminDns.isAdmin(user)) {
-            return true;
-        }
-
-        return false;
+        return user != null && adminDns.isAdmin(user);
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
@@ -532,6 +536,30 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
+    }
+
+    private <Response extends ActionResponse> boolean isDryRunRequest(
+        String action,
+        PrivilegesEvaluatorResponse pres,
+        ActionListener<Response> listener
+    ) {
+        boolean isDryRun = Boolean.parseBoolean(threadPool.getThreadContext().getHeader(HAS_PERMISSION_CHECK_PARAM));
+        if (!isDryRun) {
+            return false;
+        }
+
+        @SuppressWarnings("unchecked")
+        Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
+        listener.onResponse(response);
+
+        log.debug(
+            "Dry run permission check for action '{}': accessAllowed={}, missingPrivileges={}",
+            action,
+            pres.isAllowed(),
+            pres.getMissingPrivileges()
+        );
+
+        return true;
     }
 
     @SuppressWarnings("rawtypes")
