@@ -145,7 +145,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
             private Field internalGet(String field) {
                 for (Field expression : this.expressions) {
-                    if (expression.getPattern().test(field)) {
+                    if (expression != null && expression.getPattern().test(field)) {
                         return expression;
                     }
                 }
@@ -321,7 +321,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
         }
 
         static String stripKeywordSuffix(String field) {
-            if (field.endsWith(".keyword")) {
+            if (field != null && field.endsWith(".keyword")) {
                 return field.substring(0, field.length() - ".keyword".length());
             } else {
                 return field;
