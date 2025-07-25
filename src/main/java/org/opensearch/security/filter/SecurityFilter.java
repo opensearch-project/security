@@ -72,6 +72,7 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.security.action.simulate.PermissionCheckResponse;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -115,6 +116,7 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
+    public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public SecurityFilter(
         final Settings settings,
@@ -387,6 +389,9 @@ public class SecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
+            if (handlePermissionCheckRequest(listener, pres, action)) {
+                return;
+            }
 
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
@@ -505,6 +510,30 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
+    }
+
+    private <Response extends ActionResponse> boolean handlePermissionCheckRequest(
+        ActionListener<Response> listener,
+        PrivilegesEvaluatorResponse pres,
+        String action
+    ) {
+        String isSimulation = threadContext.getHeader(HAS_PERMISSION_CHECK_PARAM);
+        if (Boolean.parseBoolean(isSimulation)) {
+
+            @SuppressWarnings("unchecked")
+            Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
+            listener.onResponse(response);
+
+            log.debug(
+                "Permission check for action '{}': accessAllowed={}, missingPrivileges={}",
+                action,
+                pres.isAllowed(),
+                pres.getMissingPrivileges()
+            );
+
+            return true;
+        }
+        return false;
     }
 
     @SuppressWarnings("rawtypes")
