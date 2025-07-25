@@ -163,6 +163,7 @@ public class ConfigConstants {
 
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
+    public static final String ARGON2 = "argon2";
 
     public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = SECURITY_SETTINGS_PREFIX + "password.hashing.bcrypt.rounds";
     public static final int SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT = 12;
@@ -171,6 +172,8 @@ public class ConfigConstants {
 
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = SECURITY_SETTINGS_PREFIX + "password.hashing.algorithm";
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
+
+    // PBKDF2 password hashing parameters
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = SECURITY_SETTINGS_PREFIX
         + "password.hashing.pbkdf2.iterations";
     public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600_000;
@@ -178,6 +181,22 @@ public class ConfigConstants {
     public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 256;
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = SECURITY_SETTINGS_PREFIX + "password.hashing.pbkdf2.function";
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
+
+    // Argon2 password hashing parameters
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS = SECURITY_SETTINGS_PREFIX
+        + "password.hashing.argon2.iterations";
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT = 3;
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_MEMORY = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.memory";
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT = 65536;
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM = SECURITY_SETTINGS_PREFIX
+        + "password.hashing.argon2.parallelism";
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT = 1;
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_LENGTH = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.length";
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT = 32;
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.type";
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT = "argon2id";
+    public static final String SECURITY_PASSWORD_HASHING_ARGON2_VERSION = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.version";
+    public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";

@@ -385,7 +385,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (privilegesEvaluationContext == null) {
                 return;
             }
-
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
             DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
@@ -404,6 +403,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
                     dlsRestriction = DlsRestriction.NONE;
                     log.debug("Lifting DLS for {} due to present document allowlist", index);
+                }
+            }
+
+            // Restrict access for star tree index if there are any DLS/FLS/field masking restrictions
+            if (searchContext.getQueryShardContext().getStarTreeQueryContext() != null) {
+                boolean flsUnrestricted = config.getFieldPrivileges().isUnrestricted(privilegesEvaluationContext, index);
+                boolean fieldMaskingUnrestricted = config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
+                if (!dlsRestriction.isUnrestricted() || !flsUnrestricted || !fieldMaskingUnrestricted) {
+                    searchContext.getQueryShardContext().setStarTreeQueryContext(null);
                 }
             }
 
