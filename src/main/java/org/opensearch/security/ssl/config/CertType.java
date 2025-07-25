@@ -11,7 +11,6 @@
 
 package org.opensearch.security.ssl.config;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,17 +19,9 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.common.io.stream.Writeable;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
-
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_PREFIX;
 
 /**
  * CertTypes identify the setting prefix under which configuration settings for a set of certificates
@@ -131,11 +122,7 @@ public class CertType {
     public static CertType HTTP = new CertType(SSL_HTTP_PREFIX);
     public static CertType TRANSPORT = new CertType(SSL_TRANSPORT_PREFIX);
     public static CertType TRANSPORT_CLIENT = new CertType(SSL_TRANSPORT_CLIENT_PREFIX, "transport_client");
-    public static final NodeCertTypeRegistry CERT_TYPE_REGISTRY = new NodeCertTypeRegistry(
-        HTTP,
-        TRANSPORT,
-        TRANSPORT_CLIENT
-    );
+    public static final NodeCertTypeRegistry CERT_TYPE_REGISTRY = new NodeCertTypeRegistry(HTTP, TRANSPORT, TRANSPORT_CLIENT);
 
     /*
     Deprecated static certificate types.

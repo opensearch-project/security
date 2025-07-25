@@ -63,7 +63,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
-
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     private ClusterType CLUSTER_TYPE;
@@ -129,14 +128,14 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     @Override
     protected Settings restAdminSettings() {
         return Settings.builder()
-                .put("http.port", 9200)
-                .put("plugins.security.ssl.http.enabled", true)
-                // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
-                .put("plugins.security.ssl.http.pemcert_filepath", "sample.pem")
-                .put("plugins.security.ssl.http.keystore_filepath", "test-kirk.jks")
-                .put("plugins.security.ssl.http.keystore_password", "changeit")
-                .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
-                .build();
+            .put("http.port", 9200)
+            .put("plugins.security.ssl.http.enabled", true)
+            // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
+            .put("plugins.security.ssl.http.pemcert_filepath", "sample.pem")
+            .put("plugins.security.ssl.http.keystore_filepath", "test-kirk.jks")
+            .put("plugins.security.ssl.http.keystore_password", "changeit")
+            .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
+            .build();
     }
 
     protected RestClient buildClient(Settings settings, HttpHost[] hosts, String username, String password) {
@@ -205,12 +204,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
      */
     public void testSslCertsInfoEndpoint() throws IOException {
         List<String> expectCertificates = List.of("http", "transport", "transport_client");
-        List<Response> resp = RestHelper.requestAgainstAllNodes(
-                adminClient(),
-                "GET",
-                "_plugins/_security/api/certificates",
-                null
-        );
+        List<Response> resp = RestHelper.requestAgainstAllNodes(adminClient(), "GET", "_plugins/_security/api/certificates", null);
         resp.forEach(response -> {
             assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
             Map<String, Object> responseMap;
