@@ -249,86 +249,43 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             assertEquals(3, nodeFailureMap.get("successful"));
             assertEquals(0, nodeFailureMap.get("failed"));
 
-//            @SuppressWarnings("unchecked")
-//            Map<String, Object> nodesMap = (Map<String, Object>) responseMap.get("nodes");
-//            for (String nodeKey : nodesMap.keySet()) {
-//                @SuppressWarnings("unchecked")
-//                Map<String, Object> nodeInfo = (Map<String, Object>) nodesMap.get(nodeKey);
-//                @SuppressWarnings("unchecked")
-//                Map<String, Object> nodeCerts = (Map<String, Object>) nodeInfo.get("certificates");
-//                for (String expectCert : expectCertificates) {
-//                    assertTrue(nodeCerts.containsKey(expectCert));
-//
-//                }
-//
-////                System.out.println("------------------------------------------------------");
-////                System.out.println(nodeCerts.toString());
-////                System.out.println("------------------------------------------------------");
-//
-//            }
-
-//            for (Map<String, Object> node : nodesMap) {
-//                System.out.println(node.toString());
-////
-////                for (String cert : expectCertificates){
-////                    assertTrue(node.containsKey(cert));
-////
-////                }
-//            }
-
-
-//
-//            for (String certKey : expectCertificates) {
-//                assertTrue("Response should contain " + certListName, responseMap.containsKey(certListName));
-//                assertTrue(certListName + " should be a list", responseMap.get(certListName) instanceof List);
-//                List<Map<String, Object>> certs = (List<Map<String, Object>>) responseMap.get(certListName);
-//                if (!certs.isEmpty()) {
-//                    verifyCertificateInfo(certs.getFirst());
-//                }
-//            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nodesMap = (Map<String, Object>) responseMap.get("nodes");
+            for (String nodeKey : nodesMap.keySet()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nodeInfo = (Map<String, Object>) nodesMap.get(nodeKey);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nodeCerts = (Map<String, Object>) nodeInfo.get("certificates");
+                for (String expectCertKey : expectCertificates) {
+                    assertTrue(nodeCerts.containsKey(expectCertKey));
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> expectCert = (Map<String, Object>) nodeCerts.get(expectCertKey);
+                    verifyCertificateInfo(expectCert);
+                }
+            }
         });
     }
 
-//    /**
-//     * Some basic validation on the structure of certificates info response items.
-//     */
-//    private void verifyCertificateInfo(Map<String, Object> certInfo) {
-//        assertThat("Certificate should have subject_dn", certInfo, hasKey("subject_dn"));
-//        assertThat("Certificate should have issuer_dn", certInfo, hasKey("issuer_dn"));
-//        assertThat("Certificate should have not_before", certInfo, hasKey("not_before"));
-//        assertThat("Certificate should have not_after", certInfo, hasKey("not_after"));
-//
-//        Object subjectDn = certInfo.get("subject_dn");
-//        if (subjectDn != null) {
-//            assertTrue("subject_dn should be a string", subjectDn instanceof String);
-//            assertFalse("subject_dn should not be empty", ((String) subjectDn).isEmpty());
-//        }
-//
-//        Object issuerDn = certInfo.get("issuer_dn");
-//        if (issuerDn != null) {
-//            assertTrue("issuer_dn should be a string", issuerDn instanceof String);
-//            assertFalse("issuer_dn should not be empty", ((String) issuerDn).isEmpty());
-//        }
-//    }
+    /**
+     * Some basic validation on the structure of certificates info response items.
+     */
+    private void verifyCertificateInfo(Map<String, Object> certInfo) {
+        assertThat("Certificate should have subject_dn", certInfo, hasKey("subject_dn"));
+        assertThat("Certificate should have issuer_dn", certInfo, hasKey("issuer_dn"));
+        assertThat("Certificate should have not_before", certInfo, hasKey("not_before"));
+        assertThat("Certificate should have not_after", certInfo, hasKey("not_after"));
+        Object subjectDn = certInfo.get("subject_dn");
+        if (subjectDn != null) {
+            assertTrue("subject_dn should be a string", subjectDn instanceof String);
+            assertFalse("subject_dn should not be empty", ((String) subjectDn).isEmpty());
+        }
+        Object issuerDn = certInfo.get("issuer_dn");
+        if (issuerDn != null) {
+            assertTrue("issuer_dn should be a string", issuerDn instanceof String);
+            assertFalse("issuer_dn should not be empty", ((String) issuerDn).isEmpty());
+        }
+    }
 
-
-//    /**
-//     * Tests backwards compatibility for SSL certificates info endpoint with aux transport certificates.
-//     * This test ensures that the /ssl/certs/info endpoint works correctly during cluster upgrades
-//     * when auxiliary transport certificates are registered and loaded.
-//     */
-//    public void testSslCertsInfoWithAuxTransportBackwardsCompatibility() throws Exception {
-//       /*
-//       We cannot expect any aux transport certificates to be visible on a cluster with previous version nodes.
-//       Old nodes have no concept of aux transports and are only able to provide http/transport cert info.
-//        */
-//        String round = System.getProperty("tests.rest.bwcsuite_round");
-//        if (round.equals("third")) {
-//            testSslCertsInfoEndpoint(List.of(http_certificates_list, transport_certificates_list, ));
-//        } else {
-//            testSslCertsInfoEndpoint(List.of());
-//        }
-//    }
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
