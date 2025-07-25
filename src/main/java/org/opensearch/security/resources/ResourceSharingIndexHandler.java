@@ -686,27 +686,30 @@ public class ResourceSharingIndexHandler {
 
             ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
 
-            // update the record
-            IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setId(resourceId)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .setOpType(DocWriteRequest.OpType.INDEX)
-                .request();
+            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+                // update the record
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                        .setId(resourceId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                        .setOpType(DocWriteRequest.OpType.INDEX)
+                        .request();
 
-            client.index(ir, ActionListener.wrap(idxResponse -> {
-                LOGGER.info(
-                    "Successfully updated {} resource sharing info for resource {} in index {}.",
-                    resourceSharingIndex,
-                    resourceId,
-                    resourceIndex
-                );
+                client.index(ir, ActionListener.wrap(idxResponse -> {
+                    ctx.restore();
+                    LOGGER.info(
+                            "Successfully updated {} resource sharing info for resource {} in index {}.",
+                            resourceSharingIndex,
+                            resourceId,
+                            resourceIndex
+                    );
 
-                listener.onResponse(updatedSharingInfo);
-            }, (e) -> {
-                LOGGER.error(e.getMessage());
-                listener.onFailure(e);
-            }));
+                    listener.onResponse(updatedSharingInfo);
+                }, (e) -> {
+                    LOGGER.error(e.getMessage());
+                    listener.onFailure(e);
+                }));
+            }
         }, listener::onFailure);
     }
 
