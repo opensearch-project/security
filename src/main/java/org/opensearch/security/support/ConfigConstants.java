@@ -121,6 +121,7 @@ public class ConfigConstants {
 
     // persistent header. This header is set once and cannot be stashed
     public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "authenticated_user";
+    public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER = OPENDISTRO_SECURITY_AUTHENTICATED_USER + "_header";
 
     public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
@@ -158,8 +159,6 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_VERSIONS_INDEX_NAME = SECURITY_SETTINGS_PREFIX + "config_versions_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = SECURITY_SETTINGS_PREFIX + "authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = SECURITY_SETTINGS_PREFIX + "authcz.rest_impersonation_user";
-
-    public static final String SECURITY_HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
