@@ -98,14 +98,14 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
     }
 
     protected CertificatesInfo loadCertificates(final Optional<String> loadCertType) {
-        Map<CertType, List<CertificateInfo>> certInfos = new HashMap<>();
+        Map<String, List<CertificateInfo>> certInfos = new HashMap<>();
         for (CertType certType : CertType.CERT_TYPE_REGISTRY) {
             if (loadCertType.isEmpty() || loadCertType.get().equalsIgnoreCase(certType.id())) {
                 List<CertificateInfo> certs = sslSettingsManager.sslContextHandler(certType)
                     .map(SslContextHandler::certificates)
                     .map(this::certificatesDetails)
                     .orElse(List.of());
-                certInfos.put(certType, certs);
+                certInfos.put(certType.id(), certs);
             }
         }
         return new CertificatesInfo(certInfos);

@@ -20,9 +20,12 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
+import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_PREFIX;
@@ -35,7 +38,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
  * CertTypes have a 1-to-1 relationship with ssl contexts and are registered in the global
  * CERT_TYPE_REGISTRY but default for mandatory transports, or dynamically for pluggable auxiliary transports.
  */
-public class CertType implements Writeable {
+public class CertType {
     private final String certSettingPrefix;
     private final String certID;
 
@@ -57,17 +60,6 @@ public class CertType implements Writeable {
     public CertType(String certSettingPrefix, String certID) {
         this.certSettingPrefix = certSettingPrefix;
         this.certID = certID;
-    }
-
-    public CertType(final StreamInput in) throws IOException {
-        this.certSettingPrefix = in.readString();
-        this.certID = in.readString();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(this.certSettingPrefix);
-        out.writeString(this.certID);
     }
 
     public String sslSettingPrefix() {
@@ -144,4 +136,14 @@ public class CertType implements Writeable {
         TRANSPORT,
         TRANSPORT_CLIENT
     );
+
+    /*
+    Deprecated static certificate types.
+    Only for backwards compatibility on node-to-node transport.
+     */
+    public enum LegacyCertType {
+        HTTP,
+        TRANSPORT,
+        TRANSPORT_CLIENT;
+    }
 }
