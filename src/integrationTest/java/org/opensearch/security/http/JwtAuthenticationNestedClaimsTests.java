@@ -47,8 +47,10 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class JwtAuthenticationNestedClaimsTests {
 
-    public static final String CLAIM_USERNAME = "preferred-username";
-    public static final List<String> CLAIM_ROLES = List.of("attributes", "roles");
+    public static final List<String> USERNAME_CLAIM = List.of("preferred-username");
+    public static final List<String> NESTED_ROLES = List.of("attributes", "roles");
+    public static final List<String> NESTED_SUBJECT = List.of("attributes_sub", "sub");
+    public static final List<String> ROLES_CLAIM = List.of("all_access", "securitymanager");
 
     public static final String USER_SUPERHERO = "superhero";
     private static final KeyPair KEY_PAIR1 = Keys.keyPairFor(SignatureAlgorithm.RS256);
@@ -57,16 +59,23 @@ public class JwtAuthenticationNestedClaimsTests {
 
     private static final JwtAuthorizationHeaderFactory tokenFactory1 = new JwtAuthorizationHeaderFactory(
         KEY_PAIR1.getPrivate(),
-        CLAIM_USERNAME,
-        CLAIM_ROLES,
+        USERNAME_CLAIM,
+        NESTED_ROLES,
         JWT_AUTH_HEADER
     );
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1)).subjectKey(USERNAME_CLAIM).rolesKey(NESTED_ROLES)
     ).backend("noop");
+    
+    private static final JwtAuthorizationHeaderFactory tokenFactoryNestedSubjectAndRole = new JwtAuthorizationHeaderFactory(
+        KEY_PAIR1.getPrivate(),
+        NESTED_SUBJECT,
+        NESTED_ROLES,
+        JWT_AUTH_HEADER
+    );
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -82,8 +91,7 @@ public class JwtAuthenticationNestedClaimsTests {
     public void shouldAuthenticateWithNestedRolesClaim() {
         // Create nested claims structure
         Map<String, Object> attributes = new HashMap<>();
-        List<String> rolesClaim = Arrays.asList("all_access", "securitymanager");
-        attributes.put("roles", rolesClaim);
+        attributes.put("roles", ROLES_CLAIM);
 
         Map<String, Object> nestedClaims = new HashMap<>();
         nestedClaims.put("attributes", attributes);
@@ -124,4 +132,37 @@ public class JwtAuthenticationNestedClaimsTests {
             assertThat(roles, hasSize(0));
         }
     }
+    
+    @Test
+    public void shouldAuthenticateWithNestedSubjectAndNestedRoles() {
+        // Create nested subject structure
+        Map<String, Object> attributesSub = new HashMap<>();
+        attributesSub.put("username", USER_SUPERHERO);
+        
+        // Create nested roles structure
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("roles", ROLES_CLAIM);
+        
+        // Combine both in the claims
+        Map<String, Object> nestedClaims = new HashMap<>();
+        nestedClaims.put("attributes_sub", attributesSub);
+        nestedClaims.put("attributes", attributes);
+        
+        // Use the token factory with nested subject configuration
+        Header header = tokenFactoryNestedSubjectAndRole.generateValidTokenWithCustomClaims(null, null, nestedClaims);
+        
+        try (TestRestClient client = cluster.getRestClient(header)) {
+            HttpResponse response = client.getAuthInfo();
+            
+            response.assertStatusCode(200);
+            String username = response.getTextFromJsonBody(POINTER_USERNAME);
+            assertThat(username, equalTo(USER_SUPERHERO));
+            
+            // But roles should still be extracted correctly
+            List<String> roles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
+            assertThat(roles, hasSize(2));
+            assertThat(roles, containsInAnyOrder("all_access", "securitymanager"));
+        }
+    }
+    
 }

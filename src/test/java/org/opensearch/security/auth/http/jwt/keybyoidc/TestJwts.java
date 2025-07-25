@@ -11,6 +11,7 @@
 
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +34,14 @@ import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 class TestJwts {
     static final String ROLES_CLAIM = "roles";
     static final List<String> NESTED_ROLES_CLAIM = List.of("attributes", "roles");
+    static final List<String> NESTED_ROLES_AND_SUBJECT_CLAIM = List.of("attributes", "sub");
     static final Set<String> TEST_ROLES = ImmutableSet.of("role1", "role2");
     static final String TEST_ROLES_STRING = String.join(",", TEST_ROLES);
 
     static final String TEST_AUDIENCE = "TestAudience";
 
     static final String MCCOY_SUBJECT = "Leonard McCoy";
+    static final List<String> NESTED_MCCOY_SUBJECT = List.of("attributes_sub", "sub");
 
     static final String TEST_ISSUER = "TestIssuer";
 
@@ -46,12 +49,32 @@ class TestJwts {
 
     static final JWTClaimsSet MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
+    static final JWTClaimsSet MC_COY_NESTED_SUBJECT = create(
+        null,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        NESTED_MCCOY_SUBJECT,
+        MCCOY_SUBJECT,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING
+    );
+
     static final JWTClaimsSet MC_COY_NESTED_ROLES = create(
         MCCOY_SUBJECT,
         TEST_AUDIENCE,
         TEST_ISSUER,
         NESTED_ROLES_CLAIM,
         TEST_ROLES_STRING
+    );
+
+    static final JWTClaimsSet MC_COY_NESTED_ROLES_AND_SUBJECT = create(
+        null,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        NESTED_ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        NESTED_ROLES_AND_SUBJECT_CLAIM,
+        MCCOY_SUBJECT
     );
 
     static final JWTClaimsSet MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
@@ -71,8 +94,9 @@ class TestJwts {
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
 
     static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
-
+    static final String MC_COY_SIGNED_NESTED_SUBJECT_OCT_1 = createSigned(MC_COY_NESTED_SUBJECT, TestJwk.OCT_1);
     static final String MC_COY_SIGNED_NESTED_ROLES_OCT_1 = createSigned(MC_COY_NESTED_ROLES, TestJwk.OCT_1);
+    static final String MC_COY_SIGNED_NESTED_ROLES_AND_SUBJECT_OCT_1 = createSigned(MC_COY_NESTED_ROLES_AND_SUBJECT, TestJwk.OCT_1);
     static final String MC_COY_SIGNED_NO_AUDIENCE_OCT_1 = createSigned(MC_COY_NO_AUDIENCE, TestJwk.OCT_1);
     static final String MC_COY_SIGNED_NO_ISSUER_OCT_1 = createSigned(MC_COY_NO_ISSUER, TestJwk.OCT_1);
 
@@ -94,10 +118,13 @@ class TestJwts {
         static final String MC_COY_SIGNED_RSA_1 = createSignedWithPeculiarEscaping(MC_COY, TestJwk.RSA_1);
     }
 
+    @SuppressWarnings("unchecked")
     static JWTClaimsSet create(String subject, String audience, String issuer, Object... moreClaims) {
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
 
-        claimsBuilder.subject(subject);
+        if (subject != null) {
+            claimsBuilder.subject(String.valueOf(subject));
+        }
         if (audience != null) {
             claimsBuilder.audience(audience);
         }
@@ -105,38 +132,57 @@ class TestJwts {
             claimsBuilder.issuer(issuer);
         }
 
+        Map<String, Object> topLevelClaims = new HashMap<>();
+
         if (moreClaims != null) {
             for (int i = 0; i < moreClaims.length; i += 2) {
                 Object claimPath = moreClaims[i];
                 Object claimValue = moreClaims[i + 1];
 
                 if (claimPath instanceof List<?> pathParts) {
-                    // Handle nested path specified as List<String>
                     if (!pathParts.isEmpty()) {
-                        Map<String, Object> nestedMap = new HashMap<>();
-                        Map<String, Object> currentMap = nestedMap;
+                        String topLevelKey = String.valueOf(pathParts.get(0));
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> currentMap = topLevelClaims.containsKey(topLevelKey)
+                            ? (Map<String, Object>) topLevelClaims.get(topLevelKey)
+                            : new HashMap<>();
 
-                        // Build nested structure for all but last element
-                        for (int j = 0; j < pathParts.size() - 1; j++) {
-                            Map<String, Object> nextMap = new HashMap<>();
-                            currentMap.put(String.valueOf(pathParts.get(j)), nextMap);
+                        if (!topLevelClaims.containsKey(topLevelKey)) {
+                            topLevelClaims.put(topLevelKey, currentMap);
+                        }
+
+                        // Navigate to the correct nested level
+                        for (int j = 1; j < pathParts.size() - 1; j++) {
+                            String key = String.valueOf(pathParts.get(j));
+                            Map<String, Object> nextMap = currentMap.containsKey(key)
+                                ? (Map<String, Object>) currentMap.get(key)
+                                : new HashMap<>();
+
+                            if (!currentMap.containsKey(key)) {
+                                currentMap.put(key, nextMap);
+                            }
                             currentMap = nextMap;
                         }
 
-                        // Set the final value at the deepest level
-                        currentMap.put(String.valueOf(pathParts.get(pathParts.size() - 1)), claimValue);
-
-                        // Add the top-level claim
-                        claimsBuilder.claim(String.valueOf(pathParts.get(0)), nestedMap.get(pathParts.get(0)));
+                        // Set the final value
+                        String lastKey = String.valueOf(pathParts.get(pathParts.size() - 1));
+                        if (claimValue instanceof String && lastKey.equals("roles")) {
+                            // Handle roles as array
+                            currentMap.put(lastKey, Arrays.asList(((String) claimValue).split(",")));
+                        } else {
+                            currentMap.put(lastKey, claimValue);
+                        }
                     }
                 } else {
                     // Handle simple claim
-                    claimsBuilder.claim(String.valueOf(claimPath), claimValue);
+                    topLevelClaims.put(String.valueOf(claimPath), claimValue);
                 }
             }
         }
 
-        // JwtToken result = new JwtToken(claimsBuilder);
+        // Add all claims to the builder
+        topLevelClaims.forEach(claimsBuilder::claim);
+
         return claimsBuilder.build();
     }
 
