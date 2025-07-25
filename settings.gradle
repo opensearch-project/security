@@ -5,3 +5,6 @@
  */
 
 rootProject.name = 'opensearch-security'
+
+include "bwc-test"
+project(":bwc-test").name = rootProject.name + "-bwc-test"
