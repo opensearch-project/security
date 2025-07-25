@@ -27,6 +27,10 @@ import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_NONE;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
@@ -55,20 +59,15 @@ public class GrpcClientAuthNoneTests {
         String testIndex = UUID.randomUUID().toString().substring(0, 10);
 
         BulkResponse bulkResp = GrpcHelpers.doBulk(channel, testIndex, testDocs);
-        assertThat("Bulk response should not be null", bulkResp != null);
-        assertThat("Bulk response should not contain errors", !bulkResp.hasBulkErrorResponse());
-        assertThat("Bulk response should have response for all docs indexed", bulkResp.getBulkResponseBody().getItemsCount() == testDocs);
+        assertNotNull(bulkResp);
+        assertFalse(bulkResp.hasBulkErrorResponse());
+        assertEquals(testDocs, bulkResp.getBulkResponseBody().getItemsCount());
 
         SearchResponse searchResp = GrpcHelpers.doMatchAll(channel, testIndex, 10);
-        assertThat("Search response should not be null", searchResp != null);
-        assertThat(
-            "Search response should indicate success",
-            searchResp.getResponseCase().getNumber() == SearchResponse.ResponseCase.RESPONSE_BODY.getNumber()
-        );
-        assertThat(
-            "Search response has correct hits count",
-            searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue() == testDocs
-        );
+        assertNotNull(searchResp);
+        assertEquals(SearchResponse.ResponseCase.RESPONSE_BODY.getNumber(), searchResp.getResponseCase().getNumber());
+        assertEquals(testDocs, searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue());
+
         channel.shutdown();
     }
 
