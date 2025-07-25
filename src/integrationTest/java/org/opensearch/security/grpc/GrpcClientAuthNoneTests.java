@@ -26,16 +26,13 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_NONE;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)

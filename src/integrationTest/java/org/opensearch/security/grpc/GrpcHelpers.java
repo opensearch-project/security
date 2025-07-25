@@ -29,7 +29,6 @@ import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
@@ -39,52 +38,46 @@ import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
-import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.GRPC_SECURE_TRANSPORT_SETTING_KEY;
-import static org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport.SETTING_GRPC_SECURE_PORT;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_KEY;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomFrom;
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
+
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
-        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
-        ClientAuth.NONE.name()
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "NONE"
     );
+
     protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(
-        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
-        ClientAuth.OPTIONAL.name()
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "OPTIONAL"
     );
+
     protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(
-        SECURITY_SSL_AUX_CLIENTAUTH_MODE.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
-        ClientAuth.REQUIRE.name()
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "REQUIRE"
     );
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
 
     public static final Map<String, Object> SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
-        ConfigConstants.SECURITY_SSL_ONLY,
+        "plugins.security.ssl_only",
         true,
-        AUX_TRANSPORT_TYPES_KEY,
-        GRPC_SECURE_TRANSPORT_SETTING_KEY,
-        SETTING_GRPC_SECURE_PORT.getKey(),
+        "aux.transport.types",
+        "experimental-secure-transport-grpc",
+        "aux.transport.experimental-secure-transport-grpc.port",
         PORTS_RANGE.getPortRangeString(),
-        SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.enabled",
         true,
-        SECURITY_SSL_AUX_PEMKEY_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemkey_filepath",
         TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-        SECURITY_SSL_AUX_PEMCERT_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemcert_filepath",
         TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
-        SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH.getConcreteSettingForNamespace(GRPC_SECURE_TRANSPORT_SETTING_KEY).getKey(),
+        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemtrustedcas_filepath",
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
