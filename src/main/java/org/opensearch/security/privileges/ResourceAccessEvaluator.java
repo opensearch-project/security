@@ -165,9 +165,8 @@ public class ResourceAccessEvaluator {
 
             // if no access-levels match, then action is not allowed
             if (accessLevels.isEmpty()) {
-                pResponse.allowed = false;
                 log.debug("Resource {} is not shared with user {}", req.id(), user.getName());
-                pResponseListener.onResponse(pResponse.markComplete());
+                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
                 return;
             }
 

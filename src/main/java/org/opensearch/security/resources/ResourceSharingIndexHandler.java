@@ -117,6 +117,7 @@ public class ResourceSharingIndexHandler {
                 String resourceSharingIndex = getSharingIndex(resourceIndex);
                 CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
                 ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
+                    ctx.restore();
                     LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
                 }, (failResponse) -> {
                     /* Index already exists, ignore and continue */
@@ -171,6 +172,7 @@ public class ResourceSharingIndexHandler {
                 .request();
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
                 listener.onResponse(entry);
             }, (e) -> {
@@ -234,6 +236,7 @@ public class ResourceSharingIndexHandler {
             MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
 
             executeSearchRequest(scroll, searchRequest, query, ActionListener.wrap(resourceIds -> {
+                ctx.restore();
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
             }, exception -> {
@@ -280,6 +283,7 @@ public class ResourceSharingIndexHandler {
             boolQuery.must(actionGroupQuery);
 
             executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
+                ctx.restore();
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
 
@@ -358,9 +362,11 @@ public class ResourceSharingIndexHandler {
             + " from "
             + resourceSharingIndex;
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
 
             client.get(getRequest, ActionListener.wrap(getResponse -> {
+                ctx.restore();
                 try {
                     if (!getResponse.isExists()) {
                         LOGGER.debug(
@@ -449,6 +455,7 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    ctx.restore();
                     LOGGER.info(
                         "Successfully updated {} entry for resource {} in index {}.",
                         resourceSharingIndex,
@@ -542,6 +549,7 @@ public class ResourceSharingIndexHandler {
                     .request();
 
                 ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    ctx.restore();
                     LOGGER.info("Successfully revoked access of {} to resource {} in index {}.", revokeAccess, resourceId, resourceIndex);
                     listener.onResponse(sharingInfo);
                 }, (failResponse) -> {
@@ -609,6 +617,7 @@ public class ResourceSharingIndexHandler {
             DeleteRequest deleteRequest = new DeleteRequest(resourceSharingIndex, resourceId);
 
             client.delete(deleteRequest, ActionListener.wrap(deleteResponse -> {
+                ctx.restore();
                 boolean deleted = DocWriteResponse.Result.DELETED.equals(deleteResponse.getResult());
                 if (deleted) {
                     LOGGER.debug("Successfully deleted {} documents from {}", deleted, resourceSharingIndex);

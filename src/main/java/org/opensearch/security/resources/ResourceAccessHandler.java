@@ -70,7 +70,7 @@ public class ResourceAccessHandler {
         User user = userSub == null ? null : userSub.getUser();
 
         if (user == null) {
-            LOGGER.warn("No authenticated user; returning empty sets");
+            LOGGER.warn("No authenticated user; returning empty set");
             listener.onResponse(Collections.emptySet());
             return;
         }
