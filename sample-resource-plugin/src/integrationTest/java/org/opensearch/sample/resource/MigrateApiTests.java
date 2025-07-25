@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.sample;
+package org.opensearch.sample.resource;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
+import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -36,14 +37,14 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.RESOURCE_SHARING_MIGRATION_ENDPOINT;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_CREATE_ENDPOINT;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.migrationPayload_missingBackendRoles;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.migrationPayload_missingSourceIndex;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.migrationPayload_missingUserName;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.migrationPayload_valid;
-import static org.opensearch.sample.SampleResourcePluginTestHelper.migrationPayload_valid_withSpecifiedAccessLevel;
+import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingBackendRoles;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingSourceIndex;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingUserName;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_withSpecifiedAccessLevel;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
@@ -52,7 +53,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginMigrationApiTests {
+public class MigrateApiTests {
 
     private static final String RESOURCE_SHARING_INDEX = getSharingIndex(RESOURCE_INDEX_NAME);
 

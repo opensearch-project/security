@@ -10,11 +10,12 @@ package org.opensearch.sample.resource.actions.rest.revoke;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.XContentParser;
@@ -22,6 +23,8 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -56,9 +59,27 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             source = parser.map();
         }
 
+        Map<String, Object> revokeEntities = (Map<String, Object>) source.get("entities_to_revoke");
+
+        Map<String, Recipients> revokeRecipients = new HashMap<>();
+        if (revokeEntities != null) {
+            Map<Recipient, Set<String>> recipients;
+            for (Map.Entry<String, Object> entry : revokeEntities.entrySet()) {
+                String accessLevel = entry.getKey();
+                Map<String, Object> recs = (Map<String, Object>) entry.getValue();
+                recipients = new HashMap<>();
+                for (Map.Entry<String, Object> rec : recs.entrySet()) {
+                    Recipient recipient = Recipient.valueOf(rec.getKey().toUpperCase(Locale.ROOT));
+                    Set<String> targets = new HashSet<>((Collection<String>) rec.getValue());
+                    recipients.put(recipient, targets);
+                }
+                revokeRecipients.put(accessLevel, new Recipients(recipients));
+            }
+        }
+
         final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(
             resourceId,
-            parseRevokedEntities((Map<String, Object>) source.get("entities_to_revoke"))
+            new ShareWith(revokeRecipients)
         );
         return channel -> client.executeLocally(
             RevokeResourceAccessAction.INSTANCE,
@@ -67,24 +88,4 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         );
     }
 
-    private Map<Recipient, Set<String>> parseRevokedEntities(Map<String, Object> source) {
-        if (source == null || source.isEmpty()) {
-            throw new IllegalArgumentException("entities_to_revoke is required and cannot be empty");
-        }
-
-        Map<Recipient, Set<String>> entitiesToRevoke = source.entrySet()
-            .stream()
-            .filter(entry -> entry.getValue() instanceof Collection<?>)
-            .collect(
-                Collectors.toMap(
-                    entry -> Recipient.valueOf(entry.getKey().toUpperCase(Locale.ROOT)),
-                    entry -> ((Collection<?>) entry.getValue()).stream()
-                        .filter(String.class::isInstance)
-                        .map(String.class::cast)
-                        .collect(Collectors.toSet())
-                )
-            );
-
-        return entitiesToRevoke;
-    }
 }
