@@ -17,7 +17,6 @@ import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -314,7 +313,6 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
     public void testWithoutHasPermissionCheckParam() throws Exception {
         setup();
 
-        // ALLOWLIST GET /_cluster/health
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
@@ -323,6 +321,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
             nonAdminCredsHeader
         );
 
+        // No has_permission_check param behaves like normal flow (no simulation fields)
         rh.sendAdminCertificate = false;
         assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertFalse(response.getBody().contains("\"accessAllowed\""));
@@ -338,20 +337,17 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testHasPermissionCheckParam() throws Exception {
+    public void testHasPermissionCheckParam_AccessAllowedCase() throws Exception {
         setup();
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executeGetRequest(
-            "_cluster/health?has_permission_check=true",
-            nonAdminCredsHeader
-        );
+        response = rh.executeGetRequest("_cluster/health?has_permission_check=true", nonAdminCredsHeader);
         rh.sendAdminCertificate = false;
+        // user has permissions to GET /_cluster/health response accessAllowed:true
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertTrue(response.getBody().contains("\"accessAllowed\":"));
-        assertTrue(response.getBody().contains("\"missingPrivileges\":"));
-
+        assertTrue(response.getBody().contains("\"accessAllowed\":true"));
+        assertTrue(response.getBody().contains("\"missingPrivileges\":[]"));
 
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
@@ -359,10 +355,33 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
             "{\"enabled\": true, \"requests\": {\"/_search?has_permission_check=false\": [\"GET\"]}}",
             nonAdminCredsHeader
         );
+        // has_permission_check=false (normal execution flow) no simulation fields in response
         rh.sendAdminCertificate = false;
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertFalse(response.getBody().contains("\"accessAllowed\":"));
         assertFalse(response.getBody().contains("\"missingPrivileges\":"));
+
+    }
+
+    @Test
+    public void testHasPermissionCheckParam_AccessNotAllowedCase() throws Exception {
+        setup();
+
+        // Create a new user with no permissions
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String createUserBody = "{" + "\"password\": \"test-pass\"," + "\"backend_roles\": []" + "}";
+
+        response = rh.executePutRequest("_plugins/_security/api/internalusers/test_user", createUserBody, adminCredsHeader);
+        Header testUserHeader = encodeBasicHeader("test_user", "test-pass");
+        rh.sendAdminCertificate = false;
+
+        // test_user has no permissions to GET /_cluster/health response accessAllowed:false
+        response = rh.executeGetRequest("_cluster/health?has_permission_check=true", testUserHeader);
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertTrue(response.getBody().contains("\"accessAllowed\":false"));
+        assertTrue(response.getBody().contains("\"missingPrivileges\":[\"cluster:monitor/health\"]"));
 
     }
 

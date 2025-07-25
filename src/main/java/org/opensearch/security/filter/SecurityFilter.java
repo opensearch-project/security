@@ -118,7 +118,6 @@ public class SecurityFilter implements ActionFilter {
     private final UserInjector userInjector;
     public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
-
     public SecurityFilter(
         final Settings settings,
         final PrivilegesEvaluator evalp,
@@ -521,19 +520,17 @@ public class SecurityFilter implements ActionFilter {
         String isSimulation = threadContext.getHeader(HAS_PERMISSION_CHECK_PARAM);
         if (Boolean.parseBoolean(isSimulation)) {
 
-            try {
+            @SuppressWarnings("unchecked")
+            Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
+            listener.onResponse(response);
 
-                @SuppressWarnings("unchecked")
-                Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
-                listener.onResponse(response);
+            log.debug(
+                "Permission check for action '{}': accessAllowed={}, missingPrivileges={}",
+                action,
+                pres.isAllowed(),
+                pres.getMissingPrivileges()
+            );
 
-                log.debug("Permission check for action '{}': accessAllowed={}, missingPrivileges={}",
-                        action, pres.isAllowed(), pres.getMissingPrivileges());
-
-            } catch (ClassCastException e) {
-                log.error("Error creating Permission Check response", e);
-                listener.onFailure(new OpenSearchException("Error creating Permission Check response", e));
-            }
             return true;
         }
         return false;
