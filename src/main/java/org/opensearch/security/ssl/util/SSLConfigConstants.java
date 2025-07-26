@@ -170,10 +170,6 @@ public final class SSLConfigConstants {
         return affix.getConcreteSettingForNamespace(certType.id()).getKey();
     }
 
-    public static String getBoolAffixKeyForCertType(Setting.AffixSetting<Boolean> affix, CertType certType) {
-        return affix.getConcreteSettingForNamespace(certType.id()).getKey();
-    }
-
     /**
      * Transport layer (node-to-node) settings.
      * Transport layer acts both as client and server within the cluster.
