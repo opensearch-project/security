@@ -82,9 +82,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
     private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_foo_certificate.pem";
     private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_foo_certificate_pk.pem";
     private static final Settings ENABLE_FOO_SETTINGS_BUILDER = Settings.builder()
-            .putList("aux.transport.types", List.of("foo"))
-            .put("plugins.security.ssl.aux.foo.enabled", true)
-            .build();
+        .putList("aux.transport.types", List.of("foo"))
+        .put("plugins.security.ssl.aux.foo.enabled", true)
+        .build();
 
     /*
     Settings for a mock aux transport - bar
@@ -97,9 +97,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
     private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_bar_certificate.pem";
     private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_bar_certificate_pk.pem";
     private static final Settings ENABLE_BAR_SETTINGS_BUILDER = Settings.builder()
-            .putList("aux.transport.types", List.of("bar"))
-            .put("plugins.security.ssl.aux.bar.enabled", true)
-            .build();
+        .putList("aux.transport.types", List.of("bar"))
+        .put("plugins.security.ssl.aux.bar.enabled", true)
+        .build();
 
     static Settings.Builder defaultSettingsBuilder() {
         return Settings.builder()
@@ -108,14 +108,16 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     private Settings.Builder transportSslSettings() {
-        return Settings.builder().put("plugins.security.ssl.transport.enabled", true)
+        return Settings.builder()
+            .put("plugins.security.ssl.transport.enabled", true)
             .put("plugins.security.ssl.transport.pemtrustedcas_filepath", path("ca_transport_certificate.pem"))
             .put("plugins.security.ssl.transport.pemcert_filepath", path("access_transport_certificate.pem"))
             .put("plugins.security.ssl.transport.pemkey_filepath", path("access_transport_certificate_pk.pem"));
     }
 
     private Settings.Builder httpSslSettings() {
-        return Settings.builder().put("plugins.security.ssl.transport.enabled", true)
+        return Settings.builder()
+            .put("plugins.security.ssl.transport.enabled", true)
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.pemtrustedcas_filepath", path("ca_http_certificate.pem"))
             .put("plugins.security.ssl.http.pemcert_filepath", path("access_http_certificate.pem"))
@@ -123,14 +125,16 @@ public class SslSettingsManagerTest extends RandomizedTest {
     }
 
     private Settings.Builder auxFooSslSettings() {
-        return Settings.builder().put(ENABLE_FOO_SETTINGS_BUILDER)
+        return Settings.builder()
+            .put(ENABLE_FOO_SETTINGS_BUILDER)
             .put(MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME))
             .put(MOCK_AUX_CERT_TYPE_FOO_PEMCERT_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME))
             .put(MOCK_AUX_CERT_TYPE_FOO_PEMKEY_FILEPATH, path(MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME));
     }
 
     private Settings.Builder auxBarSslSettings() {
-        return Settings.builder().put(ENABLE_BAR_SETTINGS_BUILDER)
+        return Settings.builder()
+            .put(ENABLE_BAR_SETTINGS_BUILDER)
             .put(MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME))
             .put(MOCK_AUX_CERT_TYPE_BAR_PEMCERT_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME))
             .put(MOCK_AUX_CERT_TYPE_BAR_PEMKEY_FILEPATH, path(MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME));
@@ -346,11 +350,10 @@ public class SslSettingsManagerTest extends RandomizedTest {
             MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + "pemkey_password_secure",
             certificatesRule.privateKeyPassword()
         );
-        final var settingsBuilder = defaultSettingsBuilder()
-                .setSecureSettings(securitySettings)
-                .put(transportSslSettings().build())
-                .put(httpSslSettings().build())
-                .put(auxFooSslSettings().build());
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings)
+            .put(transportSslSettings().build())
+            .put(httpSslSettings().build())
+            .put(auxFooSslSettings().build());
 
         final var transportEnabled = randomBoolean();
         final var sslSettingsManager = new SslSettingsManager(
@@ -397,10 +400,9 @@ public class SslSettingsManagerTest extends RandomizedTest {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
         securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
-        final var settingsBuilder = defaultSettingsBuilder()
-                .setSecureSettings(securitySettings)
-                .put(transportSslSettings().build())
-                .put(httpSslSettings().build());
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings)
+            .put(transportSslSettings().build())
+            .put(httpSslSettings().build());
         final var sslSettingsManager = new SslSettingsManager(
             TestEnvironment.newEnvironment(
                 settingsBuilder.put("client.type", "client").put(SECURITY_SSL_HTTP_ENABLED, randomBoolean()).build()
@@ -442,12 +444,11 @@ public class SslSettingsManagerTest extends RandomizedTest {
             MOCK_AUX_CERT_TYPE_BAR.sslSettingPrefix() + "pemkey_password_secure",
             certificatesRule.privateKeyPassword()
         );
-        final var settingsBuilder = defaultSettingsBuilder()
-                .setSecureSettings(securitySettings)
-                .put(transportSslSettings().build())
-                .put(httpSslSettings().build())
-                .put(auxBarSslSettings().build())
-                .put(auxFooSslSettings().build());
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings)
+            .put(transportSslSettings().build())
+            .put(httpSslSettings().build())
+            .put(auxBarSslSettings().build())
+            .put(auxFooSslSettings().build());
         settingsBuilder.put(
             Settings.builder()
                 .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.id(), MOCK_AUX_CERT_TYPE_FOO.id()))
@@ -503,11 +504,10 @@ public class SslSettingsManagerTest extends RandomizedTest {
             MOCK_AUX_CERT_TYPE_FOO.sslSettingPrefix() + "pemkey_password_secure",
             certificatesRule.privateKeyPassword()
         );
-        final var settingsBuilder = defaultSettingsBuilder()
-                .setSecureSettings(securitySettings)
-                .put(transportSslSettings().build())
-                .put(httpSslSettings().build())
-                .put(auxFooSslSettings().build());
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings)
+            .put(transportSslSettings().build())
+            .put(httpSslSettings().build())
+            .put(auxFooSslSettings().build());
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settingsBuilder.build()));
         assertThat("Loaded HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isPresent());
         assertThat("Loaded AUX FOO configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isPresent());
@@ -545,9 +545,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
     public void loadConfigurationAndBuildTransportSslContext() {
         final var securitySettings = new MockSecureSettings();
         securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
-        final var settingsBuilder = defaultSettingsBuilder()
-                .setSecureSettings(securitySettings)
-                .put(transportSslSettings().build());
+        final var settingsBuilder = defaultSettingsBuilder().setSecureSettings(securitySettings).put(transportSslSettings().build());
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settingsBuilder.build()));
         assertThat("Didn't load HTTP configuration", sslSettingsManager.sslConfiguration(CertType.HTTP).isEmpty());
         assertThat("Didn't load AUX configuration", sslSettingsManager.sslConfiguration(MOCK_AUX_CERT_TYPE_FOO).isEmpty());
