@@ -34,7 +34,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
@@ -58,12 +57,10 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_HTTP_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.getBoolAffixKeyForCertType;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.getStringAffixKeyForCertType;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
@@ -77,52 +74,32 @@ public class SslSettingsManagerTest extends RandomizedTest {
     /*
     Settings for a mock aux transport - foo
      */
-    private static final String MOCK_AUX_PREFIX_FOO = SSL_AUX_PREFIX + "foo.";
-    private static final CertType MOCK_AUX_CERT_TYPE_FOO = new CertType(MOCK_AUX_PREFIX_FOO);
+    private static final CertType MOCK_AUX_CERT_TYPE_FOO = new CertType("plugins.security.ssl.aux.foo.");
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.aux.foo.pemtrustedcas_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_FILEPATH = "plugins.security.ssl.aux.foo.pemcert_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_FILEPATH = "plugins.security.ssl.aux.foo.pemkey_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME = "ca_foo_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_foo_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_foo_certificate_pk.pem";
     private static final Settings ENABLE_FOO_SETTINGS_BUILDER = Settings.builder()
-        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_FOO.id()))
-        .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_FOO), true)
-        .build();
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH,
-        MOCK_AUX_CERT_TYPE_FOO
-    );
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMCERT_FILEPATH,
-        MOCK_AUX_CERT_TYPE_FOO
-    );
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMKEY_FILEPATH,
-        MOCK_AUX_CERT_TYPE_FOO
-    );
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_FOO_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_FOO.id() + "_certificate_pk.pem";
+            .putList("aux.transport.types", List.of("foo"))
+            .put("plugins.security.ssl.aux.foo.enabled", true)
+            .build();
 
     /*
     Settings for a mock aux transport - bar
      */
-    private static final String MOCK_AUX_PREFIX_BAR = SSL_AUX_PREFIX + "bar.";
-    private static final CertType MOCK_AUX_CERT_TYPE_BAR = new CertType(MOCK_AUX_PREFIX_BAR);
+    private static final CertType MOCK_AUX_CERT_TYPE_BAR = new CertType("plugins.security.ssl.aux.bar.");
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.aux.bar.pemtrustedcas_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_FILEPATH = "plugins.security.ssl.aux.bar.pemcert_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_FILEPATH = "plugins.security.ssl.aux.bar.pemkey_filepath";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME = "ca_bar_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_bar_certificate.pem";
+    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_bar_certificate_pk.pem";
     private static final Settings ENABLE_BAR_SETTINGS_BUILDER = Settings.builder()
-        .putList(AUX_TRANSPORT_TYPES_SETTING.getKey(), List.of(MOCK_AUX_CERT_TYPE_BAR.id()))
-        .put(getBoolAffixKeyForCertType(SECURITY_SSL_AUX_ENABLED, MOCK_AUX_CERT_TYPE_BAR), true)
-        .build();
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH,
-        MOCK_AUX_CERT_TYPE_BAR
-    );
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMCERT_FILEPATH,
-        MOCK_AUX_CERT_TYPE_BAR
-    );
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_FILEPATH = getStringAffixKeyForCertType(
-        SECURITY_SSL_AUX_PEMKEY_FILEPATH,
-        MOCK_AUX_CERT_TYPE_BAR
-    );
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMTRUSTEDCAS_NAME = "ca_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMCERT_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate.pem";
-    private static final String MOCK_AUX_CERT_TYPE_BAR_PEMKEY_NAME = "access_" + MOCK_AUX_CERT_TYPE_BAR.id() + "_certificate_pk.pem";
+            .putList("aux.transport.types", List.of("bar"))
+            .put("plugins.security.ssl.aux.foo.enabled", true)
+            .build();
 
     static Settings.Builder defaultSettingsBuilder() {
         return Settings.builder()
