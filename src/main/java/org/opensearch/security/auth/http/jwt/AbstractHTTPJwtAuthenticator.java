@@ -187,9 +187,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @VisibleForTesting
     public String extractSubject(JWTClaimsSet claims) {
         String subject = claims.getSubject();
-        log.warn("subject is '{}' ", subject);
-        log.warn("subjectKey is '{}' ", subjectKey);
-        log.warn("claims is '{}' ", claims);
 
         if (subjectKey != null && !subjectKey.isEmpty()) {
             Object subjectObject = null;
@@ -206,7 +203,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
                 }
             }
 
-            log.warn("subjectObject is '{}' ", subjectObject);
 
             if (subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
@@ -237,7 +233,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return new String[0];
         }
 
-        log.warn("rolesKey is '{}' ", rolesKey);
         Object rolesObject = null;
         Map<String, Object> claimsMap = claims.getClaims();
         for (int i = 0; i < rolesKey.size(); i++) {
@@ -262,7 +257,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return new String[0];
         }
 
-        log.warn("rolesObject is '{}' ", rolesObject);
         String[] roles = String.valueOf(rolesObject).split(",");
 
         // We expect a String or Collection. If we find something else, convert to

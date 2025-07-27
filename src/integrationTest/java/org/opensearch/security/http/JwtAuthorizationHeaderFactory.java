@@ -118,7 +118,6 @@ class JwtAuthorizationHeaderFactory {
     }
 
     Header generateValidTokenWithCustomClaims(String username, String[] roles, Map<String, Object> additionalClaims) {
-        // requireNonNull(username, "Username is required"); not required as username can be null
         requireNonNull(additionalClaims, "Custom claims are required");
         Map<String, Object> claims = new HashMap<>(customClaimsMap(username, roles));
         claims.putAll(additionalClaims);
