@@ -203,7 +203,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
                 }
             }
 
-
             if (subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
                 return null;
