@@ -304,34 +304,8 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
     }
 
     /**
-     * Tests that when has_permission_check param is absent;
-     * the normal request flow is executed.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testWithoutHasPermissionCheckParam() throws Exception {
-        setup();
-
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-        response = rh.executePutRequest(
-            "_plugins/_security/api/allowlist",
-            "{\"enabled\": true, \"requests\": {\"/_cluster/health\": [\"GET\"]}}",
-            nonAdminCredsHeader
-        );
-
-        // No has_permission_check param behaves like normal flow (no simulation fields)
-        rh.sendAdminCertificate = false;
-        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertFalse(response.getBody().contains("\"accessAllowed\""));
-        assertFalse(response.getBody().contains("\"missingPrivileges\""));
-
-    }
-
-    /**
-     * Tests that the has_permission_check param works correctly.
-     * When has_permission_check=true is added to a request, returns
+     * Tests that the perform_permission_check param works correctly.
+     * When perform_permission_check=true is added to a request, returns
      * whether the request would be allowed or Denied, without actually executing the request.
      *
      * @throws Exception
@@ -342,7 +316,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executeGetRequest("_cluster/health?has_permission_check=true", nonAdminCredsHeader);
+        response = rh.executeGetRequest("_cluster/health?perform_permission_check=true", nonAdminCredsHeader);
         rh.sendAdminCertificate = false;
         // user has permissions to GET /_cluster/health response accessAllowed:true
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -352,10 +326,10 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
-            "{\"enabled\": true, \"requests\": {\"/_search?has_permission_check=false\": [\"GET\"]}}",
+            "{\"enabled\": true, \"requests\": {\"/_search?perform_permission_check=false\": [\"GET\"]}}",
             nonAdminCredsHeader
         );
-        // has_permission_check=false (normal execution flow) no simulation fields in response
+        // perform_permission_check=false (normal execution flow) no simulation fields in response
         rh.sendAdminCertificate = false;
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertFalse(response.getBody().contains("\"accessAllowed\":"));
@@ -378,7 +352,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
 
         // test_user has no permissions to GET /_cluster/health response accessAllowed:false
-        response = rh.executeGetRequest("_cluster/health?has_permission_check=true", testUserHeader);
+        response = rh.executeGetRequest("_cluster/health?perform_permission_check=true", testUserHeader);
         assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertTrue(response.getBody().contains("\"accessAllowed\":false"));
         assertTrue(response.getBody().contains("\"missingPrivileges\":[\"cluster:monitor/health\"]"));

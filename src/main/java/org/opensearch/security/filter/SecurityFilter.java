@@ -99,6 +99,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityFilter implements ActionFilter {
 
@@ -116,7 +117,6 @@ public class SecurityFilter implements ActionFilter {
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
-    public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public SecurityFilter(
         final Settings settings,
@@ -517,8 +517,8 @@ public class SecurityFilter implements ActionFilter {
         PrivilegesEvaluatorResponse pres,
         String action
     ) {
-        String isSimulation = threadContext.getHeader(HAS_PERMISSION_CHECK_PARAM);
-        if (Boolean.parseBoolean(isSimulation)) {
+        String performPermissionCheck = threadContext.getHeader(SECURITY_PERFORM_PERMISSION_CHECK_PARAM);
+        if (Boolean.parseBoolean(performPermissionCheck)) {
 
             @SuppressWarnings("unchecked")
             Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
