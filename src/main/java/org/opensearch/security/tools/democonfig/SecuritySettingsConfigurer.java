@@ -140,6 +140,13 @@ public class SecuritySettingsConfigurer {
 
     @SuppressWarnings("unchecked")
     private String getNestedValue(Map<String, Object> yamlData, String key) {
+        // Check for flattened key first
+        if (yamlData.containsKey(key)) {
+            Object value = yamlData.get(key);
+            return value instanceof String ? (String) value : null;
+        }
+
+        // Check for nested structure
         String[] parts = key.split("\\.");
         Object current = yamlData;
         for (String part : parts) {
