@@ -48,7 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.13.1 to 5.13.2 ([#5446](https://github.com/opensearch-project/security/pull/5446))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.38.0 to 2.40.0 ([#5447](https://github.com/opensearch-project/security/pull/5447), [#5477](https://github.com/opensearch-project/security/pull/5477))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.32 to 4.2.33 ([#5428](https://github.com/opensearch-project/security/pull/5428))
-- Bump `org.junit.jupiter:junit-jupiter` from 5.13.2 to 5.13.3 ([#5460](https://github.com/opensearch-project/security/pull/5460))
+- Bump `org.junit.jupiter:junit-jupiter` from 5.13.2 to 5.13.4 ([#5460](https://github.com/opensearch-project/security/pull/5460), [#5513](https://github.com/opensearch-project/security/pull/5513))
 - Bump `org.checkerframework:checker-qual` from 3.49.4 to 3.49.5 ([#5462](https://github.com/opensearch-project/security/pull/5462))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.27.0 to 1.28.0 ([#5475](https://github.com/opensearch-project/security/pull/5475))
 - Bump `commons-validator:commons-validator` from 1.9.0 to 1.10.0 ([#5476](https://github.com/opensearch-project/security/pull/5476))
