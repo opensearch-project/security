@@ -117,6 +117,12 @@ import static org.opensearch.security.support.SecurityUtils.escapePipe;
 
 public class PrivilegesEvaluator {
 
+    private static final String USER_TENANT = "__user__";
+    private static final String GLOBAL_TENANT = "global_tenant";
+    private static final String READ_ACCESS = "READ";
+    private static final String WRITE_ACCESS = "WRITE";
+    private static final String NO_ACCESS = "NONE";
+
     static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
         ImmutableList.of(
             "indices:data/read/*",
@@ -278,7 +284,7 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
+    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles, PrivilegesEvaluationContext context) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
@@ -287,15 +293,29 @@ public class PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", mappedRoles)));
 
             String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(escapePipe(requestedTenant));
-            }
+            joiner.add(requestedTenant);
+            String tenantAccessToCheck = getTenancyAccess(requestedTenant, this.tenantPrivileges.get().tenantMap(context));
+            joiner.add(tenantAccessToCheck);
+            log.debug(joiner);
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
     public PrivilegesEvaluationContext createContext(User user, String action) {
         return createContext(user, action, null, null, null);
+    }
+
+    private String getTenancyAccess(String requestedTenant, Map<String, Boolean> tenancyAccessMap) {
+        final String tenant = Strings.isNullOrEmpty(requestedTenant) ? GLOBAL_TENANT : requestedTenant;
+        if (tenant.equals(USER_TENANT)) {
+            return WRITE_ACCESS;
+        } else {
+            if (tenancyAccessMap == null || !tenancyAccessMap.containsKey(tenant)) {
+                return NO_ACCESS;
+            } else {
+                return tenancyAccessMap.get(tenant) ? WRITE_ACCESS : READ_ACCESS;
+            }
+        }
     }
 
     public PrivilegesEvaluationContext createContext(
@@ -387,7 +407,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        setUserInfoInThreadContext(user, mappedRoles);
+        setUserInfoInThreadContext(user, mappedRoles, context);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
