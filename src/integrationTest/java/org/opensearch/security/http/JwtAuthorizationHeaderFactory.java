@@ -67,27 +67,26 @@ class JwtAuthorizationHeaderFactory {
         ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder();
         // Handle username claim
         if (StringUtils.isNoneEmpty(username)) {
-            if (usernameClaimName instanceof List && !((List<?>) usernameClaimName).isEmpty()) {
-                // Handle nested username claim
-                List<String> usernamePath = (List<String>) usernameClaimName;
-                Map<String, Object> nestedUserMap = new HashMap<>();
-                Map<String, Object> currentUserMap = nestedUserMap;
+            if (usernameClaimName.size() == 1) {
+                // Simple case - no nesting
+                builder.put(usernameClaimName.get(0), username);
+            } else {
+                // Handle nested claims
+                Map<String, Object> nestedMap = new HashMap<>();
+                Map<String, Object> currentMap = nestedMap;
 
-                // Build the nested structure for username
-                for (int i = 0; i < usernamePath.size() - 1; i++) {
+                // Build the nested structure
+                for (int i = 0; i < usernameClaimName.size() - 1; i++) {
                     Map<String, Object> nextMap = new HashMap<>();
-                    currentUserMap.put(usernamePath.get(i), nextMap);
-                    currentUserMap = nextMap;
+                    currentMap.put(usernameClaimName.get(i), nextMap);
+                    currentMap = nextMap;
                 }
 
                 // Add the username at the deepest level
-                currentUserMap.put(usernamePath.get(usernamePath.size() - 1), username);
+                currentMap.put(usernameClaimName.get(usernameClaimName.size() - 1), username);
 
-                // Add the entire nested username structure to the builder
-                builder.putAll(nestedUserMap);
-            } else {
-                // Simple case - no nesting for username
-                builder.put(usernameClaimName.toString(), username);
+                // Add the entire nested structure to the builder
+                builder.putAll(nestedMap);
             }
         }
 
