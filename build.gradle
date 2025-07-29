@@ -481,7 +481,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.40.0"
+            force "com.google.errorprone:error_prone_annotations:2.41.0"
             force "org.checkerframework:checker-qual:3.49.5"
             force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.20.0"
@@ -684,7 +684,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.18.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.40.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.41.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.8'
@@ -701,7 +701,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.3'
-    runtimeOnly 'org.apache.commons:commons-text:1.13.1'
+    runtimeOnly 'org.apache.commons:commons-text:1.14.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:3.0.0'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -753,8 +753,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.10.0'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M2"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.4'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
