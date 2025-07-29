@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bumps checkstyle to 10.26.1 that fixes CVE-2025-48734 ([#5485](https://github.com/opensearch-project/security/pull/5485))
 - Bump `commons-io:commons-io` from 2.19.0 to 2.20.0 ([#5494](https://github.com/opensearch-project/security/pull/5494))
 - Bump `org.xerial.snappy:snappy-java` from 1.1.10.7 to 1.1.10.8 ([#5495](https://github.com/opensearch-project/security/pull/5495))
+- Bump `org.apache.commons:commons-text` from 1.13.1 to 1.14.0 ([#5511](https://github.com/opensearch-project/security/pull/5511))
 
 ### Documentation
 
