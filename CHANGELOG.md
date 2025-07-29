@@ -73,8 +73,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `commons-codec:commons-codec` from 1.18.0 to 1.19.0 ([#5534](https://github.com/opensearch-project/security/pull/5534))
 - Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
 
-* Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.33.0 to 3.33.100 ([#5400](https://github.com/opensearch-project/security/pull/5400))
-
 ### Documentation
 
 [Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.1...main
