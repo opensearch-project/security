@@ -416,11 +416,12 @@ public class SecurityFilter implements ActionFilter {
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             };
+
             // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
-            resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
-                if (response.isComplete()) {
+            if (resourceAccessEvaluator.shouldEvaluate(request)) {
+                resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
                     if (isDryRunRequest(action, response, listener)) {
                         return;
                     }
@@ -431,81 +432,82 @@ public class SecurityFilter implements ActionFilter {
                     } else {
                         handleUnauthorized.accept(response);
                     }
+                }, listener::onFailure));
+                return;
+            }
+
+            // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
+            PrivilegesEvaluatorResponse pres = eval.evaluate(context);
+
+            if (log.isDebugEnabled()) {
+                log.debug(pres.toString());
+            }
+            if (isDryRunRequest(action, pres, listener)) {
+                return;
+            }
+
+            if (pres.isAllowed()) {
+                auditLog.logGrantedPrivileges(action, request, task);
+                auditLog.logIndexEvent(action, request, task);
+                if (!dlsFlsValve.invoke(context, listener)) {
+                    return;
+                }
+                final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
+                if (createIndexRequestBuilder == null) {
+                    chain.proceed(task, action, request, listener);
                 } else {
-                    // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
-                    PrivilegesEvaluatorResponse pres = eval.evaluate(context);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug(pres.toString());
-                    }
-                    if (isDryRunRequest(action, pres, listener)) {
-                        return;
-                    }
-
-                    if (pres.isAllowed()) {
-                        auditLog.logGrantedPrivileges(action, request, task);
-                        auditLog.logIndexEvent(action, request, task);
-                        if (!dlsFlsValve.invoke(context, listener)) {
-                            return;
-                        }
-                        final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
-                        if (createIndexRequestBuilder == null) {
+                    CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
+                    log.info(
+                        "Request {} requires new tenant index {} with aliases {}",
+                        request.getClass().getSimpleName(),
+                        createIndexRequest.index(),
+                        alias2Name(createIndexRequest.aliases())
+                    );
+                    createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
+                        if (createIndexResponse.isAcknowledged()) {
+                            log.debug(
+                                "Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName()
+                            );
                             chain.proceed(task, action, request, listener);
                         } else {
-                            CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
-                            log.info(
-                                "Request {} requires new tenant index {} with aliases {}",
-                                request.getClass().getSimpleName(),
+                            String message = LoggerMessageFormat.format(
+                                "Request to create index {} with aliases {} was not acknowledged, failing {}",
                                 createIndexRequest.index(),
-                                alias2Name(createIndexRequest.aliases())
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName()
                             );
-                            createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
-                                if (createIndexResponse.isAcknowledged()) {
-                                    log.debug(
-                                        "Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                        createIndexRequest.index(),
-                                        alias2Name(createIndexRequest.aliases()),
-                                        request.getClass().getSimpleName()
-                                    );
-                                    chain.proceed(task, action, request, listener);
-                                } else {
-                                    String message = LoggerMessageFormat.format(
-                                        "Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                        createIndexRequest.index(),
-                                        alias2Name(createIndexRequest.aliases()),
-                                        request.getClass().getSimpleName()
-                                    );
-                                    log.error(message);
-                                    listener.onFailure(new OpenSearchException(message));
-                                }
-                            }, e -> {
-                                Throwable cause = ExceptionsHelper.unwrapCause(e);
-                                if (cause instanceof ResourceAlreadyExistsException) {
-                                    log.warn(
-                                        "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
-                                        createIndexRequest.index(),
-                                        alias2Name(createIndexRequest.aliases()),
-                                        request.getClass().getSimpleName(),
-                                        e
-                                    );
-                                    chain.proceed(task, action, request, listener);
-                                } else {
-                                    log.error(
-                                        "Request to create index {} with aliases {} failed, failing {}",
-                                        createIndexRequest.index(),
-                                        alias2Name(createIndexRequest.aliases()),
-                                        request.getClass().getSimpleName(),
-                                        e
-                                    );
-                                    listener.onFailure(e);
-                                }
-                            }));
+                            log.error(message);
+                            listener.onFailure(new OpenSearchException(message));
                         }
-                    } else {
-                        handleUnauthorized.accept(pres);
-                    }
+                    }, e -> {
+                        Throwable cause = ExceptionsHelper.unwrapCause(e);
+                        if (cause instanceof ResourceAlreadyExistsException) {
+                            log.warn(
+                                "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName(),
+                                e
+                            );
+                            chain.proceed(task, action, request, listener);
+                        } else {
+                            log.error(
+                                "Request to create index {} with aliases {} failed, failing {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName(),
+                                e
+                            );
+                            listener.onFailure(e);
+                        }
+                    }));
                 }
-            }, listener::onFailure));
+            } else {
+                handleUnauthorized.accept(pres);
+            }
         } catch (OpenSearchException e) {
             if (task != null) {
                 log.debug("Failed to apply filter. Task id: {} ({}). Action: {}", task.getId(), task.getDescription(), action, e);

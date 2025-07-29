@@ -86,31 +86,11 @@ public class ResourceAccessEvaluator {
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
         PrivilegesEvaluatorResponse pResponse = new PrivilegesEvaluatorResponse();
-        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        // Skip evaluation if feature is disabled or if request is not a DocRequest type
-        if (!isResourceSharingFeatureEnabled || !(request instanceof DocRequest req)) {
-            pResponseListener.onResponse(pResponse);
-            return;
-        }
 
         log.debug("Evaluating resource access");
 
-        // Resource Creation requests must be checked by regular index access evaluator
-        if (req.id() == null) {
-            log.debug("Request id is null, request is of type {}", req.getClass().getName());
-            pResponseListener.onResponse(pResponse);
-            return;
-        }
-
-        // if requested index is not a resource sharing index, move on to the next evaluator
-        if (!resourceIndices.contains(req.index())) {
-            log.debug("Request index {} is not a protected resource index", req.index());
-            pResponseListener.onResponse(pResponse);
-            return;
-        }
+        // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
+        DocRequest req = (DocRequest) request;
 
         final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
@@ -190,4 +170,29 @@ public class ResourceAccessEvaluator {
             pResponseListener.onResponse(pResponse.markComplete());
         }));
     }
+
+    /**
+     * Checks whether request should be evaluated by this evaluator
+     * @param request the action request to be evaluated
+     * @return true if request should be evaluated, false otherwise
+     */
+    public boolean shouldEvaluate(ActionRequest request) {
+        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        if (!isResourceSharingFeatureEnabled) return false;
+        if (!(request instanceof DocRequest docRequest)) return false;
+        if (docRequest.id() == null) {
+            log.debug("Request id is null, request is of type {}", docRequest.getClass().getName());
+            return false;
+        }
+        // if requested index is not a resource sharing index, move on to the regular evaluator
+        if (!resourceIndices.contains(docRequest.index())) {
+            log.debug("Request index {} is not a protected resource index", docRequest.index());
+            return false;
+        }
+        return true;
+    }
+
 }
