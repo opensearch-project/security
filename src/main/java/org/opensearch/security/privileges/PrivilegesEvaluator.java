@@ -284,15 +284,15 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles, PrivilegesEvaluationContext context) {
+    private void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
-            joiner.add(escapePipe(user.getName()));
-            joiner.add(escapePipe(String.join(",", user.getRoles())));
-            joiner.add(escapePipe(String.join(",", mappedRoles)));
+            joiner.add(escapePipe(context.getUser().getName()));
+            joiner.add(escapePipe(String.join(",", context.getUser().getRoles())));
+            joiner.add(escapePipe(String.join(",", context.getMappedRoles())));
 
-            String requestedTenant = user.getRequestedTenant();
+            String requestedTenant = context.getUser().getRequestedTenant();
             joiner.add(requestedTenant);
             String tenantAccessToCheck = getTenancyAccess(requestedTenant, this.tenantPrivileges.get().tenantMap(context));
             joiner.add(tenantAccessToCheck);
@@ -407,7 +407,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        setUserInfoInThreadContext(user, mappedRoles, context);
+        setUserInfoInThreadContext(context);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
