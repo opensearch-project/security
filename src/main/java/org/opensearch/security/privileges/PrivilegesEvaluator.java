@@ -294,7 +294,7 @@ public class PrivilegesEvaluator {
 
             String requestedTenant = context.getUser().getRequestedTenant();
             joiner.add(requestedTenant);
-            String tenantAccessToCheck = getTenancyAccess(requestedTenant, this.tenantPrivileges.get().tenantMap(context));
+            String tenantAccessToCheck = getTenancyAccess(requestedTenant);
             joiner.add(tenantAccessToCheck);
             log.debug(joiner);
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
@@ -305,16 +305,15 @@ public class PrivilegesEvaluator {
         return createContext(user, action, null, null, null);
     }
 
-    private String getTenancyAccess(String requestedTenant, Map<String, Boolean> tenancyAccessMap) {
+    private String getTenancyAccess(PrivilegesEvaluationContext context) {
+        String requestedTenant = context.getUser().getRequestedTenant();
         final String tenant = Strings.isNullOrEmpty(requestedTenant) ? GLOBAL_TENANT : requestedTenant;
-        if (tenant.equals(USER_TENANT)) {
+        if (tenantPrivileges.get().hasTenantPrivilege(context, tenant, TenantPrivileges.ActionType.WRITE)) {
             return WRITE_ACCESS;
+        } else if (tenantPrivileges.get().hasTenantPrivilege(context, tenant, TenantPrivileges.ActionType.READ)) {
+            return READ_ACCESS;
         } else {
-            if (tenancyAccessMap == null || !tenancyAccessMap.containsKey(tenant)) {
-                return NO_ACCESS;
-            } else {
-                return tenancyAccessMap.get(tenant) ? WRITE_ACCESS : READ_ACCESS;
-            }
+            return NO_ACCESS;
         }
     }
 
