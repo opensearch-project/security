@@ -10,7 +10,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,14 +20,8 @@ import org.opensearch.action.DocRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.auth.UserSubjectImpl;
-import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.spi.resources.FeatureConfigConstants;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -49,19 +42,19 @@ public class ResourceAccessEvaluator {
 
     private final Set<String> resourceIndices;
     private final ThreadContext threadContext;
-    private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final Settings settings;
+    private final ResourceAccessHandler resourceAccessHandler;
 
     public ResourceAccessEvaluator(
         Set<String> resourceIndices,
         ThreadPool threadPool,
-        ResourceSharingIndexHandler resourceSharingIndexHandler,
-        Settings settings
+        Settings settings,
+        ResourceAccessHandler resourceAccessHandler
     ) {
         this.resourceIndices = resourceIndices;
         this.threadContext = threadPool.getThreadContext();
-        this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.settings = settings;
+        this.resourceAccessHandler = resourceAccessHandler;
     }
 
     /**
@@ -92,83 +85,15 @@ public class ResourceAccessEvaluator {
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
         DocRequest req = (DocRequest) request;
 
-        final UserSubjectImpl userSubject = (UserSubjectImpl) this.threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = userSubject.getUser();
-
-        // If user is a plugin or api-token
-        // TODO Check if user.isPluginUser() can be used here
-        if (!(context.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
-            // NOTE we don't yet support Plugins to access resources
-            log.debug(
-                "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
-                user.getName(),
-                req.id()
-            );
-            pResponseListener.onResponse(pResponse.markComplete());
-            return;
-        }
-
-        // If the user is a super-admin, the request would have already been granted. So no need to check whether the user is an admin.
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        // Fetch the ResourceSharing document and evaluate access
-        this.resourceSharingIndexHandler.fetchSharingInfo(req.index(), req.id(), ActionListener.wrap(document -> {
-            // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
-            if (document == null) {
-                // TODO check whether we should mark response as not allowed. At present, it just returns incomplete response and hence is
-                // delegated to next evaluator
-                log.warn("No resource sharing record found for resource {} and index {}, skipping evaluation.", req.id(), req.index());
-                pResponseListener.onResponse(pResponse);
-                return;
-            }
-
-            // If user is the owner, action is allowed
-            if (document.isCreatedBy(user.getName())) {
+        resourceAccessHandler.hasPermission(req.id(), req.index(), action, context, ActionListener.wrap(hasAccess -> {
+            if (hasAccess) {
                 pResponse.allowed = true;
-                String message = "User " + user.getName() + " is the owner of the resource";
-                log.debug("{} {}, granting access.", message, req.id());
                 pResponseListener.onResponse(pResponse.markComplete());
                 return;
             }
-
-            // check for publicly shared documents
-            userRoles.add("*");
-            userBackendRoles.add("*");
-            // Check whether user or their roles match any access-levels this resource is shared at
-            Set<String> accessLevels = new HashSet<>();
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.ROLES, userRoles));
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
-
-            // if no access-levels match, then action is not allowed
-            if (accessLevels.isEmpty()) {
-                log.debug("Resource {} is not shared with user {}", req.id(), user.getName());
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
-                return;
-            }
-
-            // Expand access-levels and check if any actions match the action supplied
-            Set<String> actions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
-            // a matcher to test against all patterns in `actions`
-            WildcardMatcher matcher = WildcardMatcher.from(actions);
-            if (matcher.test(action)) {
-                pResponse.allowed = true;
-                log.debug("Resource {} is shared with user {}, granting access.", req.id(), user.getName());
-                pResponseListener.onResponse(pResponse.markComplete());
-            } else {
-                // TODO check why following addition doesn't reflect in the final response message and find an alternative
-                log.debug("User {} has no {} privileges for {}", user.getName(), action, req.id());
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
-            }
-
-        }, e -> {
-            pResponse.allowed = false;
-            log.debug("Something went wrong while evaluating resource {}. Marking request as unauthorized.", req.id());
-            pResponseListener.onResponse(pResponse.markComplete());
-        }));
+            ;
+            pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
+        }, e -> { pResponseListener.onResponse(pResponse.markComplete()); }));
     }
 
     /**

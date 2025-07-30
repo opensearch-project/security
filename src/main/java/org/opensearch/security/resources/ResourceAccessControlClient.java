@@ -41,8 +41,8 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
     @Override
-    public void verifyAccess(String resourceId, String resourceIndex, String accessLevel, ActionListener<Boolean> listener) {
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, accessLevel, listener);
+    public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
+        resourceAccessHandler.hasPermission(resourceId, resourceIndex, action, null, listener);
     }
 
     /**

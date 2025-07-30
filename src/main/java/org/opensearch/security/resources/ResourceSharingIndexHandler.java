@@ -426,7 +426,7 @@ public class ResourceSharingIndexHandler {
      * @param listener        Listener to be notified when the operation completes
      * @throws RuntimeException if there's an error during the update operation
      */
-    public void updateSharingInfo(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
+    public void share(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
         StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
 
         // Fetch resource sharing doc

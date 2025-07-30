@@ -90,7 +90,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -135,7 +135,7 @@ public class SecurityFilter implements ActionFilter {
         final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver,
         Set<String> resourceIndices,
-        ResourceSharingIndexHandler rsIndexHandler
+        ResourceAccessHandler resourceAccessHandler
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -151,7 +151,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, rsIndexHandler, settings);
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, settings, resourceAccessHandler);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 

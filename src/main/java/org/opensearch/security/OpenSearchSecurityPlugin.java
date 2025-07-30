@@ -66,6 +66,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -540,7 +541,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         try {
             MessageDigest digester = MessageDigest.getInstance("SHA256");
-            final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
+            final String hash = Hex.toHexString(digester.digest(Files.readAllBytes(p)));
             log.debug(hash + " :: " + p);
             return hash;
         } catch (Exception e) {
@@ -620,6 +621,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // FGAC enabled == not sslOnly
             if (!SSLConfig.isSslOnlyMode()) {
                 handlers.add(
                     new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool))
@@ -1181,6 +1183,25 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
+        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, evaluator);
+        if (settings.getAsBoolean(
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        )) {
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
+            // Assign resource sharing client to each extension
+            // Using the non-gated client (i.e. no additional permissions required)
+            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
+            resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
+                extension.assignResourceSharingClient(resourceAccessControlClient);
+            });
+            components.add(resourcePluginInfo);
+            components.add(resourceAccessControlClient);
+            components.add(resourceAccessHandler);
+            components.addAll(resourceSharingExtensions);
+            // CS-ENFORCE-SINGLE
+        }
+
         sf = new SecurityFilter(
             settings,
             evaluator,
@@ -1194,7 +1215,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             irr,
             xffResolver,
             resourcePluginInfo.getResourceIndices(),
-            rsIndexHandler
+            resourceAccessHandler
         );
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
@@ -1268,30 +1289,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
-        if (settings.getAsBoolean(
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        )) {
-
-            ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(
-                threadPool.getThreadContext(),
-                rsIndexHandler,
-                adminDns
-            );
-
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-            // Assign resource sharing client to each extension
-            // Using the non-gated client (i.e. no additional permissions required)
-            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
-            resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
-                extension.assignResourceSharingClient(resourceAccessControlClient);
-            });
-            components.addAll(resourceSharingExtensions);
-            // CS-ENFORCE-SINGLE
-            components.add(resourcePluginInfo);
-            components.add(resourceAccessControlClient);
-            components.add(resourceAccessHandler);
-        }
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -2173,17 +2170,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered)
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered)
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED,
-                    false,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(Setting.boolSetting(SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG,
@@ -2415,7 +2403,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
-    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
+    public void loadExtensions(ExtensionLoader loader) {
 
         if (settings != null
             && settings.getAsBoolean(
