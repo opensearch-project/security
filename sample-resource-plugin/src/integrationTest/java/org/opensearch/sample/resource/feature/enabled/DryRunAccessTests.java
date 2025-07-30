@@ -86,12 +86,12 @@ public class DryRunAccessTests {
         // cannot create own resource
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             String sample = "{\"name\":\"sampleUser\"}";
-            HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT + "?has_permission_check=true", sample);
+            HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT + "?perform_permission_check=true", sample);
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/create")));
 
-            resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?has_permission_check=true");
+            resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/get")));
@@ -102,21 +102,21 @@ public class DryRunAccessTests {
 
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             // recheck read access
-            HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?has_permission_check=true");
+            HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of()));
 
             // cannot update resource
             String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
-            resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId + "?has_permission_check=true", updatePayload);
+            resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true", updatePayload);
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/update")));
 
             // cannot share resource
             resp = client.postJson(
-                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?has_permission_check=true",
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
                 shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
@@ -125,7 +125,7 @@ public class DryRunAccessTests {
 
             // cannot revoke resource access
             resp = client.postJson(
-                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?has_permission_check=true",
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
                 revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
@@ -133,7 +133,7 @@ public class DryRunAccessTests {
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/revoke")));
 
             // cannot delete resource
-            resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId + "?has_permission_check=true");
+            resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/delete")));
@@ -145,21 +145,21 @@ public class DryRunAccessTests {
         // user will now also be able to update, share, revoke and delete resource
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             // read simulation
-            HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?has_permission_check=true");
+            HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of()));
 
             // can update resource
             String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
-            resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId + "?has_permission_check=true", updatePayload);
+            resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true", updatePayload);
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of()));
 
             // can share resource
             resp = client.postJson(
-                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?has_permission_check=true",
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
                 shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
@@ -168,7 +168,7 @@ public class DryRunAccessTests {
 
             // can revoke resource access
             resp = client.postJson(
-                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?has_permission_check=true",
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
                 revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
@@ -176,7 +176,7 @@ public class DryRunAccessTests {
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of()));
 
             // can delete resource
-            resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId + "?has_permission_check=true");
+            resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
             assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of()));
