@@ -1282,7 +1282,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             // Assign resource sharing client to each extension
             // Using the non-gated client (i.e. no additional permissions required)
-            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler, settings);
+            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });

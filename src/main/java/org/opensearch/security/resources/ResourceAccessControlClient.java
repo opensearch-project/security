@@ -10,10 +10,6 @@ package org.opensearch.security.resources;
 
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -27,16 +23,26 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
  */
 public final class ResourceAccessControlClient implements ResourceSharingClient {
 
-    private static final Logger log = LogManager.getLogger(ResourceAccessControlClient.class);
-
     private final ResourceAccessHandler resourceAccessHandler;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Settings settings) {
+    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler) {
         this.resourceAccessHandler = resourceAccessHandler;
+    }
+
+    /**
+     * Verifies whether the current user has access to the specified resource.
+     *
+     * @param resourceId    The ID of the resource to verify.
+     * @param resourceIndex The index in which the resource resides.
+     * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
+     */
+    @Override
+    public void verifyAccess(String resourceId, String resourceIndex, String accessLevel, ActionListener<Boolean> listener) {
+        resourceAccessHandler.hasPermission(resourceId, resourceIndex, accessLevel, listener);
     }
 
     /**
@@ -62,7 +68,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener) {
-        // TODO access level may be unnecessary in this API if a specific user or role can only be provisioned at a single access level
         resourceAccessHandler.revoke(resourceId, resourceIndex, target, listener);
     }
 

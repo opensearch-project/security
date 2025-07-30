@@ -154,6 +154,35 @@ The **`ResourceSharingClient`** provides **four Java APIs** for **resource acces
 Below are examples demonstrating how to use each API effectively.
 
 ---
+#### **1. `verifyAccess`**
+**Checks access** for specific users, roles, or backend roles **at specific access-level**.
+
+##### **Method Signature:**
+```java
+void verifyAccess(String resourceId, String resourceIndex, String accessLevel, ActionListener<Boolean> listener);
+```
+
+##### **Example Usage:**
+```java
+
+resourceSharingClient.verifyAccess(
+    request.getResourceId(),
+    RESOURCE_INDEX_NAME,
+    "read",
+    ActionListener.wrap(isAuthorized -> {
+        if (isAuthorized) {
+        System.out.println("User has access to the resource.");
+        } else {
+                System.out.println("Access denied.");
+        }
+    }, e -> {
+    System.err.println("Failed to verify access: " + e.getMessage());
+    })
+);
+```
+> **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
+
+---
 
 #### **1. `share`**
 **Grants access to a resource** for specific users, roles, or backend roles.

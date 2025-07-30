@@ -22,6 +22,14 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
 public interface ResourceSharingClient {
 
     /**
+     * Verifies if the current user has access to the specified resource.
+     * @param resourceId     The ID of the resource to verify access for.
+     * @param resourceIndex  The index containing the resource.
+     * @param listener       The listener to be notified with the access verification result.
+     */
+    void verifyAccess(String resourceId, String resourceIndex, String accessLevel, ActionListener<Boolean> listener);
+
+    /**
      * Shares a resource with the specified users, roles, and backend roles.
      * @param resourceId     The ID of the resource to share.
      * @param resourceIndex  The index containing the resource.
