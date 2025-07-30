@@ -43,7 +43,11 @@ public class RolloverTest {
     static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
 
     static final User LIMITED_USER = new User("limited_user").roles(
-        new Role("limited-role").indexPermissions("indices:admin/rollover", "indices:monitor/stats").on("logs*")
+        new Role("limited-role").indexPermissions("indices:admin/rollover", "indices:monitor/stats")
+            .on("logs*")
+            .indexPermissions("indices:admin/rollover")
+            .on("new-logs*")
+
     );
 
     @ClassRule
@@ -58,12 +62,13 @@ public class RolloverTest {
         .build();
 
     @Test
-    public void testRolloverWithLimitedUser() throws IOException {
+    public void testRolloverWithLimitedUser_userHasAccessToTargetIndex() throws IOException {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
-            client.put("index-that-limited-user-does-not-have-access-to");
             client.put("logs-old-index");
             client.put("logs-old-index/_aliases/logs");
         }
+        // user needs at least "indices:admin/rollover" and "indices:monitor/stats" on rollover target
+        // and "indices:admin/rollover" on target index
         try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
             String rolloverRequest = "{\"conditions\": {\"max_age\": \"0s\"}}";
             TestRestClient.HttpResponse response = client.postJson("logs/_rollover/logs-new-index", rolloverRequest);
@@ -73,6 +78,32 @@ public class RolloverTest {
                 response.getBody(),
                 containsString("\"old_index\":\"logs-old-index\",\"new_index\":\"logs-new-index\",\"rolled_over\":true")
             );
+
+            response = client.postJson("logs/_rollover/new-logs-index1", rolloverRequest);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString("\"old_index\":\"logs-new-index\",\"new_index\":\"new-logs-index1\",\"rolled_over\":true")
+            );
+        }
+    }
+
+    @Test
+    public void testRolloverWithLimitedUser_userHasNoAccessToTargetIndex() throws IOException {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.put("logs2-old-index");
+            client.put("logs2-old-index/_aliases/logs2");
+        }
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            String rolloverRequest = "{\"conditions\": {\"max_age\": \"0s\"}}";
+
+            TestRestClient.HttpResponse response = client.postJson(
+                "logs2/_rollover/index-that-limited-user-does-not-have-access-to",
+                rolloverRequest
+            );
+            // user has access to rollover target, but lacks "indices:admin/rollover" on target index
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
         }
     }
 }

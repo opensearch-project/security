@@ -102,6 +102,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityFilter implements ActionFilter {
 
@@ -422,7 +423,7 @@ public class SecurityFilter implements ActionFilter {
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
                 resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
-                    if (isDryRunRequest(action, response, listener)) {
+                    if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
@@ -442,7 +443,7 @@ public class SecurityFilter implements ActionFilter {
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
-            if (isDryRunRequest(action, pres, listener)) {
+            if (handlePermissionCheckRequest(listener, pres, action)) {
                 return;
             }
 
@@ -540,12 +541,12 @@ public class SecurityFilter implements ActionFilter {
         }
     }
 
-    private <Response extends ActionResponse> boolean isDryRunRequest(
-        String action,
+    private <Response extends ActionResponse> boolean handlePermissionCheckRequest(
+        ActionListener<Response> listener,
         PrivilegesEvaluatorResponse pres,
-        ActionListener<Response> listener
+        String action
     ) {
-        boolean isDryRun = Boolean.parseBoolean(threadPool.getThreadContext().getHeader(HAS_PERMISSION_CHECK_PARAM));
+        boolean isDryRun = Boolean.parseBoolean(threadPool.getThreadContext().getHeader(SECURITY_PERFORM_PERMISSION_CHECK_PARAM));
         if (!isDryRun) {
             return false;
         }
