@@ -128,6 +128,11 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     );
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
+    private static final String USER_TENANT = "__user__";
+    private static final String GLOBAL_TENANT = "global_tenant";
+    private static final String READ_ACCESS = "READ";
+    private static final String WRITE_ACCESS = "WRITE";
+    private static final String NO_ACCESS = "NONE";
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
@@ -273,7 +278,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user) {
+    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
@@ -282,9 +287,10 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", user.getSecurityRoles())));
 
             String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(escapePipe(requestedTenant));
-            }
+            joiner.add(requestedTenant);
+            String tenantAccessToCheck = getTenancyAccess(requestedTenant, mapTenants(user, mappedRoles));
+            joiner.add(tenantAccessToCheck);
+            log.debug(joiner);
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
@@ -308,6 +314,19 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
         return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
+    }
+
+    private String getTenancyAccess(String requestedTenant, Map<String, Boolean> tenancyAccessMap) {
+        final String tenant = Strings.isNullOrEmpty(requestedTenant) ? GLOBAL_TENANT : requestedTenant;
+        if (tenant.equals(USER_TENANT)) {
+            return WRITE_ACCESS;
+        } else {
+            if (tenancyAccessMap == null || !tenancyAccessMap.containsKey(tenant)) {
+                return NO_ACCESS;
+            } else {
+                return tenancyAccessMap.get(tenant) ? WRITE_ACCESS : READ_ACCESS;
+            }
+        }
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
@@ -353,7 +372,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
         user.addSecurityRoles(mappedRoles);
-        setUserInfoInThreadContext(user);
+        setUserInfoInThreadContext(user, mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
