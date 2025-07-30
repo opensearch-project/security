@@ -63,8 +63,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.spi.resources.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.security.spi.resources.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 
 /**
  * Sample Resource plugin.
@@ -72,13 +70,9 @@ import static org.opensearch.security.spi.resources.ConfigConstants.OPENSEARCH_R
  *
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, IdentityAwarePlugin {
-    private final boolean isResourceSharingEnabled;
-
     private PluginClient pluginClient;
 
-    public SampleResourcePlugin(final Settings settings) {
-        isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
-    }
+    public SampleResourcePlugin(final Settings settings) {}
 
     @Override
     public Collection<Object> createComponents(
@@ -114,10 +108,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new DeleteResourceRestAction());
         handlers.add(new SecurePluginRestAction());
 
-        if (isResourceSharingEnabled) {
-            handlers.add(new ShareResourceRestAction());
-            handlers.add(new RevokeResourceAccessRestAction());
-        }
+        handlers.add(new ShareResourceRestAction());
+        handlers.add(new RevokeResourceAccessRestAction());
         return handlers;
     }
 
@@ -128,10 +120,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class));
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
-        if (isResourceSharingEnabled) {
-            actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
-            actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
-        }
+        actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
+        actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }

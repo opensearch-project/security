@@ -103,9 +103,10 @@ public class ApiAccessTests {
             api.assertApiUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
-            // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            // feature is disabled, and thus request is treated as normal request.
+            // Since user doesn't have permission to the share and revoke endpoints they will receive 403s
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
 
             // cannot delete admin's resource
             api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -136,8 +137,14 @@ public class ApiAccessTests {
             api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(
+                adminResId,
+                LIMITED_ACCESS_USER,
+                LIMITED_ACCESS_USER,
+                sampleReadOnlyAG.name(),
+                HttpStatus.SC_NOT_IMPLEMENTED
+            );
+            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
 
             // cannot delete own resource since user doesn't have delete permission
             api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -171,8 +178,8 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
 
             // can delete own resource since user has * permissions
             api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
@@ -207,14 +214,14 @@ public class ApiAccessTests {
                     shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
-                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 response = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
                     revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
-                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
             }
 
             // can delete admin's resource
@@ -279,8 +286,8 @@ public class ApiAccessTests {
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
 
             // cannot delete admin's resource
             api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -313,8 +320,14 @@ public class ApiAccessTests {
             api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(
+                adminResId,
+                LIMITED_ACCESS_USER,
+                LIMITED_ACCESS_USER,
+                sampleReadOnlyAG.name(),
+                HttpStatus.SC_NOT_IMPLEMENTED
+            );
+            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
 
             // cannot delete resource since feature is disabled and user doesn't have delete permission
             api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -350,8 +363,8 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_BAD_REQUEST);
+            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
 
             // can delete a resource
             api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
@@ -380,13 +393,13 @@ public class ApiAccessTests {
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
                     shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
-                resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 resp = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
                     revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
-                resp.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 // can delete admin's resource
                 resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + id);

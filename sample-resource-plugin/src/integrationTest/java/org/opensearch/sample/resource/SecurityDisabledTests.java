@@ -114,13 +114,13 @@ public class SecurityDisabledTests {
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
                 shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
             );
-            assertNotImplementedResponse(response);
+            assertNotImplementedResponse(response, "Cannot share resource");
 
             response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
                 revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
             );
-            assertNotImplementedResponse(response);
+            assertNotImplementedResponse(response, "Cannot revoke access to resource");
 
             response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -128,8 +128,8 @@ public class SecurityDisabledTests {
         }
     }
 
-    private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
-        response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-        assertThat(response.getTextFromJsonBody("/error"), containsString("no handler found for uri"));
+    private void assertNotImplementedResponse(TestRestClient.HttpResponse response, String msg) {
+        response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        assertThat(response.getTextFromJsonBody("/error/reason"), containsString(msg));
     }
 }

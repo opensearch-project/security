@@ -11,10 +11,12 @@ package org.opensearch.sample.resource.actions.transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
@@ -31,7 +33,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  */
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
-    private final SampleResourceExtension sampleResourceExtension;
+    private final ResourceSharingClient resourceSharingClient;
 
     @Inject
     public ShareResourceTransportAction(
@@ -40,7 +42,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
         SampleResourceExtension sampleResourceExtension
     ) {
         super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-        this.sampleResourceExtension = sampleResourceExtension;
+        this.resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
     }
 
     @Override
@@ -50,7 +52,15 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+        if (resourceSharingClient == null) {
+            listener.onFailure(
+                new OpenSearchStatusException(
+                    "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
+                    RestStatus.NOT_IMPLEMENTED
+                )
+            );
+            return;
+        }
         ShareWith shareWith = request.getShareWith();
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
             ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
