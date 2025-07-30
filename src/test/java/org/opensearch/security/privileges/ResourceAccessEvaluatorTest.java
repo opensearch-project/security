@@ -21,7 +21,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.FeatureConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -59,7 +58,7 @@ public class ResourceAccessEvaluatorTest {
 
     @Before
     public void setup() {
-        Settings settings = Settings.builder().put(FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
+        Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
         doReturn(threadContext).when(threadPool).getThreadContext();
         evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), threadPool, settings, resourceAccessHandler);

@@ -155,11 +155,13 @@ Below are examples demonstrating how to use each API effectively.
 
 ---
 #### **1. `verifyAccess`**
-**Checks access** for specific users, roles, or backend roles **at specific access-level**.
+**Check access** for specific users, roles, or backend roles **for specified action**.
+
+NOTE: This API should only be selectively used in case where implementing DocRequest interface for action-requests is not possible. Check out sample-plugin action-request classes to understand more.
 
 ##### **Method Signature:**
 ```java
-void verifyAccess(String resourceId, String resourceIndex, String accessLevel, ActionListener<Boolean> listener);
+void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
 ```
 
 ##### **Example Usage:**
@@ -168,7 +170,7 @@ void verifyAccess(String resourceId, String resourceIndex, String accessLevel, A
 resourceSharingClient.verifyAccess(
     request.getResourceId(),
     RESOURCE_INDEX_NAME,
-    "read",
+    "indices:data/read/search",
     ActionListener.wrap(isAuthorized -> {
         if (isAuthorized) {
         System.out.println("User has access to the resource.");
@@ -184,7 +186,7 @@ resourceSharingClient.verifyAccess(
 
 ---
 
-#### **1. `share`**
+#### **2. `share`**
 **Grants access to a resource** for specific users, roles, or backend roles.
 
 ##### **Method Signature:**
@@ -209,7 +211,7 @@ resourceSharingClient.share(
 
 ---
 
-#### **2. `revoke`**
+#### **3. `revoke`**
 **Removes access permissions** for specified users, roles, or backend roles.
 
 ##### **Method Signature:**
@@ -233,7 +235,7 @@ resourceSharingClient.revokeResourceAccess(
 
 ---
 
-#### **3. `getAccessibleResourceIds`**
+#### **4. `getAccessibleResourceIds`**
 **Retrieves ids of all shareableResources the current user has access to.**
 
 ##### **Method Signature:**
