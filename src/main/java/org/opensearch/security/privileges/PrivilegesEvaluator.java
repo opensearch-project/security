@@ -294,7 +294,7 @@ public class PrivilegesEvaluator {
 
             String requestedTenant = context.getUser().getRequestedTenant();
             joiner.add(requestedTenant);
-            String tenantAccessToCheck = getTenancyAccess(requestedTenant);
+            String tenantAccessToCheck = getTenancyAccess(context);
             joiner.add(tenantAccessToCheck);
             log.debug(joiner);
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
