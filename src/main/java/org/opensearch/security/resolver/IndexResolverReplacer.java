@@ -58,6 +58,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.admin.indices.rollover.RolloverRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
 import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.action.bulk.BulkRequest;
@@ -785,6 +786,9 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((Replaceable) request).indices(newIndices);
+        } else if (request instanceof RolloverRequest) {
+            provider.provide(((RolloverRequest) request).indices(), request, false);
+            return false;
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
