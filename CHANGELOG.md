@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * [Resource Sharing] Adds migrate API to move resource-sharing info to security plugin ([#5389](https://github.com/opensearch-project/security/pull/5389))
 * Introduces support for the Argon2 Password Hashing Algorithm ([#5441] (https://github.com/opensearch-project/security/pull/5441))
 * Introduced permission validation support using query parameter without executing the request ([#5496](https://github.com/opensearch-project/security/pull/5496))
+* Introduced SPIFFE X.509 SVID support via SPIFFEPrincipalExtractor ([#5521](https://github.com/opensearch-project/security/pull/5521))
 
 ### Enhancements
 
