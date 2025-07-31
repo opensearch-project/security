@@ -96,11 +96,15 @@ import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import static org.opensearch.security.support.ConfigConstants.DEFAULT_TIMEOUT;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.SnapshotRestoreHelper.isSecurityIndexRestoredFromSnapshot;
 
 public class ConfigurationRepository implements ClusterStateListener, IndexEventListener {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
+    private static final int INITIALIZATION_RETRY_INTERVAL_MS = 3000;
+    private static final int INITIALIZATION_MAX_DURATION_MS = 5 * 60 * 1000;
+    private static final int MAX_RETRIES = INITIALIZATION_MAX_DURATION_MS / INITIALIZATION_RETRY_INTERVAL_MS;
 
     private final String securityIndex;
     private final Client client;
@@ -273,26 +277,33 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                         LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
+                    LOGGER.error("Cannot apply default config", e);
+                    throw e;
                 }
             }
 
-            while (!dynamicConfigFactory.isInitialized()) {
+            for (int retryCount = 0; retryCount < MAX_RETRIES && !dynamicConfigFactory.isInitialized(); retryCount++) {
                 try {
-                    LOGGER.debug("Try to load config ...");
+                    LOGGER.info("Try to load config ...");
                     reloadConfiguration(CType.values(), true);
                     break;
                 } catch (Exception e) {
-                    LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
+                    LOGGER.error("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
                     try {
-                        TimeUnit.MILLISECONDS.sleep(3000);
+                        TimeUnit.MILLISECONDS.sleep(INITIALIZATION_RETRY_INTERVAL_MS);
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
-                        LOGGER.debug("Thread was interrupted so we cancel initialization");
+                        LOGGER.error("Thread was interrupted so we cancel initialization");
                         break;
                     }
                 }
             }
+
+            if (!dynamicConfigFactory.isInitialized()) {
+                LOGGER.error("Node '{}' failed to initialize", clusterService.localNode().getName());
+                throw new IllegalStateException(String.format("Node '%s' failed to initialize", clusterService.localNode().getName()));
+            }
+
             setupAuditConfigurationIfAny(cl.isAuditConfigDocPresentInIndex());
             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
@@ -325,7 +336,8 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
     private boolean createSecurityIndexIfAbsent() {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex).settings(indexSettings);
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex).timeout(DEFAULT_TIMEOUT)
+                .settings(indexSettings);
             final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
             LOGGER.info("Index {} created?: {}", securityIndex, ok);
             return ok;
@@ -341,14 +353,14 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         try {
             response = client.admin()
                 .cluster()
-                .health(new ClusterHealthRequest(securityIndex).waitForActiveShards(1).waitForYellowStatus())
+                .health(new ClusterHealthRequest(securityIndex).waitForActiveShards(1).waitForYellowStatus().timeout(DEFAULT_TIMEOUT))
                 .actionGet();
         } catch (Exception e) {
-            LOGGER.debug("Caught a {} but we just try again ...", e.toString());
+            LOGGER.error("Caught a {} but we just try again ...", e.toString());
         }
 
         while (response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-            LOGGER.debug(
+            LOGGER.error(
                 "index '{}' not healthy yet, we try again ... (Reason: {})",
                 securityIndex,
                 response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster")
@@ -360,9 +372,12 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                 Thread.currentThread().interrupt();
             }
             try {
-                response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
+                response = client.admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest(securityIndex).waitForYellowStatus().timeout(DEFAULT_TIMEOUT))
+                    .actionGet();
             } catch (Exception e) {
-                LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
+                LOGGER.error("Caught again a {} but we just try again ...", e.toString());
             }
         }
     }

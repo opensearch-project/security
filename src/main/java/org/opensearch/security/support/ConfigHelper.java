@@ -56,6 +56,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.security.support.ConfigConstants.DEFAULT_TIMEOUT;
 
 @Deprecated
 public class ConfigHelper {
@@ -95,6 +96,7 @@ public class ConfigHelper {
                 final IndexRequest indexRequest = new IndexRequest(index).id(configType)
                     .opType(OpType.CREATE)
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .timeout(DEFAULT_TIMEOUT)
                     .source(configType, readXContent(reader, XContentType.YAML));
                 final String res = tc.index(indexRequest).actionGet().getId();
 
