@@ -175,7 +175,6 @@ public class ResourceAccessHandler {
         resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
             if (document == null) {
-                // TODO check whether we should mark response as not allowed. At present, it just returns incomplete not allowed response
                 LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
                 listener.onResponse(false);
                 return;

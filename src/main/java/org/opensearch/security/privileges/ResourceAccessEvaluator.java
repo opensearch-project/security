@@ -91,7 +91,6 @@ public class ResourceAccessEvaluator {
                 pResponseListener.onResponse(pResponse.markComplete());
                 return;
             }
-            ;
             pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
         }, e -> { pResponseListener.onResponse(pResponse.markComplete()); }));
     }

@@ -120,7 +120,6 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
-    public static final String HAS_PERMISSION_CHECK_PARAM = "has_permission_check";
 
     public SecurityFilter(
         final Settings settings,

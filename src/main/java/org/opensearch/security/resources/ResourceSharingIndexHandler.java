@@ -355,12 +355,6 @@ public class ResourceSharingIndexHandler {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug("Fetching document from {}, matching resource_id: {}", resourceSharingIndex, resourceId);
 
-        String failureResponse = "Failed to parse document matching resource_id: "
-            + resourceId
-            + " and source_idx: "
-            + resourceIndex
-            + " from "
-            + resourceSharingIndex;
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
 
             GetRequest getRequest = new GetRequest(resourceSharingIndex).id(resourceId);
@@ -396,10 +390,22 @@ public class ResourceSharingIndexHandler {
                         listener.onResponse(resourceSharing);
                     }
                 } catch (Exception e) {
+                    String failureResponse = "Failed to parse document matching resource_id: "
+                        + resourceId
+                        + " and source_idx: "
+                        + resourceIndex
+                        + " from "
+                        + resourceSharingIndex;
                     LOGGER.error(failureResponse, e);
                     listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR));
                 }
             }, exception -> {
+                String failureResponse = "Something went wrong while fetching resource sharing record for resource_id: "
+                    + resourceId
+                    + " and source_idx: "
+                    + resourceIndex
+                    + " from "
+                    + resourceSharingIndex;
                 LOGGER.error(failureResponse, exception);
                 listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR));
             }));
@@ -449,7 +455,7 @@ public class ResourceSharingIndexHandler {
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
@@ -543,7 +549,7 @@ public class ResourceSharingIndexHandler {
             try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE) // TODO check this policy
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
