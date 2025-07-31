@@ -131,9 +131,10 @@ public class PasswordValidator {
 
         private final String description;
 
-        static final List<ScoreStrength> CONFIGURATION_VALUES = ImmutableList.of(FAIR, STRONG, VERY_STRONG);
+        static final List<ScoreStrength> CONFIGURATION_VALUES = ImmutableList.of(FAIR, GOOD, STRONG, VERY_STRONG);
 
         static final String EXPECTED_CONFIGURATION_VALUES = new StringJoiner(",").add(FAIR.name().toLowerCase(Locale.ROOT))
+            .add(GOOD.name().toLowerCase(Locale.ROOT))
             .add(STRONG.name().toLowerCase(Locale.ROOT))
             .add(VERY_STRONG.name().toLowerCase(Locale.ROOT))
             .toString();
