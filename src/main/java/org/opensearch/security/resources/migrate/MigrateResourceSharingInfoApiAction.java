@@ -65,10 +65,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.spi.resources.ResourceAccessLevels.PLACE_HOLDER;
 
 /**
- * This REST api allows REST admins to migrate resources sharing information from plugin indices to the resource-sharing indices managed by security plugin.
+ * This REST api allows REST admins to migrate resource-sharing information from plugin indices to the resource-sharing indices managed by security plugin.
  * @apiNote Only super-admins or REST admins can invoke this api.
  * We skip migration of records with no valid creator(user).
  * Defines:
@@ -141,7 +140,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : PLACE_HOLDER;
+        String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : "default";
 
         List<SourceDoc> results = new ArrayList<>();
 

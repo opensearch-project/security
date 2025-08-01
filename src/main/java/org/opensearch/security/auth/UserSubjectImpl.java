@@ -25,7 +25,7 @@ public class UserSubjectImpl implements UserSubject {
     private final ThreadPool threadPool;
     private final User user;
 
-    UserSubjectImpl(ThreadPool threadPool, User user) {
+    public UserSubjectImpl(ThreadPool threadPool, User user) {
         this.threadPool = threadPool;
         this.user = user;
         this.userPrincipal = new NamedPrincipal(user.getName());

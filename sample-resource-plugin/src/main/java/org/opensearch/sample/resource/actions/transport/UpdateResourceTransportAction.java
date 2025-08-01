@@ -8,12 +8,9 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
@@ -21,15 +18,12 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -60,24 +54,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             return;
         }
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-        if (resourceSharingClient == null) {
-            updateResource(request, listener);
-            return;
-        }
-        resourceSharingClient.verifyAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-            if (!isAuthorized) {
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "Current user is not authorized to access resource: " + request.getResourceId(),
-                        RestStatus.FORBIDDEN
-                    )
-                );
-                return;
-            }
-
-            updateResource(request, listener);
-        }, listener::onFailure));
+        updateResource(request, listener);
     }
 
     private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
@@ -91,17 +68,12 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
 
                 log.debug("Update Request: {}", ur.toString());
 
-                nodeClient.update(
-                    ur,
-                    ActionListener.wrap(
-                        updateResponse -> { log.debug("Updated resource: {}", updateResponse.toString()); },
-                        listener::onFailure
-                    )
-                );
-            } catch (IOException e) {
-                listener.onFailure(new RuntimeException(e));
+                nodeClient.update(ur, ActionListener.wrap(updateResponse -> {
+                    listener.onResponse(
+                        new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                    );
+                }, listener::onFailure));
             }
-            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully."));
         } catch (Exception e) {
             log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);
