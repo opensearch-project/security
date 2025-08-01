@@ -234,7 +234,6 @@ public class PrivilegesEvaluator {
                 }
             });
         }
-
     }
 
     void updateConfiguration(
@@ -449,11 +448,13 @@ public class PrivilegesEvaluator {
         }
 
         // check snapshot/restore requests
+        // NOTE: Has to go first as restore request could be for protected and/or system indices and the request may
+        // fail with 403 if system index or protected index evaluators are triggered first
         if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
             return presponse;
         }
 
-        // Security index access
+        // System index access
         if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;

@@ -6,8 +6,9 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample;
+package org.opensearch.sample.resource;
 
+import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -17,13 +18,27 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.Version;
 import org.opensearch.painless.PainlessModulePlugin;
+import org.opensearch.plugins.PluginInfo;
+import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
+import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -33,11 +48,24 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePluginTestHelper {
+public class SecurityDisabledTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .plugin(SampleResourcePlugin.class, PainlessModulePlugin.class)
+        .plugin(
+            new PluginInfo(
+                SampleResourcePlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "1.8",
+                SampleResourcePlugin.class.getName(),
+                null,
+                List.of(OpenSearchSecurityPlugin.class.getName()),
+                false
+            )
+        )
+        .plugin(PainlessModulePlugin.class)
         .loadConfigurationIntoIndex(false)
         .nodeSettings(Map.of("plugins.security.disabled", true, "plugins.security.ssl.http.enabled", false))
         .build();
@@ -70,7 +98,6 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
             response.assertStatusCode(HttpStatus.SC_OK);
             String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
 
-            // in sample plugin implementation, get all API is checked against
             response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
 
@@ -84,11 +111,17 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
             response = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload(USER_ADMIN.getName()));
-            assertNotImplementedResponse(response);
+            response = client.postJson(
+                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+            );
+            assertNotImplementedResponse(response, "Cannot share resource");
 
-            response = client.postJson(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, revokeAccessPayload(USER_ADMIN.getName()));
-            assertNotImplementedResponse(response);
+            response = client.postJson(
+                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
+                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+            );
+            assertNotImplementedResponse(response, "Cannot revoke access to resource");
 
             response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -96,8 +129,7 @@ public class SampleResourcePluginSecurityDisabledTests extends SampleResourcePlu
         }
     }
 
-    private void assertNotImplementedResponse(TestRestClient.HttpResponse response) {
-        response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-        assertThat(response.getTextFromJsonBody("/error"), containsString("no handler found for uri"));
+    private void assertNotImplementedResponse(TestRestClient.HttpResponse response, String msg) {
+        assertThat(response, RestMatchers.isMethodNotImplemented("/error/reason", msg));
     }
 }
