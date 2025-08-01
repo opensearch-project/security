@@ -786,10 +786,10 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((Replaceable) request).indices(newIndices);
-        } else if (request instanceof RolloverRequest rolloverRequest) {
-            provider.provide(rolloverRequest.indices(), request, false);
-            if (rolloverRequest.getNewIndexName() != null) { // only when target index is explicitly provided
-                provider.provide(new String[] { rolloverRequest.getNewIndexName() }, request, false);
+        } else if (request instanceof RolloverRequest) {
+            provider.provide(((RolloverRequest) request).indices(), request, false);
+            if (((RolloverRequest) request).getNewIndexName() != null) { // only when target index is explicitly provided
+                provider.provide(new String[] { ((RolloverRequest) request).getNewIndexName() }, request, false);
             }
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
