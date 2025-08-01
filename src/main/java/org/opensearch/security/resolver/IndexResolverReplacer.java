@@ -791,6 +791,7 @@ public class IndexResolverReplacer {
             if (((RolloverRequest) request).getNewIndexName() != null) { // only when target index is explicitly provided
                 provider.provide(new String[] { ((RolloverRequest) request).getNewIndexName() }, request, false);
             }
+            return false;
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
