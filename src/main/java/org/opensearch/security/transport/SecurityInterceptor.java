@@ -177,6 +177,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
@@ -321,11 +322,21 @@ public class SecurityInterceptor {
 
             // put user as userSubject, we'll recreate it in messageReceivedDecorate
             String authSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+            String sameSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
             if (authSubjectHeader == null && authSubject != null) {
-                getThreadContext().putHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
-                    authSubject.getUser().toSerializedBase64()
-                );
+                if (origUser != null && origUser.equals(authSubject.getUser())) {
+                    if (sameSubjectHeader == null) {
+                        getThreadContext().putHeader(
+                            ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER,
+                            Boolean.TRUE.toString()
+                        );
+                    }
+                } else {
+                    getThreadContext().putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
+                        authSubject.getUser().toSerializedBase64()
+                    );
+                }
             }
             final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
             if (userHeader == null) {
