@@ -95,6 +95,7 @@ public class ConfigConstants {
      * Set by SSL plugin for https requests only
      */
     public static final String OPENDISTRO_SECURITY_SSL_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_principal";
+    public static final String OPENDISTRO_SECURITY_SSL_SKIP_USERS = "skip_users";
 
     /**
      * If this is set to TRUE then the request comes from a Server Node (fully trust)
@@ -415,6 +416,7 @@ public class ConfigConstants {
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
+    
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,
