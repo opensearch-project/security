@@ -147,7 +147,7 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
-                node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
+                node.setting("plugins.security.authcz.admin_dn", "\n - CN=kirk,OU=client,O=client,L=test,C=de")
                 node.setting("plugins.security.audit.type", "internal_opensearch")
                 node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")

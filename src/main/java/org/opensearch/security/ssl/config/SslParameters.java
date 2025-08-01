@@ -35,6 +35,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MO
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENFORCE_CERT_RELOAD_DN_VERIFICATION;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENTAUTH_MODE_DEFAULT;
 
 public class SslParameters {
 
@@ -95,21 +96,22 @@ public class SslParameters {
         return Objects.hash(provider, ciphers, protocols);
     }
 
-    public static Loader loader(final Settings sslConfigSettings) {
-        return new Loader(sslConfigSettings);
+    public static Loader loader(final CertType certType, final Settings settings) {
+        return new Loader(certType, settings);
     }
 
     public static final class Loader {
-
         private final static Logger LOGGER = LogManager.getLogger(SslParameters.class);
 
+        private final CertType certType;
         private final Settings sslConfigSettings;
 
-        public Loader(final Settings sslConfigSettings) {
-            this.sslConfigSettings = sslConfigSettings;
+        public Loader(final CertType certType, final Settings settings) {
+            this.certType = certType;
+            this.sslConfigSettings = settings.getByPrefix(certType.sslSettingPrefix());
         }
 
-        private SslProvider provider(final Settings settings) {
+        private SslProvider provider() {
             return SslProvider.JDK;
         }
 
@@ -117,7 +119,7 @@ public class SslParameters {
             return settings.getAsBoolean(ENFORCE_CERT_RELOAD_DN_VERIFICATION, true);
         }
 
-        private List<String> protocols(final SslProvider provider, final Settings settings, boolean http) {
+        private List<String> protocols(final Settings settings) {
             final var allowedProtocols = settings.getAsList(ENABLED_PROTOCOLS, List.of(ALLOWED_SSL_PROTOCOLS));
             return jdkProtocols(allowedProtocols);
         }
@@ -132,7 +134,7 @@ public class SslParameters {
             }
         }
 
-        private List<String> ciphers(final SslProvider provider, final Settings settings) {
+        private List<String> ciphers(final Settings settings) {
             final var allowed = settings.getAsList(ENABLED_CIPHERS, List.of(ALLOWED_SSL_CIPHERS));
             final Stream<String> allowedCiphers;
             try {
@@ -145,28 +147,31 @@ public class SslParameters {
             return allowedCiphers.sorted(String::compareTo).collect(Collectors.toList());
         }
 
-        public SslParameters load(final boolean http) {
-            final var clientAuth = http
-                ? ClientAuth.valueOf(sslConfigSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT))
-                : ClientAuth.REQUIRE;
+        public SslParameters load() {
+            ClientAuth clientAuth;
+            if (certType == CertType.TRANSPORT || certType == CertType.TRANSPORT_CLIENT) {
+                clientAuth = SECURITY_SSL_TRANSPORT_CLIENTAUTH_MODE_DEFAULT;
+            } else {
+                clientAuth = ClientAuth.valueOf(
+                    sslConfigSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
+                );
+            }
 
-            final var provider = provider(sslConfigSettings);
+            final var provider = provider();
             final var sslParameters = new SslParameters(
                 provider,
                 clientAuth,
-                protocols(provider, sslConfigSettings, http),
-                ciphers(provider, sslConfigSettings),
+                protocols(sslConfigSettings),
+                ciphers(sslConfigSettings),
                 validateCertDNsOnReload(sslConfigSettings)
             );
             if (sslParameters.allowedProtocols().isEmpty()) {
-                throw new OpenSearchSecurityException("No ssl protocols for " + (http ? "HTTP" : "Transport") + " layer");
+                throw new OpenSearchSecurityException("No ssl protocols for " + certType.id() + " layer");
             }
             if (sslParameters.allowedCiphers().isEmpty()) {
-                throw new OpenSearchSecurityException("No valid cipher suites for " + (http ? "HTTP" : "Transport") + " layer");
+                throw new OpenSearchSecurityException("No valid cipher suites for " + certType.id() + " layer");
             }
             return sslParameters;
         }
-
     }
-
 }
