@@ -20,8 +20,13 @@ package org.opensearch.security.ssl.util;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.config.CertType;
+
+import io.netty.handler.ssl.ClientAuth;
 
 public final class SSLConfigConstants {
     /**
@@ -99,6 +104,73 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_CRL_VALIDATION_DATE = SSL_HTTP_CRL_PREFIX + "validation_date";
 
     /**
+     * Auxiliary transport security settings.
+     * Aux transport settings are affix settings with individual configurations identified by their AUX_TRANSPORT_TYPES_KEY.
+     */
+    public static final String AUX_SETTINGS = "aux";
+    public static final String SSL_AUX_PREFIX = SSL_PREFIX + AUX_SETTINGS + ".";
+
+    // aux enable settings
+    public static final boolean SECURITY_SSL_AUX_ENABLED_DEFAULT = false; // aux transports are optional
+    public static final Setting.AffixSetting<Boolean> SECURITY_SSL_AUX_ENABLED = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.ENABLED,
+        key -> Setting.boolSetting(key, SECURITY_SSL_AUX_ENABLED_DEFAULT, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<List<String>> SECURITY_SSL_AUX_ENABLED_CIPHERS = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.ENABLED_CIPHERS,
+        key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
+    );
+    public static final Setting.AffixSetting<List<String>> SECURITY_SSL_AUX_ENABLED_PROTOCOLS = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.ENABLED_PROTOCOLS,
+        key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Setting.Property.NodeScope)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_KEYSTORE_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.KEYSTORE_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMKEY_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_KEY_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMKEY_PASSWORD = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_KEY_PASSWORD,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMCERT_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_CERT_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    // aux truststore settings
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_CLIENTAUTH_MODE = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.CLIENT_AUTH_MODE,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.TRUSTSTORE_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+    public static final Setting.AffixSetting<String> SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH = Setting.affixKeySetting(
+        SSLConfigConstants.SSL_AUX_PREFIX,
+        SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH,
+        key -> Setting.simpleString(key, Setting.Property.NodeScope, Setting.Property.Filtered)
+    );
+
+    // helper to resolve setting key for CertType namespace
+    public static String getStringAffixKeyForCertType(Setting.AffixSetting<String> affix, CertType certType) {
+        return affix.getConcreteSettingForNamespace(certType.id()).getKey();
+    }
+
+    /**
      * Transport layer (node-to-node) settings.
      * Transport layer acts both as client and server within the cluster.
      * Security settings for each role may be configured separately.
@@ -135,6 +207,12 @@ public final class SSLConfigConstants {
         + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = SSL_TRANSPORT_PREFIX + PEM_TRUSTED_CAS_FILEPATH;
 
+    /*
+    On the transport layer we enforce ClientAuth.REQUIRE.
+    This setting is fixed and not exposed to users.
+     */
+    public static final ClientAuth SECURITY_SSL_TRANSPORT_CLIENTAUTH_MODE_DEFAULT = ClientAuth.REQUIRE;
+
     // transport server keystore settings
     public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = SSL_TRANSPORT_SERVER_PREFIX + KEYSTORE_ALIAS;
     public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH = SSL_TRANSPORT_SERVER_PREFIX + PEM_KEY_FILEPATH;
@@ -164,21 +242,19 @@ public final class SSLConfigConstants {
         + "resolve_hostname";
     public static final String SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID = SSL_PREFIX + "client.external_context_id";
 
-    public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
-        List<String> configuredProtocols = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList());
-            } else {
-                configuredProtocols = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList());
-            }
+    public static List<String> getSecureSSLCiphers(Settings settings, CertType certType) {
+        List<String> configuredCiphers = settings.getAsList(certType.sslSettingPrefix() + ENABLED_CIPHERS, Collections.emptyList());
+        if (configuredCiphers != null && !configuredCiphers.isEmpty()) {
+            return configuredCiphers;
         }
+        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
+    }
 
-        if (configuredProtocols != null && configuredProtocols.size() > 0) {
+    public static String[] getSecureSSLProtocols(Settings settings, CertType certType) {
+        List<String> configuredProtocols = settings.getAsList(certType.sslSettingPrefix() + ENABLED_PROTOCOLS, Collections.emptyList());
+        if (configuredProtocols != null && !configuredProtocols.isEmpty()) {
             return configuredProtocols.toArray(new String[0]);
         }
-
         return ALLOWED_SSL_PROTOCOLS.clone();
     }
 
@@ -296,27 +372,5 @@ public final class SSLConfigConstants {
     };
     // @formatter:on
 
-    public static List<String> getSecureSSLCiphers(Settings settings, boolean http) {
-
-        List<String> configuredCiphers = null;
-
-        if (settings != null) {
-            if (http) {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList());
-            } else {
-                configuredCiphers = settings.getAsList(SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList());
-            }
-        }
-
-        if (configuredCiphers != null && configuredCiphers.size() > 0) {
-            return configuredCiphers;
-        }
-
-        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
-    }
-
-    private SSLConfigConstants() {
-
-    }
-
+    private SSLConfigConstants() {}
 }

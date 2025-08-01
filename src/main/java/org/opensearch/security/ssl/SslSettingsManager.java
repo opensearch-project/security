@@ -27,17 +27,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslCertificatesLoader;
 import org.opensearch.security.ssl.config.SslParameters;
+import org.opensearch.security.ssl.config.TrustStoreConfiguration;
 import org.opensearch.watcher.FileChangesListener;
 import org.opensearch.watcher.FileWatcher;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.ClientAuth;
 
+import static org.opensearch.security.ssl.config.CertType.CERT_TYPE_REGISTRY;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.EXTENDED_KEY_USAGE_ENABLED;
@@ -46,12 +51,8 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEP
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH;
@@ -68,10 +69,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_T
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_AUX_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FILEPATH;
+import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 
 public class SslSettingsManager {
 
@@ -87,24 +90,38 @@ public class SslSettingsManager {
         return Optional.ofNullable(sslSettingsContexts.get(certType)).map(SslContextHandler::sslConfiguration);
     }
 
-    public Optional<SslContextHandler> sslContextHandler(final CertType sslConfigPrefix) {
-        return Optional.ofNullable(sslSettingsContexts.get(sslConfigPrefix));
+    public Optional<SslContextHandler> sslContextHandler(final CertType certType) {
+        return Optional.ofNullable(sslSettingsContexts.get(certType));
     }
 
+    /**
+     * Load and validate environment configuration for available CertTypes.
+     * @param environment settings and JDK environment.
+     */
     private Map<CertType, SslContextHandler> buildSslContexts(final Environment environment) {
-        final var contexts = new ImmutableMap.Builder<CertType, SslContextHandler>();
-        final var configurations = loadConfigurations(environment);
-        Optional.ofNullable(configurations.get(CertType.HTTP))
-            .ifPresentOrElse(
-                sslConfiguration -> contexts.put(CertType.HTTP, new SslContextHandler(sslConfiguration)),
-                () -> LOGGER.warn("SSL Configuration for HTTP Layer hasn't been set")
-            );
-        Optional.ofNullable(configurations.get(CertType.TRANSPORT)).ifPresentOrElse(sslConfiguration -> {
-            contexts.put(CertType.TRANSPORT, new SslContextHandler(sslConfiguration));
-            final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
-                .orElse(sslConfiguration);
-            contexts.put(CertType.TRANSPORT_CLIENT, new SslContextHandler(transportClientConfiguration, true));
-        }, () -> LOGGER.warn("SSL Configuration for Transport Layer hasn't been set"));
+        final ImmutableMap.Builder<CertType, SslContextHandler> contexts = new ImmutableMap.Builder<>();
+        final Map<CertType, SslConfiguration> configurations = loadConfigurations(environment);
+        configurations.forEach((cert, sslConfig) -> {
+            // TRANSPORT/TRANSPORT_CLIENT are exceptions.
+            if (cert == CertType.TRANSPORT) {
+                Optional.ofNullable(configurations.get(CertType.TRANSPORT)).ifPresentOrElse(sslConfiguration -> {
+                    contexts.put(CertType.TRANSPORT, new SslContextHandler(sslConfiguration));
+                    final var transportClientConfiguration = Optional.ofNullable(configurations.get(CertType.TRANSPORT_CLIENT))
+                        .orElse(sslConfiguration);
+                    contexts.put(CertType.TRANSPORT_CLIENT, new SslContextHandler(transportClientConfiguration, true));
+                }, () -> LOGGER.warn("SSL Configuration for Transport Layer hasn't been set"));
+                return;
+            } else if (cert == CertType.TRANSPORT_CLIENT) {
+                return; // TRANSPORT_CLIENT is handled in TRANSPORT case. Skip.
+            }
+
+            // Load all other configurations into SslContextHandlers.
+            Optional.ofNullable(configurations.get(cert))
+                .ifPresentOrElse(
+                    sslConfiguration -> contexts.put(cert, new SslContextHandler(sslConfiguration)),
+                    () -> LOGGER.warn("SSL Configuration for {} Layer hasn't been set", cert.id())
+                );
+        });
         return contexts.build();
     }
 
@@ -112,31 +129,54 @@ public class SslSettingsManager {
         sslContextHandler(certType).ifPresentOrElse(sscContextHandler -> {
             try {
                 if (sscContextHandler.reloadSslContext()) {
-                    LOGGER.info("{} SSL context reloaded", certType.name());
+                    LOGGER.info("{} SSL context reloaded", certType.id());
                 }
             } catch (CertificateException e) {
                 throw new OpenSearchException(e);
             }
-        }, () -> LOGGER.error("Missing SSL Context for {}", certType.name()));
+        }, () -> LOGGER.error("Missing SSL Context for {}", certType.id()));
     }
 
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
-        final var settings = environment.settings();
-        final var httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
-        final var transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
-        if (httpSettings.isEmpty() && transportSettings.isEmpty()) {
+        final Settings settings = environment.settings();
+        final ImmutableMap.Builder<CertType, SslConfiguration> configurationBuilder = ImmutableMap.builder();
+        if (settings.getByPrefix(CertType.HTTP.sslSettingPrefix()).isEmpty()
+            && settings.getByPrefix(CertType.TRANSPORT.sslSettingPrefix()).isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
 
-        final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-        final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
+        /*
+         * Fetch and load configurations for available aux transports.
+         * Registered all configured aux transports as new CertTypes.
+         */
+        for (String auxType : AUX_TRANSPORT_TYPES_SETTING.get(environment.settings())) {
+            final CertType auxCert = new CertType(SSL_AUX_PREFIX + auxType + ".");
+            final Setting<Boolean> auxEnabled = SECURITY_SSL_AUX_ENABLED.getConcreteSettingForNamespace(auxType);
+            CERT_TYPE_REGISTRY.register(auxCert);
+            if (auxEnabled.get(settings) && !clientNode(settings)) {
+                validateSettings(auxCert, settings, false);
+                final SslParameters auxSslParameters = SslParameters.loader(auxCert, settings).load();
+                final Tuple<TrustStoreConfiguration, KeyStoreConfiguration> auxTrustAndKeyStore = new SslCertificatesLoader(
+                    auxCert.sslSettingPrefix()
+                ).loadConfiguration(environment);
+                configurationBuilder.put(
+                    auxCert,
+                    new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
+                );
+                LOGGER.info("TLS {} Provider                    : {}", auxCert.id(), auxSslParameters.provider());
+                LOGGER.info("Enabled TLS protocols for {} layer : {}", auxCert.id(), auxSslParameters.allowedProtocols());
+            }
+        }
 
-        final var configurationBuilder = ImmutableMap.<CertType, SslConfiguration>builder();
+        /*
+         * Load HTTP SslConfiguration.
+         */
+        final boolean httpEnabled = settings.getAsBoolean(CertType.HTTP.sslSettingPrefix() + ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         if (httpEnabled && !clientNode(settings)) {
-            validateHttpSettings(httpSettings);
-            final var httpSslParameters = SslParameters.loader(httpSettings).load(true);
-            final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslConfigPrefix()).loadConfiguration(environment);
+            validateSettings(CertType.HTTP, settings, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
+            final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
+            final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslSettingPrefix()).loadConfiguration(environment);
             configurationBuilder.put(
                 CertType.HTTP,
                 new SslConfiguration(httpSslParameters, httpTrustAndKeyStore.v1(), httpTrustAndKeyStore.v2())
@@ -144,12 +184,17 @@ public class SslSettingsManager {
             LOGGER.info("TLS HTTP Provider                    : {}", httpSslParameters.provider());
             LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslParameters.allowedProtocols());
         }
-        final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
-        if (transportEnabled) {
+
+        /*
+         * Load transport layer SslConfigurations.
+         */
+        final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslSettingPrefix());
+        final SslParameters transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
+        if (transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT)) {
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
                 validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
-                    CertType.TRANSPORT.sslConfigPrefix(),
+                    CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_SERVER_EXTENDED_PREFIX
                 ).loadConfiguration(environment);
                 configurationBuilder.put(
@@ -157,7 +202,7 @@ public class SslSettingsManager {
                     new SslConfiguration(transportSslParameters, transportServerTrustAndKeyStore.v1(), transportServerTrustAndKeyStore.v2())
                 );
                 final var transportClientTrustAndKeyStore = new SslCertificatesLoader(
-                    CertType.TRANSPORT.sslConfigPrefix(),
+                    CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX
                 ).loadConfiguration(environment);
                 configurationBuilder.put(
@@ -166,7 +211,7 @@ public class SslSettingsManager {
                 );
             } else {
                 validateTransportSettings(transportSettings);
-                final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslConfigPrefix()).loadConfiguration(
+                final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslSettingPrefix()).loadConfiguration(
                     environment
                 );
                 configurationBuilder.put(
@@ -229,38 +274,94 @@ public class SslSettingsManager {
         return !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
     }
 
-    private void validateHttpSettings(final Settings httpSettings) {
-        if (httpSettings == null) return;
-        if (!httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT)) return;
-
-        final var clientAuth = ClientAuth.valueOf(httpSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT));
-
-        if (hasPemStoreSettings(httpSettings)) {
-            if (!httpSettings.hasValue(PEM_CERT_FILEPATH) || !httpSettings.hasValue(PEM_KEY_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. "
-                        + String.join(", ", SECURITY_SSL_HTTP_PEMCERT_FILEPATH, SECURITY_SSL_HTTP_PEMKEY_FILEPATH)
-                        + " must be set"
-                );
-            }
-            if (clientAuth == ClientAuth.REQUIRE && !httpSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH + " must be set if client auth is required"
-                );
-            }
-        } else if (hasKeyOrTrustStoreSettings(httpSettings)) {
-            if (!httpSettings.hasValue(KEYSTORE_FILEPATH)) {
-                throw new OpenSearchException("Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_KEYSTORE_FILEPATH + " must be set");
-            }
-            if (clientAuth == ClientAuth.REQUIRE && !httpSettings.hasValue(TRUSTSTORE_FILEPATH)) {
-                throw new OpenSearchException(
-                    "Wrong HTTP SSL configuration. " + SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH + " must be set if client auth is required"
-                );
-            }
+    /**
+     * Validates configuration of transport pem store/keystore for provided CertType.
+     * {@link org.opensearch.OpenSearchException} thrown on invalid config.
+     * @param certType cert type to validate.
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validateSettings(final CertType certType, final Settings settings, final boolean enabled_default) {
+        final Settings certSettings = settings.getByPrefix(certType.sslSettingPrefix());
+        if (certSettings.isEmpty()) return;
+        if (!certSettings.getAsBoolean(ENABLED, enabled_default)) return;
+        if (hasPemStoreSettings(certSettings)) {
+            validatePemStoreSettings(certType, settings);
+        } else if (hasKeyOrTrustStoreSettings(certSettings)) {
+            validateKeyStoreSettings(certType, settings);
         } else {
             throw new OpenSearchException(
-                "Wrong HTTP SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
-                    + "PKCS#8 keys groups should be set to configure HTTP layer"
+                "Wrong "
+                    + certType.id()
+                    + " SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
+                    + "PKCS#8 keys groups should be set to configure "
+                    + certType.id()
+                    + " layer"
+            );
+        }
+    }
+
+    /**
+     * Validate pem store settings for transport of given type.
+     * Throws an {@link org.opensearch.OpenSearchException} if:
+     * - Either of the pem certificate or pem private key paths are not set.
+     * - Client auth is set to REQUIRE but pem trusted certificates filepath is not set.
+     * @param transportType transport type to validate
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validatePemStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
+        final var transportSettings = settings.getByPrefix(transportType.sslSettingPrefix());
+        final var clientAuth = ClientAuth.valueOf(
+            transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
+        );
+        if (!transportSettings.hasValue(PEM_CERT_FILEPATH) || !transportSettings.hasValue(PEM_KEY_FILEPATH)) {
+            throw new OpenSearchException(
+                "Wrong "
+                    + transportType.id().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + String.join(", ", transportSettings.get(PEM_CERT_FILEPATH), transportSettings.get(PEM_KEY_FILEPATH))
+                    + " must be set"
+            );
+        }
+        if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)) {
+            throw new OpenSearchException(
+                "Wrong "
+                    + transportType.id().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + PEM_TRUSTED_CAS_FILEPATH
+                    + " must be set if client auth is required"
+            );
+        }
+    }
+
+    /**
+     * Validate key store settings for transport of given type.
+     * Throws an {@link org.opensearch.OpenSearchException} if:
+     * - Keystore filepath is not set.
+     * - Client auth is set to REQUIRE but trust store filepath is not set.
+     * @param transportType transport type to validate
+     * @param settings {@link org.opensearch.env.Environment} settings.
+     */
+    private void validateKeyStoreSettings(CertType transportType, final Settings settings) throws OpenSearchException {
+        final var transportSettings = settings.getByPrefix(transportType.sslSettingPrefix());
+        final var clientAuth = ClientAuth.valueOf(
+            transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
+        );
+        if (!transportSettings.hasValue(KEYSTORE_FILEPATH)) {
+            throw new OpenSearchException(
+                "Wrong "
+                    + transportType.id().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + transportSettings.get(KEYSTORE_FILEPATH)
+                    + " must be set"
+            );
+        }
+        if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
+            throw new OpenSearchException(
+                "Wrong "
+                    + transportType.id().toLowerCase(Locale.ROOT)
+                    + " SSL configuration. "
+                    + TRUSTSTORE_FILEPATH
+                    + " must be set if client auth is required"
             );
         }
     }
@@ -386,5 +487,4 @@ public class SslSettingsManager {
             LOGGER.error("AES encryption not supported (SG 1). ", e);
         }
     }
-
 }
