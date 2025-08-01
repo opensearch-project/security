@@ -34,6 +34,7 @@ buildscript {
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.9'
+        protobuf_plugin_version = '0.6.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -491,6 +492,9 @@ configurations {
             force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.0.0"
+
+            // For org.opensearch.plugin:transport-grpc
+            force "com.google.guava:failureaccess:1.0.2"
         }
     }
 
@@ -530,6 +534,10 @@ allprojects {
         integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
             exclude(group: 'org.slf4j', module: 'slf4j-api')
         }
+        integrationTestImplementation "org.opensearch:protobufs:${protobuf_plugin_version}"
+        integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
+        integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+        integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
         integrationTestImplementation 'commons-io:commons-io:2.20.0'
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
@@ -567,7 +575,6 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
         integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
-
     }
 }
 

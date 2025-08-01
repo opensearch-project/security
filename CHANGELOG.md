@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * [Resource Sharing] Adds migrate API to move resource-sharing info to security plugin ([#5389](https://github.com/opensearch-project/security/pull/5389))
 * Introduces support for the Argon2 Password Hashing Algorithm ([#5441] (https://github.com/opensearch-project/security/pull/5441))
 * Introduced permission validation support using query parameter without executing the request ([#5496](https://github.com/opensearch-project/security/pull/5496))
+* Add support for configuring auxiliary transports for SSL only ([#5375] (https://github.com/opensearch-project/security/pull/5375))
 
 ### Enhancements
 
@@ -61,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.xerial.snappy:snappy-java` from 1.1.10.7 to 1.1.10.8 ([#5495](https://github.com/opensearch-project/security/pull/5495))
 - Bump `org.apache.commons:commons-text` from 1.13.1 to 1.14.0 ([#5511](https://github.com/opensearch-project/security/pull/5511))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M2 to 4.0.0-M3 ([#5514](https://github.com/opensearch-project/security/pull/5514))
+- Bumps opensearch-protobufs plugin version to 0.6.0 ([#5529](https://github.com/opensearch-project/security/pull/5529))
 
 ### Documentation
 
