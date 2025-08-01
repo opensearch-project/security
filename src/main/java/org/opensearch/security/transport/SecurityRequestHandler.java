@@ -55,6 +55,7 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.UserFactory;
+import org.opensearch.security.util.ParentChildrenQueryDetector;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
@@ -139,6 +140,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 ShardSearchRequest sr = ((ShardSearchRequest) request);
                 if (sr.source() != null && sr.source().suggest() != null) {
                     getThreadContext().putTransient("_opendistro_security_issuggest", Boolean.TRUE);
+                }
+                if (sr.source() != null && sr.source().query() != null) {
+                    if (ParentChildrenQueryDetector.hasParentOrChildQuery(sr.source().query())) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY, Boolean.TRUE);
+                    }
                 }
             }
 

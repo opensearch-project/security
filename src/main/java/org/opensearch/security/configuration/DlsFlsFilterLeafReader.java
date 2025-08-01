@@ -902,8 +902,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         return threadContext.getTransient("_opendistro_security_issuggest") == Boolean.TRUE;
     }
 
+    private boolean isParentChildQuery() {
+        return threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY) == Boolean.TRUE;
+    }
+
     private boolean applyDlsHere() {
-        if (isSuggest()) {
+        if (isSuggest() || isParentChildQuery()) {
             // we need to apply it here
             return true;
         }
