@@ -26,6 +26,7 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -129,7 +130,6 @@ public class SecurityDisabledTests {
     }
 
     private void assertNotImplementedResponse(TestRestClient.HttpResponse response, String msg) {
-        response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
-        assertThat(response.getTextFromJsonBody("/error/reason"), containsString(msg));
+        assertThat(response, RestMatchers.isMethodNotImplemented("/error/reason", msg));
     }
 }

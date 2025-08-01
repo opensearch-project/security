@@ -433,6 +433,8 @@ public class SecurityFilter implements ActionFilter {
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));
+                // We early return here to skip calling rest of the evaluation as this is a resource-access request
+                // Chain will proceed inside the async ActionListener above, if allowed, else returns forbidden
                 return;
             }
 

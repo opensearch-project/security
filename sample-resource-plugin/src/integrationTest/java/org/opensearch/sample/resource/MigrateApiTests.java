@@ -34,6 +34,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -62,7 +63,7 @@ public class MigrateApiTests {
     ).backendRoles("admin");
 
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
         .plugin(PainlessModulePlugin.class)
         .plugin(
             new PluginInfo(
@@ -154,8 +155,7 @@ public class MigrateApiTests {
                 RESOURCE_SHARING_MIGRATION_ENDPOINT,
                 migrationPayload_missingUserName()
             );
-            migrateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(migrateResponse.bodyAsJsonNode().get("missing_mandatory_keys").get("keys").asText(), equalTo("username_path"));
+            assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "username_path"));
         }
     }
 
@@ -168,8 +168,7 @@ public class MigrateApiTests {
                 RESOURCE_SHARING_MIGRATION_ENDPOINT,
                 migrationPayload_missingBackendRoles()
             );
-            migrateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(migrateResponse.bodyAsJsonNode().get("missing_mandatory_keys").get("keys").asText(), equalTo("backend_roles_path"));
+            assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "backend_roles_path"));
         }
     }
 
@@ -182,8 +181,7 @@ public class MigrateApiTests {
                 RESOURCE_SHARING_MIGRATION_ENDPOINT,
                 migrationPayload_missingSourceIndex()
             );
-            migrateResponse.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(migrateResponse.bodyAsJsonNode().get("missing_mandatory_keys").get("keys").asText(), equalTo("source_index"));
+            assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "source_index"));
         }
     }
 
