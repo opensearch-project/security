@@ -128,7 +128,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             String channelType = transportChannel.getChannelType();
 
-            if (!channelType.equals("direct") && !channelType.equals("transport")) {
+            if (!channelType.equals("direct") && !channelType.equals("transport") && !channelType.equals("stream-transport")) {
                 TransportChannel innerChannel = getInnerChannel(transportChannel);
                 channelType = innerChannel.getChannelType();
             }
@@ -213,6 +213,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             if (channelType.equals("direct")) {
+                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                return;
+            }
+
+            if (channelType.equals("stream-transport")) {
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }

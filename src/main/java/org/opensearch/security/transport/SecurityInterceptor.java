@@ -72,6 +72,7 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
+import org.opensearch.transport.stream.StreamTransportResponse;
 
 public class SecurityInterceptor {
 
@@ -157,7 +158,9 @@ public class SecurityInterceptor {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+        final boolean isSameNodeRequest = localNode != null
+            && localNode.equals(connection.getNode())
+            && (options.type() == null || !options.type().equals(TransportRequestOptions.Type.STREAM));
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
@@ -330,6 +333,45 @@ public class SecurityInterceptor {
         return threadPool.getThreadContext();
     }
 
+    /**
+     * Process response headers for cross-cluster search.
+     *
+     * @param response The transport response
+     * @param threadContext The thread context
+     */
+    public <T extends TransportResponse> void processResponseHeaders(T response, ThreadContext threadContext) {
+        if (!(response instanceof ClusterSearchShardsResponse)) {
+            return;
+        }
+
+        Map<String, List<String>> responseHeaders = threadContext.getResponseHeaders();
+        final boolean isDebugEnabled = log.isDebugEnabled();
+
+        List<String> flsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+        if (flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
+            if (isDebugEnabled) {
+                log.debug("add flsResponseHeader as transient");
+            }
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
+        }
+
+        List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+        if (dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
+            if (isDebugEnabled) {
+                log.debug("add dlsResponseHeader as transient");
+            }
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
+        }
+
+        List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+        if (maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
+            if (isDebugEnabled) {
+                log.debug("add maskedFieldsResponseHeader as transient");
+            }
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
+        }
+    }
+
     // based on
     // org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
     // which is private scoped
@@ -349,41 +391,22 @@ public class SecurityInterceptor {
         }
 
         @Override
+        public void handleStreamResponse(StreamTransportResponse<T> response) {
+            // Wrap the stream response with our secure wrapper that restores context for each response
+            SecureStreamTransportResponse<T> secureResponse = new SecureStreamTransportResponse<>(
+                response,
+                contextToRestore,
+                threadPool,
+                SecurityInterceptor.this
+            );
+            innerHandler.handleStreamResponse(secureResponse);
+        }
+
+        @Override
         public void handleResponse(T response) {
-
             ThreadContext threadContext = getThreadContext();
-            Map<String, List<String>> responseHeaders = threadContext.getResponseHeaders();
-
-            List<String> flsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-
             contextToRestore.restore();
-
-            final boolean isDebugEnabled = log.isDebugEnabled();
-            if (response instanceof ClusterSearchShardsResponse) {
-                if (flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
-                    if (isDebugEnabled) {
-                        log.debug("add flsResponseHeader as transient");
-                    }
-                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
-                }
-
-                if (dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
-                    if (isDebugEnabled) {
-                        log.debug("add dlsResponseHeader as transient");
-                    }
-                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
-                }
-
-                if (maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
-                    if (isDebugEnabled) {
-                        log.debug("add maskedFieldsResponseHeader as transient");
-                    }
-                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
-                }
-            }
-
+            processResponseHeaders(response, threadContext);
             innerHandler.handleResponse(response);
         }
 
