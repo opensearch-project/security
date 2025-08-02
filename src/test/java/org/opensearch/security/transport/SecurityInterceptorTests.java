@@ -50,6 +50,7 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.stream.StreamTransportResponse;
 
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -61,6 +62,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SecurityInterceptorTests {
@@ -182,6 +184,7 @@ public class SecurityInterceptorTests {
 
         request = mock(TransportRequest.class);
         options = mock(TransportRequestOptions.class);
+        when(options.type()).thenReturn(TransportRequestOptions.Type.REG);
 
         localAddress = null;
         remoteAddress = null;
@@ -438,5 +441,47 @@ public class SecurityInterceptorTests {
 
         // this is a local request
         completableRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+    }
+
+    @Test
+    public void testStreamRequestType() {
+        TransportRequestOptions streamOptions = mock(TransportRequestOptions.class);
+        when(streamOptions.type()).thenReturn(TransportRequestOptions.Type.STREAM);
+
+        completableRequestDecorate(jdkSerializedSender, connection1, action, request, streamOptions, handler, localNode);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testHandleStreamResponse() {
+        StreamTransportResponse<TransportResponse> streamResponse = mock(StreamTransportResponse.class);
+
+        TransportResponseHandler<TransportResponse> streamHandler = mock(TransportResponseHandler.class);
+
+        AsyncSender streamResponseSender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                handler.handleStreamResponse((StreamTransportResponse<T>) streamResponse);
+                senderLatch.get().countDown();
+            }
+        };
+
+        securityInterceptor.sendRequestDecorate(streamResponseSender, connection1, action, request, options, streamHandler, localNode);
+
+        try {
+            senderLatch.get().await(1, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        verify(streamHandler).handleStreamResponse(org.mockito.ArgumentMatchers.any(SecureStreamTransportResponse.class));
+
+        verifyOriginalContext(user);
     }
 }
