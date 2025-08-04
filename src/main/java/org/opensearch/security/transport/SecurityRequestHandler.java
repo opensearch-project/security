@@ -214,10 +214,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     }
                 } else {
                     user = user != null ? user : this.userFactory.fromSerializedBase64(userHeader);
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        user
-                    );
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
 
                 String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
