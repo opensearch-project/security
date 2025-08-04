@@ -67,6 +67,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
+    public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
 
