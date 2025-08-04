@@ -33,6 +33,11 @@ public class CertificateGenerator {
     public void createDemoCertificates() {
         for (Certificates cert : Certificates.values()) {
             String filePath = this.installer.OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
+            File file = new File(filePath);
+            if (file.exists()) {
+                System.out.println("File " + filePath + " already exists. Skipping.");
+                continue;
+            }
             try {
                 FileWriter fileWriter = new FileWriter(filePath, StandardCharsets.UTF_8);
                 fileWriter.write(cert.getContent());
