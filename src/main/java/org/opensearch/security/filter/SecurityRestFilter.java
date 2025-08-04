@@ -42,6 +42,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
@@ -72,6 +75,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityRestFilter {
 
@@ -164,12 +168,21 @@ public class SecurityRestFilter {
                 return;
             }
 
+            boolean performPermissionCheck = request.paramAsBoolean(SECURITY_PERFORM_PERMISSION_CHECK_PARAM, false);
+            if (performPermissionCheck) {
+                threadContext.putHeader(SECURITY_PERFORM_PERMISSION_CHECK_PARAM, Boolean.TRUE.toString());
+            }
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
                 auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
+                if (performPermissionCheck) {
+                    log.debug("Permission check skipped: Super admin has full access");
+                    handleSuperAdminPermissionCheck(channel);
+                    return;
+                }
                 delegate.handleRequest(request, channel, client);
                 return;
             }
@@ -191,6 +204,17 @@ public class SecurityRestFilter {
 
             // Caller was authorized, forward the request to the handler
             delegate.handleRequest(request, channel, client);
+        }
+
+        private void handleSuperAdminPermissionCheck(RestChannel channel) throws Exception {
+
+            XContentBuilder builder = channel.newBuilder();
+            builder.startObject();
+            builder.field("accessAllowed", true);
+            builder.field("missingPrivileges", Collections.emptyList());
+            builder.endObject();
+
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
         }
     }
 

@@ -65,9 +65,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
     private final List<String> rolesKey;
-    private final String subjectKey;
+    private final List<String> subjectKey;
     private final List<String> requiredAudience;
     private final String requireIssuer;
+    private final int clockSkewToleranceSeconds;
 
     @SuppressWarnings("removal")
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -79,9 +80,13 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.getAsList("roles_key");
-        subjectKey = settings.get("subject_key");
+        subjectKey = settings.getAsList("subject_key");
         requiredAudience = settings.getAsList("required_audience");
         requireIssuer = settings.get("required_issuer");
+        clockSkewToleranceSeconds = settings.getAsInt(
+            "jwt_clock_skew_tolerance_seconds",
+            AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
+        );
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -99,6 +104,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 if (requireIssuer != null) {
                     jwtParserBuilder.requireIssuer(requireIssuer);
                 }
+
+                jwtParserBuilder.clockSkewSeconds(clockSkewToleranceSeconds);
 
                 final SecurityManager sm = System.getSecurityManager();
                 if (sm != null) {
@@ -178,7 +185,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                     assertValidAudienceClaim(claims);
                 }
 
-                final String subject = extractSubject(claims, request);
+                final String subject = extractSubject(claims);
 
                 if (subject == null) {
                     log.error("No subject found in JWT token");
@@ -253,25 +260,41 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final SecurityRequest request) {
+    protected String extractSubject(final Claims claims) {
         String subject = claims.getSubject();
-        if (subjectKey != null) {
-            // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-            Object subjectObject = claims.get(subjectKey, Object.class);
-            if (subjectObject == null) {
-                log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
-                return null;
+        if (subjectKey != null && !subjectKey.isEmpty()) {
+            // ── 1. Traverse the nested structure ───────────────────────────────────────
+            Object node = claims;                                        // start at root
+            for (String key : subjectKey) {
+                if (!(node instanceof Map<?, ?> map)) {                  // unexpected shape
+                    log.warn(
+                        "While following subject_key path {}, expected a JSON object before '{}', but found '{}' ({}).",
+                        subjectKey,
+                        key,
+                        node,
+                        node.getClass()
+                    );
+                    return null;  // Subject cannot be extracted from the configured path
+                }
+                node = map.get(key);
+                if (node == null) {                                      // key missing
+                    log.warn("Failed to find '{}' in JWT claims while following subject_key path {}.", key, subjectKey);
+                    return null;  // Subject cannot be extracted from the configured path
+                }
             }
-            // We expect a String. If we find something else, convert to String but issue a warning
-            if (!(subjectObject instanceof String)) {
+            // ── 2. Interpret the leaf value ────────────────────────────────────────────
+            if (node instanceof String str) {
+                return str.trim();
+            } else {                                                     // something odd
                 log.warn(
-                    "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
+                    "Expected a String at the end of subject_key path {}, but found '{}' ({}). Converting to String.",
                     subjectKey,
-                    subjectObject,
-                    subjectObject.getClass()
+                    node,
+                    node.getClass()
                 );
+                return String.valueOf(node).trim();
             }
-            subject = String.valueOf(subjectObject);
+
         }
         return subject;
     }
