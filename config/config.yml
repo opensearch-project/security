@@ -149,7 +149,7 @@ config:
             username_attribute: cn #optional, if omitted DN becomes username
             # skip_users config is used to skip cert based authentication for certain users where they can fall back to other authentication backends
             #skip_users:
-            #  - "dashboard"
+            #  - "DC=de,L=test,O=users,OU=bridge,CN=dashboard"
 
           challenge: false
         authentication_backend:
