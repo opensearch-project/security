@@ -15,10 +15,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -26,21 +22,19 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -54,34 +48,33 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  * Transport action for getting a resource
  */
 public class GetResourceTransportAction extends HandledTransportAction<GetResourceRequest, GetResourceResponse> {
-    private static final Logger log = LogManager.getLogger(GetResourceTransportAction.class);
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
-    private final Settings settings;
+    private final SampleResourceExtension sampleResourceExtension;
 
     @Inject
     public GetResourceTransportAction(
-        Settings settings,
         TransportService transportService,
         ActionFilters actionFilters,
-        NodeClient nodeClient
+        NodeClient nodeClient,
+        SampleResourceExtension sampleResourceExtension
     ) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.settings = settings;
+        this.sampleResourceExtension = sampleResourceExtension;
     }
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+        ResourceSharingClient client = sampleResourceExtension.getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {
             fetchAllResources(listener, client);
         } else {
-            verifyAndFetchSingle(resourceId, listener, client);
+            fetchResourceById(resourceId, listener);
         }
     }
 
@@ -96,20 +89,6 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                 listener.onResponse(new GetResourceResponse(Collections.emptySet()));
             } else {
                 fetchResourcesByIds(ids, listener);
-            }
-        }, listener::onFailure));
-    }
-
-    private void verifyAndFetchSingle(String resourceId, ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
-        if (client == null) {
-            fetchResourceById(resourceId, listener);
-            return;
-        }
-        client.verifyAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(authorized -> {
-            if (!authorized) {
-                listener.onFailure(new OpenSearchStatusException("Not authorized to access resource: " + resourceId, RestStatus.FORBIDDEN));
-            } else {
-                fetchResourceById(resourceId, listener);
             }
         }, listener::onFailure));
     }
@@ -131,9 +110,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private void fetchResourcesByIds(@Nullable Set<String> ids, ActionListener<GetResourceResponse> listener) {
         withThreadContext(stashed -> {
             SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000)
-                .query(
-                    ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.idsQuery().addIds(ids.toArray(ids.toArray(String[]::new)))
-                );
+                .query(ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.idsQuery().addIds(ids.toArray(String[]::new)));
 
             SearchRequest req = new SearchRequest(RESOURCE_INDEX_NAME).source(ssb);
             nodeClient.search(req, ActionListener.wrap(searchResponse -> {

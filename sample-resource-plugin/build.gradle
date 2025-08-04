@@ -52,14 +52,14 @@ configurations.all {
     resolutionStrategy {
         force 'org.apache.httpcomponents:httpclient:4.5.14'
         force 'org.apache.httpcomponents:httpcore:4.4.16'
-        force 'commons-codec:commons-codec:1.18.0'
+        force 'commons-codec:commons-codec:1.19.0'
         force 'org.hamcrest:hamcrest:2.2'
         force 'org.mockito:mockito-core:5.18.0'
         force 'org.slf4j:slf4j-api:1.7.36'
 
         // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
         // Force versions present in security plugin
-        force "com.google.errorprone:error_prone_annotations:2.36.0"
+        force "com.google.errorprone:error_prone_annotations:2.41.0"
         force "com.google.protobuf:protobuf-java:${versions.protobuf}"
         force "com.google.guava:guava:${guava_version}"
         force "com.google.guava:failureaccess:1.0.3"
@@ -73,6 +73,8 @@ dependencies {
     implementation "org.opensearch:common-utils:${common_utils_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+
+    integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3' // for running multinode tests
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output

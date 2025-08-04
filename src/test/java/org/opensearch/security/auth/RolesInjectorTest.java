@@ -24,11 +24,11 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.node.Node;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
-import org.opensearch.transport.TransportRequest;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -38,34 +38,33 @@ import static org.mockito.Mockito.mock;
 
 public class RolesInjectorTest {
 
-    private TransportRequest transportRequest;
-    private Task task;
     private AuditLog auditLog;
+
+    private ThreadPool threadPool;
 
     @Before
     public void setup() {
-        transportRequest = mock(TransportRequest.class);
-        task = mock(Task.class);
         auditLog = mock(AuditLog.class);
+        threadPool = new ThreadPool(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "name").build());
     }
 
     @Test
     public void testNotInjected() {
-        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+
         RolesInjector rolesInjector = new RolesInjector(auditLog);
-        Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
+        Set<String> roles = rolesInjector.injectUserAndRoles(threadPool);
         assertThat(roles, is(nullValue()));
-        User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertThat(user, is(nullValue()));
     }
 
     @Test
     public void testInjected() {
-        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        ThreadContext threadContext = threadPool.getThreadContext();
         threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, "user1|role_1,role_2");
 
         RolesInjector rolesInjector = new RolesInjector(auditLog);
-        Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
+        Set<String> roles = rolesInjector.injectUserAndRoles(threadPool);
 
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertThat(user.getName(), is("user1"));
@@ -80,15 +79,16 @@ public class RolesInjectorTest {
         List<String> corruptedStrs = Arrays.asList("invalid", "role_1,role_2", " | ", "  ", "|");
 
         corruptedStrs.forEach(name -> {
-            ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+            ThreadContext threadContext = threadPool.getThreadContext();
             threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, name);
 
             RolesInjector rolesInjector = new RolesInjector(auditLog);
-            Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
+            Set<String> roles = rolesInjector.injectUserAndRoles(threadPool);
 
             assertThat(roles, is(nullValue()));
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             assertThat(user, is(nullValue()));
+            threadPool.getThreadContext().stashContext(); // to remove transient headers
         });
     }
 }

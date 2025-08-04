@@ -43,7 +43,7 @@ public class EncryptionInTransitMigrationTests {
         .sslOnly(true)
         .nodeSpecificSettings(0, Map.of(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true))
         .nodeSpecificSettings(1, Map.of(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true))
-        .extectedNodeStartupCount(2)
+        .expectedNodeStartupCount(2)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .build();
 
