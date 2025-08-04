@@ -9,21 +9,15 @@
 */
 package org.opensearch.security.http;
 
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
@@ -36,33 +30,43 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CertificateAuthenticationTest {
 
     private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
-    
+
     public static final String POINTER_BACKEND_ROLES = "/backend_roles";
     public static final String POINTER_ROLES = "/roles";
 
     private static final String USER_SPOCK = "spock";
     private static final String USER_KIRK = "kirk";
-    
-    private static final String USER_DASHBOARD= "dashboard";
-    private static final String USER_DASHBOARD_PRINCIPLE= "DC=de,L=test,O=users,OU=bridge,CN=dashboard";
-    
+
+    private static final String USER_DASHBOARD = "dashboard";
+    private static final String USER_DASHBOARD_PRINCIPLE = "DC=de,L=test,O=users,OU=bridge,CN=dashboard";
 
     private static final String BACKEND_ROLE_BRIDGE = "bridge";
     private static final String BACKEND_ROLE_CAPTAIN = "captain";
 
-
     private static final Role ROLE_ALL_INDEX_SEARCH = new Role("all-index-search").indexPermissions("indices:data/read/search").on("*");
-    
+
     private static final User USER_MONITOR = new User("monitor").roles(ROLE_ALL_INDEX_SEARCH);
-    
-    private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of("username_attribute", "cn", "roles_attribute", "ou","skip_users" , Arrays.asList( USER_DASHBOARD_PRINCIPLE)); 
+
+    private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of(
+        "username_attribute",
+        "cn",
+        "roles_attribute",
+        "ou",
+        "skip_users",
+        Arrays.asList(USER_DASHBOARD_PRINCIPLE)
+    );
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().nodeSettings(
@@ -98,10 +102,8 @@ public class CertificateAuthenticationTest {
      */
     @Test
     public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfiguredWithCertProvided() {
-    	CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN, userSpockCertificate)) {
-
-            
 
             client.confirmCorrectCredentials(USER_SPOCK);
         }
@@ -113,13 +115,14 @@ public class CertificateAuthenticationTest {
 
     @Test
     public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfiguredAndSkipCertSet() {
-    	CertificateData userDashboardCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_DASHBOARD);
+        CertificateData userDashboardCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_DASHBOARD);
         try (TestRestClient client = cluster.getRestClient(USER_MONITOR, userDashboardCertificate)) {
 
-        	 client.confirmCorrectCredentials("monitor");
+            client.confirmCorrectCredentials("monitor");
         }
     }
-@Test
+
+    @Test
     public void shouldAuthenticateUserWithCertificate_positiveUserSpoke() {
         CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
         try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
