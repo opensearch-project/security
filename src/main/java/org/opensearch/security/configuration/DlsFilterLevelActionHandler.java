@@ -65,6 +65,7 @@ import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ReflectiveAttributeAccessors;
 import org.opensearch.security.support.SecurityUtils;
+import org.opensearch.security.util.ParentChildrenQueryDetector;
 
 public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
@@ -230,7 +231,12 @@ public class DlsFilterLevelActionHandler {
         }
 
         if (searchRequest.source().query() != null) {
-            filterLevelQueryBuilder.must(searchRequest.source().query());
+            QueryBuilder query = searchRequest.source().query();
+            if (ParentChildrenQueryDetector.hasParentOrChildQuery(query)) {
+                listener.onFailure(new OpenSearchSecurityException("Unable to handle filter level DLS for parent or child queries"));
+                return false;
+            }
+            filterLevelQueryBuilder.must(query);
         }
 
         searchRequest.source().query(filterLevelQueryBuilder);
