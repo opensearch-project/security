@@ -32,11 +32,4 @@ public interface ResourceSharingExtension {
      * @param client the ResourceSharingClient instance
      */
     void assignResourceSharingClient(ResourceSharingClient client);
-
-    /**
-     * Gets the resource sharing client to be used by the plugin
-     * @return the resource sharing client
-     */
-    ResourceSharingClient getResourceSharingClient();
-
 }
