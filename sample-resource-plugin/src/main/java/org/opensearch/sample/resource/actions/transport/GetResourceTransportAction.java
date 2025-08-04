@@ -31,7 +31,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
@@ -54,11 +53,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private final NodeClient nodeClient;
 
     @Inject
-    public GetResourceTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient
-    ) {
+    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;

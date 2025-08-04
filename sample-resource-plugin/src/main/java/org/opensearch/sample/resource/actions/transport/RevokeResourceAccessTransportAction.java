@@ -17,7 +17,6 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRequest;
@@ -38,10 +37,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     private final ResourceSharingClient resourceSharingClient;
 
     @Inject
-    public RevokeResourceAccessTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters
-    ) {
+    public RevokeResourceAccessTransportAction(TransportService transportService, ActionFilters actionFilters) {
         super(RevokeResourceAccessAction.NAME, transportService, actionFilters, RevokeResourceAccessRequest::new);
         this.resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
     }
