@@ -33,7 +33,7 @@ dependencies {
 Each plugin must define a **resource class** .
 Example:
 ```java
-public class SampleResource {
+public class SampleResource implements NamedWriteable, ToXContentObject{
     private String id;
     private String owner;
 
@@ -104,8 +104,61 @@ public class SampleResourceExtension implements ResourceSharingExtension {
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
+#### **6. Implement DocRequest interface**
 
-#### **6. Using the Client in a Transport Action**
+All ActionRequests related to resource must implement DocRequest interface. This is how security plugin decides whether request if for a protected resource.
+
+```java
+public class ShareResourceRequest extends ActionRequest implements DocRequest {
+
+    private final String resourceId;
+
+    private final ShareWith shareWithRecipients;
+
+    public ShareResourceRequest(String resourceId, ShareWith shareWithRecipients) {
+        this.resourceId = resourceId;
+        this.shareWithRecipients = shareWithRecipients;
+    }
+
+    public ShareResourceRequest(StreamInput in) throws IOException {
+        this.resourceId = in.readString();
+        this.shareWithRecipients = new ShareWith(in);
+    }
+
+    @Override
+    public void writeTo(final StreamOutput out) throws IOException {
+        out.writeString(this.resourceId);
+        shareWithRecipients.writeTo(out);
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        return null;
+    }
+
+    public String getResourceId() {
+        return this.resourceId;
+    }
+
+    public ShareWith getShareWith() {
+        return shareWithRecipients;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String id() {
+        return resourceId;
+    }
+}
+```
+
+---
+
+#### **7. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
