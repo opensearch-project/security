@@ -114,30 +114,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
 
-        String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-        String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
-        String userHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-
-        // restore a persistent user-subject from subject header
-        if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-            // when auth subject user is same request user.
-            if (Boolean.parseBoolean(shouldUseUserHeader) && userHdr != null) {
-                User user = this.userFactory.fromSerializedBase64(userHdr);
-
-                getThreadContext().putPersistent(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                    new UserSubjectImpl(getThreadPool(), user)
-                );
-            } else if (authUsrHdr != null) {
-                User user = this.userFactory.fromSerializedBase64(authUsrHdr);
-
-                getThreadContext().putPersistent(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                    new UserSubjectImpl(getThreadPool(), user)
-                );
-            }
-        }
-
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
         final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
@@ -200,7 +176,30 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+                String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
+                String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+
+                // restore a persistent user-subject from subject header
+                if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+                    // when auth subject user is same request user.
+                    if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
+                        User user = this.userFactory.fromSerializedBase64(userHeader);
+
+                        getThreadContext().putPersistent(
+                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                                new UserSubjectImpl(getThreadPool(), user)
+                        );
+                    } else if (authUsrHdr != null) {
+                        User user = this.userFactory.fromSerializedBase64(authUsrHdr);
+
+                        getThreadContext().putPersistent(
+                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                                new UserSubjectImpl(getThreadPool(), user)
+                        );
+                    }
+                }
+
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
