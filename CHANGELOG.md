@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.apache.commons:commons-text` from 1.13.1 to 1.14.0 ([#5511](https://github.com/opensearch-project/security/pull/5511))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M2 to 4.0.0-M3 ([#5514](https://github.com/opensearch-project/security/pull/5514))
 - Bumps opensearch-protobufs plugin version to 0.6.0 ([#5529](https://github.com/opensearch-project/security/pull/5529))
+- Bump `net.minidev:accessors-smart` from 2.5.2 to 2.6.0 ([#5535](https://github.com/opensearch-project/security/pull/5535))
 
 ### Documentation
 
