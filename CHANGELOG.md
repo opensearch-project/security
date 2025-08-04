@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `net.bytebuddy:byte-buddy` from 1.17.5 to 1.17.6 ([#5427](https://github.com/opensearch-project/security/pull/5427))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.32 to 4.2.33 ([#5428](https://github.com/opensearch-project/security/pull/5428))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.13.1 to 5.13.2 ([#5446](https://github.com/opensearch-project/security/pull/5446))
-- Bump `com.google.errorprone:error_prone_annotations` from 2.38.0 to 2.41.0 ([#5447](https://github.com/opensearch-project/security/pull/5447), [#5477](https://github.com/opensearch-project/security/pull/5477), [#5512](https://github.com/opensearch-project/security/pull/5512))
+- Bump `com.google.errorprone:error_prone_annotations` from 2.38.0 to 2.41.0 ([#5447](https://github.com/opensearch-project/security/pull/5447), [#5477](https://github.com/opensearch-project/security/pull/5477), [#5512](https://github.com/opensearch-project/security/pull/5512), [#5532](https://github.com/opensearch-project/security/pull/5532))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.32 to 4.2.33 ([#5428](https://github.com/opensearch-project/security/pull/5428))
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.2 to 5.13.4 ([#5460](https://github.com/opensearch-project/security/pull/5460), [#5513](https://github.com/opensearch-project/security/pull/5513))
 - Bump `org.checkerframework:checker-qual` from 3.49.4 to 3.49.5 ([#5462](https://github.com/opensearch-project/security/pull/5462))
