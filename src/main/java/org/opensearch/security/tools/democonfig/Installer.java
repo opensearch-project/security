@@ -40,8 +40,7 @@ public class Installer {
     private static Installer instance;
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
-
-    private static CertificateGenerator certificateGenerator;
+    static CertificateGenerator certificateGenerator;
 
     boolean assumeyes = false;
     boolean initsecurity = false;
