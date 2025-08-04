@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Fix config update with deprecated config types failing in mixed clusters ([#5456](https://github.com/opensearch-project/security/pull/5456))
 * Fix usage of jwt_clock_skew_tolerance_seconds in HTTPJwtAuthenticator ([#5506](https://github.com/opensearch-project/security/pull/5506))
 * Always install demo certs if configured with demo certs ([#5517](https://github.com/opensearch-project/security/pull/5517))
+* Client certificate setting bypasses password requirements  ([#4378](https://github.com/opensearch-project/security/pull/5525))
 
 ### Refactoring
 
