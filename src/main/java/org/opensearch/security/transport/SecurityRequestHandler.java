@@ -187,15 +187,15 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         User user = this.userFactory.fromSerializedBase64(userHeader);
 
                         getThreadContext().putPersistent(
-                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                                new UserSubjectImpl(getThreadPool(), user)
+                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                            new UserSubjectImpl(getThreadPool(), user)
                         );
                     } else if (authUsrHdr != null) {
                         User user = this.userFactory.fromSerializedBase64(authUsrHdr);
 
                         getThreadContext().putPersistent(
-                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                                new UserSubjectImpl(getThreadPool(), user)
+                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                            new UserSubjectImpl(getThreadPool(), user)
                         );
                     }
                 }
