@@ -310,7 +310,6 @@ public class PrivilegesEvaluator {
             joiner.add(tenantAccessToCheck);
             log.debug(joiner);
 
-
             joiner.add(Base64Helper.serializeObject((Serializable) context.getUser().getCustomAttributesMap()));
 
             if (this.isUserAttributeSerializationEnabled()) {
