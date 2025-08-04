@@ -88,7 +88,6 @@ public class SampleResourcePluginUserTests {
         }
     }
 
-
     @Test
     public void testUserSerializationAndDeserialization() throws Exception {
         String resourceId;
