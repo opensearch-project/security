@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Use isClusterPerm instead of requestedResolved.isLocalAll() to determine if action is a cluster action ([#5445](https://github.com/opensearch-project/security/pull/5445))
 * Fix config update with deprecated config types failing in mixed clusters ([#5456](https://github.com/opensearch-project/security/pull/5456))
 * Fix usage of jwt_clock_skew_tolerance_seconds in HTTPJwtAuthenticator ([#5506](https://github.com/opensearch-project/security/pull/5506))
+* Always install demo certs if configured with demo certs ([#5517](https://github.com/opensearch-project/security/pull/5517))
 * Fix NullPointerExceptions for "missing values" term aggregations and sorting on geo points ([#5537](https://github.com/opensearch-project/security/pull/5537))
 
 ### Refactoring
@@ -65,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bumps opensearch-protobufs plugin version to 0.6.0 ([#5529](https://github.com/opensearch-project/security/pull/5529))
 - Bump `net.minidev:accessors-smart` from 2.5.2 to 2.6.0 ([#5535](https://github.com/opensearch-project/security/pull/5535))
 - Bump `commons-codec:commons-codec` from 1.18.0 to 1.19.0 ([#5534](https://github.com/opensearch-project/security/pull/5534))
+- Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
 
 ### Documentation
 
