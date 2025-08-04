@@ -60,16 +60,22 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
     public void share(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            Set<String> updatedRecipients = recipients.get(recipientType);
-            updatedRecipients.addAll(targetRecipients.get(recipientType));
+            if (!recipients.containsKey(recipientType)) { // will not be present in case of very first share
+                recipients.put(recipientType, targetRecipients.get(recipientType));
+            } else {
+                Set<String> updatedRecipients = recipients.get(recipientType);
+                updatedRecipients.addAll(targetRecipients.get(recipientType));
+            }
         }
     }
 
     public void revoke(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            Set<String> updatedRecipients = recipients.get(recipientType);
-            updatedRecipients.removeAll(targetRecipients.get(recipientType));
+            if (recipients.containsKey(recipientType)) { // no need to revoke if access was not granted in first place
+                Set<String> updatedRecipients = recipients.get(recipientType);
+                updatedRecipients.removeAll(targetRecipients.get(recipientType));
+            }
         }
     }
 
@@ -117,7 +123,7 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String toString() {
-        return "{" + recipients + '}';
+        return recipients.toString();
     }
 
     @Override

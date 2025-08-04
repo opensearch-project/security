@@ -10,7 +10,10 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +37,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.common.Nullable;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -77,6 +82,7 @@ public class ResourceSharingIndexHandler {
 
     private final ThreadPool threadPool;
 
+    @Inject
     public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
         this.client = client;
         this.threadPool = threadPool;
@@ -530,7 +536,7 @@ public class ResourceSharingIndexHandler {
         // Fetch the current ResourceSharing document
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-        // Check permissions & build revoke script
+        // build revoke script
         sharingInfoListener.whenComplete(sharingInfo -> {
 
             assert sharingInfo != null;
@@ -563,6 +569,151 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(failResponse);
                 });
                 client.index(ir, irListener);
+            }
+        }, listener::onFailure);
+    }
+
+    /**
+     * Helper method to build shareWith object from the supplied patch to then be used to apply the patch
+     * @param patch source content
+     * @return the parsed content map of entities to share and to revoke
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, ShareWith> patchParser(Map<String, Object> patch) {
+        Map<String, ShareWith> patches = new HashMap<>(2);
+        patches.put("share_with", buildShareWithObject((Map<String, Object>) patch.get("share_with")));
+        patches.put("revoke", buildShareWithObject((Map<String, Object>) patch.get("revoke")));
+        return patches;
+    }
+
+    /**
+     * Helper to build the shareWith structure to be used to apply the patch
+     */
+    @SuppressWarnings("unchecked")
+    private ShareWith buildShareWithObject(Map<String, Object> rawMap) {
+        ShareWith sw = new ShareWith(new HashMap<>());
+        try {
+            if (rawMap == null) return sw;
+
+            for (var e : rawMap.entrySet()) {
+                String level = e.getKey();
+
+                Map<String, Object> recMap = (Map<String, Object>) e.getValue();
+
+                Map<Recipient, Set<String>> recipients = new HashMap<>();
+                for (var rec : recMap.entrySet()) {
+                    recipients.put(Recipient.valueOf(rec.getKey().toUpperCase(Locale.ROOT)), new HashSet<>((List<String>) rec.getValue()));
+                }
+
+                sw.getSharingInfo().put(level, new Recipients(recipients));
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Failed to build share with object", e);
+        }
+        return sw;
+    }
+
+    /**
+     * Applies the patch to the original resource-sharing share-with record.
+     * @param existing current share-with object
+     * @param patches updates to be applied; share-with will be added and revoke will be removed
+     * @return updated share-with object
+     */
+    private ShareWith applyPatch(@Nullable ShareWith existing, Map<String, ShareWith> patches) {
+        Map<String, Recipients> updated = new HashMap<>();
+
+        // 1) put all current values into the update map
+        if (existing != null) {
+            updated.putAll(existing.getSharingInfo());
+        }
+
+        // 2) apply all the "share_with" patches
+        ShareWith sharePatch = patches.get("share_with");
+        if (sharePatch != null) {
+            for (var entry : sharePatch.getSharingInfo().entrySet()) {
+                String level = entry.getKey();
+                Recipients toShare = entry.getValue();
+                // if there’s already a Recipients at that level, merge into it;
+                // otherwise insert a fresh copy of the patch
+                updated.merge(level, toShare, (origRecipients, patchCopy) -> {
+                    origRecipients.share(toShare);
+                    return origRecipients;
+                });
+            }
+        }
+
+        // 3) apply all the "revoke" patches
+        ShareWith revokePatch = patches.get("revoke");
+        if (revokePatch != null) {
+            for (var entry : revokePatch.getSharingInfo().entrySet()) {
+                String level = entry.getKey();
+                Recipients toRevoke = entry.getValue();
+                // we revoke only if we already had any recipients at that level
+                updated.computeIfPresent(level, (lvl, origRecipients) -> {
+                    origRecipients.revoke(toRevoke);
+                    return origRecipients;
+                });
+            }
+        }
+
+        // 4) return a new ShareWith object with the updated recipients
+        return new ShareWith(updated);
+    }
+
+    /**
+     * Fetch existing share_with, apply the patch ops in-memory, and update the sharing record.
+     * Two ops are supported:
+     * 1. share_with -> upgrade or downgrade access; share with new entities
+     * 2. revoke -> revoke access for existing entities
+     * @param resourceId    id of the resource to apply the patch to
+     * @param resourceIndex name of the index where resource is present
+     * @param patchContent  the patch to be applied
+     * @param listener      listener to be notified in case of success or failure
+     */
+    public void patchSharingInfo(
+        String resourceId,
+        String resourceIndex,
+        Map<String, Object> patchContent,
+        ActionListener<ResourceSharing> listener
+    ) {
+
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // Apply patch and update the document
+        sharingInfoListener.whenComplete(resourceSharing -> {
+            // parse and apply the patch
+            Map<String, ShareWith> patches = patchParser(patchContent);
+            ShareWith updatedShareWith = applyPatch(resourceSharing.getShareWith(), patches);
+
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
+
+            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+                // update the record
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                    .setId(resourceId)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setOpType(DocWriteRequest.OpType.INDEX)
+                    .request();
+
+                client.index(ir, ActionListener.wrap(idxResponse -> {
+                    ctx.restore();
+                    LOGGER.info(
+                        "Successfully updated {} resource sharing info for resource {} in index {}.",
+                        resourceSharingIndex,
+                        resourceId,
+                        resourceIndex
+                    );
+
+                    listener.onResponse(updatedSharingInfo);
+                }, (e) -> {
+                    LOGGER.error(e.getMessage());
+                    listener.onFailure(e);
+                }));
             }
         }, listener::onFailure);
     }
