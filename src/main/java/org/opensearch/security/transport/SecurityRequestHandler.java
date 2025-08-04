@@ -179,23 +179,24 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
                 String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
                 String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                User user = null;
 
                 // restore a persistent user-subject from subject header
                 if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
                     // when auth subject user is same request user.
                     if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
-                        User user = this.userFactory.fromSerializedBase64(userHeader);
+                        user = this.userFactory.fromSerializedBase64(userHeader);
 
                         getThreadContext().putPersistent(
                             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
                             new UserSubjectImpl(getThreadPool(), user)
                         );
                     } else if (authUsrHdr != null) {
-                        User user = this.userFactory.fromSerializedBase64(authUsrHdr);
+                        User authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
 
                         getThreadContext().putPersistent(
                             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), user)
+                            new UserSubjectImpl(getThreadPool(), authUser)
                         );
                     }
                 }
@@ -212,9 +213,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
+                    user = user != null ? user : this.userFactory.fromSerializedBase64(userHeader);
                     getThreadContext().putTransient(
                         ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        this.userFactory.fromSerializedBase64(userHeader)
+                        user
                     );
                 }
 
