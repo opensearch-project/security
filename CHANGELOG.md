@@ -5,17 +5,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 
-### Changed
-- Use extendedPlugins in integrationTest framework for sample resource plugin testing ([#5322](https://github.com/opensearch-project/security/pull/5322))
-- [Resource Sharing] Refactor ResourcePermissions to refer to action groups as access levels ([#5335](https://github.com/opensearch-project/security/pull/5335))
-- Introduced new, performance-optimized implementation for tenant privileges ([#5339](https://github.com/opensearch-project/security/pull/5339))
-- Performance improvements: Immutable user object ([#5212](https://github.com/opensearch-project/security/pull/5212))
-- Include mapped roles when setting userInfo in ThreadContext ([#5369](https://github.com/opensearch-project/security/pull/5369))
-- Adds details for debugging Security not initialized error([#5370](https://github.com/opensearch-project/security/pull/5370))
-- [Resource Sharing] Store resource sharing info in indices that map 1-to-1 with resource index ([#5358](https://github.com/opensearch-project/security/pull/5358))
-- Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5385](https://github.com/opensearch-project/security/pull/5385))
-- Moved OpenSAML jars to a Shadow Jar configuration to facilitate its use in FIPS enabled environments ([#5400](https://github.com/opensearch-project/security/pull/5404))
-- Fix compilation issue after change to Subject interface in core and bump to 3.2.0 ([#5423](https://github.com/opensearch-project/security/pull/5423))
 ### Features
 
 * Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
@@ -35,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Optimized performance for construction of internal action privileges data structure  ([#5470](https://github.com/opensearch-project/security/pull/5470))
 * Restricting query optimization via star tree index for users with queries on indices with DLS/FLS/FieldMasked restrictions ([#5492](https://github.com/opensearch-project/security/pull/5492))
 * Handle subject in nested claim for JWT auth backends ([#5467](https://github.com/opensearch-project/security/pull/5467))
+* Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5467](https://github.com/opensearch-project/security/pull/5467))
 
 ### Bug Fixes
 
@@ -42,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Provide SecureHttpTransportParameters to complement SecureTransportParameters counterpart ([#5432](https://github.com/opensearch-project/security/pull/5432))
 * Use isClusterPerm instead of requestedResolved.isLocalAll() to determine if action is a cluster action ([#5445](https://github.com/opensearch-project/security/pull/5445))
 * Fix config update with deprecated config types failing in mixed clusters ([#5456](https://github.com/opensearch-project/security/pull/5456))
-* Fix usage of jwt_clock_skew_tolerance_seconds in HTTPJwtAuthenticator ([#5506](https://github.com/opensearch-project/security/pull/5506))
+* Fix usage of jwt_clock_skew_tolerance_seconds in HTTPJwtAuthenticator ([#5385](https://github.com/opensearch-project/security/pull/5385))
 
 ### Refactoring
 
