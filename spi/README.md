@@ -67,22 +67,23 @@ Ensure that your **plugin declaration class** implements `ResourceSharingExtensi
 
 ```java
 // Create a new extension point to register itself of a resource access control plugin
-public class SampleResourceSharingExtension implements ResourceSharingExtension {
+public class SampleResourceExtension implements ResourceSharingExtension {
+  private ResourceSharingClient client;
 
-    @Override
-    public Set<ResourceProvider> getResourceProviders() {
-      return Set.of(
-              new ResourceProvider(
-                      SampleResource.class.getCanonicalName(), // class-name of the resource
-                      RESOURCE_INDEX_NAME                     // the index that stores resource, **must only store the type of resource defined in the line above**
-              )
-      );
-    }
+  @Override
+  public Set<ResourceProvider> getResourceProviders() {
+    return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
+  }
 
-    @Override
-    public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-      ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
-    }
+  @Override
+  public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
+    this.client = resourceSharingClient;
+  }
+
+  @Override
+  public ResourceSharingClient getResourceSharingClient() {
+    return this.client;
+  }
 }
 ```
 
@@ -98,112 +99,43 @@ public class SampleResourceSharingExtension implements ResourceSharingExtension 
 - Edit the file and add a **single line** containing the **fully qualified class name** of your resource sharing extension implementation class.
   Example:
   ```
-  org.opensearch.sample.SampleResourceSharingExtension
+  org.opensearch.sample.SampleResourceExtension
   ```
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
 
-#### **6. Creating a Client Accessor **
-To ensure a single instance of the `ResourceSharingClient`. CLIENT will be set by security plugin if enabled via `assignResourceSharingClient`. Default to `NoopResourceSharingClient` when CLIENT is null:
-
-```java
-/**
- * Accessor for resource sharing client supplied by the SPI.
- */
-public class ResourceSharingClientAccessor {
-    private ResourceSharingClient CLIENT;
-
-    private static ResourceSharingClientAccessor resourceSharingClientAccessor;
-
-    private ResourceSharingClientAccessor() {}
-
-    public static ResourceSharingClientAccessor getInstance() {
-      if (resourceSharingClientAccessor == null) {
-        resourceSharingClientAccessor = new ResourceSharingClientAccessor();
-      }
-
-      return resourceSharingClientAccessor;
-    }
-
-    /**
-     * Set the resource sharing client
-     */
-    public void setResourceSharingClient(ResourceSharingClient client) {
-      resourceSharingClientAccessor.CLIENT = client;
-    }
-
-    /**
-     * Get the resource sharing client
-     */
-    public ResourceSharingClient getResourceSharingClient() {
-      return resourceSharingClientAccessor.CLIENT;
-    }
-}
-```
-
----
-
-#### **7. Using the Client in a Transport Action**
+#### **6. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
-@Inject
-public DeleteResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
-  super(DeleteResourceAction.NAME, transportService, actionFilters, DeleteResourceRequest::new);
-  this.transportService = transportService;
-  this.nodeClient = nodeClient;
-}
+public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
+  private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
+  private final SampleResourceExtension sampleResourceExtension;
 
-@Override
-protected void doExecute(Task task, DeleteResourceRequest request, ActionListener<DeleteResourceResponse> listener) {
-  String resourceId = request.getResourceId();
-  if (resourceId == null || resourceId.isEmpty()) {
-    listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
-    return;
+  @Inject
+  public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters, SampleResourceExtension sampleResourceExtension) {
+    super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
+    this.sampleResourceExtension = sampleResourceExtension;
   }
-  ActionListener<DeleteResponse> deleteResponseListener = ActionListener.wrap(deleteResponse -> {
-    if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-      listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
-    } else {
-      listener.onResponse(new DeleteResourceResponse("Resource " + resourceId + " deleted successfully."));
-    }
-  }, exception -> {
-    log.error("Failed to delete resource: " + resourceId, exception);
-    listener.onFailure(exception);
-  });
 
-  // Check permission to resource
-  ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-  if (resourceSharingClient == null) {
-    deleteResource(resourceId, deleteResponseListener);
-    return;
-  }
-  resourceSharingClient.verifyResourceAccess(resourceId, RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-    if (!isAuthorized) {
-      listener.onFailure(
-              new OpenSearchStatusException("Current user is not authorized to delete resource: " + resourceId, RestStatus.FORBIDDEN)
-      );
+  @Override
+  protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
+    if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
+      listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
       return;
     }
 
-    // Authorization successful, proceed with deletion
-    ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-    try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-      deleteResource(resourceId, deleteResponseListener);
-    }
-  }, exception -> {
-    log.error("Failed to verify resource access: " + resourceId, exception);
-    listener.onFailure(exception);
-  }));
-}
+    ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+    ShareWith shareWith = request.getShareWith();
+    resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
+      ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
+      ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
+      log.debug("Shared resource: {}", response.toString());
+      listener.onResponse(response);
+    }, listener::onFailure));
+  }
 
-private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {
-  DeleteRequest deleteRequest = new DeleteRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(
-          WriteRequest.RefreshPolicy.IMMEDIATE
-  );
-
-  nodeClient.delete(deleteRequest, listener);
 }
 ```
 
@@ -222,32 +154,35 @@ The **`ResourceSharingClient`** provides **four Java APIs** for **resource acces
 Below are examples demonstrating how to use each API effectively.
 
 ---
+#### **1. `verifyAccess`**
+**Check access** for specific users, roles, or backend roles **for specified action**.
 
-#### **1. `verifyResourceAccess`**
-**Checks if the current user has access to a resource**.
+NOTE: This API should only be selectively used in case where implementing DocRequest interface for action-requests is not possible. Check out sample-plugin action-request classes to understand more.
 
 ##### **Method Signature:**
 ```java
-void verifyResourceAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
+void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
 ```
 
 ##### **Example Usage:**
 ```java
-resourceSharingClient.verifyResourceAccess(
+
+resourceSharingClient.verifyAccess(
     request.getResourceId(),
     RESOURCE_INDEX_NAME,
+    "indices:data/read/search",
     ActionListener.wrap(isAuthorized -> {
         if (isAuthorized) {
-            System.out.println("User has access to the resource.");
+        System.out.println("User has access to the resource.");
         } else {
-            System.out.println("Access denied.");
+                System.out.println("Access denied.");
         }
     }, e -> {
-        System.err.println("Failed to verify access: " + e.getMessage());
+    System.err.println("Failed to verify access: " + e.getMessage());
     })
 );
 ```
-> **Use Case:** Before performing operations like **deletion or modifications**, ensure the user has the right permissions.
+> **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
 
 ---
 
@@ -321,49 +256,47 @@ resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListen
 
 ```mermaid
 sequenceDiagram
-    participant User as User
-    participant Plugin as Plugin (Resource Plugin)
-    participant SPI as Security SPI (opensearch-security-spi)
-    participant Security as Security Plugin (Resource Sharing)
+participant User as User
+participant Plugin as Plugin (Resource Plugin)
+participant SPI as Security SPI (opensearch-security-spi)
+participant Security as Security Plugin (Resource Sharing)
 
     %% Step 1: Plugin registers itself as a Resource Plugin
-    Plugin ->> Security: Registers as Resource Plugin via SPI (`ResourceSharingExtension`)
-    Security -->> Plugin: Confirmation of registration
+    Plugin ->> Security: Registers via SPI (`ResourceSharingExtension`)
+    Security -->> Plugin: Confirmation
 
-    %% Step 2: User interacts with Plugin API
-    User ->> Plugin: Request to verify/share/revoke access to a resource
+    %% Step 2: User calls Plugin API
+    User ->> Plugin: create / share / revoke / get / delete resource request
 
-    %% Alternative flow based on Security Plugin status
     alt Security Plugin Disabled
-    %% For verify: access is always granted
-      Plugin ->> SPI: verifyResourceAccess (noop)
-      SPI -->> Plugin: Response: Access Granted
-
-    %% For share, revoke, and list: return 501 Not Implemented
-      Plugin ->> SPI: share (noop)
+      Plugin ->> SPI: share(...)
       SPI -->> Plugin: Error 501 Not Implemented
 
-      Plugin ->> SPI: revoke (noop)
+      Plugin ->> SPI: revoke(...)
       SPI -->> Plugin: Error 501 Not Implemented
 
-      Plugin ->> SPI: getAccessibleResourceIds (noop)
+      Plugin ->> SPI: getAccessibleResourceIds(...)
       SPI -->> Plugin: Error 501 Not Implemented
     else Security Plugin Enabled
-    %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
-      Plugin ->> SPI: Calls Java API (`verifyResourceAccess`, `share`, `revoke`, `getAccessibleResourceIds`)
+      %% Automatic access verification happens within Security Plugin before handling
+      Plugin ->> SPI: share(resourceId, actionGroup, targetUser/role)
+      SPI ->> Security: share request
+      Security -->> SPI: share success/error
+      SPI -->> Plugin: share response
 
-    %% Step 4: Request is sent to Security Plugin
-      SPI ->> Security: Sends request to Security Plugin for processing
+      Plugin ->> SPI: revoke(resourceId, actionGroup, targetUser/role)
+      SPI ->> Security: revoke request
+      Security -->> SPI: revoke success/error
+      SPI -->> Plugin: revoke response
 
-    %% Step 5: Security Plugin handles request and returns response
-      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs )
-
-    %% Step 6: Security SPI sends response back to Plugin
-      SPI -->> Plugin: Passes processed response back to Plugin
+      Plugin ->> SPI: getAccessibleResourceIds(requestingUser, actionGroup)
+      SPI ->> Security: list request
+      Security -->> SPI: list of resource IDs
+      SPI -->> Plugin: list response
     end
 
-    %% Step 7: Plugin processes response and sends final response to User
-    Plugin -->> User: Final response (Success / Error)
+    %% Step 3: Plugin returns result to User
+    Plugin -->> User: Final response (success or error)
 ```
 
 ---

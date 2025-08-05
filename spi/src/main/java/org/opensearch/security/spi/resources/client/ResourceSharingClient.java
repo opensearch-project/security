@@ -25,9 +25,10 @@ public interface ResourceSharingClient {
      * Verifies if the current user has access to the specified resource.
      * @param resourceId     The ID of the resource to verify access for.
      * @param resourceIndex  The index containing the resource.
+     * @param action         The action to be verified
      * @param listener       The listener to be notified with the access verification result.
      */
-    void verifyAccess(String resourceId, String resourceIndex, ActionListener<Boolean> listener);
+    void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
 
     /**
      * Shares a resource with the specified users, roles, and backend roles.
