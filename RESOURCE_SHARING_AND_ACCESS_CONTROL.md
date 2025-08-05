@@ -57,6 +57,7 @@ opensearchplugin {
     extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
 }
 ```
+- **Create** ResourceSharingClientAccessor class. For guidance, refer [SPI README.md](./spi/README.md#4-create-the-resourcesharingclientaccessor-class).
 - **Implement** the `ResourceSharingExtension` class.
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
@@ -173,12 +174,7 @@ Each **action-group** entry contains the following access definitions:
 }
 ```
 
-## **4. Declaring a Resource Plugin and Using the Client for Access Control**
-
-### **Declaring a Plugin as a Resource Plugin**
-To integrate with the security plugin, your plugin must:
-1. Extend `ResourceSharingExtension` and implement required methods.
-2. Extend all `ActionRequest`s for intended resource to implement `DocRequest`.
+## **4. Using the Client for Access Control**
 
 [`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
@@ -218,8 +214,6 @@ void revoke(String resourceId, String resourceIndex, ShareWith target, ActionLis
 void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
-> For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
-
 Example usage:
 ```java
 @Inject
@@ -257,6 +251,9 @@ protected void doExecute(Task task, ShareResourceRequest request, ActionListener
     }, listener::onFailure));
 }
 ```
+
+
+> For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
 
 #### **Sample Request Flow:**
 
