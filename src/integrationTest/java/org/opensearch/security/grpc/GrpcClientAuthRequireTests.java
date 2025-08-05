@@ -16,9 +16,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.plugin.transport.grpc.GrpcPlugin;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.grpc.GrpcPlugin;
 
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
