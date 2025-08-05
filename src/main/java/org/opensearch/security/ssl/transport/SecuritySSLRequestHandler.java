@@ -52,7 +52,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;
 
-    private static final Set<String> DEFAULT_CHANNEL_TYPES = Set.of("direct", "transport");
+    private static final Set<String> DEFAULT_CHANNEL_TYPES = Set.of("direct", "transport", "stream-transport");
 
     public SecuritySSLRequestHandler(
         String action,
@@ -98,6 +98,10 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
             final Exception exception = ExceptionUtils.createBadHeaderException();
             channel.sendResponse(exception);
             throw exception;
+        }
+        if ("stream-transport".equals(channel.getChannelType())) {
+            messageReceivedDecorate(request, actualHandler, channel, task);
+            return;
         }
 
         if (!"transport".equals(channel.getChannelType())) { // netty4
