@@ -142,7 +142,6 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
                 response.set("upgrades", allUpdates);
                 loadConfigurationWithRequestContent(CType.ROLES.toLCString(), request).valid(securityConfiguration -> {
-
                     saveAndUpdateConfigsAsync(
                         securityApiDependencies,
                         client,
