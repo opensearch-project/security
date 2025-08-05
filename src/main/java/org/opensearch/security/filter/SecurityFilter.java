@@ -150,7 +150,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, threadPool, settings, resourceAccessHandler);
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, settings, resourceAccessHandler);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 

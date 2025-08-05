@@ -162,4 +162,6 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
     finalizedBy jacocoSamplePluginReport
+    maxParallelForks = 8
+    forkEvery = 1
 }
