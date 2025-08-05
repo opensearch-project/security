@@ -61,7 +61,7 @@ public class ResourceAccessEvaluatorTest {
         Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
         doReturn(threadContext).when(threadPool).getThreadContext();
-        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), threadPool, settings, resourceAccessHandler);
+        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler);
     }
 
     private void stubAuthenticatedUser() {

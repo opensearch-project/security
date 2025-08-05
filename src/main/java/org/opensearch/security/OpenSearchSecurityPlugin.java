@@ -1195,7 +1195,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });
             components.add(resourcePluginInfo);
-            components.add(resourceAccessControlClient);
             components.add(resourceAccessHandler);
             // CS-ENFORCE-SINGLE
         }

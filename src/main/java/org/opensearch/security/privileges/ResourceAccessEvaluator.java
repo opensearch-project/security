@@ -41,18 +41,15 @@ public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
     private final Set<String> resourceIndices;
-    private final ThreadContext threadContext;
     private final Settings settings;
     private final ResourceAccessHandler resourceAccessHandler;
 
     public ResourceAccessEvaluator(
         Set<String> resourceIndices,
-        ThreadPool threadPool,
         Settings settings,
         ResourceAccessHandler resourceAccessHandler
     ) {
         this.resourceIndices = resourceIndices;
-        this.threadContext = threadPool.getThreadContext();
         this.settings = settings;
         this.resourceAccessHandler = resourceAccessHandler;
     }
