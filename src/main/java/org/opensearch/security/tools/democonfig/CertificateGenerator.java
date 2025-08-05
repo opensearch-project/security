@@ -33,23 +33,19 @@ public class CertificateGenerator {
     public void createDemoCertificates() {
         for (Certificates cert : Certificates.values()) {
             String filePath = this.installer.OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
-            writeCertificateToFile(filePath, cert.getContent());
-        }
-    }
-
-    /**
-     * Helper method to write the certificates to their own file
-     * @param filePath the file which needs to be written
-     * @param content the content which needs to be written to this file
-     */
-    static void writeCertificateToFile(String filePath, String content) {
-        try {
-            FileWriter fileWriter = new FileWriter(filePath, StandardCharsets.UTF_8);
-            fileWriter.write(content);
-            fileWriter.close();
-        } catch (IOException e) {
-            System.err.println("Error writing certificate file: " + filePath);
-            System.exit(-1);
+            File file = new File(filePath);
+            if (file.exists()) {
+                System.out.println("File " + filePath + " already exists. Skipping.");
+                continue;
+            }
+            try {
+                FileWriter fileWriter = new FileWriter(filePath, StandardCharsets.UTF_8);
+                fileWriter.write(cert.getContent());
+                fileWriter.close();
+            } catch (IOException e) {
+                System.err.println("Error writing certificate file: " + filePath);
+                System.exit(-1);
+            }
         }
     }
 }
