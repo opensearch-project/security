@@ -21,6 +21,7 @@ import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.grpc.GrpcPlugin;
 
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertThrows;
 public class GrpcClientAuthNoneTests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+        .plugin(GrpcPlugin.class)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS)
         .loadConfigurationIntoIndex(false)
