@@ -19,7 +19,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
-import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -33,7 +32,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -48,8 +46,6 @@ public class ResourceAccessEvaluatorTest {
 
     @Mock
     private PrivilegesEvaluationContext context;
-    @Mock
-    private RoleBasedActionPrivileges roleBasedActionPrivileges;
 
     private ThreadContext threadContext;
     private ResourceAccessEvaluator evaluator;
@@ -60,7 +56,6 @@ public class ResourceAccessEvaluatorTest {
     public void setup() {
         Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
-        doReturn(threadContext).when(threadPool).getThreadContext();
         evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler);
     }
 
