@@ -448,7 +448,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return this.configuration.getCEntries()
                 .entrySet()
                 .stream()
-                .collect(ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
+                .collect(
+                    ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn()).ignoreCase())
+                );
         }
     }
 }

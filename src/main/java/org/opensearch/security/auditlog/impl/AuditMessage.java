@@ -64,7 +64,7 @@ public final class AuditMessage {
     private static final Logger log = LogManager.getLogger(AuditMessage.class);
 
     // clustername and cluster uuid
-    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
+    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization").ignoreCase();
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 

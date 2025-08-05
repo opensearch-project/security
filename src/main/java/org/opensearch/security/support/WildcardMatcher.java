@@ -26,12 +26,12 @@
 
 package org.opensearch.security.support;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.StringUtils;
 
 public abstract class WildcardMatcher implements Predicate<String> {
 
@@ -62,21 +63,6 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean matchAll(Stream<String> candidates) {
-            return true;
-        }
-
-        @Override
-        public boolean matchAll(Collection<String> candidates) {
-            return true;
-        }
-
-        @Override
-        public boolean matchAll(String[] candidates) {
-            return true;
-        }
-
-        @Override
         public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
             return candidates.collect(collector);
         }
@@ -84,6 +70,11 @@ public abstract class WildcardMatcher implements Predicate<String> {
         @Override
         public boolean test(String candidate) {
             return true;
+        }
+
+        @Override
+        public WildcardMatcher ignoreCase() {
+            return this;
         }
 
         @Override
@@ -110,21 +101,6 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean matchAll(Stream<String> candidates) {
-            return false;
-        }
-
-        @Override
-        public boolean matchAll(Collection<String> candidates) {
-            return false;
-        }
-
-        @Override
-        public boolean matchAll(String[] candidates) {
-            return false;
-        }
-
-        @Override
         public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
             return Stream.<String>empty().collect(collector);
         }
@@ -145,36 +121,49 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
+        public WildcardMatcher ignoreCase() {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "<NONE>";
         }
     };
 
-    public static WildcardMatcher from(String pattern, boolean caseSensitive) {
+    public static WildcardMatcher from(String pattern) {
         if (pattern == null) {
             return NONE;
         } else if (pattern.equals("*")) {
             return ANY;
         } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
-            return new RegexMatcher(pattern, caseSensitive);
-        } else if (pattern.indexOf('?') >= 0 || pattern.indexOf('*') >= 0) {
-            return caseSensitive ? new SimpleMatcher(pattern) : new CasefoldingMatcher(pattern, SimpleMatcher::new);
+            return new RegexMatcher(pattern, true);
         } else {
-            return caseSensitive ? new Exact(pattern) : new CasefoldingMatcher(pattern, Exact::new);
+            int star = pattern.indexOf('*');
+            int questionmark = pattern.indexOf('?');
+
+            if (star == -1 && questionmark == -1) {
+                // This is just a string constant
+                return new Exact(pattern, true);
+            } else if (star == pattern.length() - 1 && questionmark == -1) {
+                // Simple prefix pattern: "a*"
+                return new PrefixMatcher(pattern, true);
+            } else if (pattern.length() > 1 && questionmark == -1 && star == 0 && pattern.indexOf('*', 1) == pattern.length() - 1) {
+                // Simple contains pattern: "*a*"
+                return new ContainsMatcher(pattern, true);
+            } else {
+                return new SimpleMatcher(pattern);
+            }
         }
     }
 
-    public static WildcardMatcher from(String pattern) {
-        return from(pattern, true);
-    }
-
     // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
-    public static <T> WildcardMatcher from(Stream<T> stream, boolean caseSensitive) {
+    public static <T> WildcardMatcher from(Stream<T> stream) {
         Collection<WildcardMatcher> matchers = stream.map(t -> {
             if (t == null) {
                 return NONE;
             } else if (t instanceof String) {
-                return WildcardMatcher.from(((String) t), caseSensitive);
+                return WildcardMatcher.from((String) t);
             } else if (t instanceof WildcardMatcher) {
                 return ((WildcardMatcher) t);
             }
@@ -189,58 +178,47 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return new MatcherCombiner(matchers);
     }
 
-    public static <T> WildcardMatcher from(Collection<T> collection, boolean caseSensitive) {
+    public static <T> WildcardMatcher from(Collection<T> collection) {
         if (collection == null || collection.isEmpty()) {
             return NONE;
         } else if (collection.size() == 1) {
             T t = collection.stream().findFirst().get();
             if (t instanceof String) {
-                return from(((String) t), caseSensitive);
+                return from((String) t);
             } else if (t instanceof WildcardMatcher) {
                 return ((WildcardMatcher) t);
             }
             throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
         }
-        return from(collection.stream(), caseSensitive);
-    }
-
-    public static WildcardMatcher from(String[] patterns, boolean caseSensitive) {
-        if (patterns == null || patterns.length == 0) {
-            return NONE;
-        } else if (patterns.length == 1) {
-            return from(patterns[0], caseSensitive);
-        }
-        return from(Arrays.stream(patterns), caseSensitive);
-    }
-
-    public static WildcardMatcher from(Stream<String> patterns) {
-        return from(patterns, true);
-    }
-
-    public static WildcardMatcher from(Collection<?> patterns) {
-        return from(patterns, true);
+        return from(collection.stream());
     }
 
     public static WildcardMatcher from(String... patterns) {
-        return from(patterns, true);
+        if (patterns == null || patterns.length == 0) {
+            return NONE;
+        } else if (patterns.length == 1) {
+            return from(patterns[0]);
+        }
+        return from(Arrays.stream(patterns));
     }
 
-    public WildcardMatcher concat(Stream<WildcardMatcher> matchers) {
-        return new WildcardMatcher.MatcherCombiner(Stream.concat(matchers, Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
-    }
+    /**
+     * This is the main matching method of this class. Use this to match a single string against the particular matcher.
+     * Returns true if it matches, false otherwise.
+     */
+    @Override
+    public abstract boolean test(String s);
+
+    /**
+     * This converts this WildcardMatcher into an instance that ignores case.
+     */
+    public abstract WildcardMatcher ignoreCase();
 
     public WildcardMatcher concat(Collection<WildcardMatcher> matchers) {
         if (matchers.isEmpty()) {
             return this;
         }
-        return concat(matchers.stream());
-    }
-
-    public WildcardMatcher concat(WildcardMatcher... matchers) {
-        if (matchers.length == 0) {
-            return this;
-        }
-        return concat(Arrays.stream(matchers));
+        return new MatcherCombiner(Stream.concat(matchers.stream(), Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
     }
 
     public boolean matchAny(Stream<String> candidates) {
@@ -255,18 +233,6 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return matchAny(Arrays.stream(candidates));
     }
 
-    public boolean matchAll(Stream<String> candidates) {
-        return candidates.allMatch(this);
-    }
-
-    public boolean matchAll(Collection<String> candidates) {
-        return matchAll(candidates.stream());
-    }
-
-    public boolean matchAll(String[] candidates) {
-        return matchAll(Arrays.stream(candidates));
-    }
-
     public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
         return candidates.filter(this).collect(collector);
     }
@@ -279,14 +245,26 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return getMatchAny(Arrays.stream(candidate), collector);
     }
 
-    public Optional<WildcardMatcher> findFirst(final String candidate) {
-        return Optional.ofNullable(test(candidate) ? this : null);
-    }
-
+    /**
+     * Returns an Iterable that can be used to iterate through all matching elements from the given candidates param.
+     * The matching elements are computed on the fly when you are iterating. This means that this function performs
+     * in a very space efficient way. However, if you repeatedly iterate through the returned Iterable, matching will be
+     * performed again and again. If you want to have pre-computed results, use the function matching().
+     */
     public Iterable<String> iterateMatching(Iterable<String> candidates) {
         return iterateMatching(candidates, Function.identity());
     }
 
+    /**
+     * Returns an Iterable that can be used to iterate through all matching elements from the given candidates param.
+     * The matching elements are computed on the fly when you are iterating. This means that this function performs
+     * in a very space efficient way. However, if you repeatedly iterate through the returned Iterable, matching will be
+     * performed again and again. If you want to have pre-computed results, use the function matching().
+     * <p>
+     * This function can iterate through any type of object. The toStringFunction() parameter will be internally used
+     * to convert the object into a string on which the matching can be performed. This is typically a getName() function
+     * or something similar.
+     */
     public <E> Iterable<E> iterateMatching(Iterable<E> candidates, Function<E, String> toStringFunction) {
         return new Iterable<E>() {
 
@@ -332,8 +310,34 @@ public abstract class WildcardMatcher implements Predicate<String> {
         };
     }
 
+    /**
+     * Returns a list with the elements from the given candidates that match this pattern.
+     */
+    public List<String> matching(Collection<String> candidates) {
+        return matching(candidates, Function.identity());
+    }
+
+    /**
+     * Returns a list with the elements from the given candidates that match this pattern.
+     <p>
+     * This function can iterate through any type of object. The toStringFunction() parameter will be internally used
+     * to convert the object into a string on which the matching can be performed. This is typically a getName() function
+     * or something similar.
+     */
+    public <E> List<E> matching(Collection<E> candidates, Function<E, String> toStringFunction) {
+        List<E> result = new ArrayList<>(Math.min(candidates.size(), 20));
+
+        for (E candidate : candidates) {
+            if (test(toStringFunction.apply(candidate))) {
+                result.add(candidate);
+            }
+        }
+
+        return result;
+    }
+
     public static List<WildcardMatcher> matchers(Collection<String> patterns) {
-        return patterns.stream().map(p -> WildcardMatcher.from(p, true)).collect(Collectors.toList());
+        return patterns.stream().map(WildcardMatcher::from).collect(Collectors.toList());
     }
 
     public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> matchers, final String candidate) {
@@ -348,82 +352,43 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return pattern == null || !(pattern.contains("*") || pattern.contains("?") || (pattern.startsWith("/") && pattern.endsWith("/")));
     }
 
-    //
-    // --- Implementation specializations ---
-    //
-    // Casefolding matcher - sits on top of case-sensitive matcher
-    // and proxies toLower() of input string to the wrapped matcher
-    private static final class CasefoldingMatcher extends WildcardMatcher {
+    /**
+     * Matches a constant value.
+     */
+    public static final class Exact extends AbstractSimpleWildcardMatcher {
 
-        private final WildcardMatcher inner;
+        private final boolean caseSensitive;
 
-        public CasefoldingMatcher(String pattern, Function<String, WildcardMatcher> simpleWildcardMatcher) {
-            this.inner = simpleWildcardMatcher.apply(pattern.toLowerCase());
+        private Exact(String pattern, boolean caseSensitive) {
+            super(pattern);
+            this.caseSensitive = caseSensitive;
         }
 
         @Override
         public boolean test(String candidate) {
-            return inner.test(candidate.toLowerCase());
+            if (this.caseSensitive) {
+                return pattern.equals(candidate);
+            } else {
+                return pattern.equalsIgnoreCase(candidate);
+            }
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            CasefoldingMatcher that = (CasefoldingMatcher) o;
-            return inner.equals(that.inner);
-        }
-
-        @Override
-        public int hashCode() {
-            return inner.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return inner.toString();
+        public WildcardMatcher ignoreCase() {
+            return new Exact(this.pattern, false);
         }
     }
 
-    public static final class Exact extends WildcardMatcher {
-
-        private final String pattern;
-
-        private Exact(String pattern) {
-            this.pattern = pattern;
-        }
-
-        @Override
-        public boolean test(String candidate) {
-            return pattern.equals(candidate);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Exact that = (Exact) o;
-            return pattern.equals(that.pattern);
-        }
-
-        @Override
-        public int hashCode() {
-            return pattern.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return pattern;
-        }
-    }
-
-    // RegexMatcher uses JDK Pattern to test for matching,
-    // assumes "/<regex>/" strings as input pattern
-    private static final class RegexMatcher extends WildcardMatcher {
+    /**
+     * Represents full regex patterns, which can be identified by a leading and trailing /.
+     * Uses the JDK Pattern class under the hood.
+     */
+    static final class RegexMatcher extends AbstractSimpleWildcardMatcher {
 
         private final Pattern pattern;
 
         private RegexMatcher(String pattern, boolean caseSensitive) {
+            super(pattern);
             Preconditions.checkArgument(pattern.length() > 1 && pattern.startsWith("/") && pattern.endsWith("/"));
             final String stripSlashesPattern = pattern.substring(1, pattern.length() - 1);
             this.pattern = caseSensitive
@@ -437,33 +402,17 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            RegexMatcher that = (RegexMatcher) o;
-            return pattern.pattern().equals(that.pattern.pattern());
-        }
-
-        @Override
-        public int hashCode() {
-            return pattern.pattern().hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return "/" + pattern.pattern() + "/";
+        public WildcardMatcher ignoreCase() {
+            return new RegexMatcher(super.pattern, false);
         }
     }
 
     // Simple implementation of WildcardMatcher matcher with * and ? without
     // using exlicit stack or recursion (as long as we don't need sub-matches it does work)
     // allows us to save on resources and heap allocations unless Regex is required
-    private static final class SimpleMatcher extends WildcardMatcher {
-
-        private final String pattern;
-
+    static class SimpleMatcher extends AbstractSimpleWildcardMatcher {
         SimpleMatcher(String pattern) {
-            this.pattern = pattern;
+            super(pattern);
         }
 
         @Override
@@ -493,54 +442,115 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            SimpleMatcher that = (SimpleMatcher) o;
-            return pattern.equals(that.pattern);
-        }
+        public WildcardMatcher ignoreCase() {
+            return new SimpleMatcher(pattern.toLowerCase()) {
 
-        @Override
-        public int hashCode() {
-            return pattern.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return pattern;
+                @Override
+                public boolean test(String candidate) {
+                    return super.test(candidate.toLowerCase());
+                }
+            };
         }
     }
 
-    // MatcherCombiner is a combination of a set of matchers
-    // matches if any of the set do
-    // Empty MultiMatcher always returns false
-    private static final class MatcherCombiner extends WildcardMatcher {
+    /**
+     * A matcher for the very common case "string*". Uses String.startsWith() internally.
+     */
+    static final class PrefixMatcher extends AbstractSimpleWildcardMatcher {
+        private final String prefix;
+        private final boolean caseSensitive;
 
-        private final Collection<WildcardMatcher> wildcardMatchers;
+        PrefixMatcher(String pattern, boolean caseSensitive) {
+            super(pattern);
+            assert pattern.endsWith("*");
+            this.prefix = pattern.substring(0, pattern.length() - 1);
+            this.caseSensitive = caseSensitive;
+        }
+
+        @Override
+        public boolean test(String s) {
+            if (this.caseSensitive) {
+                return s.startsWith(prefix);
+            } else {
+                return StringUtils.startsWithIgnoreCase(s, this.prefix);
+            }
+        }
+
+        @Override
+        public WildcardMatcher ignoreCase() {
+            return new PrefixMatcher(this.pattern, false);
+        }
+    }
+
+    /**
+     * A matcher for the case "*string*". Uses String.contains() internally.
+     */
+    static final class ContainsMatcher extends AbstractSimpleWildcardMatcher {
+        private final String string;
+        private final boolean caseSensitive;
+
+        ContainsMatcher(String pattern, boolean caseSensitive) {
+            super(pattern);
+            assert pattern.endsWith("*") && pattern.startsWith("*");
+            this.string = pattern.substring(1, pattern.length() - 1);
+            this.caseSensitive = caseSensitive;
+        }
+
+        @Override
+        public boolean test(String s) {
+            if (this.caseSensitive) {
+                return s.contains(string);
+            } else {
+                return StringUtils.containsIgnoreCase(s, this.string);
+            }
+        }
+
+        @Override
+        public WildcardMatcher ignoreCase() {
+            return new ContainsMatcher(this.pattern, false);
+        }
+    }
+
+    /**
+     * MatcherCombiner is a combination of a set of matchers.
+     * This class matches if at least one of the contained matchers matches.
+     */
+    static final class MatcherCombiner extends WildcardMatcher {
+
+        private final WildcardMatcher[] wildcardMatchers;
         private final int hashCode;
+        private final String asString;
 
         MatcherCombiner(Collection<WildcardMatcher> wildcardMatchers) {
             Preconditions.checkArgument(wildcardMatchers.size() > 1);
-            this.wildcardMatchers = wildcardMatchers;
-            hashCode = wildcardMatchers.hashCode();
+            this.wildcardMatchers = wildcardMatchers.toArray(new WildcardMatcher[0]);
+            this.hashCode = wildcardMatchers.hashCode();
+            this.asString = wildcardMatchers.toString();
         }
 
         @Override
         public boolean test(String candidate) {
-            return wildcardMatchers.stream().anyMatch(m -> m.test(candidate));
+            for (int i = 0; i < this.wildcardMatchers.length; i++) {
+                if (this.wildcardMatchers[i].test(candidate)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
-        public Optional<WildcardMatcher> findFirst(final String candidate) {
-            return wildcardMatchers.stream().filter(m -> m.test(candidate)).findFirst();
+        public WildcardMatcher ignoreCase() {
+            return new MatcherCombiner(Stream.of(this.wildcardMatchers).map(WildcardMatcher::ignoreCase).collect(Collectors.toList()));
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MatcherCombiner that = (MatcherCombiner) o;
-            return wildcardMatchers.equals(that.wildcardMatchers);
+            if (o instanceof MatcherCombiner) {
+                return Arrays.equals(this.wildcardMatchers, ((MatcherCombiner) o).wildcardMatchers);
+            } else {
+                return false;
+            }
         }
 
         @Override
@@ -550,7 +560,35 @@ public abstract class WildcardMatcher implements Predicate<String> {
 
         @Override
         public String toString() {
-            return wildcardMatchers.toString();
+            return asString;
+        }
+    }
+
+    static abstract class AbstractSimpleWildcardMatcher extends WildcardMatcher {
+        protected final String pattern;
+
+        AbstractSimpleWildcardMatcher(String pattern) {
+            this.pattern = pattern;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o instanceof AbstractSimpleWildcardMatcher) {
+                return ((AbstractSimpleWildcardMatcher) o).pattern.equals(this.pattern);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return this.pattern.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return this.pattern;
         }
     }
 }
