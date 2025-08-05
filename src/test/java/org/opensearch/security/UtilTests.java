@@ -53,7 +53,7 @@ public class UtilTests {
     }
 
     static private WildcardMatcher iwc(String pattern) {
-        return WildcardMatcher.from(pattern, false);
+        return WildcardMatcher.from(pattern).ignoreCase();
     }
 
     static private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(

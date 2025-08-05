@@ -119,7 +119,7 @@ public class EvaluatedDlsFlsConfig {
         HashMap<String, Set<String>> result = new HashMap<>(map.size());
 
         for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
-            if (WildcardMatcher.from(entry.getKey(), false).matchAny(allIndices)) {
+            if (WildcardMatcher.from(entry.getKey()).matchAny(allIndices)) {
                 result.put(entry.getKey(), entry.getValue());
             }
         }

@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -602,7 +603,7 @@ public class ConfigModelV6 extends ConfigModel {
                         ? WildcardMatcher.NONE
                         : tp.getTypeMatcher();
                     if (matcher.matchAny(resolved.getTypes())) {
-                        patternMatch = tp.getPerms().matchAll(actions);
+                        patternMatch = Stream.of(actions).allMatch(tp.getPerms());
                     }
                 }
                 if (patternMatch) {
