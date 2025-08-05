@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -560,7 +561,7 @@ public class ConfigModelV7 extends ConfigModel {
             final Set<String> retVal = new HashSet<>();
             for (IndexPattern p : ipatterns) {
                 // what if we cannot resolve one (for create purposes)
-                final boolean patternMatch = matcherModification.apply(p.getPerms()).matchAll(actions);
+                final boolean patternMatch = Stream.of(actions).allMatch(matcherModification.apply(p.getPerms()));
 
                 // final Set<TypePerm> tperms = p.getTypePerms();
                 // for (TypePerm tp : tperms) {
