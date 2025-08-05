@@ -31,7 +31,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.SampleResourceExtension;
+import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
@@ -51,24 +51,17 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     private final TransportService transportService;
     private final NodeClient nodeClient;
-    private final SampleResourceExtension sampleResourceExtension;
 
     @Inject
-    public GetResourceTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters,
-        NodeClient nodeClient,
-        SampleResourceExtension sampleResourceExtension
-    ) {
+    public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.sampleResourceExtension = sampleResourceExtension;
     }
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient client = sampleResourceExtension.getResourceSharingClient();
+        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {

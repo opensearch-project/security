@@ -51,7 +51,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 public class SecurityDisabledTests {
 
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
         .plugin(
             new PluginInfo(
                 SampleResourcePlugin.class.getName(),
