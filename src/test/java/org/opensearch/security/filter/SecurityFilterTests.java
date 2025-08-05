@@ -13,6 +13,7 @@ package org.opensearch.security.filter;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
@@ -32,6 +33,7 @@ import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
@@ -88,7 +90,9 @@ public class SecurityFilterTests {
             mock(ClusterInfoHolder.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(XFFResolver.class)
+            mock(XFFResolver.class),
+            Set.of(),
+            mock(ResourceAccessHandler.class)
         );
         assertThat(expected, equalTo(filter.getImmutableIndicesMatcher()));
     }
@@ -112,7 +116,9 @@ public class SecurityFilterTests {
             mock(ClusterInfoHolder.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(XFFResolver.class)
+            mock(XFFResolver.class),
+            Set.of(),
+            mock(ResourceAccessHandler.class)
         );
 
         // Act

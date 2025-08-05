@@ -74,6 +74,8 @@ dependencies {
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
+    integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3' // for running multinode tests
+
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
@@ -160,4 +162,6 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
     finalizedBy jacocoSamplePluginReport
+    maxParallelForks = 8
+    forkEvery = 1
 }
