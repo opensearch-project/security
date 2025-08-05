@@ -48,17 +48,17 @@ public class GrpcHelpers {
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
 
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "NONE"
     );
 
     protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "OPTIONAL"
     );
 
     protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.clientauth_mode",
+        "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "REQUIRE"
     );
 
@@ -68,16 +68,16 @@ public class GrpcHelpers {
         "plugins.security.ssl_only",
         true,
         "aux.transport.types",
-        "experimental-secure-transport-grpc",
-        "aux.transport.experimental-secure-transport-grpc.port",
+        "secure-transport-grpc",
+        "aux.transport.secure-transport-grpc.port",
         PORTS_RANGE.getPortRangeString(),
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.enabled",
+        "plugins.security.ssl.aux.secure-transport-grpc.enabled",
         true,
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemkey_filepath",
+        "plugins.security.ssl.aux.secure-transport-grpc.pemkey_filepath",
         TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemcert_filepath",
+        "plugins.security.ssl.aux.secure-transport-grpc.pemcert_filepath",
         TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
-        "plugins.security.ssl.aux.experimental-secure-transport-grpc.pemtrustedcas_filepath",
+        "plugins.security.ssl.aux.secure-transport-grpc.pemtrustedcas_filepath",
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
