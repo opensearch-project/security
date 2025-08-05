@@ -18,11 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.threadpool.ThreadPool;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -44,11 +42,7 @@ public class ResourceAccessEvaluator {
     private final Settings settings;
     private final ResourceAccessHandler resourceAccessHandler;
 
-    public ResourceAccessEvaluator(
-        Set<String> resourceIndices,
-        Settings settings,
-        ResourceAccessHandler resourceAccessHandler
-    ) {
+    public ResourceAccessEvaluator(Set<String> resourceIndices, Settings settings, ResourceAccessHandler resourceAccessHandler) {
         this.resourceIndices = resourceIndices;
         this.settings = settings;
         this.resourceAccessHandler = resourceAccessHandler;
