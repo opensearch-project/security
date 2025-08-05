@@ -60,7 +60,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
@@ -105,10 +104,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    protected void consumeParameters(final RestRequest request) {
         request.param(REQUEST_PARAM_CONFIGS_KEY);
         request.param(REQUEST_PARAM_ENTITIES_KEY);
-        return super.prepareRequest(request, client);
     }
 
     void canUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
