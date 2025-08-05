@@ -16,7 +16,7 @@ import java.util.Map;
 
 import org.opensearch.common.transport.PortsRange;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.plugin.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
+import org.opensearch.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
