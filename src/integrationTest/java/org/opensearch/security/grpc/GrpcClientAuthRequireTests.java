@@ -18,10 +18,10 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.transport.grpc.GrpcPlugin;
 
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
-import org.opensearch.transport.grpc.GrpcPlugin;
 
 import static org.opensearch.security.grpc.GrpcClientAuthNoneTests.assertBulkAndSearchTestIndex;
 import static org.opensearch.security.grpc.GrpcHelpers.CLIENT_AUTH_REQUIRE;
