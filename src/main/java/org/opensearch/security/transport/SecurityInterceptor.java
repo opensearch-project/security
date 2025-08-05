@@ -73,6 +73,7 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
+import org.opensearch.transport.stream.StreamTransportResponse;
 
 public class SecurityInterceptor {
 
@@ -161,8 +162,9 @@ public class SecurityInterceptor {
         );
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-
-        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+        final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
+        // skip the same node optimization for stream transport which doesn't use DirectChannel and thus ser/de is needed
+        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode()) && !isStreamChannel;
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
@@ -372,6 +374,13 @@ public class SecurityInterceptor {
         @Override
         public T read(StreamInput in) throws IOException {
             return innerHandler.read(in);
+        }
+
+        @Override
+        public void handleStreamResponse(StreamTransportResponse<T> response) {
+            // we do not have to process headers like OPENDISTRO_SECURITY_DLS_QUERY_HEADER which is done in handleResponse(),
+            // as it is only necessary for cross-cluster search if the remote cluster is on OpenSearch 2.19.x or earlier.
+            innerHandler.handleStreamResponse(response);
         }
 
         @Override
