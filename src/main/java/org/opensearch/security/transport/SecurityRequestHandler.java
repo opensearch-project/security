@@ -29,6 +29,7 @@ package org.opensearch.security.transport;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
+    private static final Set<String> knownChannelTypes = Set.of("direct", "transport", "stream-transport");
 
     SecurityRequestHandler(
         String action,
@@ -130,7 +132,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             String channelType = transportChannel.getChannelType();
 
-            if (!channelType.equals("direct") && !channelType.equals("transport") && !channelType.equals("stream-transport")) {
+            if (!knownChannelTypes.contains(channelType)) {
                 TransportChannel innerChannel = getInnerChannel(transportChannel);
                 channelType = innerChannel.getChannelType();
             }
