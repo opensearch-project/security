@@ -122,6 +122,8 @@ public class ConfigConstants {
 
     // persistent header. This header is set once and cannot be stashed
     public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "authenticated_user";
+    public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER = OPENDISTRO_SECURITY_AUTHENTICATED_USER + "_header";
+    public static final String OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER = OPENDISTRO_SECURITY_USER + "_same_as_subject_header";
 
     public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
@@ -415,6 +417,10 @@ public class ConfigConstants {
 
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
+
+    // Resource sharing feature-flag
+    public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
+    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

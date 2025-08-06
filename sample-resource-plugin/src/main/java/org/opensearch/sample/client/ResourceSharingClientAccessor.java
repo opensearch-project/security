@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.resource.client;
+package org.opensearch.sample.client;
 
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
