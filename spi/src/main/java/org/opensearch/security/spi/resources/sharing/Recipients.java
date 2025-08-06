@@ -60,16 +60,18 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
     public void share(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            Set<String> updatedRecipients = recipients.get(recipientType);
-            updatedRecipients.addAll(targetRecipients.get(recipientType));
+            recipients.computeIfAbsent(recipientType, k -> new HashSet<>())
+                .addAll(targetRecipients.getOrDefault(recipientType, Collections.emptySet()));
         }
     }
 
     public void revoke(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            Set<String> updatedRecipients = recipients.get(recipientType);
-            updatedRecipients.removeAll(targetRecipients.get(recipientType));
+            recipients.computeIfPresent(recipientType, (k, s) -> {
+                s.removeAll(targetRecipients.getOrDefault(recipientType, Collections.emptySet()));
+                return s;
+            });
         }
     }
 
@@ -117,7 +119,7 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String toString() {
-        return "{" + recipients + '}';
+        return recipients.toString();
     }
 
     @Override

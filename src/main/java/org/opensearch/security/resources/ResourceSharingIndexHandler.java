@@ -10,6 +10,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -77,6 +79,7 @@ public class ResourceSharingIndexHandler {
 
     private final ThreadPool threadPool;
 
+    @Inject
     public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
         this.client = client;
         this.threadPool = threadPool;
@@ -530,7 +533,7 @@ public class ResourceSharingIndexHandler {
         // Fetch the current ResourceSharing document
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
-        // Check permissions & build revoke script
+        // build revoke script
         sharingInfoListener.whenComplete(sharingInfo -> {
 
             assert sharingInfo != null;
@@ -563,6 +566,73 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(failResponse);
                 });
                 client.index(ir, irListener);
+            }
+        }, listener::onFailure);
+    }
+
+    /**
+     * Fetch existing share_with, apply the patch ops in-memory, and update the sharing record.
+     * Two ops are supported:
+     * 1. share_with -> upgrade or downgrade access; share with new entities
+     * 2. revoke -> revoke access for existing entities
+     * @param resourceId    id of the resource to apply the patch to
+     * @param resourceIndex name of the index where resource is present
+     * @param add  the recipients to be shared with
+     * @param revoke  the recipients to be revoked with
+     * @param listener      listener to be notified in case of success or failure
+     */
+    public void patchSharingInfo(
+        String resourceId,
+        String resourceIndex,
+        ShareWith add,
+        ShareWith revoke,
+        ActionListener<ResourceSharing> listener
+    ) {
+
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // Apply patch and update the document
+        sharingInfoListener.whenComplete(resourceSharing -> {
+            ShareWith updatedShareWith = resourceSharing.getShareWith();
+            if (updatedShareWith == null) {
+                updatedShareWith = new ShareWith(new HashMap<>());
+            }
+            if (add != null) {
+                updatedShareWith = updatedShareWith.add(add);
+            }
+            if (revoke != null) {
+                updatedShareWith = updatedShareWith.revoke(revoke);
+            }
+
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
+
+            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+                // update the record
+                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                    .setId(resourceId)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setOpType(DocWriteRequest.OpType.INDEX)
+                    .request();
+
+                client.index(ir, ActionListener.wrap(idxResponse -> {
+                    ctx.restore();
+                    LOGGER.info(
+                        "Successfully updated {} resource sharing info for resource {} in index {}.",
+                        resourceSharingIndex,
+                        resourceId,
+                        resourceIndex
+                    );
+
+                    listener.onResponse(updatedSharingInfo);
+                }, (e) -> {
+                    LOGGER.error(e.getMessage());
+                    listener.onFailure(e);
+                }));
             }
         }, listener::onFailure);
     }

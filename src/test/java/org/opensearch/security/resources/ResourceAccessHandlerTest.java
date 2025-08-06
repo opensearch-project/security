@@ -300,4 +300,59 @@ public class ResourceAccessHandlerTest {
         handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
+
+    @Test
+    public void testGetSharingInfoSuccess() {
+        User user = new User("user1", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
+        injectUser(user);
+        ResourceSharing doc = mock(ResourceSharing.class);
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(doc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+
+        verify(listener).onResponse(doc);
+    }
+
+    @Test
+    public void testGetSharingInfoFailsIfNoUser() {
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+
+        verify(listener).onFailure(any(OpenSearchStatusException.class));
+    }
+
+    @Test
+    public void testPatchSharingInfoSuccess() {
+        User user = new User("user1", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
+        injectUser(user);
+        ShareWith add = new ShareWith(ImmutableMap.of());
+        ShareWith revoke = new ShareWith(ImmutableMap.of());
+
+        ResourceSharing doc = mock(ResourceSharing.class);
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(4);
+            l.onResponse(doc);
+            return null;
+        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.patchSharingInfo(RESOURCE_ID, INDEX, add, revoke, listener);
+
+        verify(listener).onResponse(doc);
+    }
+
+    @Test
+    public void testPatchSharingInfoFailsIfNoUser() {
+        ShareWith x = new ShareWith(ImmutableMap.of());
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.patchSharingInfo(RESOURCE_ID, INDEX, x, x, listener);
+
+        verify(listener).onFailure(any(OpenSearchStatusException.class));
+    }
 }
