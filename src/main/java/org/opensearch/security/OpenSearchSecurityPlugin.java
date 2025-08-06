@@ -692,7 +692,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 );
 
                 // Resource sharing API to update sharing info
-                if (settings.getAsBoolean(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
+                if (settings.getAsBoolean(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+                )) {
                     handlers.add(new ShareRestAction());
                 }
 
