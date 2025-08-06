@@ -182,6 +182,7 @@ public class SecurityInterceptorTests {
 
         request = mock(TransportRequest.class);
         options = mock(TransportRequestOptions.class);
+        when(options.type()).thenReturn(TransportRequestOptions.Type.REG);
 
         localAddress = null;
         remoteAddress = null;
@@ -439,4 +440,13 @@ public class SecurityInterceptorTests {
         // this is a local request
         completableRequestDecorate(sender, connection1, action, request, options, handler, localNode);
     }
+
+    @Test
+    public void testStreamRequestType() {
+        TransportRequestOptions streamOptions = mock(TransportRequestOptions.class);
+        when(streamOptions.type()).thenReturn(TransportRequestOptions.Type.STREAM);
+
+        completableRequestDecorate(jdkSerializedSender, connection1, action, request, streamOptions, handler, localNode);
+    }
+
 }
