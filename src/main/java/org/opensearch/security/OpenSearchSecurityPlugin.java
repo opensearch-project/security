@@ -2248,6 +2248,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Final
                 )
             );
+
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED,
+                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;
