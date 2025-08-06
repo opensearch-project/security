@@ -46,8 +46,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.action.configupdate.ConfigUpdateAction;
-import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -141,9 +139,6 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 final var allUpdates = JsonNodeFactory.instance.objectNode();
                 updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
                 response.set("upgrades", allUpdates);
-                final ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { CType.ROLES.toLCString() });
-
-                client.execute(ConfigUpdateAction.INSTANCE, cur).actionGet();
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
             })
             .error((status, toXContent) -> response(channel, status, toXContent));
