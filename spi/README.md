@@ -33,7 +33,7 @@ dependencies {
 Each plugin must define a **resource class** .
 Example:
 ```java
-public class SampleResource {
+public class SampleResource implements NamedWriteable, ToXContentObject{
     private String id;
     private String owner;
 
@@ -62,14 +62,51 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin {
 
 ---
 
-#### **4. Implement the `ResourceSharingExtension` Interface**
+#### **4. Create the `ResourceSharingClientAccessor` class**
+
+Create a singleton client accessor class that holds the ResourceSharingClient that will be supplied by Security plugin.
+
+```java
+public class ResourceSharingClientAccessor {
+    private ResourceSharingClient CLIENT;
+
+    private static ResourceSharingClientAccessor resourceSharingClientAccessor;
+
+    private ResourceSharingClientAccessor() {}
+
+    public static ResourceSharingClientAccessor getInstance() {
+        if (resourceSharingClientAccessor == null) {
+            resourceSharingClientAccessor = new ResourceSharingClientAccessor();
+        }
+
+        return resourceSharingClientAccessor;
+    }
+
+    /**
+     * Set the resource sharing client
+     */
+    public void setResourceSharingClient(ResourceSharingClient client) {
+        resourceSharingClientAccessor.CLIENT = client;
+    }
+
+    /**
+     * Get the resource sharing client
+     */
+    public ResourceSharingClient getResourceSharingClient() {
+        return resourceSharingClientAccessor.CLIENT;
+    }
+}
+```
+
+
+---
+
+#### **5. Implement the `ResourceSharingExtension` Interface**
 Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
 
 ```java
 // Create a new extension point to register itself of a resource access control plugin
 public class SampleResourceExtension implements ResourceSharingExtension {
-  private ResourceSharingClient client;
-
   @Override
   public Set<ResourceProvider> getResourceProviders() {
     return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
@@ -77,19 +114,14 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
   @Override
   public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-    this.client = resourceSharingClient;
-  }
-
-  @Override
-  public ResourceSharingClient getResourceSharingClient() {
-    return this.client;
+    ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
   }
 }
 ```
 
 ---
 
-#### **5. Register the Plugin Using the Java SPI Mechanism**
+#### **6. Register the Plugin Using the Java SPI Mechanism**
 - Navigate to your plugin's `src/main/resources` folder.
 - Locate or create the `META-INF/services` directory.
 - Inside `META-INF/services`, create a file named:
@@ -104,8 +136,61 @@ public class SampleResourceExtension implements ResourceSharingExtension {
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
+#### **7. Implement DocRequest interface**
 
-#### **6. Using the Client in a Transport Action**
+All ActionRequests related to resource must implement DocRequest interface. This is how security plugin decides whether request if for a protected resource.
+
+```java
+public class ShareResourceRequest extends ActionRequest implements DocRequest {
+
+    private final String resourceId;
+
+    private final ShareWith shareWithRecipients;
+
+    public ShareResourceRequest(String resourceId, ShareWith shareWithRecipients) {
+        this.resourceId = resourceId;
+        this.shareWithRecipients = shareWithRecipients;
+    }
+
+    public ShareResourceRequest(StreamInput in) throws IOException {
+        this.resourceId = in.readString();
+        this.shareWithRecipients = new ShareWith(in);
+    }
+
+    @Override
+    public void writeTo(final StreamOutput out) throws IOException {
+        out.writeString(this.resourceId);
+        shareWithRecipients.writeTo(out);
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        return null;
+    }
+
+    public String getResourceId() {
+        return this.resourceId;
+    }
+
+    public ShareWith getShareWith() {
+        return shareWithRecipients;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String id() {
+        return resourceId;
+    }
+}
+```
+
+---
+
+#### **8. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
