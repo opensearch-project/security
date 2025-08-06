@@ -212,7 +212,7 @@ public final class TestUtils {
         return """
             {
               "resource_id": "%s",
-              "resource_index": "%s",
+              "resource_type": "%s",
               "share_with": {
                 "%s" : {
                     "users": ["%s"]
@@ -280,7 +280,7 @@ public final class TestUtils {
             return """
                 {
                   "resource_id": "%s",
-                  "resource_index": "%s",
+                  "resource_type": "%s",
                   "patch":{
                       "add": {
                         %s

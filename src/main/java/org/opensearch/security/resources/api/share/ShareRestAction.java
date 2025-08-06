@@ -44,7 +44,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
-    private final static Set<String> ALLOWED_PATCH_OPERATIONS = Set.of("share_with", "revoke");
+    private final static Set<String> ALLOWED_PATCH_OPERATIONS = Set.of("add", "revoke");
 
     public ShareRestAction() {}
 
@@ -65,7 +65,7 @@ public class ShareRestAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         // These two params will only be present with GET request
         String resourceId = request.param("resource_id");
-        String resourceIndex = request.param("resource_index");
+        String resourceIndex = request.param("resource_type");
 
         ShareRequest.Builder builder = new ShareRequest.Builder();
         builder.method(request.method());

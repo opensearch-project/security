@@ -33,7 +33,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
 
     @JsonProperty("resource_id")
     private final String resourceId;
-    @JsonProperty("resource_index")
+    @JsonProperty("resource_type")
     private final String resourceIndex;
     @JsonProperty("share_with")
     private final ShareWith shareWith;
@@ -79,7 +79,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     public ActionRequestValidationException validate() {
         var arv = new ActionRequestValidationException();
         if (Strings.isNullOrEmpty(resourceIndex) || Strings.isNullOrEmpty(resourceId)) {
-            arv.addValidationError("resource_id and resource_index must be present");
+            arv.addValidationError("resource_id and resource_type must be present");
             throw arv;
         }
 
@@ -95,10 +95,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         if (method == RestRequest.Method.PATCH) {
             if (patch == null || patch.isEmpty()) {
                 arv.addValidationError("patch is required");
+                throw arv;
             } else if (!patch.containsKey("add") && !patch.containsKey("revoke")) {
                 arv.addValidationError("patch must not be empty");
+                throw arv;
             }
-            throw arv;
         }
         return null;
     }
@@ -203,7 +204,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                             case "resource_id":
                                 this.resourceId(parser.text());
                                 break;
-                            case "resource_index":
+                            case "resource_type":
                                 this.resourceIndex(parser.text());
                                 break;
                             case "share_with":

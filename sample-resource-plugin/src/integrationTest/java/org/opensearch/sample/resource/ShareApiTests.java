@@ -120,7 +120,7 @@ public class ShareApiTests {
             // non-permission user cannot list shared resources,
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.get(
-                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_index=" + RESOURCE_INDEX_NAME
+                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_INDEX_NAME
                 );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -138,7 +138,7 @@ public class ShareApiTests {
             // non-permission user can now list shared_with resources by calling share API
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.get(
-                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_index=" + RESOURCE_INDEX_NAME
+                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_INDEX_NAME
                 );
                 response.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(response.bodyAsJsonNode().get("sharing_info").get("resource_id").asText(), equalTo(adminResId));

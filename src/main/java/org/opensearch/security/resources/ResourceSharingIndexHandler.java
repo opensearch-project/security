@@ -580,8 +580,8 @@ public class ResourceSharingIndexHandler {
     private ShareWith applyPatch(@Nullable ShareWith existing, Map<String, ShareWith> patches) {
         ShareWith base = existing == null ? new ShareWith(new HashMap<>()) : existing;
         // update new share-with info
-        if (patches.containsKey("share_with")) {
-            base = base.add(patches.get("share_with"));
+        if (patches.containsKey("add")) {
+            base = base.add(patches.get("add"));
         }
         // revoke any access
         if (patches.containsKey("revoke")) {
