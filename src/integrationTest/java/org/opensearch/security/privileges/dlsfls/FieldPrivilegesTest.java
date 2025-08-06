@@ -279,6 +279,12 @@ public class FieldPrivilegesTest {
             assertEquals("FLS:*", flsRule.toString());
         }
 
+        @Test
+        public void nullFieldName() throws Exception {
+            FieldPrivileges.FlsRule flsRule = FieldPrivileges.FlsRule.of("a");
+            assertFalse("null field value is rejected", flsRule.isAllowedAssumingParentsAreAllowed(null));
+        }
+
     }
 
     public static class FlsPattern {

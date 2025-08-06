@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Always install demo certs if configured with demo certs ([#5517](https://github.com/opensearch-project/security/pull/5517))
 * [Resource Sharing] Restores client accessor pattern to fix compilation issues when security plugin is not installed ([#5541](https://github.com/opensearch-project/security/pull/5541))
 * Add serialized user custom attributes to the the thread context ([#5491](https://github.com/opensearch-project/security/pull/5491))
+* Fix NullPointerExceptions for "missing values" term aggregations and sorting on geo points ([#5537](https://github.com/opensearch-project/security/pull/5537))
 
 ### Refactoring
 
