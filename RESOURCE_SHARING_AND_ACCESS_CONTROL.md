@@ -550,20 +550,22 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 ```json
 {
   "resource_id": "resource-123",
-  "resource_index": "my-resource-index",
-  "patch": {
-    "add": {
-      "read_only": {
-        "users": ["charlie"]
-      }
+  "resource_type": "my-resource-index",
+  "add": {
+    "read_only": {
+      "users": ["charlie"]
+    }
+  },
+  "revoke": {
+    "read_only": {
+      "users": [
+        "alice"
+      ]
     },
-    "revoke": {
-      "read_only": {
-        "users": ["alice"]
-      },
-      "read_write": {
-        "users": ["bob"]
-      }
+    "read_write": {
+      "users": [
+        "bob"
+      ]
     }
   }
 }
@@ -588,7 +590,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 }
 ```
 
-#### Allowed Keys in `patch`:
+#### Allowed Patch operations:
 - `"add"` – Adds recipients
 - `"revoke"` – Removes recipients
 
