@@ -60,8 +60,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.resourceId = in.readString();
         this.resourceIndex = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        this.add = new ShareWith(in);
-        this.revoke = new ShareWith(in);
+        this.add = in.readOptionalWriteable(ShareWith::new);
+        this.revoke = in.readOptionalWriteable(ShareWith::new);
     }
 
     @Override
@@ -69,15 +69,9 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeEnum(method);
         out.writeString(resourceId);
         out.writeString(resourceIndex);
-        if (shareWith != null) {
-            shareWith.writeTo(out);
-        }
-        if (add != null) {
-            add.writeTo(out);
-        }
-        if (revoke != null) {
-            revoke.writeTo(out);
-        }
+        out.writeOptionalWriteable(shareWith);
+        out.writeOptionalWriteable(add);
+        out.writeOptionalWriteable(revoke);
     }
 
     @Override
