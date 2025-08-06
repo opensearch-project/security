@@ -45,7 +45,13 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
                 resourceAccessHandler.getSharingInfo(request.id(), request.index(), sharingInfoListener);
                 return;
             case PATCH:
-                resourceAccessHandler.patchSharingInfo(request.id(), request.index(), request.getPatch(), sharingInfoListener);
+                resourceAccessHandler.patchSharingInfo(
+                    request.id(),
+                    request.index(),
+                    request.getAdd(),
+                    request.getRevoke(),
+                    sharingInfoListener
+                );
                 break;
             case PUT:
                 resourceAccessHandler.share(request.id(), request.index(), request.getShareWith(), sharingInfoListener);

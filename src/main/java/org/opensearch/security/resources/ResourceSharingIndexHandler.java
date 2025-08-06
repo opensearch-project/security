@@ -10,7 +10,6 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +34,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -572,39 +570,21 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Applies the patch to the original resource-sharing share-with record.
-     * @param existing current share-with object
-     * @param patches updates to be applied; share-with will be added and revoke will be removed
-     * @return updated share-with object
-     */
-    private ShareWith applyPatch(@Nullable ShareWith existing, Map<String, ShareWith> patches) {
-        ShareWith base = existing == null ? new ShareWith(new HashMap<>()) : existing;
-        // update new share-with info
-        if (patches.containsKey("add")) {
-            base = base.add(patches.get("add"));
-        }
-        // revoke any access
-        if (patches.containsKey("revoke")) {
-            base = base.revoke(patches.get("revoke"));
-        }
-        // return the updated ShareWith object
-        return base;
-    }
-
-    /**
      * Fetch existing share_with, apply the patch ops in-memory, and update the sharing record.
      * Two ops are supported:
      * 1. share_with -> upgrade or downgrade access; share with new entities
      * 2. revoke -> revoke access for existing entities
      * @param resourceId    id of the resource to apply the patch to
      * @param resourceIndex name of the index where resource is present
-     * @param patch  the patch to be applied
+     * @param add  the recipients to be shared with
+     * @param revoke  the recipients to be revoked with
      * @param listener      listener to be notified in case of success or failure
      */
     public void patchSharingInfo(
         String resourceId,
         String resourceIndex,
-        Map<String, ShareWith> patch,
+        ShareWith add,
+        ShareWith revoke,
         ActionListener<ResourceSharing> listener
     ) {
 
@@ -616,8 +596,16 @@ public class ResourceSharingIndexHandler {
 
         // Apply patch and update the document
         sharingInfoListener.whenComplete(resourceSharing -> {
-            // parse and apply the patch
-            ShareWith updatedShareWith = applyPatch(resourceSharing.getShareWith(), patch);
+            ShareWith updatedShareWith = resourceSharing.getShareWith();
+            if (updatedShareWith == null) {
+                updatedShareWith = add;
+            } else if (add != null) {
+                updatedShareWith = updatedShareWith.add(add);
+            }
+
+            if (revoke != null) {
+                updatedShareWith = updatedShareWith.revoke(revoke);
+            }
 
             ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
 

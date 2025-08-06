@@ -281,13 +281,11 @@ public final class TestUtils {
                 {
                   "resource_id": "%s",
                   "resource_type": "%s",
-                  "patch":{
-                      "add": {
-                        %s
-                      },
-                      "revoke": {
-                        %s
-                      }
+                  "add": {
+                    %s
+                  },
+                  "revoke": {
+                    %s
                   }
                 }
                 """.formatted(resourceId, resourceIndex, allShares, allRevokes);

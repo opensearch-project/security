@@ -9,8 +9,6 @@
 package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -37,8 +35,10 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private final String resourceIndex;
     @JsonProperty("share_with")
     private final ShareWith shareWith;
-    @JsonProperty("patch")
-    private final Map<String, ShareWith> patch;
+    @JsonProperty("add")
+    private final ShareWith add;
+    @JsonProperty("revoke")
+    private final ShareWith revoke;
 
     private final RestRequest.Method method;
 
@@ -49,30 +49,35 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.resourceId = builder.resourceId;
         this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
-        this.patch = builder.patch;
+        this.add = builder.add;
+        this.revoke = builder.revoke;
         this.method = builder.method;
     }
 
     public ShareRequest(StreamInput in) throws IOException {
         super(in);
+        this.method = in.readEnum(RestRequest.Method.class);
         this.resourceId = in.readString();
         this.resourceIndex = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        this.patch = in.readMap(StreamInput::readString, ShareWith::new);
-        this.method = in.readEnum(RestRequest.Method.class);
+        this.add = new ShareWith(in);
+        this.revoke = new ShareWith(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeEnum(method);
         out.writeString(resourceId);
         out.writeString(resourceIndex);
         if (shareWith != null) {
             shareWith.writeTo(out);
         }
-        if (patch != null) {
-            out.writeString(patch.toString());
+        if (add != null) {
+            add.writeTo(out);
         }
-        out.writeEnum(method);
+        if (revoke != null) {
+            revoke.writeTo(out);
+        }
     }
 
     @Override
@@ -92,14 +97,9 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             arv.addValidationError("share_with is required");
             throw arv;
         }
-        if (method == RestRequest.Method.PATCH) {
-            if (patch == null || patch.isEmpty()) {
-                arv.addValidationError("patch is required");
-                throw arv;
-            } else if (!patch.containsKey("add") && !patch.containsKey("revoke")) {
-                arv.addValidationError("patch must not be empty");
-                throw arv;
-            }
+        if (method == RestRequest.Method.PATCH && add == null && revoke == null) {
+            arv.addValidationError("either add or revoke must be present");
+            throw arv;
         }
         return null;
     }
@@ -108,8 +108,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return shareWith;
     }
 
-    public Map<String, ShareWith> getPatch() {
-        return patch;
+    public ShareWith getAdd() {
+        return add;
+    }
+
+    public ShareWith getRevoke() {
+        return revoke;
     }
 
     public RestRequest.Method getMethod() {
@@ -143,7 +147,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         private String resourceId;
         private String resourceIndex;
         private ShareWith shareWith;
-        private Map<String, ShareWith> patch;
+        private ShareWith add;
+        private ShareWith revoke;
         private RestRequest.Method method;
 
         public void resourceId(String resourceId) {
@@ -158,8 +163,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             this.shareWith = shareWith;
         }
 
-        public void patch(Map<String, ShareWith> patch) {
-            this.patch = patch;
+        public void add(ShareWith add) {
+            this.add = add;
+        }
+
+        public void revoke(ShareWith revoke) {
+            this.revoke = revoke;
         }
 
         public void method(RestRequest.Method method) {
@@ -168,29 +177,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
 
         public ShareRequest build() {
             return new ShareRequest(this);
-        }
-
-        /**
-         * Parses a patch object from JSON, extracting "share_with" and "revoke" sub-objects.
-         */
-        public void parsePatch(XContentParser parser) throws IOException {
-            Map<String, ShareWith> map = new HashMap<>(2);
-            XContentParser.Token tok = parser.currentToken();
-            if (tok != XContentParser.Token.START_OBJECT) {
-                throw new IllegalArgumentException("Expected patch object");
-            }
-            while ((tok = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                if (tok == XContentParser.Token.FIELD_NAME) {
-                    String field = parser.currentName();
-                    parser.nextToken();
-                    if ("add".equals(field) || "revoke".equals(field)) {
-                        map.put(field, ShareWith.fromXContent(parser));
-                    } else {
-                        parser.skipChildren();
-                    }
-                }
-            }
-            this.patch = map;
         }
 
         public void parseContent(XContentParser xContentParser) throws IOException {
@@ -210,8 +196,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                             case "share_with":
                                 this.shareWith(ShareWith.fromXContent(parser));
                                 break;
-                            case "patch":
-                                this.parsePatch(parser);
+                            case "add":
+                                this.add(ShareWith.fromXContent(parser));
+                                break;
+                            case "revoke":
+                                this.revoke(ShareWith.fromXContent(parser));
                                 break;
                             default:
                                 parser.skipChildren();

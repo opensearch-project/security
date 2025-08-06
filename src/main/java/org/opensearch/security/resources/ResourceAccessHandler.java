@@ -13,7 +13,6 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -220,13 +220,15 @@ public class ResourceAccessHandler {
      * A final resource-sharing object will be returned upon successful application of the patch to the index record
      * @param resourceId    id of the resource whose sharing info is to be updated
      * @param resourceIndex name of the resource index
-     * @param patch  the patch to be applied
+     * @param add  the recipients to be shared with
+     * @param revoke  the recipients to be revoked with
      * @param listener      listener to be notified of final resource sharing record
      */
     public void patchSharingInfo(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Map<String, ShareWith> patch,
+        @Nullable ShareWith add,
+        @Nullable ShareWith revoke,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -246,18 +248,25 @@ public class ResourceAccessHandler {
         }
 
         LOGGER.debug(
-            "User {} is updating sharing info for resource {} in index {} with {}",
+            "User {} is updating sharing info for resource {} in index {} with add: {}, revoke: {} ",
             user.getName(),
             resourceId,
             resourceIndex,
-            patch.toString()
+            add,
+            revoke
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, patch, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with {}", resourceId, patch.toString());
+        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
             listener.onResponse(sharingInfo);
         }, e -> {
-            LOGGER.error("Failed to patched sharing info for resource {} with {}: {}", resourceId, patch.toString(), e.getMessage());
+            LOGGER.error(
+                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                resourceId,
+                add,
+                revoke,
+                e.getMessage()
+            );
             listener.onFailure(e);
         }));
 

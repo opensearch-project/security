@@ -10,8 +10,6 @@ package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -24,13 +22,11 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PATCH;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_RESOURCE_ROUTE_PREFIX;
@@ -43,8 +39,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  */
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
-
-    private final static Set<String> ALLOWED_PATCH_OPERATIONS = Set.of("add", "revoke");
 
     public ShareRestAction() {}
 
@@ -84,11 +78,6 @@ public class ShareRestAction extends BaseRestHandler {
         ShareRequest shareRequest = builder.build();
 
         return channel -> {
-            Map<String, ShareWith> patchMap = shareRequest.getPatch();
-            if (patchMap != null && !ALLOWED_PATCH_OPERATIONS.containsAll(patchMap.keySet())) {
-                badRequest(channel, "Invalid patch operations: " + patchMap.keySet());
-                return;
-            }
             client.executeLocally(
                 ShareAction.INSTANCE,
                 shareRequest,

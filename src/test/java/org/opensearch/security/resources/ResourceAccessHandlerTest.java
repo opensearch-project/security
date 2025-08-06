@@ -9,7 +9,6 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -332,26 +331,27 @@ public class ResourceAccessHandlerTest {
     public void testPatchSharingInfoSuccess() {
         User user = new User("user1", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(user);
-        Map<String, ShareWith> patch = Map.of("op", new ShareWith(ImmutableMap.of()));
+        ShareWith add = new ShareWith(ImmutableMap.of());
+        ShareWith revoke = new ShareWith(ImmutableMap.of());
 
         ResourceSharing doc = mock(ResourceSharing.class);
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(3);
+            ActionListener<ResourceSharing> l = inv.getArgument(4);
             l.onResponse(doc);
             return null;
-        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(patch), any());
+        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, patch, listener);
+        handler.patchSharingInfo(RESOURCE_ID, INDEX, add, revoke, listener);
 
         verify(listener).onResponse(doc);
     }
 
     @Test
     public void testPatchSharingInfoFailsIfNoUser() {
-        Map<String, ShareWith> patch = Map.of("op", new ShareWith(ImmutableMap.of()));
+        ShareWith x = new ShareWith(ImmutableMap.of());
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, patch, listener);
+        handler.patchSharingInfo(RESOURCE_ID, INDEX, x, x, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
