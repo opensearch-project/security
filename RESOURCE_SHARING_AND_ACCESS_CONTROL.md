@@ -505,7 +505,7 @@ Creates or replaces sharing settings for a resource.
 ```json
 {
   "resource_id": "resource-123",
-  "resource_index": "my-resource-index",
+  "resource_type": "my-resource-index",
   "share_with": {
     "read_only": {
       "users": ["alice"],
@@ -552,7 +552,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
   "resource_id": "resource-123",
   "resource_index": "my-resource-index",
   "patch": {
-    "share_with": {
+    "add": {
       "read_only": {
         "users": ["charlie"]
       }
@@ -589,11 +589,11 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 ```
 
 #### Allowed Keys in `patch`:
-- `"share_with"` – Adds recipients
+- `"add"` – Adds recipients
 - `"revoke"` – Removes recipients
 
 
-### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_index=<index>`
+### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_type=<index>`
 
 **Description:**
 Retrieves the current sharing configuration for a given resource.
@@ -601,7 +601,7 @@ Retrieves the current sharing configuration for a given resource.
 **Example Request:**
 
 ```
-GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_index=my-resource-index
+GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_type=my-resource-index
 ```
 
 **Response:**
