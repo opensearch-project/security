@@ -88,9 +88,16 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             return null;
         }
         // either of shareWith or patch must be present in the request
-        if (shareWith == null && (patch == null || patch.isEmpty())) {
-            String message = method == RestRequest.Method.PATCH ? "Patch" : "ShareWith";
-            arv.addValidationError(message + " is required");
+        if (shareWith == null && method == RestRequest.Method.PUT) {
+            arv.addValidationError("share_with is required");
+            throw arv;
+        }
+        if (method == RestRequest.Method.PATCH) {
+            if (patch == null || patch.isEmpty()) {
+                arv.addValidationError("patch is required");
+            } else if (!patch.containsKey("add") && !patch.containsKey("revoke")) {
+                arv.addValidationError("patch must not be empty");
+            }
             throw arv;
         }
         return null;
@@ -175,7 +182,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                 if (tok == XContentParser.Token.FIELD_NAME) {
                     String field = parser.currentName();
                     parser.nextToken();
-                    if ("share_with".equals(field) || "revoke".equals(field)) {
+                    if ("add".equals(field) || "revoke".equals(field)) {
                         map.put(field, ShareWith.fromXContent(parser));
                     } else {
                         parser.skipChildren();

@@ -98,6 +98,7 @@ public class ShareRestAction extends BaseRestHandler {
     }
 
     private void handleError(RestChannel channel, Exception e) {
+        LOGGER.error("Error while processing request", e);
         String message = e.getMessage();
         if (e instanceof OpenSearchStatusException ex) {
             response(channel, ex.status(), message);

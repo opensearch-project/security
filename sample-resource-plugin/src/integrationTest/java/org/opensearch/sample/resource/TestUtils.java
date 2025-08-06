@@ -282,7 +282,7 @@ public final class TestUtils {
                   "resource_id": "%s",
                   "resource_index": "%s",
                   "patch":{
-                      "share_with": {
+                      "add": {
                         %s
                       },
                       "revoke": {
