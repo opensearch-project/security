@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
@@ -47,6 +46,8 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -140,17 +141,12 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 final var allUpdates = JsonNodeFactory.instance.objectNode();
                 updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
                 response.set("upgrades", allUpdates);
-                loadConfiguration(CType.ROLES, false, false).valid(roles -> {
-                    saveAndUpdateConfigsAsync(securityApiDependencies, client, CType.ROLES, roles, new OnSucessActionListener<>(channel) {
-                        @Override
-                        public void onResponse(IndexResponse indexResponse) {
-                            channel.sendResponse(
-                                new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString())
-                            );
-                        }
-                    });
-                }).error((status, toXContent) -> response(channel, status, toXContent));
-            });
+                final ConfigUpdateRequest cur = new ConfigUpdateRequest(new String[] { CType.ROLES.toLCString() });
+
+                client.execute(ConfigUpdateAction.INSTANCE, cur).actionGet();
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
+            })
+            .error((status, toXContent) -> response(channel, status, toXContent));
     }
 
     private ValidationResult<List<ConfigItemChanges>> applyDifferences(
