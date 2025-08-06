@@ -410,6 +410,9 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_VERSION_RETENTION_COUNT = SECURITY_SETTINGS_PREFIX + "config_version.retention_count";
     public static final int SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT = 10;
 
+    public static final String USER_ATTRIBUTE_SERIALIZATION_ENABLED = SECURITY_SETTINGS_PREFIX + "user_attribute_serialization.enabled";
+    public static final boolean USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT = false;
+
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";

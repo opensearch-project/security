@@ -131,4 +131,42 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     public String toString() {
         return "ShareWith " + sharingInfo;
     }
+
+    /**
+     * Returns a new ShareWith by merging this and another ShareWith (adding recipients).
+     */
+    public ShareWith add(ShareWith other) {
+        if (other == null || other.isPrivate()) {
+            return this;
+        }
+        Map<String, Recipients> updated = new HashMap<>(this.sharingInfo);
+        for (var entry : other.sharingInfo.entrySet()) {
+            String level = entry.getKey();
+            Recipients patchRecipients = entry.getValue();
+            updated.merge(level, patchRecipients, (orig, patchRec) -> {
+                orig.share(patchRec);
+                return orig;
+            });
+        }
+        return new ShareWith(updated);
+    }
+
+    /**
+     * Returns a new ShareWith by revoking recipients based on another ShareWith.
+     */
+    public ShareWith revoke(ShareWith other) {
+        if (this.sharingInfo.isEmpty() || other == null || other.isPrivate()) {
+            return this;
+        }
+        Map<String, Recipients> updated = new HashMap<>(this.sharingInfo);
+        for (var entry : other.sharingInfo.entrySet()) {
+            String level = entry.getKey();
+            Recipients revokeRecipients = entry.getValue();
+            updated.computeIfPresent(level, (lvl, orig) -> {
+                orig.revoke(revokeRecipients);
+                return orig;
+            });
+        }
+        return new ShareWith(updated);
+    }
 }
