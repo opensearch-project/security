@@ -21,6 +21,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.common.Nullable;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -56,6 +58,7 @@ public class ResourceAccessHandler {
     private final AdminDNs adminDNs;
     private final PrivilegesEvaluator privilegesEvaluator;
 
+    @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
@@ -207,6 +210,101 @@ public class ResourceAccessHandler {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
         }));
+    }
+
+    /**
+     * Patches the sharing info. It could be either or all 3 of the following possibilities:
+     * 1. Revoke access                 - remove op
+     * 2. Upgrade or downgrade access   - move op
+     * 3. Share with new entity         - add op
+     * A final resource-sharing object will be returned upon successful application of the patch to the index record
+     * @param resourceId    id of the resource whose sharing info is to be updated
+     * @param resourceIndex name of the resource index
+     * @param add  the recipients to be shared with
+     * @param revoke  the recipients to be revoked with
+     * @param listener      listener to be notified of final resource sharing record
+     */
+    public void patchSharingInfo(
+        @NonNull String resourceId,
+        @NonNull String resourceIndex,
+        @Nullable ShareWith add,
+        @Nullable ShareWith revoke,
+        ActionListener<ResourceSharing> listener
+    ) {
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        final User user = (userSubject == null) ? null : userSubject.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Failed to patch resource sharing info {}", resourceId);
+            listener.onFailure(
+                new OpenSearchStatusException(
+                    "No authenticated user found. Failed to patch resource sharing info " + resourceId,
+                    RestStatus.UNAUTHORIZED
+                )
+            );
+            return;
+        }
+
+        LOGGER.debug(
+            "User {} is updating sharing info for resource {} in index {} with add: {}, revoke: {} ",
+            user.getName(),
+            resourceId,
+            resourceIndex,
+            add,
+            revoke
+        );
+
+        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
+            listener.onResponse(sharingInfo);
+        }, e -> {
+            LOGGER.error(
+                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                resourceId,
+                add,
+                revoke,
+                e.getMessage()
+            );
+            listener.onFailure(e);
+        }));
+
+    }
+
+    /**
+     * Get sharing info for this record
+     * @param resourceId    id of the resource whose sharing info is to be fetched
+     * @param resourceIndex name of the resource index
+     * @param listener      listener to be notified of final resource sharing record
+     */
+    public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceIndex, ActionListener<ResourceSharing> listener) {
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        final User user = (userSubject == null) ? null : userSubject.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Failed to fetch resource sharing info {}", resourceId);
+            listener.onFailure(
+                new OpenSearchStatusException(
+                    "No authenticated user found. Failed to fetch resource sharing info " + resourceId,
+                    RestStatus.UNAUTHORIZED
+                )
+            );
+            return;
+        }
+
+        LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceIndex);
+
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully fetched sharing info for resource {} in index {}", resourceId, resourceIndex);
+            listener.onResponse(sharingInfo);
+        }, e -> {
+            LOGGER.error("Failed to fetched sharing info for resource {} in index {}: {}", resourceId, resourceIndex, e.getMessage());
+            listener.onFailure(e);
+        }));
+
     }
 
     /**

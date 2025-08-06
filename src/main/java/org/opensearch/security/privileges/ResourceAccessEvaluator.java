@@ -19,6 +19,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -98,8 +99,8 @@ public class ResourceAccessEvaluator {
         );
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
-        if (docRequest.id() == null) {
-            log.debug("Request id is null, request is of type {}", docRequest.getClass().getName());
+        if (Strings.isNullOrEmpty(docRequest.id())) {
+            log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
