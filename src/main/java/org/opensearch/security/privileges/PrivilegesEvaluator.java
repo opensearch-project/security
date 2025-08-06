@@ -300,11 +300,7 @@ public class PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", context.getMappedRoles())));
 
             String requestedTenant = context.getUser().getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(escapePipe(requestedTenant));
-            } else {
-                joiner.add("null");
-            }
+            joiner.add(requestedTenant);
 
             String tenantAccessToCheck = getTenancyAccess(context);
             joiner.add(tenantAccessToCheck);
