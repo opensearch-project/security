@@ -240,6 +240,7 @@ import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAK
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
@@ -691,7 +692,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 );
 
                 // Resource sharing API to update sharing info
-                handlers.add(new ShareRestAction());
+                if (settings.getAsBoolean(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
+                    handlers.add(new ShareRestAction());
+                }
 
             }
             log.debug("Added {} rest handler(s)", handlers.size());
@@ -722,7 +725,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
 
             // transport action to handle sharing info update
-            actions.add(new ActionHandler<>(ShareAction.INSTANCE, ShareTransportAction.class));
+            if (settings.getAsBoolean(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT)) {
+                actions.add(new ActionHandler<>(ShareAction.INSTANCE, ShareTransportAction.class));
+            }
+
         }
         return actions;
     }
