@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
@@ -31,11 +30,13 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import org.mockito.Mockito;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -62,16 +63,16 @@ public class ShareWithTests {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        MatcherAssert.assertThat(shareWith, notNullValue());
+        assertThat(shareWith, notNullValue());
         Recipients readOnly = shareWith.atAccessLevel("read_only");
-        MatcherAssert.assertThat(readOnly, notNullValue());
+        assertThat(readOnly, notNullValue());
 
         Map<Recipient, Set<String>> recipients = readOnly.getRecipients();
-        MatcherAssert.assertThat(recipients, notNullValue());
-        MatcherAssert.assertThat(recipients.get(Recipient.USERS).size(), is(1));
-        MatcherAssert.assertThat(recipients.get(Recipient.USERS), contains("user1"));
-        MatcherAssert.assertThat(recipients.get(Recipient.ROLES).size(), is(0));
-        MatcherAssert.assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(0));
+        assertThat(recipients, notNullValue());
+        assertThat(recipients.get(Recipient.USERS).size(), is(1));
+        assertThat(recipients.get(Recipient.USERS), contains("user1"));
+        assertThat(recipients.get(Recipient.ROLES).size(), is(0));
+        assertThat(recipients.get(Recipient.BACKEND_ROLES).size(), is(0));
     }
 
     @Test
@@ -81,9 +82,9 @@ public class ShareWithTests {
 
         ShareWith result = ShareWith.fromXContent(parser);
 
-        MatcherAssert.assertThat(result, notNullValue());
-        MatcherAssert.assertThat(result.isPrivate(), is(true));
-        MatcherAssert.assertThat(result.isPublic(), is(false));
+        assertThat(result, notNullValue());
+        assertThat(result.isPrivate(), is(true));
+        assertThat(result.isPublic(), is(false));
     }
 
     @Test
@@ -110,22 +111,22 @@ public class ShareWithTests {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        MatcherAssert.assertThat(shareWith, notNullValue());
+        assertThat(shareWith, notNullValue());
 
         Recipients defaultAccessLevel = shareWith.atAccessLevel("default");
 
         Recipients readOnly = shareWith.atAccessLevel("read-only");
 
-        MatcherAssert.assertThat(defaultAccessLevel, notNullValue());
-        MatcherAssert.assertThat(readOnly, notNullValue());
+        assertThat(defaultAccessLevel, notNullValue());
+        assertThat(readOnly, notNullValue());
 
-        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.USERS).size(), is(2));
-        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.ROLES).size(), is(1));
-        MatcherAssert.assertThat(defaultAccessLevel.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
+        assertThat(defaultAccessLevel.getRecipientsByType(Recipient.USERS).size(), is(2));
+        assertThat(defaultAccessLevel.getRecipientsByType(Recipient.ROLES).size(), is(1));
+        assertThat(defaultAccessLevel.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
 
-        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.USERS).size(), is(1));
-        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.ROLES).size(), is(1));
-        MatcherAssert.assertThat(readOnly.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
+        assertThat(readOnly.getRecipientsByType(Recipient.USERS).size(), is(1));
+        assertThat(readOnly.getRecipientsByType(Recipient.ROLES).size(), is(1));
+        assertThat(readOnly.getRecipientsByType(Recipient.BACKEND_ROLES).size(), is(1));
     }
 
     @Test
@@ -136,9 +137,9 @@ public class ShareWithTests {
 
         ShareWith result = ShareWith.fromXContent(mockParser);
 
-        MatcherAssert.assertThat(result, notNullValue());
-        MatcherAssert.assertThat(result.isPrivate(), is(true));
-        MatcherAssert.assertThat(result.isPublic(), is(false));
+        assertThat(result, notNullValue());
+        assertThat(result.isPrivate(), is(true));
+        assertThat(result.isPublic(), is(false));
     }
 
     @Test
@@ -155,8 +156,8 @@ public class ShareWithTests {
 
         String expected = "{\"actionGroup1\":{\"users\":[\"bleh\"]}}";
 
-        MatcherAssert.assertThat(expected.length(), equalTo(result.length()));
-        MatcherAssert.assertThat(expected, equalTo(result));
+        assertThat(expected.length(), equalTo(result.length()));
+        assertThat(expected, equalTo(result));
     }
 
     @Test
@@ -206,8 +207,8 @@ public class ShareWithTests {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        MatcherAssert.assertThat(shareWith.isPrivate(), is(true));
-        MatcherAssert.assertThat(shareWith.isPublic(), is(false));
+        assertThat(shareWith.isPrivate(), is(true));
+        assertThat(shareWith.isPublic(), is(false));
     }
 
     @Test
@@ -241,7 +242,7 @@ public class ShareWithTests {
         // existing level merged
         verify(orig, times(1)).share(patchRec);
         // new level added
-        MatcherAssert.assertThat(result.atAccessLevel("write"), equalTo(patchRec));
+        assertThat(result.atAccessLevel("write"), equalTo(patchRec));
     }
 
     @Test
@@ -260,7 +261,25 @@ public class ShareWithTests {
         // revoke called on existing
         verify(orig, times(1)).revoke(revokeRec);
         // non-existing level noop
-        MatcherAssert.assertThat(result.atAccessLevel("write"), nullValue());
+        assertThat(result.atAccessLevel("write"), nullValue());
+    }
+
+    @Test
+    public void testRevoke_NonExisting() {
+        ShareWith base = new ShareWith(new HashMap<>());
+        Recipients revokeRec = mock(Recipients.class);
+        Map<String, Recipients> revokeMap = new HashMap<>();
+        revokeMap.put("read", revokeRec);
+        revokeMap.put("write", revokeRec);
+        ShareWith revokeSw = new ShareWith(revokeMap);
+
+        assertThat(base.getSharingInfo().size(), is(0));
+
+        ShareWith result = base.revoke(revokeSw);
+        // revoke called on existing
+        assertThat("Revoke on empty base should return the same object", result, sameInstance(base));
+        // assert no levels were added or removed
+        assertThat(result.getSharingInfo().size(), is(0));
     }
 
     @Test

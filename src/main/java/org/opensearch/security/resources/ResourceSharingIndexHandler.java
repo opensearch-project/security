@@ -10,6 +10,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -598,11 +599,11 @@ public class ResourceSharingIndexHandler {
         sharingInfoListener.whenComplete(resourceSharing -> {
             ShareWith updatedShareWith = resourceSharing.getShareWith();
             if (updatedShareWith == null) {
-                updatedShareWith = add;
-            } else if (add != null) {
+                updatedShareWith = new ShareWith(new HashMap<>());
+            }
+            if (add != null) {
                 updatedShareWith = updatedShareWith.add(add);
             }
-
             if (revoke != null) {
                 updatedShareWith = updatedShareWith.revoke(revoke);
             }

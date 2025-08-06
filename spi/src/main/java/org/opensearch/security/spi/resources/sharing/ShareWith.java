@@ -155,7 +155,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
      * Returns a new ShareWith by revoking recipients based on another ShareWith.
      */
     public ShareWith revoke(ShareWith other) {
-        if (other == null || other.isPrivate()) {
+        if (this.sharingInfo.isEmpty() || other == null || other.isPrivate()) {
             return this;
         }
         Map<String, Recipients> updated = new HashMap<>(this.sharingInfo);
