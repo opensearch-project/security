@@ -9,6 +9,7 @@
 package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,12 +17,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.DocRequest;
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -41,7 +38,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @JsonProperty("share_with")
     private final ShareWith shareWith;
     @JsonProperty("patch")
-    private final Map<String, Object> patch;
+    private final Map<String, ShareWith> patch;
 
     private final RestRequest.Method method;
 
@@ -56,36 +53,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.method = builder.method;
     }
 
-    /**
-     * Static factory method to initialize ShareRequest from a Map.
-     */
-    @SuppressWarnings("unchecked")
-    public static ShareRequest from(Map<String, Object> source) throws IOException {
-        Builder builder = new Builder();
-
-        builder.method((RestRequest.Method) source.get("method"));
-
-        builder.resourceId((String) source.get("resource_id"));
-
-        builder.resourceIndex((String) source.get("resource_index"));
-
-        if (source.containsKey("share_with")) {
-            builder.shareWith((Map<String, Object>) source.get("share_with"));
-        }
-
-        if (source.containsKey("patch")) {
-            builder.patch((Map<String, Object>) source.get("patch"));
-        }
-
-        return builder.build();
-    }
-
     public ShareRequest(StreamInput in) throws IOException {
         super(in);
         this.resourceId = in.readString();
         this.resourceIndex = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
-        this.patch = in.readMap();
+        this.patch = in.readMap(StreamInput::readString, ShareWith::new);
         this.method = in.readEnum(RestRequest.Method.class);
     }
 
@@ -127,7 +100,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return shareWith;
     }
 
-    public Map<String, Object> getPatch() {
+    public Map<String, ShareWith> getPatch() {
         return patch;
     }
 
@@ -162,7 +135,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         private String resourceId;
         private String resourceIndex;
         private ShareWith shareWith;
-        private Map<String, Object> patch;
+        private Map<String, ShareWith> patch;
         private RestRequest.Method method;
 
         public void resourceId(String resourceId) {
@@ -173,19 +146,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             this.resourceIndex = resourceIndex;
         }
 
-        public void shareWith(Map<String, Object> source) {
-            try {
-                this.shareWith = parseShareWith(source);
-            } catch (Exception e) {
-                this.shareWith = null;
-            }
-        }
-
         public void shareWith(ShareWith shareWith) {
             this.shareWith = shareWith;
         }
 
-        public void patch(Map<String, Object> patch) {
+        public void patch(Map<String, ShareWith> patch) {
             this.patch = patch;
         }
 
@@ -197,21 +162,54 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             return new ShareRequest(this);
         }
 
-        private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
-            if (source == null || source.isEmpty()) {
-                throw new IllegalArgumentException("share_with is required and cannot be empty");
+        /**
+         * Parses a patch object from JSON, extracting "share_with" and "revoke" sub-objects.
+         */
+        public void parsePatch(XContentParser parser) throws IOException {
+            Map<String, ShareWith> map = new HashMap<>(2);
+            XContentParser.Token tok = parser.currentToken();
+            if (tok != XContentParser.Token.START_OBJECT) {
+                throw new IllegalArgumentException("Expected patch object");
             }
+            while ((tok = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                if (tok == XContentParser.Token.FIELD_NAME) {
+                    String field = parser.currentName();
+                    parser.nextToken();
+                    if ("share_with".equals(field) || "revoke".equals(field)) {
+                        map.put(field, ShareWith.fromXContent(parser));
+                    } else {
+                        parser.skipChildren();
+                    }
+                }
+            }
+            this.patch = map;
+        }
 
-            String jsonString = XContentFactory.jsonBuilder().map(source).toString();
-
-            try (
-                XContentParser parser = XContentType.JSON.xContent()
-                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
-            ) {
-
-                return ShareWith.fromXContent(parser);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+        public void parseContent(XContentParser xContentParser) throws IOException {
+            try (XContentParser parser = xContentParser) {
+                XContentParser.Token token; // START_OBJECT
+                while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                    if (token == XContentParser.Token.FIELD_NAME) {
+                        String name = parser.currentName();
+                        parser.nextToken();
+                        switch (name) {
+                            case "resource_id":
+                                this.resourceId(parser.text());
+                                break;
+                            case "resource_index":
+                                this.resourceIndex(parser.text());
+                                break;
+                            case "share_with":
+                                this.shareWith(ShareWith.fromXContent(parser));
+                                break;
+                            case "patch":
+                                this.parsePatch(parser);
+                                break;
+                            default:
+                                parser.skipChildren();
+                        }
+                    }
+                }
             }
         }
     }

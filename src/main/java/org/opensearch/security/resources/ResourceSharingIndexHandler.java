@@ -12,8 +12,6 @@ package org.opensearch.security.resources;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -574,90 +572,23 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to build shareWith object from the supplied patch to then be used to apply the patch
-     * @param patch source content
-     * @return the parsed content map of entities to share and to revoke
-     */
-    @SuppressWarnings("unchecked")
-    private Map<String, ShareWith> patchParser(Map<String, Object> patch) {
-        Map<String, ShareWith> patches = new HashMap<>(2);
-        patches.put("share_with", buildShareWithObject((Map<String, Object>) patch.get("share_with")));
-        patches.put("revoke", buildShareWithObject((Map<String, Object>) patch.get("revoke")));
-        return patches;
-    }
-
-    /**
-     * Helper to build the shareWith structure to be used to apply the patch
-     */
-    @SuppressWarnings("unchecked")
-    private ShareWith buildShareWithObject(Map<String, Object> rawMap) {
-        ShareWith sw = new ShareWith(new HashMap<>());
-        try {
-            if (rawMap == null) return sw;
-
-            for (var e : rawMap.entrySet()) {
-                String level = e.getKey();
-
-                Map<String, Object> recMap = (Map<String, Object>) e.getValue();
-
-                Map<Recipient, Set<String>> recipients = new HashMap<>();
-                for (var rec : recMap.entrySet()) {
-                    recipients.put(Recipient.valueOf(rec.getKey().toUpperCase(Locale.ROOT)), new HashSet<>((List<String>) rec.getValue()));
-                }
-
-                sw.getSharingInfo().put(level, new Recipients(recipients));
-            }
-        } catch (Exception e) {
-            LOGGER.debug("Failed to build share with object", e);
-        }
-        return sw;
-    }
-
-    /**
      * Applies the patch to the original resource-sharing share-with record.
      * @param existing current share-with object
      * @param patches updates to be applied; share-with will be added and revoke will be removed
      * @return updated share-with object
      */
     private ShareWith applyPatch(@Nullable ShareWith existing, Map<String, ShareWith> patches) {
-        Map<String, Recipients> updated = new HashMap<>();
-
-        // 1) put all current values into the update map
-        if (existing != null) {
-            updated.putAll(existing.getSharingInfo());
+        ShareWith base = existing == null ? new ShareWith(new HashMap<>()) : existing;
+        // update new share-with info
+        if (patches.containsKey("share_with")) {
+            base = base.add(patches.get("share_with"));
         }
-
-        // 2) apply all the "share_with" patches
-        ShareWith sharePatch = patches.get("share_with");
-        if (sharePatch != null) {
-            for (var entry : sharePatch.getSharingInfo().entrySet()) {
-                String level = entry.getKey();
-                Recipients toShare = entry.getValue();
-                // if there’s already a Recipients at that level, merge into it;
-                // otherwise insert a fresh copy of the patch
-                updated.merge(level, toShare, (origRecipients, patchCopy) -> {
-                    origRecipients.share(toShare);
-                    return origRecipients;
-                });
-            }
+        // revoke any access
+        if (patches.containsKey("revoke")) {
+            base = base.revoke(patches.get("revoke"));
         }
-
-        // 3) apply all the "revoke" patches
-        ShareWith revokePatch = patches.get("revoke");
-        if (revokePatch != null) {
-            for (var entry : revokePatch.getSharingInfo().entrySet()) {
-                String level = entry.getKey();
-                Recipients toRevoke = entry.getValue();
-                // we revoke only if we already had any recipients at that level
-                updated.computeIfPresent(level, (lvl, origRecipients) -> {
-                    origRecipients.revoke(toRevoke);
-                    return origRecipients;
-                });
-            }
-        }
-
-        // 4) return a new ShareWith object with the updated recipients
-        return new ShareWith(updated);
+        // return the updated ShareWith object
+        return base;
     }
 
     /**
@@ -667,13 +598,13 @@ public class ResourceSharingIndexHandler {
      * 2. revoke -> revoke access for existing entities
      * @param resourceId    id of the resource to apply the patch to
      * @param resourceIndex name of the index where resource is present
-     * @param patchContent  the patch to be applied
+     * @param patch  the patch to be applied
      * @param listener      listener to be notified in case of success or failure
      */
     public void patchSharingInfo(
         String resourceId,
         String resourceIndex,
-        Map<String, Object> patchContent,
+        Map<String, ShareWith> patch,
         ActionListener<ResourceSharing> listener
     ) {
 
@@ -686,8 +617,7 @@ public class ResourceSharingIndexHandler {
         // Apply patch and update the document
         sharingInfoListener.whenComplete(resourceSharing -> {
             // parse and apply the patch
-            Map<String, ShareWith> patches = patchParser(patchContent);
-            ShareWith updatedShareWith = applyPatch(resourceSharing.getShareWith(), patches);
+            ShareWith updatedShareWith = applyPatch(resourceSharing.getShareWith(), patch);
 
             ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
 

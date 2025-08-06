@@ -35,11 +35,13 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -219,5 +221,58 @@ public class ShareWithTests {
         shareWith.writeTo(mockStreamOutput);
 
         verify(mockStreamOutput, times(1)).writeMap(eq(map), any(), any());
+    }
+
+    @Test
+    public void testAdd_NewAndMerge() {
+        // existing level
+        Recipients orig = mock(Recipients.class);
+        Map<String, Recipients> baseMap = new HashMap<>();
+        baseMap.put("read", orig);
+        ShareWith base = new ShareWith(baseMap);
+        // patch for same level and a new level
+        Recipients patchRec = mock(Recipients.class);
+        Map<String, Recipients> patchMap = new HashMap<>();
+        patchMap.put("read", patchRec);
+        patchMap.put("write", patchRec);
+        ShareWith patchSw = new ShareWith(patchMap);
+
+        ShareWith result = base.add(patchSw);
+        // existing level merged
+        verify(orig, times(1)).share(patchRec);
+        // new level added
+        MatcherAssert.assertThat(result.atAccessLevel("write"), equalTo(patchRec));
+    }
+
+    @Test
+    public void testRevoke_ExistingAndNoop() {
+        Recipients orig = mock(Recipients.class);
+        Map<String, Recipients> baseMap = new HashMap<>();
+        baseMap.put("read", orig);
+        ShareWith base = new ShareWith(baseMap);
+        Recipients revokeRec = mock(Recipients.class);
+        Map<String, Recipients> revokeMap = new HashMap<>();
+        revokeMap.put("read", revokeRec);
+        revokeMap.put("write", revokeRec);
+        ShareWith revokeSw = new ShareWith(revokeMap);
+
+        ShareWith result = base.revoke(revokeSw);
+        // revoke called on existing
+        verify(orig, times(1)).revoke(revokeRec);
+        // non-existing level noop
+        MatcherAssert.assertThat(result.atAccessLevel("write"), nullValue());
+    }
+
+    @Test
+    public void testChainedAddThenRevoke() {
+        ShareWith base = new ShareWith(new HashMap<>());
+        Recipients addRec = mock(Recipients.class);
+        ShareWith added = base.add(new ShareWith(Map.of("read", addRec)));
+        // verify added
+        verify(addRec, never()).share(any()); // no existing, so no share call
+        // now revoke
+        Recipients revokeRec = mock(Recipients.class);
+        ShareWith revoked = added.revoke(new ShareWith(Map.of("read", revokeRec)));
+        verify(addRec, times(1)).revoke(revokeRec);
     }
 }

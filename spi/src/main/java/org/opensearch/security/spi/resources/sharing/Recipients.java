@@ -60,22 +60,18 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
     public void share(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            if (!recipients.containsKey(recipientType)) { // will not be present in case of very first share
-                recipients.put(recipientType, targetRecipients.get(recipientType));
-            } else {
-                Set<String> updatedRecipients = recipients.get(recipientType);
-                updatedRecipients.addAll(targetRecipients.get(recipientType));
-            }
+            recipients.computeIfAbsent(recipientType, k -> new HashSet<>())
+                .addAll(targetRecipients.getOrDefault(recipientType, Collections.emptySet()));
         }
     }
 
     public void revoke(Recipients target) {
         Map<Recipient, Set<String>> targetRecipients = target.getRecipients();
         for (Recipient recipientType : targetRecipients.keySet()) {
-            if (recipients.containsKey(recipientType)) { // no need to revoke if access was not granted in first place
-                Set<String> updatedRecipients = recipients.get(recipientType);
-                updatedRecipients.removeAll(targetRecipients.get(recipientType));
-            }
+            recipients.computeIfPresent(recipientType, (k, s) -> {
+                s.removeAll(targetRecipients.getOrDefault(recipientType, Collections.emptySet()));
+                return s;
+            });
         }
     }
 

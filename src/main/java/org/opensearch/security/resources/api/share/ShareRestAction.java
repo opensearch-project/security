@@ -9,7 +9,6 @@
 package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,13 +19,12 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -46,7 +44,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
-    private final static Set<String> allowedPatchOperations = Set.of("share_with", "revoke");
+    private final static Set<String> ALLOWED_PATCH_OPERATIONS = Set.of("share_with", "revoke");
 
     public ShareRestAction() {}
 
@@ -66,48 +64,36 @@ public class ShareRestAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         // These two params will only be present with GET request
-        String resId = request.param("resource_id");
+        String resourceId = request.param("resource_id");
         String resourceIndex = request.param("resource_index");
 
-        Map<String, Object> source = new HashMap<>();
+        ShareRequest.Builder builder = new ShareRequest.Builder();
+        builder.method(request.method());
+
+        if (resourceId != null) {
+            builder.resourceIndex(resourceIndex);
+        }
+        if (resourceIndex != null) {
+            builder.resourceId(resourceId);
+        }
+
         if (request.hasContent()) {
-            try (XContentParser parser = request.contentParser()) {
-                source = parser.map();
-            }
+            builder.parseContent(request.contentParser());
         }
 
-        if (!Strings.isNullOrEmpty(resId)) {
-            source.put("resource_id", resId);
-        }
-        if (!Strings.isNullOrEmpty(resourceIndex)) {
-            source.put("resource_index", resourceIndex);
-        }
-
-        source.put("method", request.method());
-
-        ShareRequest sharingInfoUpdateRequest = ShareRequest.from(source);
+        ShareRequest shareRequest = builder.build();
 
         return channel -> {
-            // TODO confirm the validation here for patch Operations
-            Map<String, Object> patch = sharingInfoUpdateRequest.getPatch();
-            if (patch != null && !allowedPatchOperations.containsAll(patch.keySet())) {
-                badRequest(channel, "Invalid patch operation supplied. Allowed ops: " + allowedPatchOperations);
+            Map<String, ShareWith> patchMap = shareRequest.getPatch();
+            if (patchMap != null && !ALLOWED_PATCH_OPERATIONS.containsAll(patchMap.keySet())) {
+                badRequest(channel, "Invalid patch operations: " + patchMap.keySet());
+                return;
             }
-
-            client.executeLocally(ShareAction.INSTANCE, sharingInfoUpdateRequest, new ActionListener<>() {
-
-                @Override
-                public void onResponse(ShareResponse response) {
-                    ok(channel, response::toXContent);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.debug(e.getMessage(), e);
-                    handleError(channel, e);
-                }
-
-            });
+            client.executeLocally(
+                ShareAction.INSTANCE,
+                shareRequest,
+                ActionListener.wrap(resp -> ok(channel, resp::toXContent), e -> handleError(channel, e))
+            );
         };
     }
 

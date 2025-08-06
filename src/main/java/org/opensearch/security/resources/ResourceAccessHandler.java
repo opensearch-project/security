@@ -220,13 +220,13 @@ public class ResourceAccessHandler {
      * A final resource-sharing object will be returned upon successful application of the patch to the index record
      * @param resourceId    id of the resource whose sharing info is to be updated
      * @param resourceIndex name of the resource index
-     * @param patchContent  the patch to be applied
+     * @param patch  the patch to be applied
      * @param listener      listener to be notified of final resource sharing record
      */
     public void patchSharingInfo(
         @NonNull String resourceId,
         @NonNull String resourceIndex,
-        @NonNull Map<String, Object> patchContent,
+        @NonNull Map<String, ShareWith> patch,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -250,14 +250,14 @@ public class ResourceAccessHandler {
             user.getName(),
             resourceId,
             resourceIndex,
-            patchContent.toString()
+            patch.toString()
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, patchContent, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with {}", resourceId, patchContent.toString());
+        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, patch, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully patched sharing info for resource {} with {}", resourceId, patch.toString());
             listener.onResponse(sharingInfo);
         }, e -> {
-            LOGGER.error("Failed to patched sharing info for resource {} with {}: {}", resourceId, patchContent.toString(), e.getMessage());
+            LOGGER.error("Failed to patched sharing info for resource {} with {}: {}", resourceId, patch.toString(), e.getMessage());
             listener.onFailure(e);
         }));
 

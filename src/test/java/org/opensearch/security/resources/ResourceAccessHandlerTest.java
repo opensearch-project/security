@@ -332,7 +332,7 @@ public class ResourceAccessHandlerTest {
     public void testPatchSharingInfoSuccess() {
         User user = new User("user1", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(user);
-        Map<String, Object> patch = Map.of("op", "add");
+        Map<String, ShareWith> patch = Map.of("op", new ShareWith(ImmutableMap.of()));
 
         ResourceSharing doc = mock(ResourceSharing.class);
         doAnswer(inv -> {
@@ -349,7 +349,7 @@ public class ResourceAccessHandlerTest {
 
     @Test
     public void testPatchSharingInfoFailsIfNoUser() {
-        Map<String, Object> patch = Map.of("op", "remove");
+        Map<String, ShareWith> patch = Map.of("op", new ShareWith(ImmutableMap.of()));
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
         handler.patchSharingInfo(RESOURCE_ID, INDEX, patch, listener);
 
