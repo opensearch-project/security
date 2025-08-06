@@ -64,7 +64,6 @@ import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
@@ -141,20 +140,15 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 final var allUpdates = JsonNodeFactory.instance.objectNode();
                 updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
                 response.set("upgrades", allUpdates);
-                loadConfigurationWithRequestContent(CType.ROLES.toLCString(), request).valid(securityConfiguration -> {
-                    saveAndUpdateConfigsAsync(
-                        securityApiDependencies,
-                        client,
-                        CType.ROLES,
-                        securityConfiguration.configuration(),
-                        new OnSucessActionListener<>(channel) {
-                            @Override
-                            public void onResponse(IndexResponse indexResponse) {
-
-                                ok(channel, "Resource updated.");
-                            }
+                loadConfiguration(CType.ROLES, false, false).valid(roles -> {
+                    saveAndUpdateConfigsAsync(securityApiDependencies, client, CType.ROLES, roles, new OnSucessActionListener<>(channel) {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            channel.sendResponse(
+                                new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString())
+                            );
                         }
-                    );
+                    });
                 }).error((status, toXContent) -> response(channel, status, toXContent));
             });
     }
