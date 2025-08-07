@@ -96,7 +96,6 @@ public class ConfigConstants {
      * Set by SSL plugin for https requests only
      */
     public static final String OPENDISTRO_SECURITY_SSL_PRINCIPAL = OPENDISTRO_SECURITY_CONFIG_PREFIX + "ssl_principal";
-    public static final String OPENDISTRO_SECURITY_SSL_SKIP_USERS = "skip_users";
 
     /**
      * If this is set to TRUE then the request comes from a Server Node (fully trust)

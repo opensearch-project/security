@@ -51,12 +51,13 @@ import org.opensearch.security.user.AuthCredentials;
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+    public static final String OPENDISTRO_SECURITY_SSL_SKIP_USERS = "skip_users";
     protected final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
 
     public HTTPClientCertAuthenticator(final Settings settings, final Path configPath) {
         this.settings = settings;
-        this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_SSL_SKIP_USERS));
+        this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(OPENDISTRO_SECURITY_SSL_SKIP_USERS));
     }
 
     @Override
