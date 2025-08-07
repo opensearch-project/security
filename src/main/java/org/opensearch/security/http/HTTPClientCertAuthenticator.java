@@ -45,15 +45,19 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+    public static final String OPENDISTRO_SECURITY_SSL_SKIP_USERS = "skip_users";
     protected final Settings settings;
+    private final WildcardMatcher skipUsersMatcher;
 
     public HTTPClientCertAuthenticator(final Settings settings, final Path configPath) {
         this.settings = settings;
+        this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(OPENDISTRO_SECURITY_SSL_SKIP_USERS));
     }
 
     @Override
@@ -65,6 +69,11 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
             final String usernameAttribute = settings.get("username_attribute");
             final String rolesAttribute = settings.get("roles_attribute");
+
+            if (skipUsersMatcher.test(principal)) {
+                log.debug("Skipped user client cert  authentication of user {} as its in skip_users list ", principal);
+                return null;
+            }
 
             try {
                 final LdapName rfc2253dn = new LdapName(principal);

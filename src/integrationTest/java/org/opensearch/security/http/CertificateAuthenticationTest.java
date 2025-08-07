@@ -9,6 +9,7 @@
 */
 package org.opensearch.security.http;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -48,12 +49,24 @@ public class CertificateAuthenticationTest {
     private static final String USER_SPOCK = "spock";
     private static final String USER_KIRK = "kirk";
 
+    private static final String USER_DASHBOARD = "dashboard";
+    private static final String USER_DASHBOARD_PRINCIPLE = "DC=de,L=test,O=users,OU=bridge,CN=dashboard";
+
     private static final String BACKEND_ROLE_BRIDGE = "bridge";
     private static final String BACKEND_ROLE_CAPTAIN = "captain";
 
     private static final Role ROLE_ALL_INDEX_SEARCH = new Role("all-index-search").indexPermissions("indices:data/read/search").on("*");
 
-    private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of("username_attribute", "cn", "roles_attribute", "ou");
+    private static final User USER_MONITOR = new User("monitor").roles(ROLE_ALL_INDEX_SEARCH);
+
+    private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of(
+        "username_attribute",
+        "cn",
+        "roles_attribute",
+        "ou",
+        "skip_users",
+        Arrays.asList(USER_DASHBOARD_PRINCIPLE)
+    );
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().nodeSettings(
@@ -68,7 +81,7 @@ public class CertificateAuthenticationTest {
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .roles(ROLE_ALL_INDEX_SEARCH)
-        .users(USER_ADMIN)
+        .users(USER_ADMIN, USER_MONITOR)
         .rolesMapping(new TestSecurityConfig.RoleMapping(ROLE_ALL_INDEX_SEARCH.getName()).backendRoles(BACKEND_ROLE_BRIDGE))
         .build();
 
@@ -81,6 +94,31 @@ public class CertificateAuthenticationTest {
             HttpResponse response = client.getAuthInfo();
 
             response.assertStatusCode(SC_OK);
+        }
+    }
+
+    /**
+     * Test that shows certificate takes precedence when basic auth is provided and role is retrieved as the certificate has which is spock and user is not admin user because cert authentication has higher order.
+     */
+    @Test
+    public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfiguredWithCertProvided() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN, userSpockCertificate)) {
+
+            client.confirmCorrectCredentials(USER_SPOCK);
+        }
+    }
+
+    /**
+     * Test that shows certificate login is skipped and logged in user is done using basic auth, user dashboard is not in returned logged in user even though it was in certificate,   but  user monitor is returned
+     */
+
+    @Test
+    public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfiguredAndSkipCertSet() {
+        CertificateData userDashboardCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_DASHBOARD);
+        try (TestRestClient client = cluster.getRestClient(USER_MONITOR, userDashboardCertificate)) {
+
+            client.confirmCorrectCredentials("monitor");
         }
     }
 
