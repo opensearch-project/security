@@ -61,7 +61,7 @@ public class ReadOnlyAccessTests {
 
     private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
@@ -70,7 +70,7 @@ public class ReadOnlyAccessTests {
 
     private void assertReadOnly(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);

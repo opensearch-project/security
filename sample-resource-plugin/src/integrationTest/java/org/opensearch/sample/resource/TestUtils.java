@@ -35,7 +35,9 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
@@ -60,6 +62,7 @@ public final class TestUtils {
     ).roles(
         new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
             "cluster:admin/sample-resource-plugin/get",
+            "cluster:admin/sample-resource-plugin/search",
             "cluster:admin/sample-resource-plugin/create",
             "cluster:admin/sample-resource-plugin/share",
             "cluster:admin/sample-resource-plugin/revoke"
@@ -87,6 +90,7 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
+    public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
     public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
@@ -299,6 +303,27 @@ public final class TestUtils {
             this.cluster = cluster;
         }
 
+        // Wipe out all entries in sample index
+        public void wipeOutResourceEntries() {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                // 1) Only run if the index exists
+                TestRestClient.HttpResponse exists = client.get(RESOURCE_INDEX_NAME);
+                int code = exists.getStatusCode();
+                if (code == HttpStatus.SC_NOT_FOUND) {
+                    return; // nothing to delete
+                }
+                exists.assertStatusCode(HttpStatus.SC_OK); // fail fast on anything unexpected
+
+                // 2) Delete-by-query but ignore version conflicts
+                String endpoint = RESOURCE_INDEX_NAME + "/_delete_by_query?conflicts=proceed&refresh=true&wait_for_completion=true";
+
+                String jsonBody = "{ \"query\": { \"match_all\": {} } }";
+                TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+
+            }
+        }
+
         // Helper to create a sample resource and return its ID
         public String createSampleResourceAs(TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
@@ -338,6 +363,89 @@ public final class TestUtils {
             }
         }
 
+        public void assertApiGetSearchForbidden(TestSecurityConfig.User user) {
+            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        }
+
+        public void assertApiGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
+            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, status, expectedHits, expectedResourceName);
+        }
+
+        private void assertGetSearch(
+            String endpoint,
+            TestSecurityConfig.User user,
+            int status,
+            int expectedHits,
+            String expectedResourceName
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.get(endpoint);
+                response.assertStatusCode(status);
+                if (status == HttpStatus.SC_OK) {
+                    // assertThat(response.bodyAsMap().get("hits").size(), is(expectedHits))
+                    assertThat(response.getBody(), containsString(expectedResourceName));
+                }
+            }
+        }
+
+        public static String searchAllPayload() {
+            return """
+                {
+                     "query": {
+                         "match_all": {}
+                     }
+                }
+                """;
+        }
+
+        public static String searchByNamePayload(String name) {
+            return """
+                        {
+                            "query": {
+                                "term": {
+                                    "name.keyword": {
+                                        "value": "%s"
+                                    }
+                                }
+                            }
+                        }
+                """.formatted(name);
+        }
+
+        public void assertApiPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
+            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        }
+
+        public void assertApiPostSearch(
+            String searchPayload,
+            TestSecurityConfig.User user,
+            int status,
+            int expectedHits,
+            String expectedResourceName
+        ) {
+            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, status, expectedHits, expectedResourceName);
+        }
+
+        @SuppressWarnings("unchecked")
+        private void assertPostSearch(
+            String endpoint,
+            String searchPayload,
+            TestSecurityConfig.User user,
+            int status,
+            int expectedHits,
+            String expectedResourceName
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(endpoint, searchPayload);
+                response.assertStatusCode(status);
+                if (status == HttpStatus.SC_OK) {
+                    Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
+                    assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
+                    assertThat(response.getBody(), containsString(expectedResourceName));
+                }
+            }
+        }
+
         public void assertDirectGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
             assertGetAll(RESOURCE_INDEX_NAME + "/_search", user, status, expectedResourceName);
         }
@@ -359,17 +467,17 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiUpdate(String resourceId, TestSecurityConfig.User user, int status) {
-            assertUpdate(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, user, status);
+        public void assertApiUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
+            assertUpdate(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, newName, user, status);
         }
 
-        public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, int status) {
-            assertUpdate(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, user, status);
+        public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
+            assertUpdate(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, newName, user, status);
         }
 
-        private void assertUpdate(String endpoint, TestSecurityConfig.User user, int status) {
+        private void assertUpdate(String endpoint, String newName, TestSecurityConfig.User user, int status) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
+                String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
                 TestRestClient.HttpResponse updateResponse = client.postJson(endpoint, updatePayload);
                 updateResponse.assertStatusCode(status);
             }

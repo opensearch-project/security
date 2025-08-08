@@ -62,7 +62,8 @@ public class DirectIndexAccessTests {
             }
             api.assertDirectGet(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             api.assertDirectGetAll(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
             api.assertDirectDelete(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -81,7 +82,7 @@ public class DirectIndexAccessTests {
             // cannot read admin's resource since system index protection is enabled, will show 404
             api.assertDirectGet(id, LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
             // cannot update or delete resource
-            api.assertDirectUpdate(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -99,7 +100,7 @@ public class DirectIndexAccessTests {
             // cannot read admin's resource directly since SIP is enabled
             api.assertDirectGet(id, FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "sample");
             // cannot update or delete admin resource directly since SIP is enabled
-            api.assertDirectUpdate(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -145,7 +146,7 @@ public class DirectIndexAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
             api.assertDirectGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -163,7 +164,7 @@ public class DirectIndexAccessTests {
             // can read admin's resource
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // cannot update or delete resource since user doesn't have update and delete permissions
-            api.assertDirectUpdate(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -183,10 +184,10 @@ public class DirectIndexAccessTests {
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUser");
             // can update and delete all resources
-            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
-            api.assertDirectUpdate(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateAdmin");
+            api.assertDirectUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
+            api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
 
             api.assertDirectDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
             api.assertDirectDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);

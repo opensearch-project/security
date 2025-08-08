@@ -13,6 +13,7 @@ import java.util.List;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -60,6 +61,11 @@ public class DryRunAccessTests {
     public void setup() {
         adminResId = api.createSampleResourceAs(USER_ADMIN);
         api.awaitSharingEntry(); // wait until sharing entry is created
+    }
+
+    @After
+    public void cleanup() {
+        api.wipeOutResourceEntries();
     }
 
     @Test
