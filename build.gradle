@@ -34,7 +34,7 @@ buildscript {
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.9'
-        protobuf_plugin_version = '0.6.0'
+        protobuf_plugin_version = '0.8.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
