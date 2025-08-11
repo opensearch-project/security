@@ -82,11 +82,11 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
     }
 
     private void mergeAccessibleFilter(SearchSourceBuilder src, Set<String> resourceIds) {
-        QueryBuilder accessQB = null;
+        QueryBuilder accessQB;
 
         if (resourceIds == null || resourceIds.isEmpty()) {
             // match nothing
-            src.query(QueryBuilders.boolQuery().mustNot(QueryBuilders.matchAllQuery()));
+            accessQB = QueryBuilders.boolQuery().mustNot(QueryBuilders.matchAllQuery());
         } else {
             // match only from a provided set of resources
             accessQB = QueryBuilders.idsQuery().addIds(resourceIds.toArray(new String[0]));

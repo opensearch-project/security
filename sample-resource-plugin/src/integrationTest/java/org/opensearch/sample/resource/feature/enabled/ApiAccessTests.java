@@ -293,11 +293,6 @@ public class ApiAccessTests {
             api.awaitSharingEntry();
         }
 
-        @After
-        public void cleanup() {
-            api.wipeOutResourceEntries();
-        }
-
         @Test
         public void testPluginInstalledCorrectly() {
             try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -385,7 +380,7 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
 
             // should be able to search only for own resource
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
             api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
             api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
             // can see own resource
@@ -432,7 +427,7 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
 
             // should be able to search only for its own resource
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
             api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
             api.assertApiPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
             // can see own resource

@@ -24,10 +24,13 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.directSharePayload;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
@@ -65,6 +68,7 @@ public class DirectIndexAccessTests {
             }
             api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
             api.assertDirectUpdate(id, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
             api.assertDirectDelete(id, user, HttpStatus.SC_FORBIDDEN);
 
         }
@@ -92,6 +96,10 @@ public class DirectIndexAccessTests {
         public void testRawAccess_noAccessUser() {
             // user has no permission
             assertResourceIndexAccess(id, NO_ACCESS_USER);
+            // cannot access directly since System index protection is enabled
+            api.assertDirectGetSearch(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
             assertResourceSharingIndexAccess(id, NO_ACCESS_USER);
         }
 
@@ -101,6 +109,10 @@ public class DirectIndexAccessTests {
             // since SIP is enabled, user will not be able to perform any raw requests
 
             assertResourceIndexAccess(id, LIMITED_ACCESS_USER);
+            // cannot access directly since System index protection is enabled
+            api.assertDirectGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
             assertResourceSharingIndexAccess(id, LIMITED_ACCESS_USER);
         }
 
@@ -110,6 +122,11 @@ public class DirectIndexAccessTests {
             // since SIP is enabled, user will not be able to perform any raw requests
 
             assertResourceIndexAccess(id, FULL_ACCESS_USER);
+
+            // cannot access directly since System index protection is enabled
+            api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
 
             // cannot interact with resource sharing index
             api.assertDirectViewSharingRecord(id, FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND);
@@ -125,6 +142,11 @@ public class DirectIndexAccessTests {
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(RESOURCE_INDEX_NAME + "/_doc/" + id, "{\"name\":\"adminDirectUpdated\"}")
                     .assertStatusCode(HttpStatus.SC_OK);
+
+                // can search resources
+                client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload()).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated")).assertStatusCode(HttpStatus.SC_OK);
 
                 // can access resource sharing index directly
                 client.get(RESOURCE_SHARING_INDEX + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
@@ -180,6 +202,11 @@ public class DirectIndexAccessTests {
             api.assertDirectUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
+            // cannot access directly since user doesn't have index access
+            api.assertDirectGetSearch(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "sample");
+
             // cannot interact with resource sharing index
             api.assertDirectViewSharingRecord(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             api.assertDirectShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
@@ -204,6 +231,11 @@ public class DirectIndexAccessTests {
             api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
+            // should be able to access the record since user has direct index access
+            api.assertDirectGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertDirectPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+
             // cannot update or delete resource
             api.assertDirectUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertDirectDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -223,7 +255,7 @@ public class DirectIndexAccessTests {
             String userResId;
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 String sample = "{\"name\":\"sampleUser\"}";
-                HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
+                HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc?refresh=true", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 userResId = resp.getTextFromJsonBody("/_id");
             }
@@ -238,6 +270,12 @@ public class DirectIndexAccessTests {
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
             api.assertDirectShare(userResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+
+            // can only access own resource since
+            api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertDirectPostSearch(searchByNamePayload("sampleUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
 
             // cannot update or delete resource
             api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
@@ -260,6 +298,11 @@ public class DirectIndexAccessTests {
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + adminResId).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(RESOURCE_INDEX_NAME + "/_doc/" + adminResId, "{\"name\":\"adminDirectUpdated\"}")
                     .assertStatusCode(HttpStatus.SC_OK);
+
+                // can search resources
+                client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload()).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated")).assertStatusCode(HttpStatus.SC_OK);
 
                 // can access resource sharing index directly
 

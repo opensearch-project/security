@@ -367,10 +367,19 @@ public final class TestUtils {
             assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, HttpStatus.SC_FORBIDDEN, 0, null);
         }
 
+        public void assertDirectGetSearchForbidden(TestSecurityConfig.User user) {
+            assertGetSearch(RESOURCE_INDEX_NAME + "/_search", user, HttpStatus.SC_FORBIDDEN, 0, null);
+        }
+
         public void assertApiGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
             assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, status, expectedHits, expectedResourceName);
         }
 
+        public void assertDirectGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
+            assertGetSearch(RESOURCE_INDEX_NAME + "/_search", user, status, expectedHits, expectedResourceName);
+        }
+
+        @SuppressWarnings("unchecked")
         private void assertGetSearch(
             String endpoint,
             TestSecurityConfig.User user,
@@ -382,7 +391,8 @@ public final class TestUtils {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
                 if (status == HttpStatus.SC_OK) {
-                    // assertThat(response.bodyAsMap().get("hits").size(), is(expectedHits))
+                    Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
+                    assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
                     assertThat(response.getBody(), containsString(expectedResourceName));
                 }
             }
@@ -416,6 +426,10 @@ public final class TestUtils {
             assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
         }
 
+        public void assertDirectPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
+            assertPostSearch(RESOURCE_INDEX_NAME + "/_search", searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        }
+
         public void assertApiPostSearch(
             String searchPayload,
             TestSecurityConfig.User user,
@@ -424,6 +438,16 @@ public final class TestUtils {
             String expectedResourceName
         ) {
             assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, status, expectedHits, expectedResourceName);
+        }
+
+        public void assertDirectPostSearch(
+            String searchPayload,
+            TestSecurityConfig.User user,
+            int status,
+            int expectedHits,
+            String expectedResourceName
+        ) {
+            assertPostSearch(RESOURCE_INDEX_NAME + "/_search", searchPayload, user, status, expectedHits, expectedResourceName);
         }
 
         @SuppressWarnings("unchecked")
@@ -472,7 +496,7 @@ public final class TestUtils {
         }
 
         public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
-            assertUpdate(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, newName, user, status);
+            assertUpdate(RESOURCE_INDEX_NAME + "/_doc/" + resourceId + "?refresh=true", newName, user, status);
         }
 
         private void assertUpdate(String endpoint, String newName, TestSecurityConfig.User user, int status) {
