@@ -21,6 +21,7 @@ import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.IndexOperation;
 import org.opensearch.protobufs.MatchAllQuery;
+import org.opensearch.protobufs.OperationContainer;
 import org.opensearch.protobufs.QueryContainer;
 import org.opensearch.protobufs.Refresh;
 import org.opensearch.protobufs.SearchRequest;
@@ -134,17 +135,18 @@ public class GrpcHelpers {
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
-        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE);
+        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE).setIndex(index);
         for (int i = 0; i < numDocs; i++) {
             String docBody = """
                 {
                     "field": "doc %d body"
                 }
                 """.formatted(i);
-            IndexOperation indexOp = IndexOperation.newBuilder().setIndex(index).setId(String.valueOf(i)).build();
+            IndexOperation.Builder indexOp = IndexOperation.newBuilder().setUnderscoreId(String.valueOf(i));
+            OperationContainer.Builder opCont = OperationContainer.newBuilder().setIndex(indexOp);
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
-                .setIndex(indexOp)
-                .setDoc(com.google.protobuf.ByteString.copyFromUtf8(docBody))
+                .setOperationContainer(opCont)
+                .setObject(com.google.protobuf.ByteString.copyFromUtf8(docBody))
                 .build();
             requestBuilder.addRequestBody(requestBody);
         }
