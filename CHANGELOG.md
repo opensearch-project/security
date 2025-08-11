@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5385](https://github.com/opensearch-project/security/pull/5385))
 * [Resource Sharing] Adds a Share API to fetch and update sharing information ([#5459](https://github.com/opensearch-project/security/pull/5459))
 * Integration with stream transport ([#5530](https://github.com/opensearch-project/security/pull/5530))
+* [Resource Sharing] Adds `search` API to sample plugins ([#5557](https://github.com/opensearch-project/security/pull/5557))
 
 ### Bug Fixes
 
