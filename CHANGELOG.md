@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.guava:failureaccess` from 1.0.2 to 1.0.3 ([#5551](https://github.com/opensearch-project/security/pull/5551))
 - Bump `actions/download-artifact` from 4 to 5 ([#5550](https://github.com/opensearch-project/security/pull/5550))
 - Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
+- Bump `checkstyle` to 11.0.0 and `spotbugs` to 6.2.4 ([#5555](https://github.com/opensearch-project/security/pull/5555))
 
 ### Documentation
 
