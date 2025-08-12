@@ -70,6 +70,7 @@ tasks.shadowJar {
     exclude 'org/slf4j/**'
     exclude 'javax/**'
     exclude 'META-INF/maven/commons-io/commons-io/**'
+    exclude 'META-INF/maven/org.apache.commons/commons-lang3/**'
     exclude 'META-INF/versions/**/org/bouncycastle/**'
     exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
 }
