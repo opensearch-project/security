@@ -376,7 +376,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.26.1"
+    toolVersion "11.0.0"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }

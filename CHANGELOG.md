@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5385](https://github.com/opensearch-project/security/pull/5385))
 * [Resource Sharing] Adds a Share API to fetch and update sharing information ([#5459](https://github.com/opensearch-project/security/pull/5459))
 * Integration with stream transport ([#5530](https://github.com/opensearch-project/security/pull/5530))
+* Update api permissions for query_insights_full_access ([#5554](https://github.com/opensearch-project/security/pull/5554))
 
 ### Bug Fixes
 
@@ -75,6 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `commons-codec:commons-codec` from 1.18.0 to 1.19.0 ([#5534](https://github.com/opensearch-project/security/pull/5534))
 - Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
 - Bump `actions/download-artifact` from 4 to 5 ([#5550](https://github.com/opensearch-project/security/pull/5550))
+- Bump `com.github.spotbugs` from 6.2.3 to 6.2.4 ([#5555](https://github.com/opensearch-project/security/pull/5555))
 
 ### Documentation
 
