@@ -75,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `commons-codec:commons-codec` from 1.18.0 to 1.19.0 ([#5534](https://github.com/opensearch-project/security/pull/5534))
 - Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
 - Bump `checkstyle` to 11.0.0 and `spotbugs` to 6.2.4 ([#5555](https://github.com/opensearch-project/security/pull/5555))
+- Removes `commons-io` and `commons-lang3` maven metadata from shaded opensaml jar to fix CVE-2024-47554 ([#5558](https://github.com/opensearch-project/security/pull/5558))
 
 ### Documentation
 
