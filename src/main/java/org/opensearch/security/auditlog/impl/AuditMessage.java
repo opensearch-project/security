@@ -16,16 +16,13 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,6 +36,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.common.util.CollectionUtils;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.rest.RestRequest;
@@ -504,6 +502,71 @@ public final class AuditMessage {
         try {
             return JsonXContent.contentBuilder().map(getAsMap()).toString();
         } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
+    public List<String> toJsonSplitIndices(final int maximumIndicesPerMessage) {
+        final List<String> indices = Arrays.asList((String[]) auditInfo.getOrDefault(INDICES, new String[0]));
+        final List<String> resolvedIndices = Arrays.asList((String[]) auditInfo.getOrDefault(RESOLVED_INDICES, new String[0]));
+
+        final int numberOfIndices = indices.size() + resolvedIndices.size();
+
+        // Only split if needed
+        if (numberOfIndices < maximumIndicesPerMessage || maximumIndicesPerMessage <= 0) {
+            return List.of(toJson());
+        }
+
+        final List<String> splitMessages = new ArrayList<>();
+
+        int indicesRemaining = indices.size();
+        int resolvedIndicesRemaining = resolvedIndices.size();
+
+        while (indicesRemaining + resolvedIndicesRemaining > 0) {
+            List<String> indicesPartition;
+            List<String> resolvedIndicesPartition;
+
+            // Process all indices first before starting on resolvedIndices
+            if (indicesRemaining > 0) {
+                final int fromIndex = indices.size() - indicesRemaining;
+                indicesPartition = indices.subList(fromIndex,
+                        Math.min(indices.size(), fromIndex + maximumIndicesPerMessage));
+
+                resolvedIndicesPartition = Collections.emptyList();
+                // If there weren't enough indices to reach the maximum, add resolved indices up to the maximum
+                if (indicesPartition.size() < maximumIndicesPerMessage) {
+                    resolvedIndicesPartition = resolvedIndices.subList(resolvedIndices.size() - resolvedIndicesRemaining,
+                            Math.min(resolvedIndices.size(), maximumIndicesPerMessage - indicesPartition.size()));
+                }
+            } else { // Only resolvedIndices remain
+                indicesPartition = Collections.emptyList();
+                final int fromIndex = resolvedIndices.size() - resolvedIndicesRemaining;
+                resolvedIndicesPartition = resolvedIndices.subList(fromIndex,
+                        Math.min(resolvedIndices.size(), fromIndex + maximumIndicesPerMessage));
+            }
+
+            indicesRemaining -= indicesPartition.size();
+            resolvedIndicesRemaining -= resolvedIndicesPartition.size();
+
+            splitMessages.add(getSplitMessage(indicesPartition, resolvedIndicesPartition));
+        }
+
+        return splitMessages;
+    }
+
+    private String getSplitMessage(final List<String> indices, final List<String> resolvedIndices) {
+        final HashMap<String, Object> splitAuditInfo = new HashMap<>(auditInfo);
+
+        if (CollectionUtils.isEmpty(indices)) {
+            splitAuditInfo.remove(INDICES);
+        } else {
+            splitAuditInfo.put(INDICES, indices);
+        }
+
+        splitAuditInfo.put(RESOLVED_INDICES, resolvedIndices);
+        try {
+            return JsonXContent.contentBuilder().map(splitAuditInfo).toString();
+        } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }

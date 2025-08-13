@@ -24,12 +24,14 @@ public final class Log4JSink extends AuditLogSink {
     final String loggerName;
     final Level logLevel;
     final boolean enabled;
+    final Integer maximumIndicesPerMessage;
 
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
         loggerName = settings.get(settingsPrefix + ".log4j.logger_name", "audit");
         auditLogger = LogManager.getLogger(loggerName);
         logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level", "INFO").toUpperCase());
+        maximumIndicesPerMessage = settings.getAsInt(settingsPrefix + ".log4j.maximum_indices_per_message", 0);
         enabled = auditLogger.isEnabled(logLevel);
     }
 
@@ -39,7 +41,7 @@ public final class Log4JSink extends AuditLogSink {
 
     public boolean doStore(final AuditMessage msg) {
         if (enabled) {
-            auditLogger.log(logLevel, msg.toJson());
+            auditLogger.log(logLevel, msg.toJsonSplitIndices(maximumIndicesPerMessage));
         }
         return true;
     }

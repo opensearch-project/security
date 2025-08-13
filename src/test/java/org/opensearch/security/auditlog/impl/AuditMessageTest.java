@@ -12,9 +12,7 @@
 package org.opensearch.security.auditlog.impl;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +37,7 @@ import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
@@ -68,17 +67,19 @@ public class AuditMessageTest {
         "test-4"
     );
 
+    private final ClusterService clusterServiceMock = mock(ClusterService.class);
+    private final DiscoveryNode discoveryNodeMock = mock(DiscoveryNode.class);
+    private final ClusterName clusterNameMock = mock(ClusterName.class);
+    private final AuditConfig auditConfig = mock(AuditConfig.class);
+    private final AuditConfig.Filter auditFilterMock = mock(AuditConfig.Filter.class);
+
     private AuditMessage message;
-    private AuditConfig auditConfig;
 
     @Before
     public void setUp() {
-        final ClusterService clusterServiceMock = mock(ClusterService.class);
-        when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
-        when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
-        auditConfig = mock(AuditConfig.class);
-        final AuditConfig.Filter auditFilter = mock(AuditConfig.Filter.class);
-        when(auditConfig.getFilter()).thenReturn(auditFilter);
+        when(clusterServiceMock.localNode()).thenReturn(discoveryNodeMock);
+        when(clusterServiceMock.getClusterName()).thenReturn(clusterNameMock);
+        when(auditConfig.getFilter()).thenReturn(auditFilterMock);
         message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
@@ -199,5 +200,39 @@ public class AuditMessageTest {
 
         message.addRestRequestInfo(request, auditConfig.getFilter());
         assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("ERROR: Unable to generate request body"));
+    }
+
+    private AuditMessage dummyAuditMessage(final String[] indices, String[] resolvedIndices) {
+        final AuditMessage auditMessage = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
+
+        if (indices != null) {
+            auditMessage.addIndices(indices);
+        }
+        if (resolvedIndices != null) {
+            auditMessage.addResolvedIndices(resolvedIndices);
+        }
+        return auditMessage;
+    }
+
+    @Test
+    public void testResolvedIndicesSplit() {
+        final String[] indices = {"testing", "index*"};
+        final String[] resolvedIndices = {"testing", "index2", "index3", "index4", "index5", "index6", "index7", "index8"};
+        message.addIndices(indices);
+        message.addResolvedIndices(resolvedIndices);
+
+        int numberOfIndices = indices.length + resolvedIndices.length;
+//        int numberOfIndices = resolvedIndices.length;
+
+        System.out.println("Standard message:");
+        System.out.println(message.toJson());
+
+        final int maximumIndicesPerMessage = 8;
+        final List<String> jsonSplitIndices = message.toJsonSplitIndices(maximumIndicesPerMessage);
+
+        System.out.println("Split messages:");
+        jsonSplitIndices.forEach(System.out::println);
+
+        assertThat(jsonSplitIndices.size(), is(Math.ceilDiv(numberOfIndices, maximumIndicesPerMessage)));
     }
 }
