@@ -18,6 +18,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
+import java.util.List;
+
 public final class Log4JSink extends AuditLogSink {
 
     final Logger auditLogger;
@@ -41,7 +43,7 @@ public final class Log4JSink extends AuditLogSink {
 
     public boolean doStore(final AuditMessage msg) {
         if (enabled) {
-            auditLogger.log(logLevel, msg.toJsonSplitIndices(maximumIndicesPerMessage));
+            msg.toJsonSplitIndices(maximumIndicesPerMessage).forEach(message -> auditLogger.log(logLevel, message));
         }
         return true;
     }
