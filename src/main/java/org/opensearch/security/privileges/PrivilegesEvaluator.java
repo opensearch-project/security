@@ -26,7 +26,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

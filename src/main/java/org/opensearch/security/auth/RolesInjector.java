@@ -72,8 +72,8 @@ final public class RolesInjector {
         }
         Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
 
-
-        Map<String, String> customAttributes = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES);
+        Map<String, String> customAttributes = threadPool.getThreadContext()
+            .getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES);
 
         User user = new User(strs[0]).withSecurityRoles(roles).withAttributes(customAttributes);
 
