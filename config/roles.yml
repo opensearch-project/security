@@ -451,8 +451,7 @@ flow_framework_read_access:
 query_insights_full_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opensearch/insights/live_queries/*'
-    - 'cluster:admin/opensearch/insights/top_queries/*'
+    - 'cluster:admin/opensearch/insights/*'
   index_permissions:
     - index_patterns:
         - 'top_queries-*'
