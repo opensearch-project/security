@@ -7,9 +7,16 @@ on:
 jobs:
   delete-branch:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: startsWith(github.event.pull_request.head.ref,'backport/') || startsWith(github.event.pull_request.head.ref,'release-chores/')
     steps:
       - name: Delete merged branch
-        uses: SvanBoxel/delete-merged-branch@2b5b058e3db41a3328fd9a6a58fd4c2545a14353
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${context.payload.pull_request.head.ref}`,
+            })
