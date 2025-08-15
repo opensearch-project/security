@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.3.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -494,7 +494,7 @@ configurations {
             force "com.google.j2objc:j2objc-annotations:3.0.0"
 
             // For org.opensearch.plugin:transport-grpc
-            force "com.google.guava:failureaccess:1.0.2"
+            force "com.google.guava:failureaccess:1.0.3"
         }
     }
 
