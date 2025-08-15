@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Integration with stream transport ([#5530](https://github.com/opensearch-project/security/pull/5530))
 * [Resource Sharing] Adds `search` API to sample plugin and makes ResourceExtension an injectable pattern ([#5557](https://github.com/opensearch-project/security/pull/5557))
 * Update api permissions for query_insights_full_access ([#5554](https://github.com/opensearch-project/security/pull/5554))
+* Update delete_backport_branch workflow to include release-chores branches ([#5548](https://github.com/opensearch-project/security/pull/5548))
 
 ### Bug Fixes
 
