@@ -18,6 +18,7 @@ package org.opensearch.security;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import com.google.common.collect.Lists;
@@ -30,6 +31,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -61,6 +63,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
     public static class RolesInjectorPlugin extends Plugin implements ActionPlugin {
         Settings settings;
         public static String injectedRoles = null;
+        public static Map<String, String> injectedCustomAttributes = null;
 
         public RolesInjectorPlugin(final Settings settings, final Path configPath) {
             this.settings = settings;
@@ -82,6 +85,8 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         ) {
             if (injectedRoles != null) threadPool.getThreadContext()
                 .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRoles);
+            if (injectedCustomAttributes != null) threadPool.getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES, injectedCustomAttributes);
             return new ArrayList<>();
         }
     }
@@ -170,6 +175,48 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
 
             IndicesExistsResponse ier = node.client().admin().indices().exists(new IndicesExistsRequest("captain-logs-3")).actionGet();
+            Assert.assertTrue(ier.isExists());
+        }
+
+        // 4. With a role using DLS and attribute substitution, but with no attributes specified in the thread context
+        RolesInjectorPlugin.injectedRoles = "valid_user|role_with_dls";
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
+            ).start()
+        ) {
+            waitForInit(node.client());
+
+            CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-4")).actionGet();
+            Assert.assertTrue(cir.isAcknowledged());
+
+            // search request should fail without attributes to substitute in DLS for role
+            clusterHelper.nodeClient().search(new SearchRequest("captain-logs-4")).actionGet();
+        } catch (OpenSearchSecurityException ex) {
+            exception = ex;
+            log.warn(ex.toString());
+        }
+        Assert.assertNotNull(exception);
+        Assert.assertTrue(exception.getMessage().contains("Error while evaluating DLS/FLS privileges"));
+
+        // 5. With a role using DLS and attribute substitution and with attributes specified in the thread context
+        RolesInjectorPlugin.injectedRoles = "valid_user|role_with_dls";
+        RolesInjectorPlugin.injectedCustomAttributes = Map.of("attr.proxy.starship", "enterprise");
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
+            ).start()
+        ) {
+            waitForInit(node.client());
+
+            CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-5")).actionGet();
+            Assert.assertTrue(cir.isAcknowledged());
+
+            IndicesExistsResponse ier = node.client().admin().indices().exists(new IndicesExistsRequest("captain-logs-5")).actionGet();
             Assert.assertTrue(ier.isExists());
         }
     }
