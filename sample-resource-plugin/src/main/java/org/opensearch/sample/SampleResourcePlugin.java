@@ -53,6 +53,8 @@ import org.opensearch.sample.resource.actions.transport.GetResourceTransportActi
 import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
 import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.scheduledjob.SampleSecureJobRestHandler;
+import org.opensearch.sample.scheduledjob.SampleSecureJobRunner;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
 import org.opensearch.sample.secure.actions.transport.SecurePluginTransportAction;
@@ -89,6 +91,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.pluginClient = new PluginClient(client);
+        SampleSecureJobRunner jobRunner = SampleSecureJobRunner.getJobRunnerInstance();
+        jobRunner.setClient(client);
         return List.of(pluginClient);
     }
 
@@ -110,6 +114,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
 
         handlers.add(new ShareResourceRestAction());
         handlers.add(new RevokeResourceAccessRestAction());
+        handlers.add(new SampleSecureJobRestHandler());
         return handlers;
     }
 
