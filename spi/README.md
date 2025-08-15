@@ -164,12 +164,12 @@ The following example demonstrates how to use the **Resource Sharing Client** in
 ```java
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
   private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
+  @Inject(optional=true)
   private final SampleResourceExtension sampleResourceExtension;
 
   @Inject
-  public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters, SampleResourceExtension sampleResourceExtension) {
+  public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
     super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-    this.sampleResourceExtension = sampleResourceExtension;
   }
 
   @Override
@@ -179,8 +179,17 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
       return;
     }
 
-    ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+    if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+      listener.onFailure(
+              new OpenSearchStatusException(
+                      "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
+                      RestStatus.NOT_IMPLEMENTED
+              )
+      );
+      return;
+    }
     ShareWith shareWith = request.getShareWith();
+    ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
     resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
       ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
       ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
