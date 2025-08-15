@@ -55,10 +55,9 @@ opensearchplugin {
     description '<description>'
     classname '<your-classpath>'
     extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
-}
+}x
 ```
-- **Create** ResourceSharingClientAccessor class. For guidance, refer [SPI README.md](./spi/README.md#4-create-the-resourcesharingclientaccessor-class).
-- **Implement** the `ResourceSharingExtension` class.
+- **Implement** the `ResourceSharingExtension` class. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -274,6 +273,9 @@ sequenceDiagram
     %% Alternative flow based on Security Plugin status
     alt Security Plugin Disabled
 
+    %% For verify: return allowed
+      Plugin ->> SPI: verifyAccess (noop)
+      SPI -->> Plugin: Allowed
     %% For share, revoke, and list: return 501 Not Implemented
       Plugin ->> SPI: share (noop)
       SPI -->> Plugin: Error 501 Not Implemented

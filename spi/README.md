@@ -62,51 +62,15 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin {
 
 ---
 
-#### **4. Create the `ResourceSharingClientAccessor` class**
 
-Create a singleton client accessor class that holds the ResourceSharingClient that will be supplied by Security plugin.
-
-```java
-public class ResourceSharingClientAccessor {
-    private ResourceSharingClient CLIENT;
-
-    private static ResourceSharingClientAccessor resourceSharingClientAccessor;
-
-    private ResourceSharingClientAccessor() {}
-
-    public static ResourceSharingClientAccessor getInstance() {
-        if (resourceSharingClientAccessor == null) {
-            resourceSharingClientAccessor = new ResourceSharingClientAccessor();
-        }
-
-        return resourceSharingClientAccessor;
-    }
-
-    /**
-     * Set the resource sharing client
-     */
-    public void setResourceSharingClient(ResourceSharingClient client) {
-        resourceSharingClientAccessor.CLIENT = client;
-    }
-
-    /**
-     * Get the resource sharing client
-     */
-    public ResourceSharingClient getResourceSharingClient() {
-        return resourceSharingClientAccessor.CLIENT;
-    }
-}
-```
-
-
----
-
-#### **5. Implement the `ResourceSharingExtension` Interface**
+#### **4. Implement the `ResourceSharingExtension` Interface**
 Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
 
 ```java
 // Create a new extension point to register itself of a resource access control plugin
 public class SampleResourceExtension implements ResourceSharingExtension {
+  private ResourceSharingClient client;
+
   @Override
   public Set<ResourceProvider> getResourceProviders() {
     return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
@@ -114,14 +78,19 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
   @Override
   public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-    ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
+    this.client = resourceSharingClient;
+  }
+
+  @Override
+  public ResourceSharingClient getResourceSharingClient() {
+    return this.client;
   }
 }
 ```
 
 ---
 
-#### **6. Register the Plugin Using the Java SPI Mechanism**
+#### **5. Register the Plugin Using the Java SPI Mechanism**
 - Navigate to your plugin's `src/main/resources` folder.
 - Locate or create the `META-INF/services` directory.
 - Inside `META-INF/services`, create a file named:
@@ -136,7 +105,7 @@ public class SampleResourceExtension implements ResourceSharingExtension {
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
-#### **7. Implement DocRequest interface**
+#### **6. Implement DocRequest interface**
 
 All ActionRequests related to resource must implement DocRequest interface. This is how security plugin decides whether request if for a protected resource.
 
@@ -190,7 +159,7 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 
 ---
 
-#### **8. Using the Client in a Transport Action**
+#### **7. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
