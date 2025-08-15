@@ -78,8 +78,7 @@ Each plugin receives its own sharing index, centrally managed by security plugin
 
 |**Field**  |**Type** | Description                                                                            |
 |---  |---  |----------------------------------------------------------------------------------------|
-|`source_idx` |String | The system index where the resource is stored.                                         |
-|`resource_id`  |String | Unique ID of the resource within `source_idx`.                                         |
+|`resource_id`  |String | Unique ID of the resource within resource index.                                      |
 |`created_by` |Object | Information about the user or backend role that created the resource.                  |
 |`share_with` |Object | Contains multiple objects with **access-levels** as keys and access details as values. |
 
@@ -153,7 +152,6 @@ Each **action-group** entry contains the following access definitions:
 
 ```
 {
-   "source_idx": ".plugins-ml-model-group",
    "resource_id": "model-group-123",
    "created_by": {
       "user": "darshit"

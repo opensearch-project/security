@@ -62,7 +62,6 @@ public class SampleResourcePlugin extends Plugin implements SystemIndexPlugin {
 
 ---
 
-
 #### **4. Implement the `ResourceSharingExtension` Interface**
 Ensure that your **plugin declaration class** implements `ResourceSharingExtension` and provides **all required methods**.
 
@@ -107,7 +106,7 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 ---
 #### **6. Implement DocRequest interface**
 
-All ActionRequests related to resource must implement DocRequest interface. This is how security plugin decides whether request if for a protected resource.
+All ActionRequests related to resource must implement DocRequest interface. This is how the security plugin decides whether request is for a protected resource.
 
 ```java
 public class ShareResourceRequest extends ActionRequest implements DocRequest {
