@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Add serialized user custom attributes to the the thread context ([#5491](https://github.com/opensearch-project/security/pull/5491))
 * Fix NullPointerExceptions for "missing values" term aggregations and sorting on geo points ([#5537](https://github.com/opensearch-project/security/pull/5537))
 * Added new option skip_users to client cert authenticator  (clientcert_auth_domain.http_authenticator.config.skip_users in config.yml)([#4378](https://github.com/opensearch-project/security/pull/5525))
+* Inject user custom attributes when injecting user and role information to the thread context ([#5560](https://github.com/opensearch-project/security/pull/5560))
 
 ### Refactoring
 
