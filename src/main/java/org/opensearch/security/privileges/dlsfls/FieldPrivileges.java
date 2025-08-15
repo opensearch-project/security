@@ -198,7 +198,7 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
                 return true;
             }
 
-            return isAllowedNonRecursive(stripKeywordSuffix(field));
+            return isAllowedNonRecursive(normalizeFieldName(field));
         }
 
         /**
@@ -231,7 +231,7 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
                 return true;
             }
 
-            field = stripKeywordSuffix(field);
+            field = normalizeFieldName(field);
 
             if (excluding) {
                 // search for rules that explicitly forbid this field
@@ -308,17 +308,6 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
         @Override
         public boolean isUnrestricted() {
             return this.isAllowAll();
-        }
-
-        /**
-         * See https://github.com/opensearch-project/security/pull/2375
-         */
-        static String stripKeywordSuffix(String field) {
-            if (field.endsWith(".keyword")) {
-                return field.substring(0, field.length() - ".keyword".length());
-            } else {
-                return field;
-            }
         }
     }
 
@@ -433,6 +422,29 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
             return flsPatterns;
         }
 
+    }
+
+    /**
+     * Processes a field name as received from wrapping leaf readers and normalizes it into a form that can
+     * be processed by this class.
+     */
+    static String normalizeFieldName(String field) {
+        if (field == null) {
+            // This is a weird case; sometimes, OpenSearch code calls diverse LeafReader methods will a null field
+            // param. The semantics are not quite clear; most often, the underlying LeafReader will return null.
+            // But it is unclear if that can be relied on. Thus, in order to be safe here, we just use a NPE safe
+            // replacement value for privilege evaluation. Thus, the normal semantics continue to be applied. If a
+            // user has only access to a selected group of fields, any call for null will also be blocked. If a user
+            // has full access, we let the reading proceed as normal.
+            // See https://github.com/opensearch-project/OpenSearch-Dashboards/issues/9873 and
+            // https://github.com/opensearch-project/security/pull/5504#issuecomment-3114304553
+            return "__null__";
+        } else if (field.endsWith(".keyword")) {
+            // See https://github.com/opensearch-project/security/pull/2375
+            return field.substring(0, field.length() - ".keyword".length());
+        } else {
+            return field;
+        }
     }
 
 }

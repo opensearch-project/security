@@ -25,8 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Optimized performance for construction of internal action privileges data structure  ([#5470](https://github.com/opensearch-project/security/pull/5470))
 * Restricting query optimization via star tree index for users with queries on indices with DLS/FLS/FieldMasked restrictions ([#5492](https://github.com/opensearch-project/security/pull/5492))
 * Handle subject in nested claim for JWT auth backends ([#5467](https://github.com/opensearch-project/security/pull/5467))
+* Allow `_upgrade_check` and `_upgrade_perform` APIs to take list of roles ([#5385](https://github.com/opensearch-project/security/pull/5385))
 * [Resource Sharing] Adds a Share API to fetch and update sharing information ([#5459](https://github.com/opensearch-project/security/pull/5459))
 * Integration with stream transport ([#5530](https://github.com/opensearch-project/security/pull/5530))
+* Update api permissions for query_insights_full_access ([#5554](https://github.com/opensearch-project/security/pull/5554))
 
 ### Bug Fixes
 
@@ -38,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Always install demo certs if configured with demo certs ([#5517](https://github.com/opensearch-project/security/pull/5517))
 * [Resource Sharing] Restores client accessor pattern to fix compilation issues when security plugin is not installed ([#5541](https://github.com/opensearch-project/security/pull/5541))
 * Add serialized user custom attributes to the the thread context ([#5491](https://github.com/opensearch-project/security/pull/5491))
+* Fix NullPointerExceptions for "missing values" term aggregations and sorting on geo points ([#5537](https://github.com/opensearch-project/security/pull/5537))
+* Added new option skip_users to client cert authenticator  (clientcert_auth_domain.http_authenticator.config.skip_users in config.yml)([#4378](https://github.com/opensearch-project/security/pull/5525))
 
 ### Refactoring
 
@@ -47,7 +51,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 * Add tenancy access info to serialized user in threadcontext ([#5519](https://github.com/opensearch-project/security/pull/5519))
 
 ### Maintenance
-
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.33.0 to 3.33.100 ([#5400](https://github.com/opensearch-project/security/pull/5400))
 - Bump `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.0 to 3.20.100 ([#5402](https://github.com/opensearch-project/security/pull/5402))
 - Bump `spring_version` from 6.2.7 to 6.2.9 ([#5403](https://github.com/opensearch-project/security/pull/5403), [#5493](https://github.com/opensearch-project/security/pull/5493))
@@ -72,6 +75,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `net.minidev:accessors-smart` from 2.5.2 to 2.6.0 ([#5535](https://github.com/opensearch-project/security/pull/5535))
 - Bump `commons-codec:commons-codec` from 1.18.0 to 1.19.0 ([#5534](https://github.com/opensearch-project/security/pull/5534))
 - Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
+- Bump `com.google.guava:failureaccess` from 1.0.2 to 1.0.3 ([#5551](https://github.com/opensearch-project/security/pull/5551))
+- Bump `actions/download-artifact` from 4 to 5 ([#5550](https://github.com/opensearch-project/security/pull/5550))
+- Bump `commons-cli:commons-cli` from 1.9.0 to 1.10.0 ([#5533](https://github.com/opensearch-project/security/pull/5533))
+- Bump `checkstyle` to 11.0.0 and `spotbugs` to 6.2.4 ([#5555](https://github.com/opensearch-project/security/pull/5555))
+- Removes `commons-io` and `commons-lang3` maven metadata from shaded opensaml jar to fix CVE-2024-47554 ([#5558](https://github.com/opensearch-project/security/pull/5558))
 
 ### Documentation
 
