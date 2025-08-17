@@ -124,7 +124,7 @@ public class SystemIndexAccessEvaluator {
             final ActionRequest request,
             final Task task,
             final String action,
-            final OptionallyResolvedIndices requestedResolved,
+            final ResolvedIndices requestedResolved,
             final PrivilegesEvaluatorResponse presponse,
             final PrivilegesEvaluationContext context,
             final ActionPrivileges actionPrivileges,
@@ -198,7 +198,7 @@ public class SystemIndexAccessEvaluator {
      */
     private void evaluateSystemIndicesAccess(
         final String action,
-        final OptionallyResolvedIndices requestedResolved,
+        final ResolvedIndices requestedResolved,
         final ActionRequest request,
         final Task task,
         final PrivilegesEvaluatorResponse presponse,

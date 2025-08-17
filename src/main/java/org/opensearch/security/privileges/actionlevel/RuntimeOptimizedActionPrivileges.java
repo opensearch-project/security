@@ -459,7 +459,8 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     }
 
     private Set<String> fullyResolvedIndices(PrivilegesEvaluationContext context, ResolvedIndices resolvedIndices) {
-        if (resolvedIndices.local().isAll()) {
+        // TODO
+        if (resolvedIndices.isUnknown()) {
             return context.getIndicesLookup().keySet();
         } else {
             return resolvedIndices.local().names();

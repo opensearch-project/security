@@ -87,7 +87,8 @@ public class TermsAggregationEvaluator {
                             PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
                                 context,
                                 READ_ACTIONS,
-                                ResolvedIndices.all()
+                                resolved
+                                // TODO ResolvedIndices.all()
                             );
 
                             if (subResponse.isPartiallyOk()) {

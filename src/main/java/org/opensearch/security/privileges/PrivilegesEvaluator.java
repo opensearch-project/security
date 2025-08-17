@@ -476,7 +476,8 @@ public class PrivilegesEvaluator {
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, mappedRoles).isComplete()) {
+        // TODO cast  (ResolvedIndices)
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, (ResolvedIndices) resolvedIndices, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -520,7 +521,7 @@ public class PrivilegesEvaluator {
                             action0,
                             user,
                             dcm,
-                            resolvedIndices,
+                                (ResolvedIndices) resolvedIndices,
                             context,
                             this.tenantPrivileges.get()
                         );
@@ -555,7 +556,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate((ResolvedIndices) resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
             return presponse;
         }
 
@@ -583,7 +584,7 @@ public class PrivilegesEvaluator {
                 action0,
                 user,
                 dcm,
-                resolvedIndices,
+                    (ResolvedIndices) resolvedIndices,
                 context,
                 this.tenantPrivileges.get()
             );
@@ -606,11 +607,11 @@ public class PrivilegesEvaluator {
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
-        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, resolvedIndices);
+        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, (ResolvedIndices) resolvedIndices);
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
-                if (this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, presponse.getAvailableIndices())) {
+                if (this.indicesRequestModifier.setLocalIndices(request, (ResolvedIndices) resolvedIndices, presponse.getAvailableIndices())) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }
@@ -631,7 +632,7 @@ public class PrivilegesEvaluator {
         }
 
         if (presponse.isAllowed()) {
-            if (checkFilteredAliases(resolvedIndices, action0, isDebugEnabled)) {
+            if (checkFilteredAliases((ResolvedIndices) resolvedIndices, action0, isDebugEnabled)) {
                 presponse.allowed = false;
                 return presponse;
             }

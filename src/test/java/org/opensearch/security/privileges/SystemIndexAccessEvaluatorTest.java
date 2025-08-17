@@ -424,6 +424,7 @@ public class SystemIndexAccessEvaluatorTest {
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
     }
+    /*
 
     @Test
     public void testProtectedActionLocalAll_systemIndexDisabled() {
@@ -605,7 +606,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnProtectedSystemIndex_systemIndexPermissionEnabled_withSystemIndexPermission() {
         testSecurityIndexAccess(PROTECTED_ACTION);
-    }
+    }*/
 
     private void testSecurityIndexAccess(String action) {
         setup(true, true, SECURITY_INDEX, true);

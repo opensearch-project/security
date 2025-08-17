@@ -161,7 +161,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         // request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.local().isAll()) {
+        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isUnknown()) { // TODO
             final Set<String> indices = requestedResolved.local().names();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
@@ -394,7 +394,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final ResolvedIndices requestedResolved, final String dashboardsIndexName) {
-        if (requestedResolved.local().isAll()) {
+        if (requestedResolved.isUnknown()) { // TODO
             return false;
         }
         return requestedResolved.local().names().size() == 1 && requestedResolved.local().names().contains(dashboardsIndexName);
