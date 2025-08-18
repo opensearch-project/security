@@ -116,7 +116,7 @@ public class ResourceAccessHandler {
         ).collect(Collectors.toSet());
 
         BoolQueryBuilder query = QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user", user.getName()))
+            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
             .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
             .minimumShouldMatch(1);
 
