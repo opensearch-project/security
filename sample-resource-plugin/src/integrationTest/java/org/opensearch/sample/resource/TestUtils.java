@@ -58,7 +58,7 @@ public final class TestUtils {
 
     // No update permission
     public final static TestSecurityConfig.User LIMITED_ACCESS_USER = new TestSecurityConfig.User(
-        "resource_sharing_test_user_limited_perms"
+        "resource_sharing_test_user_Limited_Perms"
     ).roles(
         new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
             "cluster:admin/sample-resource-plugin/get",
