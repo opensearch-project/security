@@ -23,6 +23,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.sample.ResourceExtensionWrapper;
 import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.search.SearchResourceAction;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -43,7 +44,7 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
     private final Client nodeClient;
 
     @Inject(optional = true)
-    public SampleResourceExtension sampleResourceExtension;
+    public ResourceExtensionWrapper resourceExtensionWrapper;
 
     @Inject
     public SearchResourceTransportAction(TransportService transportService, ActionFilters actionFilters, Client nodeClient) {
@@ -56,7 +57,7 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
     protected void doExecute(Task task, SearchRequest request, ActionListener<SearchResponse> listener) {
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+            if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
                 nodeClient.search(request, listener);
                 return;
             }
@@ -80,7 +81,7 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
             nodeClient.search(request, listener);
         });
 
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, idsListener);
     }
 

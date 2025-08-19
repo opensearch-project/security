@@ -17,6 +17,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.sample.ResourceExtensionWrapper;
 import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
 import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRequest;
@@ -35,7 +36,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     private static final Logger log = LogManager.getLogger(RevokeResourceAccessTransportAction.class);
 
     @Inject(optional = true)
-    public SampleResourceExtension sampleResourceExtension;
+    public ResourceExtensionWrapper resourceExtensionWrapper;
 
     @Inject
     public RevokeResourceAccessTransportAction(TransportService transportService, ActionFilters actionFilters) {
@@ -45,7 +46,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
 
-        if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+        if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
             listener.onFailure(
                 new OpenSearchStatusException(
                     "Resource sharing is not enabled. Cannot revoke access to resource " + request.getResourceId(),
@@ -54,7 +55,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
             );
             return;
         }
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         ShareWith target = request.getEntitiesToRevoke();
         resourceSharingClient.revoke(request.getResourceId(), RESOURCE_INDEX_NAME, target, ActionListener.wrap(success -> {
             RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());

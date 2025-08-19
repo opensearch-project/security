@@ -30,6 +30,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.sample.ResourceExtensionWrapper;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
@@ -53,7 +54,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private final NodeClient nodeClient;
 
     @Inject(optional = true)
-    public SampleResourceExtension sampleResourceExtension;
+    public ResourceExtensionWrapper resourceExtensionWrapper;
 
     @Inject
     public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
@@ -74,11 +75,11 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     }
 
     private void fetchAllResources(ActionListener<GetResourceResponse> listener) {
-        if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+        if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
             fetchResourcesByIds(null, listener);
             return;
         }
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
             if (ids.isEmpty()) {
                 listener.onResponse(new GetResourceResponse(Collections.emptySet()));

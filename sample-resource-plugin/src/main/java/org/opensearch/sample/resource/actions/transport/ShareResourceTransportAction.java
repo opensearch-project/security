@@ -17,6 +17,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.sample.ResourceExtensionWrapper;
 import org.opensearch.sample.SampleResourceExtension;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
@@ -35,7 +36,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
 
     @Inject(optional = true)
-    public SampleResourceExtension sampleResourceExtension;
+    public ResourceExtensionWrapper resourceExtensionWrapper;
 
     @Inject
     public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
@@ -49,7 +50,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+        if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
             listener.onFailure(
                 new OpenSearchStatusException(
                     "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
@@ -59,7 +60,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
         ShareWith shareWith = request.getShareWith();
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
+        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
             ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
             ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
