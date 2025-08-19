@@ -23,8 +23,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.sample.ResourceExtensionWrapper;
-import org.opensearch.sample.SampleResourceExtension;
+import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.search.SearchResourceAction;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -42,22 +41,21 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
 
     private final TransportService transportService;
     private final Client nodeClient;
-
-    @Inject(optional = true)
-    public ResourceExtensionWrapper resourceExtensionWrapper;
+    private final ResourceSharingClient resourceSharingClient;
 
     @Inject
     public SearchResourceTransportAction(TransportService transportService, ActionFilters actionFilters, Client nodeClient) {
         super(SearchResourceAction.NAME, transportService, actionFilters, SearchRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
+        this.resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
     }
 
     @Override
     protected void doExecute(Task task, SearchRequest request, ActionListener<SearchResponse> listener) {
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
+            if (resourceSharingClient == null) {
                 nodeClient.search(request, listener);
                 return;
             }
@@ -81,7 +79,6 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
             nodeClient.search(request, listener);
         });
 
-        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, idsListener);
     }
 

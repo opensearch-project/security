@@ -93,19 +93,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     ) {
         this.pluginClient = new PluginClient(client);
 
-        List<Object> components = new ArrayList<>();
-        components.add(pluginClient);
-
-        try {
-            // This loader will throw class not found exception if SPI doesn't exist (feature disabled or security not installed)
-            Class.forName("org.opensearch.security.spi.resources.ResourceSharingExtension");
-            // if no exception was thrown we make the wrapper an injectable component
-            components.add(new ResourceExtensionWrapper());
-        } catch (ClassNotFoundException e) {
-            // spi is not loaded into classpath, i.e. the feature is disabled or security plugin is absent, do nothing
-        }
-
-        return components;
+        return List.of(pluginClient);
     }
 
     @Override

@@ -17,8 +17,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.sample.ResourceExtensionWrapper;
-import org.opensearch.sample.SampleResourceExtension;
+import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceRequest;
 import org.opensearch.sample.resource.actions.rest.share.ShareResourceResponse;
@@ -34,13 +33,12 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  */
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
-
-    @Inject(optional = true)
-    public ResourceExtensionWrapper resourceExtensionWrapper;
+    private final ResourceSharingClient resourceSharingClient;
 
     @Inject
     public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
         super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
+        this.resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
     }
 
     @Override
@@ -50,7 +48,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
 
-        if (resourceExtensionWrapper == null || resourceExtensionWrapper.getResourceSharingClient() == null) {
+        if (resourceSharingClient == null) {
             listener.onFailure(
                 new OpenSearchStatusException(
                     "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
@@ -60,7 +58,6 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
         ShareWith shareWith = request.getShareWith();
-        ResourceSharingClient resourceSharingClient = resourceExtensionWrapper.getResourceSharingClient();
         resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
             ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
             ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
