@@ -32,9 +32,4 @@ public interface ResourceSharingExtension {
      * @param client the ResourceSharingClient instance
      */
     void assignResourceSharingClient(ResourceSharingClient client);
-
-    /**
-     * Returns the assigned resource sharing client
-     */
-    ResourceSharingClient getResourceSharingClient();
 }

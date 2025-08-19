@@ -68,7 +68,6 @@ Ensure that your **plugin declaration class** implements `ResourceSharingExtensi
 ```java
 // Create a new extension point to register itself of a resource access control plugin
 public class SampleResourceExtension implements ResourceSharingExtension {
-  private ResourceSharingClient client;
 
   @Override
   public Set<ResourceProvider> getResourceProviders() {
@@ -77,19 +76,51 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
   @Override
   public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
-    this.client = resourceSharingClient;
-  }
-
-  @Override
-  public ResourceSharingClient getResourceSharingClient() {
-    return this.client;
+    ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
   }
 }
 ```
 
 ---
 
-#### **5. Register the Plugin Using the Java SPI Mechanism**
+#### **5. Implement the `ResourceSharingClientAccessor` class**
+Implement the ResourceSharingClientAccessor wrapper class To access the **ResourceSharingClient** instance. This class sets client to null when security is not present, else returns the client assigned by security plugin.
+
+```java
+public class ResourceSharingClientAccessor {
+  private ResourceSharingClient CLIENT;
+
+  private static ResourceSharingClientAccessor resourceSharingClientAccessor;
+
+  private ResourceSharingClientAccessor() {}
+
+  public static ResourceSharingClientAccessor getInstance() {
+    if (resourceSharingClientAccessor == null) {
+      resourceSharingClientAccessor = new ResourceSharingClientAccessor();
+    }
+
+    return resourceSharingClientAccessor;
+  }
+
+  /**
+   * Set the resource sharing client
+   */
+  public void setResourceSharingClient(ResourceSharingClient client) {
+    resourceSharingClientAccessor.CLIENT = client;
+  }
+
+  /**
+   * Get the resource sharing client
+   */
+  public ResourceSharingClient getResourceSharingClient() {
+    return resourceSharingClientAccessor.CLIENT;
+  }
+}
+```
+
+---
+
+#### **6. Register the Plugin Using the Java SPI Mechanism**
 - Navigate to your plugin's `src/main/resources` folder.
 - Locate or create the `META-INF/services` directory.
 - Inside `META-INF/services`, create a file named:
@@ -104,7 +135,7 @@ public class SampleResourceExtension implements ResourceSharingExtension {
   > This step ensures that OpenSearch **dynamically loads your plugin** as a resource-sharing extension.
 
 ---
-#### **6. Implement DocRequest interface**
+#### **7. Implement DocRequest interface**
 
 All ActionRequests related to resource must implement DocRequest interface. This is how the security plugin decides whether request is for a protected resource.
 
@@ -158,18 +189,18 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 
 ---
 
-#### **7. Using the Client in a Transport Action**
+#### **8. Using the Client in a Transport Action**
 The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
 
 ```java
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
   private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
-  @Inject(optional=true)
-  private final SampleResourceExtension sampleResourceExtension;
+  private final ResourceSharingClient resourceSharingClient;
 
   @Inject
   public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
     super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
+    this.resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
   }
 
   @Override
@@ -179,7 +210,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
       return;
     }
 
-    if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+    if (resourceSharingClient == null) {
       listener.onFailure(
               new OpenSearchStatusException(
                       "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
@@ -189,7 +220,6 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
       return;
     }
     ShareWith shareWith = request.getShareWith();
-    ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
     resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
       ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
       ShareResourceResponse response = new ShareResourceResponse(finalShareWith);

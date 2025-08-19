@@ -1211,7 +1211,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
-                components.add(extension);
             });
             components.add(resourcePluginInfo);
             components.add(resourceAccessHandler);

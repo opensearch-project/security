@@ -92,6 +92,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.pluginClient = new PluginClient(client);
+
         return List.of(pluginClient);
     }
 

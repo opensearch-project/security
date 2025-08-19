@@ -31,7 +31,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.SampleResourceExtension;
+import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
@@ -52,9 +52,6 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     private final TransportService transportService;
     private final NodeClient nodeClient;
 
-    @Inject(optional = true)
-    public SampleResourceExtension sampleResourceExtension;
-
     @Inject
     public GetResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
         super(GetResourceAction.NAME, transportService, actionFilters, GetResourceRequest::new);
@@ -64,22 +61,23 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
+        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {
-            fetchAllResources(listener);
+            fetchAllResources(listener, client);
         } else {
             fetchResourceById(resourceId, listener);
         }
     }
 
-    private void fetchAllResources(ActionListener<GetResourceResponse> listener) {
-        if (sampleResourceExtension == null || sampleResourceExtension.getResourceSharingClient() == null) {
+    private void fetchAllResources(ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
+        if (client == null) {
             fetchResourcesByIds(null, listener);
             return;
         }
-        ResourceSharingClient resourceSharingClient = sampleResourceExtension.getResourceSharingClient();
-        resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
+
+        client.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
             if (ids.isEmpty()) {
                 listener.onResponse(new GetResourceResponse(Collections.emptySet()));
             } else {
