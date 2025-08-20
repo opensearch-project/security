@@ -236,6 +236,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
     public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDICES_PER_MESSAGE = "log4j.maximum_indices_per_message";
+    public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = "plugins.security.audit.config.retry_count";
