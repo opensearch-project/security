@@ -1420,7 +1420,7 @@ role_with_dls:
   index_permissions:
   - index_patterns:
     - "captain-logs-*"
-    "dls": "{\"term\": {\"starship\": \"${attr.proxy.starship}\" }}"
+    dls: "{\"term\": {\"starship\": \"${attr.proxy.starship}\" }}"
     fls: null
     allowed_actions:
     - "read"
