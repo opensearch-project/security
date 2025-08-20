@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Maintenance
 - Bump `1password/load-secrets-action` from 2 to 3 ([#5573](https://github.com/opensearch-project/security/pull/5573))
+- Bump `actions/checkout` from 4 to 5 ([#5572](https://github.com/opensearch-project/security/pull/5572))
 
 ### Documentation
 

@@ -12,7 +12,7 @@ jobs:
   automatic-merge-version-bumps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - id: find-triggering-pr
         uses: peternied/find-triggering-pr@v1
