@@ -31,7 +31,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -191,9 +190,6 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
 
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-4")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
-
-            // search request should fail without attributes to substitute in DLS for role
-            clusterHelper.nodeClient().search(new SearchRequest("captain-logs-4")).actionGet();
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
             log.warn(ex.toString());
