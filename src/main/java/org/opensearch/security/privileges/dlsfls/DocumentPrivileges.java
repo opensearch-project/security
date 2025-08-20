@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.logging.log4j.util.Strings;
-
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -174,6 +174,12 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             @Override
             RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
                 String effectiveQueryString = UserAttributes.replaceProperties(this.queryString, context);
+                if (effectiveQueryString.contains("${")) {
+                    throw new PrivilegesEvaluationException(
+                        "Invalid DLS query: " + effectiveQueryString,
+                        new OpenSearchSecurityException("User attribute substitution failed")
+                    );
+                }
                 try {
                     return new RenderedDlsQuery(parseQuery(effectiveQueryString, xContentRegistry), effectiveQueryString);
                 } catch (Exception e) {
