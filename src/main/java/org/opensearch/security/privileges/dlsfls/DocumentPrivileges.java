@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.logging.log4j.util.Strings;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
