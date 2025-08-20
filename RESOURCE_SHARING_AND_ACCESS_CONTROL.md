@@ -44,9 +44,24 @@ This feature introduces **one primary component** for plugin developers:
 ### **Plugin Implementation Requirements:**
 
 - **Resource indices must be declared as system indices** to prevent unauthorized direct access.
-- **Declare a `compileOnly` dependency** on `opensearch-security-spi` package:
+- **Declare a `compileOnly` dependency** on `opensearch-security-spi` package and opensearch-security plugin zip:
 ```build.gradle
-compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
+configurations {
+  ...
+  opensearchPlugin
+  // OR uncomment following line
+  // zipArchive
+  ...
+}
+
+dependencies {
+  ...
+  compileOnly group: 'org.opensearch', name:'opensearch-security-spi', version:"${opensearch_build}"
+  opensearchPlugin "org.opensearch.plugin:opensearch-security:${opensearch_build}@zip"
+  // OR you can add following line if you added zipArchive configuration
+  // zipArchive group: 'org.opensearch.plugin', name:'opensearch-security', version: "${opensearch_build}"
+  ...
+}
 ```
 - **Extend** `opensearch-security` plugin with the optional flag:
 ```build.gradle
@@ -55,9 +70,10 @@ opensearchplugin {
     description '<description>'
     classname '<your-classpath>'
     extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
-}x
+}
 ```
-- **Implement** the `ResourceSharingExtension` class. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
+- **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
+- **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
