@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.12.7'
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.9'
+        spring_version = '6.2.10'
         protobuf_plugin_version = '0.6.0'
 
         if (buildVersionQualifier) {
