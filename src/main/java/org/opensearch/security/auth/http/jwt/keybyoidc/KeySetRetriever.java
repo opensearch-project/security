@@ -87,7 +87,7 @@ public class KeySetRetriever implements KeySetProvider {
 
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
                 log.warn("JWKS retrieved from " + uri + " successfully");
-                log.warn("response code: " + response.getCode() + " - " + response.getReasonPhrase() + " - " + response.getStatusLine());
+                log.warn("response code: " + response.getCode() + " - " + response.getReasonPhrase());
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
                 }

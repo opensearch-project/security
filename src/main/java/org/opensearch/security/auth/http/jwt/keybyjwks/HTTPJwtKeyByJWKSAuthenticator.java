@@ -65,7 +65,11 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         boolean cacheJwksEndpoint = settings.getAsBoolean("cache_jwks_endpoint", true);
 
         // Create key set retriever for direct JWKS endpoint access
-        KeySetRetriever keySetRetriever = new KeySetRetriever(getSSLConfig(settings, configPath), cacheJwksEndpoint, jwksUri);
+        KeySetRetriever keySetRetriever = new KeySetRetriever(
+            getSSLConfig(settings, configPath),
+            cacheJwksEndpoint,
+            jwksUri
+        );
         keySetRetriever.setRequestTimeoutMs(jwksRequestTimeoutMs);
 
         // Create self-refreshing key set with caching and rate limiting
