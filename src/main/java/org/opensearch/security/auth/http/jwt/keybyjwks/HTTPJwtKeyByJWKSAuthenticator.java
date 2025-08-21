@@ -25,11 +25,11 @@ import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 
 /**
  * JWT authenticator that uses JWKS (JSON Web Key Set) endpoints for key retrieval.
- * 
+ *
  * This authenticator extends AbstractHTTPJwtAuthenticator and provides JWKS-specific
  * key provider initialization. It supports direct JWKS endpoint access with caching,
  * SSL configuration, and automatic key refresh.
- * 
+ *
  * Configuration:
  * - jwks_uri: Direct JWKS endpoint URL (required)
  * - cache_jwks_endpoint: Enable/disable caching (default: true)
@@ -50,7 +50,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
     protected KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception {
         String jwksUri = settings.get("jwks_uri");
         log.warn("Initializing JWKS key provider with endpoint: {}", jwksUri);
-        
+
         if (jwksUri == null || jwksUri.isBlank()) {
             throw new IllegalArgumentException("jwks_uri is required for JWKS authenticator");
         }
@@ -65,11 +65,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         boolean cacheJwksEndpoint = settings.getAsBoolean("cache_jwks_endpoint", true);
 
         // Create key set retriever for direct JWKS endpoint access
-        KeySetRetriever keySetRetriever = new KeySetRetriever(
-            getSSLConfig(settings, configPath),
-            cacheJwksEndpoint,
-            jwksUri
-        );
+        KeySetRetriever keySetRetriever = new KeySetRetriever(getSSLConfig(settings, configPath), cacheJwksEndpoint, jwksUri);
         keySetRetriever.setRequestTimeoutMs(jwksRequestTimeoutMs);
 
         // Create self-refreshing key set with caching and rate limiting

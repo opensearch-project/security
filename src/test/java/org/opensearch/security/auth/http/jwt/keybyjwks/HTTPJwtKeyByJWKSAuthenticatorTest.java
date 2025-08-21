@@ -27,9 +27,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
     @Test
     public void testJwksBasicAuthentication() throws Exception {
-        Settings settings = Settings.builder()
-            .put("jwks_uri", "https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json")
-            .build();
+        Settings settings = Settings.builder().put("jwks_uri", "https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json").build();
 
         HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
 
@@ -73,9 +71,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
     @Test
     public void testAuthenticatorType() throws Exception {
-        Settings settings = Settings.builder()
-            .put("jwks_uri", "https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json")
-            .build();
+        Settings settings = Settings.builder().put("jwks_uri", "https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json").build();
 
         HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
         assertThat(jwtAuth.getType(), is("jwt-key-by-jwks"));
