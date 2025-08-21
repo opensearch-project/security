@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Maintenance
 - Bump `1password/load-secrets-action` from 2 to 3 ([#5573](https://github.com/opensearch-project/security/pull/5573))
 - Bump `jjwt_version` from 0.12.6 to 0.12.7 ([#5568](https://github.com/opensearch-project/security/pull/5568))
+- Bump `spring_version` from 6.2.9 to 6.2.10 ([#5569](https://github.com/opensearch-project/security/pull/5569))
 
 ### Documentation
 
