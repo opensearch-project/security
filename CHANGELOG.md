@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `jjwt_version` from 0.12.6 to 0.12.7 ([#5568](https://github.com/opensearch-project/security/pull/5568))
 - Bump `org.mockito:mockito-core` from 5.18.0 to 5.19.0 ([#5566](https://github.com/opensearch-project/security/pull/5566))
 - Bump `open_saml_version` from 5.1.4 to 5.1.5 ([#5567](https://github.com/opensearch-project/security/pull/5567))
+- Bump `com.google.j2objc:j2objc-annotations` from 3.0.0 to 3.1 ([#5570](https://github.com/opensearch-project/security/pull/5570))
 
 ### Documentation
 
