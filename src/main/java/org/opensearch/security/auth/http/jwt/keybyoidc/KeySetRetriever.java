@@ -86,6 +86,8 @@ public class KeySetRetriever implements KeySetProvider {
             httpGet.setConfig(requestConfig);
 
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                log.warn("JWKS retrieved from " + uri + " successfully");
+                log.warn("response code: " + response.getCode() + " - " + response.getReasonPhrase() + " - " + response.getStatusLine());
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
                 }
@@ -110,6 +112,7 @@ public class KeySetRetriever implements KeySetProvider {
     String getJwksUri() throws AuthenticatorUnavailableException {
 
         if (!Strings.isNullOrEmpty(jwksUri)) {
+            log.warn("Using jwks_uri: " + jwksUri);
             return jwksUri;
         }
 
