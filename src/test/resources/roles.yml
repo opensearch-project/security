@@ -1416,15 +1416,15 @@ role_with_dls:
   reserved: false
   hidden: false
   cluster_permissions:
-  - "read"
-  index_permissions:
-  - index_patterns:
-    - "captain-logs-*"
-    dls: "{\"term\": {\"starship\": \"${attr.proxy.starship}\" }}"
-    fls: null
-    allowed_actions:
     - "read"
-    - "indices:admin/create"
-    - "indices:admin/exists"
+  index_permissions:
+    - index_patterns:
+        - "captain-logs-*"
+      dls: "{\"term\": {\"starship\": \"${attr.proxy.starship}\" }}"
+      fls: null
+      allowed_actions:
+        - "indices:admin/create"
+        - "indices:admin/exists"
+        - "read"
   tenant_permissions: []
   static: false
