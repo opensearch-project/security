@@ -1428,3 +1428,18 @@ role_with_dls:
         - "read"
   tenant_permissions: []
   static: false
+
+role_without_dls_write:
+  reserved: false
+  hidden: false
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "captain-logs-*"
+      dls: null
+      fls: null
+      allowed_actions:
+        - "indices_all"
+  tenant_permissions: []
+  static: false
