@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
-import org.opensearch.OpenSearchSecurityException;
+
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.ClusterState;
@@ -57,7 +57,6 @@ import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -72,8 +71,8 @@ import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
