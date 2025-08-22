@@ -305,34 +305,41 @@ public class SystemIndexAccessEvaluator {
         }
 
         // the following section should only be run for index actions
-        if (this.isSystemIndexEnabled && user.isPluginUser() && !isClusterPerm(action)) {
-            Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
-                user.getName().replace("plugin:", ""),
-                requestedResolved.getAllIndices()
-            );
-            if (requestedResolved.getAllIndices().equals(matchingPluginIndices)) {
-                // plugin is authorized to perform any actions on its own registered system indices
+        if (user.isPluginUser()) {
+            if (this.isSystemIndexEnabled && !isClusterPerm(action)) {
+                Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                    user.getName().replace("plugin:", ""),
+                    requestedResolved.getAllIndices()
+                );
+                if (requestedResolved.getAllIndices().equals(matchingPluginIndices)) {
+                    // plugin is authorized to perform any actions on its own registered system indices
+                    presponse.allowed = true;
+                    presponse.markComplete();
+                    return;
+                } else {
+                    Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices());
+                    matchingSystemIndices.removeAll(matchingPluginIndices);
+                    // See if request matches other system indices not belong to the plugin
+                    if (!matchingSystemIndices.isEmpty()) {
+                        if (log.isInfoEnabled()) {
+                            log.info(
+                                "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
+                                user.getName(),
+                                action,
+                                matchingPluginIndices
+                            );
+                        }
+                        presponse.allowed = false;
+                        presponse.getMissingPrivileges();
+                        presponse.markComplete();
+                        return;
+                    }
+                }
+            } else {
+                // no system index protection and request originating from plugin, allow
                 presponse.allowed = true;
                 presponse.markComplete();
                 return;
-            } else {
-                Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices());
-                matchingSystemIndices.removeAll(matchingPluginIndices);
-                // See if request matches other system indices not belong to the plugin
-                if (!matchingSystemIndices.isEmpty()) {
-                    if (log.isInfoEnabled()) {
-                        log.info(
-                            "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
-                            user.getName(),
-                            action,
-                            matchingPluginIndices
-                        );
-                    }
-                    presponse.allowed = false;
-                    presponse.getMissingPrivileges();
-                    presponse.markComplete();
-                    return;
-                }
             }
         }
 
