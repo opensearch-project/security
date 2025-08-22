@@ -71,6 +71,20 @@ public class KeySetRetriever implements KeySetProvider {
         configureCache(useCacheForOidConnectEndpoint);
     }
 
+    /**
+     * Factory method to create a KeySetRetriever for JWKS endpoint access.
+     * This method provides a public API for creating KeySetRetriever instances
+     * without exposing the constructor.
+     * 
+     * @param sslConfig SSL configuration for HTTPS connections
+     * @param useCacheForJwksEndpoint whether to enable caching for JWKS endpoint
+     * @param jwksUri the JWKS endpoint URI
+     * @return a new KeySetRetriever instance configured for JWKS access
+     */
+    public static KeySetRetriever createForJwksUri(SSLConfig sslConfig, boolean useCacheForJwksEndpoint, String jwksUri) {
+        return new KeySetRetriever(sslConfig, useCacheForJwksEndpoint, jwksUri);
+    }
+
     public JWKSet get() throws AuthenticatorUnavailableException {
         String uri = getJwksUri();
 
