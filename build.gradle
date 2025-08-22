@@ -27,13 +27,13 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
 
         kafka_version  = '4.0.0'
-        open_saml_version = '5.1.4'
+        open_saml_version = '5.1.5'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.7'
         guava_version = '33.4.8-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.9'
+        spring_version = '6.2.10'
         protobuf_plugin_version = '0.6.0'
 
         if (buildVersionQualifier) {
@@ -488,10 +488,10 @@ configurations {
             force "commons-io:commons-io:2.20.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.18.0"
+            force "org.mockito:mockito-core:5.19.0"
             force "net.bytebuddy:byte-buddy:1.17.6"
             force "org.ow2.asm:asm:9.8"
-            force "com.google.j2objc:j2objc-annotations:3.0.0"
+            force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
@@ -524,7 +524,7 @@ allprojects {
         testImplementation 'org.hamcrest:hamcrest:2.2'
         testImplementation 'junit:junit:4.13.2'
         testImplementation "org.opensearch:opensearch:${opensearch_version}"
-        testImplementation "org.mockito:mockito-core:5.18.0"
+        testImplementation "org.mockito:mockito-core:5.19.0"
 
         //integration test framework:
         integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
@@ -556,7 +556,7 @@ allprojects {
         integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
         integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
         integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-        integrationTestImplementation "org.mockito:mockito-core:5.18.0"
+        integrationTestImplementation "org.mockito:mockito-core:5.19.0"
         integrationTestImplementation "org.passay:passay:1.6.6"
         integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
@@ -710,7 +710,7 @@ dependencies {
     runtimeOnly 'com.google.guava:failureaccess:1.0.3'
     runtimeOnly 'org.apache.commons:commons-text:1.14.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.0.0'
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.1'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
