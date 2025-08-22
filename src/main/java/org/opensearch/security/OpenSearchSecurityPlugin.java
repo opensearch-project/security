@@ -1840,17 +1840,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
             settings.add(
-                Setting.intSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDICES_PER_MESSAGE,
-                    0,
-                    0,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
                     Setting.intSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE,
-                            0,
-                            0,
+                            Integer.MAX_VALUE,
+                            255,
                             Property.NodeScope,
                             Property.Filtered
                     )

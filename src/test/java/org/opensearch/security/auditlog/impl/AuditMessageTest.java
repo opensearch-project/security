@@ -246,20 +246,21 @@ public class AuditMessageTest {
 
     @Test
     public void testResolvedIndicesSplitCharacters() {
-        final String[] indices = {"testing", "index*"};
+        final String[] indices = {"testingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtesting", "index*"};
 //        final String[] resolvedIndices = getTestIndices("4961d135-ab33-4195-a638-77f3401cca95_pod_pegaonde_work_pegacloudsystemrequest_notification_dddd_20250117150039@p", 11325);
-        final String[] resolvedIndices = getTestIndices("testingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtesting", 11325);
+//        final String[] resolvedIndices = getTestIndices("testingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtestingtesting", 11325);
+        final String[] resolvedIndices = {"testing"};
         message.addIndices(indices);
         message.addResolvedIndices(resolvedIndices);
 
-        int numberOfIndices = indices.length + resolvedIndices.length;
+//        int numberOfIndices = indices.length + resolvedIndices.length;
 //        int numberOfIndices = resolvedIndices.length;
 
         System.out.println("Standard message:");
         System.out.println(message.toJson());
 
-        final int maximumIndexCharsPerMessage = 120000;
-        final List<String> jsonSplitIndices = message.toJsonSplitIndicesCharacter(maximumIndexCharsPerMessage);
+        final int maximumIndexCharsPerMessage = 255;
+        final List<String> jsonSplitIndices = message.toJsonSplitIndices(maximumIndexCharsPerMessage);
 
         System.out.printf("Split message into %s messages:%n", jsonSplitIndices.size());
         jsonSplitIndices.forEach(System.out::println);

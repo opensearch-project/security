@@ -18,15 +18,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
-import java.util.List;
-
 public final class Log4JSink extends AuditLogSink {
 
     final Logger auditLogger;
     final String loggerName;
     final Level logLevel;
     final boolean enabled;
-    final Integer maximumIndicesPerMessage;
     final Integer maximumIndexCharactersPerMessage;
 
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
@@ -34,8 +31,7 @@ public final class Log4JSink extends AuditLogSink {
         loggerName = settings.get(settingsPrefix + ".log4j.logger_name", "audit");
         auditLogger = LogManager.getLogger(loggerName);
         logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level", "INFO").toUpperCase());
-        maximumIndicesPerMessage = settings.getAsInt(settingsPrefix + ".log4j.maximum_indices_per_message", 0);
-        maximumIndexCharactersPerMessage = settings.getAsInt(settingsPrefix + ".log4j.maximum_index_characters_per_message", 0);
+        maximumIndexCharactersPerMessage = settings.getAsInt(settingsPrefix + ".log4j.maximum_index_characters_per_message", Integer.MAX_VALUE);
         enabled = auditLogger.isEnabled(logLevel);
     }
 
@@ -45,8 +41,7 @@ public final class Log4JSink extends AuditLogSink {
 
     public boolean doStore(final AuditMessage msg) {
         if (enabled) {
-            msg.toJsonSplitIndicesCharacter(maximumIndexCharactersPerMessage).forEach(message -> auditLogger.log(logLevel, message));
-//            msg.toJsonSplitIndices(maximumIndicesPerMessage).forEach(message -> auditLogger.log(logLevel, message));
+            msg.toJsonSplitIndices(maximumIndexCharactersPerMessage).forEach(message -> auditLogger.log(logLevel, message));
         }
         return true;
     }

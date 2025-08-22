@@ -22,7 +22,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -506,22 +505,31 @@ public final class AuditMessage {
         }
     }
 
-    public List<String> toJsonSplitIndicesCharacter(final int maximumIndexCharsPerMessage) {
+    public List<String> toJsonSplitIndices(final int maximumIndexCharsPerMessage) {
+        // Maximum index name length is 255, so we must be able to log at least 1
+        if (maximumIndexCharsPerMessage < 255) {
+            throw new IllegalArgumentException("maximumIndexCharsPerMessage must be greater than or equal to 255");
+        }
+
         final List<String> indices = Arrays.asList((String[]) auditInfo.getOrDefault(INDICES, new String[0]));
         final List<String> resolvedIndices = Arrays.asList((String[]) auditInfo.getOrDefault(RESOLVED_INDICES, new String[0]));
 
+        // Calculates sum and max at the same time
         final IntSummaryStatistics indicesCharsStats = indices.stream().mapToInt(String::length).summaryStatistics();
         final IntSummaryStatistics resolvedIndicesCharsStats = resolvedIndices.stream().mapToInt(String::length).summaryStatistics();
 
         final long totalIndexChars = indicesCharsStats.getSum() + resolvedIndicesCharsStats.getSum();
 
-        // Only split if needed
-        if (totalIndexChars < maximumIndexCharsPerMessage || maximumIndexCharsPerMessage <= 0) {
+        // Only split if there are too many characters
+        if (totalIndexChars < maximumIndexCharsPerMessage) {
             return List.of(toJson());
         }
 
         final int longestIndexName = Math.max(indicesCharsStats.getMax(), resolvedIndicesCharsStats.getMax());
 
+        // How many index names we can safely include without exceeding maximumIndexCharsPerMessage.
+        // This may cause some messages to be smaller than they need to be, but simplifies processing logic compared to
+        // inspecting the length of each index name individually.
         final int maximumIndicesPerMessage = maximumIndexCharsPerMessage / longestIndexName;
 
         final List<String> splitMessages = new ArrayList<>();
@@ -533,20 +541,24 @@ public final class AuditMessage {
             List<String> indicesPartition;
             List<String> resolvedIndicesPartition;
 
-            // Process all indices first before starting on resolvedIndices
+            // Process all indices first before starting on resolvedIndices.
             if (indicesRemaining > 0) {
+                // Grab the next sublist of up to maximumIndicesPerMessage length
                 final int fromIndex = indices.size() - indicesRemaining;
                 indicesPartition = indices.subList(fromIndex,
                         Math.min(indices.size(), fromIndex + maximumIndicesPerMessage));
 
-                resolvedIndicesPartition = Collections.emptyList();
                 // If there weren't enough indices to reach the maximum, add resolved indices up to the maximum
                 if (indicesPartition.size() < maximumIndicesPerMessage) {
                     resolvedIndicesPartition = resolvedIndices.subList(resolvedIndices.size() - resolvedIndicesRemaining,
                             Math.min(resolvedIndices.size(), maximumIndicesPerMessage - indicesPartition.size()));
+                } else { // Otherwise, don't include any resolvedIndices in this split message
+                    resolvedIndicesPartition = Collections.emptyList();
                 }
             } else { // Only resolvedIndices remain
                 indicesPartition = Collections.emptyList();
+
+                // Grab the next sublist of up to maximumIndicesPerMessage length
                 final int fromIndex = resolvedIndices.size() - resolvedIndicesRemaining;
                 resolvedIndicesPartition = resolvedIndices.subList(fromIndex,
                         Math.min(resolvedIndices.size(), fromIndex + maximumIndicesPerMessage));
@@ -555,54 +567,7 @@ public final class AuditMessage {
             indicesRemaining -= indicesPartition.size();
             resolvedIndicesRemaining -= resolvedIndicesPartition.size();
 
-            splitMessages.add(getSplitMessage(indicesPartition, resolvedIndicesPartition));
-        }
-
-        return splitMessages;
-    }
-
-    public List<String> toJsonSplitIndices(final int maximumIndicesPerMessage) {
-        final List<String> indices = Arrays.asList((String[]) auditInfo.getOrDefault(INDICES, new String[0]));
-        final List<String> resolvedIndices = Arrays.asList((String[]) auditInfo.getOrDefault(RESOLVED_INDICES, new String[0]));
-
-        final int numberOfIndices = indices.size() + resolvedIndices.size();
-
-        // Only split if needed
-        if (numberOfIndices < maximumIndicesPerMessage || maximumIndicesPerMessage <= 0) {
-            return List.of(toJson());
-        }
-
-        final List<String> splitMessages = new ArrayList<>();
-
-        int indicesRemaining = indices.size();
-        int resolvedIndicesRemaining = resolvedIndices.size();
-
-        while (indicesRemaining + resolvedIndicesRemaining > 0) {
-            List<String> indicesPartition;
-            List<String> resolvedIndicesPartition;
-
-            // Process all indices first before starting on resolvedIndices
-            if (indicesRemaining > 0) {
-                final int fromIndex = indices.size() - indicesRemaining;
-                indicesPartition = indices.subList(fromIndex,
-                        Math.min(indices.size(), fromIndex + maximumIndicesPerMessage));
-
-                resolvedIndicesPartition = Collections.emptyList();
-                // If there weren't enough indices to reach the maximum, add resolved indices up to the maximum
-                if (indicesPartition.size() < maximumIndicesPerMessage) {
-                    resolvedIndicesPartition = resolvedIndices.subList(resolvedIndices.size() - resolvedIndicesRemaining,
-                            Math.min(resolvedIndices.size(), maximumIndicesPerMessage - indicesPartition.size()));
-                }
-            } else { // Only resolvedIndices remain
-                indicesPartition = Collections.emptyList();
-                final int fromIndex = resolvedIndices.size() - resolvedIndicesRemaining;
-                resolvedIndicesPartition = resolvedIndices.subList(fromIndex,
-                        Math.min(resolvedIndices.size(), fromIndex + maximumIndicesPerMessage));
-            }
-
-            indicesRemaining -= indicesPartition.size();
-            resolvedIndicesRemaining -= resolvedIndicesPartition.size();
-
+            // Create and add new split message with the indices and resolvedIndices partitions
             splitMessages.add(getSplitMessage(indicesPartition, resolvedIndicesPartition));
         }
 
@@ -610,15 +575,23 @@ public final class AuditMessage {
     }
 
     private String getSplitMessage(final List<String> indices, final List<String> resolvedIndices) {
+        // Create a shallow copy of the audit message information, which will have indices information overwritten
         final HashMap<String, Object> splitAuditInfo = new HashMap<>(auditInfo);
 
+        // If either indices or resolvedIndices is empty, remove the corresponding field from the split message.
+        // Otherwise, overwrite the shallow copy with the split lists.
         if (CollectionUtils.isEmpty(indices)) {
             splitAuditInfo.remove(INDICES);
         } else {
             splitAuditInfo.put(INDICES, indices);
         }
 
-        splitAuditInfo.put(RESOLVED_INDICES, resolvedIndices);
+        if (CollectionUtils.isEmpty(resolvedIndices)) {
+            splitAuditInfo.remove(RESOLVED_INDICES);
+        } else {
+            splitAuditInfo.put(RESOLVED_INDICES, resolvedIndices);
+        }
+
         try {
             return JsonXContent.contentBuilder().map(splitAuditInfo).toString();
         } catch (IOException e) {
