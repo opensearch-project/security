@@ -31,6 +31,13 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.rest.RestStatus;
+import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -58,7 +65,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class RolesInjectorIntegTest extends SingleClusterTest {
-
     public static class RolesInjectorPlugin extends Plugin implements ActionPlugin {
         Settings settings;
         public static String injectedRoles = null;
@@ -198,8 +204,8 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         Assert.assertTrue(exception.getMessage().contains("Error while evaluating DLS/FLS privileges"));
 
         // 5. With a role using DLS and attribute substitution and with attributes specified in the thread context
-        RolesInjectorPlugin.injectedRoles = "valid_user|role_with_dls";
-        RolesInjectorPlugin.injectedCustomAttributes = Map.of("attr.proxy.starship", "enterprise");
+        // First we need to use a role without DLS to write data to the index. Roles with DLS restrictions cannot perform writes.
+        RolesInjectorPlugin.injectedRoles = "valid_user|role_without_dls_write";
         try (
             Node node = new PluginAwareNode(
                 false,
@@ -214,6 +220,45 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
 
             IndicesExistsResponse ier = node.client().admin().indices().exists(new IndicesExistsRequest("captain-logs-5")).actionGet();
             Assert.assertTrue(ier.isExists());
+
+            Map<String, String> document = Map.of("starship", "enterprise");
+            Map<String, String> document2 = Map.of("starship", "voyager");
+
+            IndexResponse idr = node.client().index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("1").source(document)).actionGet();
+            // IndexResponse idr = node.client().prepareIndex("captain-logs-5").setId("1").setSource(document).get();
+            Assert.assertEquals(idr.status(), RestStatus.CREATED);
+
+            IndexResponse idr2 = node.client().index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("2").source(document2)).actionGet();
+            // IndexResponse idr2 = node.client().prepareIndex("captain-logs-5").setId("2").setSource(document2).get();
+            Assert.assertEquals(idr2.status(), RestStatus.CREATED);
+
+            RefreshResponse rer = node.client().admin().indices().prepareRefresh("captain-logs-5").get();
+            Assert.assertEquals(rer.getStatus(), RestStatus.OK);
+
+            SearchResponse ser = clusterHelper.nodeClient().search(new SearchRequest("captain-logs-5")).actionGet();
+            Assert.assertEquals(RestStatus.OK, ser.status());
+            Assert.assertEquals(2, ser.getHits().getTotalHits().value());
+            Assert.assertTrue(ser.toString().contains("enterprise"));
+            Assert.assertTrue(ser.toString().contains("voyager"));
+        }
+
+        // Now use a role with DLS and custom attributes to test that attribute substitution works
+        // and searched documents are filtered correctly.
+        RolesInjectorPlugin.injectedRoles = "valid_user|role_with_dls";
+        RolesInjectorPlugin.injectedCustomAttributes = Map.of("attr.proxy.starship", "enterprise");
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
+            ).start()
+        ) {
+            waitForInit(node.client());
+
+            SearchResponse ser = clusterHelper.nodeClient().search(new SearchRequest("captain-logs-5")).actionGet();
+            Assert.assertEquals(RestStatus.OK, ser.status());
+            Assert.assertEquals(1, ser.getHits().getTotalHits().value());
+            Assert.assertTrue(ser.toString().contains("enterprise"));
         }
     }
 }
