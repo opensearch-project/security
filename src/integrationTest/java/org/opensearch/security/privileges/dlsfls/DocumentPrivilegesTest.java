@@ -23,6 +23,8 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
@@ -31,7 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
-
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.ClusterState;
@@ -55,6 +57,7 @@ import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -70,6 +73,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -94,6 +98,7 @@ import static org.junit.Assert.fail;
     DocumentPrivilegesTest.DataStreams_getRestriction.class,
     DocumentPrivilegesTest.DlsQuery.class })
 public class DocumentPrivilegesTest {
+    private static final Logger log = LogManager.getLogger(DocumentPrivilegesTest.class);
 
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
         ImmutableList.of(
@@ -364,9 +369,16 @@ public class DocumentPrivilegesTest {
                 new TestSecurityConfig.Role("non_dls_role").indexPermissions("*").on("index_a*")
             );
 
-            DocumentPrivileges subject = createSubject(roleConfig);
+            Exception exception = null;
+            DlsRestriction dlsRestriction = null;
+            DocumentPrivileges subject = null;
 
-            DlsRestriction dlsRestriction = subject.getRestriction(context, index.getName());
+            try {
+                subject = createSubject(roleConfig);
+                dlsRestriction = subject.getRestriction(context, index.getName());
+            } catch (PrivilegesEvaluationException ex) {
+                exception = ex;
+            }
 
             if (index == index_b1) {
                 // This test case never grants privileges to index_b1
@@ -377,10 +389,7 @@ public class DocumentPrivilegesTest {
                 // It would be probably better if an error would be raised in that case.
                 if (index == index_a1) {
                     if (userSpec.roles.contains("dls_role_1") && userSpec.roles.contains("dls_role_2")) {
-                        assertThat(
-                            dlsRestriction,
-                            isRestricted(termQuery("dept", "${attr.attr_a}1"), termQuery("dept", "${attr.attr_a}2"))
-                        );
+                        assertNotNull(exception);
                     }
                 }
             } else if (userSpec.roles.contains("non_dls_role") && dfmEmptyOverridesAll) {
@@ -417,7 +426,7 @@ public class DocumentPrivilegesTest {
             }
 
             boolean isUnrestricted = subject.isUnrestricted(context, index.getName());
-            if (dlsRestriction.isUnrestricted()) {
+            if (dlsRestriction != null && dlsRestriction.isUnrestricted()) {
                 assertTrue("isUnrestricted() should return true according to " + dlsRestriction, isUnrestricted);
             } else {
                 assertFalse("isUnrestricted() should return false according to " + dlsRestriction, isUnrestricted);
