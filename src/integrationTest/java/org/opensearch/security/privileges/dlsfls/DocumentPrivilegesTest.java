@@ -97,8 +97,6 @@ import static org.junit.Assert.fail;
     DocumentPrivilegesTest.DataStreams_getRestriction.class,
     DocumentPrivilegesTest.DlsQuery.class })
 public class DocumentPrivilegesTest {
-    private static final Logger log = LogManager.getLogger(DocumentPrivilegesTest.class);
-
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
         ImmutableList.of(
             new NamedXContentRegistry.Entry(

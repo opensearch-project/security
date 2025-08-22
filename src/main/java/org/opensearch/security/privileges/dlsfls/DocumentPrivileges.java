@@ -45,7 +45,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPrivileges.DlsQuery, DlsRestriction> {
-
     private final NamedXContentRegistry xContentRegistry;
 
     public DocumentPrivileges(
