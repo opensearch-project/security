@@ -31,18 +31,17 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.core.rest.RestStatus;
-import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import org.opensearch.action.admin.indices.refresh.RefreshResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -63,6 +62,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 
 public class RolesInjectorIntegTest extends SingleClusterTest {
     public static class RolesInjectorPlugin extends Plugin implements ActionPlugin {
@@ -224,11 +224,15 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Map<String, String> document = Map.of("starship", "enterprise");
             Map<String, String> document2 = Map.of("starship", "voyager");
 
-            IndexResponse idr = node.client().index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("1").source(document)).actionGet();
+            IndexResponse idr = node.client()
+                .index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("1").source(document))
+                .actionGet();
             // IndexResponse idr = node.client().prepareIndex("captain-logs-5").setId("1").setSource(document).get();
             Assert.assertEquals(idr.status(), RestStatus.CREATED);
 
-            IndexResponse idr2 = node.client().index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("2").source(document2)).actionGet();
+            IndexResponse idr2 = node.client()
+                .index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("2").source(document2))
+                .actionGet();
             // IndexResponse idr2 = node.client().prepareIndex("captain-logs-5").setId("2").setSource(document2).get();
             Assert.assertEquals(idr2.status(), RestStatus.CREATED);
 
