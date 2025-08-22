@@ -75,7 +75,7 @@ public class KeySetRetriever implements KeySetProvider {
      * Factory method to create a KeySetRetriever for JWKS endpoint access.
      * This method provides a public API for creating KeySetRetriever instances
      * without exposing the constructor.
-     * 
+     *
      * @param sslConfig SSL configuration for HTTPS connections
      * @param useCacheForJwksEndpoint whether to enable caching for JWKS endpoint
      * @param jwksUri the JWKS endpoint URI
