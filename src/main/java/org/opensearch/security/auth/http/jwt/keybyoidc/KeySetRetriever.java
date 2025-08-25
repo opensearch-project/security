@@ -57,6 +57,11 @@ public class KeySetRetriever implements KeySetProvider {
     private long lastCacheStatusLog = 0;
     private String jwksUri;
 
+    // Security validation settings (optional, for JWKS endpoints)
+    private long maxResponseSizeBytes = -1; // -1 means no limit
+    private int maxKeyCount = -1; // -1 means no limit
+    private boolean enableSecurityValidation = false;
+
     KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
         this.openIdConnectEndpoint = openIdConnectEndpoint;
         this.sslConfig = sslConfig;
@@ -74,15 +79,27 @@ public class KeySetRetriever implements KeySetProvider {
     /**
      * Factory method to create a KeySetRetriever for JWKS endpoint access.
      * This method provides a public API for creating KeySetRetriever instances
-     * without exposing the constructor.
+     * with built-in security validation to protect against malicious JWKS endpoints.
      *
      * @param sslConfig SSL configuration for HTTPS connections
      * @param useCacheForJwksEndpoint whether to enable caching for JWKS endpoint
      * @param jwksUri the JWKS endpoint URI
-     * @return a new KeySetRetriever instance configured for JWKS access
+     * @param maxResponseSizeBytes maximum allowed HTTP response size in bytes
+     * @param maxKeyCount maximum number of keys allowed in JWKS
+     * @return a new KeySetRetriever instance with security validation enabled
      */
-    public static KeySetRetriever createForJwksUri(SSLConfig sslConfig, boolean useCacheForJwksEndpoint, String jwksUri) {
-        return new KeySetRetriever(sslConfig, useCacheForJwksEndpoint, jwksUri);
+    public static KeySetRetriever createForJwksUri(
+        SSLConfig sslConfig,
+        boolean useCacheForJwksEndpoint,
+        String jwksUri,
+        long maxResponseSizeBytes,
+        int maxKeyCount
+    ) {
+        KeySetRetriever retriever = new KeySetRetriever(sslConfig, useCacheForJwksEndpoint, jwksUri);
+        retriever.enableSecurityValidation = true;
+        retriever.maxResponseSizeBytes = maxResponseSizeBytes;
+        retriever.maxKeyCount = maxKeyCount;
+        return retriever;
     }
 
     public JWKSet get() throws AuthenticatorUnavailableException {
@@ -111,7 +128,34 @@ public class KeySetRetriever implements KeySetProvider {
                 if (httpEntity == null) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": Empty response entity");
                 }
+
+                // Apply security validation if enabled (for JWKS endpoints)
+                if (enableSecurityValidation) {
+                    // Validate response size
+                    if (maxResponseSizeBytes > 0) {
+                        long contentLength = httpEntity.getContentLength();
+                        if (contentLength > maxResponseSizeBytes) {
+                            throw new AuthenticatorUnavailableException(
+                                String.format(
+                                    "JWKS response too large from %s: %d bytes (max: %d)",
+                                    uri,
+                                    contentLength,
+                                    maxResponseSizeBytes
+                                )
+                            );
+                        }
+                    }
+                }
+
+                // Standard loading for both OIDC and JWKS endpoints
                 JWKSet keySet = JWKSet.load(httpEntity.getContent());
+
+                // Post-load validation for JWKS if enabled - HARD LIMIT
+                if (enableSecurityValidation && maxKeyCount > 0 && keySet.getKeys().size() > maxKeyCount) {
+                    throw new AuthenticatorUnavailableException(
+                        String.format("JWKS from %s contains %d keys, but max allowed is %d", uri, keySet.getKeys().size(), maxKeyCount)
+                    );
+                }
 
                 return keySet;
             } catch (ParseException e) {

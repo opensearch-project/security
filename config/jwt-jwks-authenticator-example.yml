@@ -20,6 +20,10 @@ jwt_jwks_auth_domain:
       refresh_rate_limit_time_window_ms: 10000
       refresh_rate_limit_count: 10
 
+      # Security limits to protect against malicious JWKS endpoints
+      max_jwks_keys: 10                        # HARD LIMIT: Rejects JWKS if more than 10 keys (throws exception)
+      max_jwks_response_size_bytes: 1048576    # 1MB max HTTP response size
+
       # Standard JWT settings (inherited from AbstractHTTPJwtAuthenticator)
       jwt_clock_skew_tolerance_seconds: 30
       required_issuer: "https://rishavaz-issuer.example.com"
