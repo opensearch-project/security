@@ -6,13 +6,14 @@ apply plugin: 'maven-publish'
 
 buildscript {
     ext {
-        open_saml_version = '5.1.4'
-        open_saml_shib_version = "9.1.4"
+        open_saml_version = '5.1.5'
+        open_saml_shib_version = "9.1.5"
     }
 
     repositories {
         mavenLocal()
         mavenCentral()
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     }
 
@@ -69,6 +70,8 @@ tasks.shadowJar {
     exclude 'org/publicsuffix/**'
     exclude 'org/slf4j/**'
     exclude 'javax/**'
+    exclude 'META-INF/maven/commons-io/commons-io/**'
+    exclude 'META-INF/maven/org.apache.commons/commons-lang3/**'
     exclude 'META-INF/versions/**/org/bouncycastle/**'
     exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
 }

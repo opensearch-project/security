@@ -464,9 +464,8 @@ public class TestSecurityConfig {
 
     public static final class User implements UserCredentialsHolder, ToXContentObject {
 
-        public final static TestSecurityConfig.User USER_ADMIN = new User("admin").roles(
-            new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
-        );
+        public final static TestSecurityConfig.User USER_ADMIN = new User("admin").attr("attr1", "val1")
+            .roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
 
         String name;
         private String password;
@@ -1097,7 +1096,7 @@ public class TestSecurityConfig {
             writeConfigToIndex(client, CType.ROLES, roles);
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
-            writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
+            writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
             writeEmptyConfigToIndex(client, CType.TENANTS);
         } else {
             // Write raw configuration alternatively to the normal configuration

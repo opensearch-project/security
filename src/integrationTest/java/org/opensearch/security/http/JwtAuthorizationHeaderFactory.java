@@ -30,13 +30,18 @@ class JwtAuthorizationHeaderFactory {
     public static final String ISSUER = "test-code";
     private final PrivateKey privateKey;
 
-    private final String usernameClaimName;
+    private final List<String> usernameClaimName;
 
     private final List<String> rolesClaimName;
 
     private final String headerName;
 
-    public JwtAuthorizationHeaderFactory(PrivateKey privateKey, String usernameClaimName, List<String> rolesClaimName, String headerName) {
+    public JwtAuthorizationHeaderFactory(
+        PrivateKey privateKey,
+        List<String> usernameClaimName,
+        List<String> rolesClaimName,
+        String headerName
+    ) {
         this.privateKey = requireNonNull(privateKey, "Private key is required");
         this.usernameClaimName = requireNonNull(usernameClaimName, "Username claim name is required");
         this.rolesClaimName = requireNonNull(rolesClaimName, "Roles claim name is required.");
@@ -60,9 +65,31 @@ class JwtAuthorizationHeaderFactory {
 
     private Map<String, Object> customClaimsMap(String username, String[] roles) {
         ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder();
+        // Handle username claim
         if (StringUtils.isNoneEmpty(username)) {
-            builder.put(usernameClaimName, username);
+            if (usernameClaimName.size() == 1) {
+                // Simple case - no nesting
+                builder.put(usernameClaimName.get(0), username);
+            } else {
+                // Handle nested claims
+                Map<String, Object> nestedMap = new HashMap<>();
+                Map<String, Object> currentMap = nestedMap;
+
+                // Build the nested structure
+                for (int i = 0; i < usernameClaimName.size() - 1; i++) {
+                    Map<String, Object> nextMap = new HashMap<>();
+                    currentMap.put(usernameClaimName.get(i), nextMap);
+                    currentMap = nextMap;
+                }
+
+                // Add the username at the deepest level
+                currentMap.put(usernameClaimName.get(usernameClaimName.size() - 1), username);
+
+                // Add the entire nested structure to the builder
+                builder.putAll(nestedMap);
+            }
         }
+
         if (roles != null && roles.length > 0) {
             if (rolesClaimName.size() == 1) {
                 // Simple case - no nesting
@@ -90,7 +117,6 @@ class JwtAuthorizationHeaderFactory {
     }
 
     Header generateValidTokenWithCustomClaims(String username, String[] roles, Map<String, Object> additionalClaims) {
-        requireNonNull(username, "Username is required");
         requireNonNull(additionalClaims, "Custom claims are required");
         Map<String, Object> claims = new HashMap<>(customClaimsMap(username, roles));
         claims.putAll(additionalClaims);
@@ -128,7 +154,7 @@ class JwtAuthorizationHeaderFactory {
         requireNonNull(username, "Username is required");
         Date now = new Date(1000);
         String token = Jwts.builder()
-            .setClaims(Map.of(usernameClaimName, username))
+            .setClaims(customClaimsMap(username, null))
             .setIssuer(ISSUER)
             .setSubject(subject(username))
             .setAudience(AUDIENCE)
@@ -144,7 +170,7 @@ class JwtAuthorizationHeaderFactory {
         requireNonNull(username, "Username is required");
         Date now = new Date();
         String token = Jwts.builder()
-            .setClaims(Map.of(usernameClaimName, username))
+            .setClaims(customClaimsMap(username, null))
             .setIssuer(ISSUER)
             .setSubject(subject(username))
             .setAudience(AUDIENCE)

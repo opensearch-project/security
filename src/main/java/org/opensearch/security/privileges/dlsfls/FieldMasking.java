@@ -140,7 +140,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             }
 
             public Field get(String field) {
-                return internalGet(stripKeywordSuffix(field));
+                return internalGet(FieldPrivileges.normalizeFieldName(field));
             }
 
             private Field internalGet(String field) {
@@ -193,7 +193,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             }
 
             public Field get(String field) {
-                field = stripKeywordSuffix(field);
+                field = FieldPrivileges.normalizeFieldName(field);
 
                 for (SimpleRule part : parts) {
                     Field masking = part.get(field);
@@ -317,14 +317,6 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 hash.digest(out, 0);
 
                 return Hex.encode(out);
-            }
-        }
-
-        static String stripKeywordSuffix(String field) {
-            if (field.endsWith(".keyword")) {
-                return field.substring(0, field.length() - ".keyword".length());
-            } else {
-                return field;
             }
         }
     }

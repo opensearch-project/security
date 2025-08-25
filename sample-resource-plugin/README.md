@@ -58,12 +58,13 @@ plugins.security.system_indices.enabled: true
 
 4. **Interaction Rules**
     - If a **user is not the resource owner**, they must:
-        - Be assigned **a role with `sample_read_access`** permissions.
-        - **Have the resource shared with them** via the resource-sharing API.
+        - **Have the resource shared with them** via the resource-sharing API with appropriate action group.
     - A user **without** the necessary `sample-resource-plugin` cluster permissions:
         - **Cannot access the resource**, even if it is shared with them.
     - A user **with `sample-resource-plugin` permissions** but **without a shared resource**:
         - **Cannot access the resource**, since resource-level access control applies.
+    - A user **with full-access to the resource** will be able to **update and delete that resource**.
+        - Owners and super-admin get full-access by default.
 
 
 ## API Endpoints
@@ -140,12 +141,14 @@ The plugin exposes the following six API endpoints:
 
 ### 5. Share Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+- **Description:** Shares a resource with the intended entities.
 - **Request Body:**
   ```json
   {
     "share_with": {
-      "users": [ "sample_user" ]
+      "read_only": {
+        "users": [ "sample_user" ]
+      }
     }
   }
   ```
@@ -153,7 +156,7 @@ The plugin exposes the following six API endpoints:
   ```json
     {
       "share_with": {
-        "default": {
+        "read_only": {
           "users": [ "sample_user" ]
         }
       }
@@ -162,20 +165,42 @@ The plugin exposes the following six API endpoints:
 
 ### 6. Revoke Resource Access
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+- **Description:** Shares a resource with the intended entities.
 - **Request Body:**
   ```json
     {
       "entities_to_revoke": {
-        "users": [ "sample_user" ]
+        "read_only": {
+          "users": [ "sample_user" ]
+        }
       }
     }
   ```
 - **Response:**
   ```json
     {
-      "share_with" : { }
+      "share_with" : {
+        "read_only": {
+          "users" : [ ]
+        }
+      }
     }
+  ```
+
+### 7. Search Resource
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/search`, `GET /_plugins/sample_resource_sharing/search`
+- **Description:** Search for one ore more resources.
+- **Request Body:**
+  ```json
+    {
+      "query": {
+        "match_all": {}
+      }
+    }
+  ```
+- **Response:**
+  ```json
+    {"_index":".sample_resource","_id":"x2him5gBNtGh_iGqK19z","_score":1.0,"_source":{"name":"sampleUpdateUser","description":null,"attributes":null,"user":null}}
   ```
 
 ## License

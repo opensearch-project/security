@@ -38,7 +38,7 @@ ext {
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
 
-    common_utils_version = System.getProperty("common_utils.version", "3.1.0.0")
+    common_utils_version = System.getProperty("common_utils.version", "3.2.0.0-SNAPSHOT")
 }
 
 repositories {
@@ -52,10 +52,17 @@ configurations.all {
     resolutionStrategy {
         force 'org.apache.httpcomponents:httpclient:4.5.14'
         force 'org.apache.httpcomponents:httpcore:4.4.16'
-        force 'commons-codec:commons-codec:1.18.0'
+        force 'commons-codec:commons-codec:1.19.0'
         force 'org.hamcrest:hamcrest:2.2'
-        force 'org.mockito:mockito-core:5.18.0'
+        force 'org.mockito:mockito-core:5.19.0'
         force 'org.slf4j:slf4j-api:1.7.36'
+
+        // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
+        // Force versions present in security plugin
+        force "com.google.errorprone:error_prone_annotations:2.41.0"
+        force "com.google.protobuf:protobuf-java:${versions.protobuf}"
+        force "com.google.guava:guava:${guava_version}"
+        force "com.google.guava:failureaccess:1.0.3"
     }
 }
 
@@ -67,10 +74,13 @@ dependencies {
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
+    integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3' // for running multinode tests
+
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
     integrationTestImplementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3'
 
     // To be removed once integration test framework supports extended plugins
     integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
@@ -153,4 +163,6 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
     finalizedBy jacocoSamplePluginReport
+    maxParallelForks = 8
+    forkEvery = 1
 }

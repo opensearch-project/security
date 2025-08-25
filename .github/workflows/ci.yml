@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: downloaded-artifacts
 
@@ -297,9 +297,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [ 21 ]
-        platform: [ ubuntu-latest ]
-    runs-on: ubuntu-latest
+        jdk: [21,24]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
       # this image tag is subject to change as more dependencies and updates will arrive over time
