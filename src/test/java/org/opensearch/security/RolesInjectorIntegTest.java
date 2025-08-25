@@ -228,13 +228,11 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             IndexResponse idr = node.client()
                 .index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("1").source(document))
                 .actionGet();
-            // IndexResponse idr = node.client().prepareIndex("captain-logs-5").setId("1").setSource(document).get();
             Assert.assertEquals(idr.status(), RestStatus.CREATED);
 
             IndexResponse idr2 = node.client()
                 .index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("captain-logs-5").id("2").source(document2))
                 .actionGet();
-            // IndexResponse idr2 = node.client().prepareIndex("captain-logs-5").setId("2").setSource(document2).get();
             Assert.assertEquals(idr2.status(), RestStatus.CREATED);
 
             RefreshResponse rer = node.client().admin().indices().prepareRefresh("captain-logs-5").get();
