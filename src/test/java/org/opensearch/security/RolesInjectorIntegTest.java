@@ -40,6 +40,7 @@ import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -244,25 +245,23 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Assert.assertEquals(2, ser.getHits().getTotalHits().value());
             Assert.assertTrue(ser.toString().contains("enterprise"));
             Assert.assertTrue(ser.toString().contains("voyager"));
-        }
 
-        // Now use a role with DLS and custom attributes to test that attribute substitution works
-        // and searched documents are filtered correctly.
-        RolesInjectorPlugin.injectedRoles = "valid_user|role_with_dls";
-        RolesInjectorPlugin.injectedCustomAttributes = Map.of("attr.proxy.starship", "enterprise");
-        try (
-            Node node = new PluginAwareNode(
-                false,
-                tcSettings,
-                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
-            ).start()
-        ) {
-            waitForInit(node.client());
+            // Now use a role with DLS and custom attributes to test that attribute substitution works
+            // and searched documents are filtered correctly.
+            ThreadPool tp = clusterHelper.nodeClient().threadPool();
+            try (ThreadContext.StoredContext ignored = tp.getThreadContext().stashContext()) {
+                ThreadContext tc = tp.getThreadContext();
+                tc.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, "valid_user|role_with_dls");
+                tc.putTransient(
+                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES,
+                    Map.of("attr.proxy.starship", "enterprise")
+                );
 
-            SearchResponse ser = clusterHelper.nodeClient().search(new SearchRequest("captain-logs-5")).actionGet();
-            Assert.assertEquals(RestStatus.OK, ser.status());
-            Assert.assertEquals(1, ser.getHits().getTotalHits().value());
-            Assert.assertTrue(ser.toString().contains("enterprise"));
+                SearchResponse serDls = clusterHelper.nodeClient().search(new SearchRequest("captain-logs-5")).actionGet();
+                Assert.assertEquals(RestStatus.OK, serDls.status());
+                Assert.assertEquals(1, serDls.getHits().getTotalHits().value());
+                Assert.assertTrue(serDls.toString().contains("enterprise"));
+            }
         }
     }
 }
