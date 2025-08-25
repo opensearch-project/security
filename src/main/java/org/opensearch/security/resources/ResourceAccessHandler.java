@@ -116,7 +116,7 @@ public class ResourceAccessHandler {
         ).collect(Collectors.toSet());
 
         BoolQueryBuilder query = QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user", user.getName()))
+            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
             .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
             .minimumShouldMatch(1);
 
@@ -177,6 +177,7 @@ public class ResourceAccessHandler {
 
         resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
+            // This also means that for non-existing documents, the evaluator will return 403 instead
             if (document == null) {
                 LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
                 listener.onResponse(false);

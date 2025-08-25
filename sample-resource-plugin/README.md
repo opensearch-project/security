@@ -187,6 +187,22 @@ The plugin exposes the following six API endpoints:
     }
   ```
 
+### 7. Search Resource
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/search`, `GET /_plugins/sample_resource_sharing/search`
+- **Description:** Search for one ore more resources.
+- **Request Body:**
+  ```json
+    {
+      "query": {
+        "match_all": {}
+      }
+    }
+  ```
+- **Response:**
+  ```json
+    {"_index":".sample_resource","_id":"x2him5gBNtGh_iGqK19z","_score":1.0,"_source":{"name":"sampleUpdateUser","description":null,"attributes":null,"user":null}}
+  ```
+
 ## License
 
 This code is licensed under the Apache 2.0 License.
