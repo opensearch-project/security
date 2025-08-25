@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -113,7 +114,7 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testGetApiTokens() throws IndexNotFoundException {
         Map<String, ApiToken> expectedTokens = new HashMap<>();
-        expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Long.MAX_VALUE));
+        expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Instant.now(), Long.MAX_VALUE));
 
         doAnswer(invocation -> {
             ActionListener<?> listener = invocation.getArgument(0);
@@ -246,7 +247,10 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testReloadApiTokensFromIndexAndParse() throws IOException {
         // Setup mock response
-        Map<String, ApiToken> expectedTokens = Map.of("test", new ApiToken("test", List.of("cluster:monitor"), List.of(), Long.MAX_VALUE));
+        Map<String, ApiToken> expectedTokens = Map.of(
+            "test",
+            new ApiToken("test", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
+        );
 
         doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);

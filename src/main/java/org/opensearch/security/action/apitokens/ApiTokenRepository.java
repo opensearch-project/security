@@ -11,6 +11,7 @@
 
 package org.opensearch.security.action.apitokens;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -134,7 +135,7 @@ public class ApiTokenRepository {
     ) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
             ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
-            ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
+            ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, Instant.now(), expiration);
             apiTokenIndexHandler.indexTokenMetadata(
                 apiToken,
                 ActionListener.wrap(unused -> { listener.onResponse(token.getCompleteToken()); }, listener::onFailure)

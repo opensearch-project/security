@@ -42,14 +42,6 @@ public class ApiToken implements ToXContent {
     private final List<IndexPermission> indexPermissions;
     private final long expiration;
 
-    public ApiToken(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
-        this.creationTime = Instant.now();
-        this.name = name;
-        this.clusterPermissions = clusterPermissions;
-        this.indexPermissions = indexPermissions;
-        this.expiration = expiration;
-    }
-
     public ApiToken(
         String name,
         List<String> clusterPermissions,
