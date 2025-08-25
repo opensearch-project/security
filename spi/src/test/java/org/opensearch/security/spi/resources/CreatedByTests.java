@@ -57,16 +57,16 @@ public class CreatedByTests {
 
     @Test
     public void testCreatedByFromStreamInput() throws IOException {
-        String expectedUser = "testUser";
+        CreatedBy expectedUser = new CreatedBy("testUser");
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            out.writeString(expectedUser);
+            expectedUser.writeTo(out);
 
             StreamInput in = out.bytes().streamInput();
 
             CreatedBy createdBy = new CreatedBy(in);
 
-            MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
+            MatcherAssert.assertThat(expectedUser.getUsername(), is(equalTo(createdBy.getUsername())));
         }
     }
 

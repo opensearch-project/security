@@ -17,6 +17,9 @@ import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
+import static org.opensearch.core.xcontent.XContentParser.Token.VALUE_NULL;
+import static org.opensearch.core.xcontent.XContentParser.Token.VALUE_STRING;
+
 /**
  * This class is used to store information about the creator of a resource.
  *
@@ -91,16 +94,25 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
                 String fieldName = parser.currentName();
                 if ("user".equals(fieldName)) {
                     parser.nextToken();
-                    username = parser.text();
+                    if (VALUE_STRING == parser.currentToken()) {
+                        username = parser.text();
+                    } else {
+                        throw new IllegalArgumentException("created_by cannot be empty");
+                    }
                 } else if ("tenant".equals(fieldName)) {
                     parser.nextToken();
-                    tenant = parser.text();
+                    if (VALUE_NULL == parser.currentToken()) {
+                        tenant = null;
+                    } else {
+                        tenant = parser.text();
+                    }
                 } else {
                     throw new IllegalArgumentException("created_by contains unknown field: " + fieldName);
                 }
             }
         }
 
+        System.out.println("username: " + username);
         if (username == null) {
             throw new IllegalArgumentException("created_by cannot be empty");
         }
