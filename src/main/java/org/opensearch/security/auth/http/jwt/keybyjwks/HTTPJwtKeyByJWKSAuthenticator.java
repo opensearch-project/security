@@ -76,7 +76,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         log.info("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
 
         // Add security configuration parameters
-        long maxJwksResponseSizeBytes = settings.getAsLong("max_jwks_response_size_bytes", 1024 * 1024); // 1MB default
+        long maxJwksResponseSizeBytes = settings.getAsLong("max_jwks_response_size_bytes", 1024L * 1024L); // 1MB default
 
         // Create secure key set retriever with HARD LIMIT enforcement using maxJwksKeys
         KeySetRetriever keySetRetriever = KeySetRetriever.createForJwksUri(
