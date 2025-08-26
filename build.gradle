@@ -24,7 +24,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.2.0.0-SNAPSHOT')
 
         kafka_version  = '4.0.0'
         open_saml_version = '5.1.5'
