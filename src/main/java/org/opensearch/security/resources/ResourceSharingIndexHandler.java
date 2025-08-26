@@ -12,6 +12,7 @@ package org.opensearch.security.resources;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,6 +36,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -133,6 +136,51 @@ public class ResourceSharingIndexHandler {
 
     public static String getSharingIndex(String resourceIndex) {
         return resourceIndex + "-sharing";
+    }
+
+    /**
+     * Updates the visibility of a resource document by replacing its {@code principals} field
+     * with the provided list of principals. The update is executed immediately with
+     * {@link WriteRequest.RefreshPolicy#IMMEDIATE} to ensure the change is visible in subsequent
+     * searches.
+     * <p>
+     * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
+     * on success, or with an exception on failure.
+     *
+     * @param resourceId     the unique identifier of the resource document to update
+     * @param resourceIndex  the name of the index containing the resource
+     * @param principals     the list of principals (e.g. {@code user:alice}, {@code role:admin})
+     *                       that should be assigned to the resource
+     * @param listener       callback that will be notified with the update response or an error
+     */
+    public void updateResourceVisibility(
+        String resourceId,
+        String resourceIndex,
+        List<String> principals,
+        ActionListener<UpdateResponse> listener
+    ) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setDoc(Map.of("principals", principals))
+                .setId(resourceId)
+                .request();
+
+            ActionListener<UpdateResponse> urListener = ActionListener.wrap(response -> {
+                ctx.restore();
+                LOGGER.info(
+                    "Successfully updated visibility of resource {} in index {} to principals {}.",
+                    resourceIndex,
+                    resourceId,
+                    principals
+                );
+                listener.onResponse(response);
+            }, (e) -> {
+                LOGGER.error("Failed to update visibility in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                listener.onFailure(e);
+            });
+            client.update(ur, urListener);
+        }
     }
 
     /**

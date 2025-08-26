@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -54,7 +55,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
-        if (!result.isCreated() && index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
+        if (!result.isCreated() || !index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
             log.debug("Skipping resource sharing entry creation as this was an update operation for resource {}", resourceId);
             return;
         }
@@ -71,6 +72,14 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     entry,
                     resourceId,
                     resourceIndex
+                );
+                this.resourceSharingIndexHandler.updateResourceVisibility(
+                    resourceId,
+                    resourceIndex,
+                    List.of("user:" + user.getName()),
+                    ActionListener.wrap((updateResponse) -> {
+                        log.debug("postUpdate: Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                    }, (e) -> { log.debug(e.getMessage()); })
                 );
             }, e -> { log.debug(e.getMessage()); });
             this.resourceSharingIndexHandler.indexResourceSharing(resourceId, resourceIndex, new CreatedBy(user.getName()), null, listener);
