@@ -87,32 +87,31 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
     public static CreatedBy fromXContent(XContentParser parser) throws IOException {
         String username = null;
         String tenant = null;
-        XContentParser.Token token;
 
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (token == XContentParser.Token.FIELD_NAME) {
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                if ("user".equals(fieldName)) {
-                    parser.nextToken();
-                    if (VALUE_STRING == parser.currentToken()) {
-                        username = parser.text();
-                    } else {
-                        throw new IllegalArgumentException("created_by cannot be empty");
-                    }
-                } else if ("tenant".equals(fieldName)) {
-                    parser.nextToken();
-                    if (VALUE_NULL == parser.currentToken()) {
-                        tenant = null;
-                    } else {
-                        tenant = parser.text();
-                    }
-                } else {
-                    throw new IllegalArgumentException("created_by contains unknown field: " + fieldName);
+                parser.nextToken();
+
+                switch (fieldName) {
+                    case "user":
+                        if (VALUE_STRING == parser.currentToken()) {
+                            username = parser.text();
+                        } else {
+                            throw new IllegalArgumentException("created_by cannot be empty");
+                        }
+                        break;
+
+                    case "tenant":
+                        tenant = (parser.currentToken() == VALUE_NULL) ? null : parser.text();
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException("created_by contains unknown field: " + fieldName);
                 }
             }
         }
 
-        System.out.println("username: " + username);
         if (username == null) {
             throw new IllegalArgumentException("created_by cannot be empty");
         }
