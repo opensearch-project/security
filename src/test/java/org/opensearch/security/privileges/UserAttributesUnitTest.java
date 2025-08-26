@@ -49,24 +49,24 @@ public class UserAttributesUnitTest {
 
         String stringWithPlaceholders = """
             {
-                \"name\": \"${user.name}\",
-                \"name2\": \"${user_name}\",
-                \"bar\": \"${attr.proxy.attr1}\",
-                \"roles\": [${user.roles}],
-                \"roles2\": [${user_roles}],
-                \"security_roles\": [${user.securityRoles}],
-                \"security_roles2\": [${user_securityRoles}],
+                "name": "${user.name}",
+                "name2": "${user_name}",
+                "bar": "${attr.proxy.attr1}",
+                "roles": [${user.roles}],
+                "roles2": [${user_roles}],
+                "security_roles": [${user.securityRoles}],
+                "security_roles2": [${user_securityRoles}],
             }
             """;
         String expectedString = """
             {
-                \"name\": \"test_user\",
-                \"name2\": \"test_user\",
-                \"bar\": \"value1\",
-                \"roles\": [\"role2\"],
-                \"roles2\": [\"role2\"],
-                \"security_roles\": [\"role1\",\"mapped_role1\"],
-                \"security_roles2\": [\"role1\",\"mapped_role1\"],
+                "name": "test_user",
+                "name2": "test_user",
+                "bar": "value1",
+                "roles": ["role2"],
+                "roles2": ["role2"],
+                "security_roles": ["role1","mapped_role1"],
+                "security_roles2": ["role1","mapped_role1"],
             }
             """;
         assertEquals(expectedString, UserAttributes.replaceProperties(stringWithPlaceholders, ctx));
