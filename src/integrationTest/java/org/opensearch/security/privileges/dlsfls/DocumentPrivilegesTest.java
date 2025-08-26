@@ -379,9 +379,7 @@ public class DocumentPrivilegesTest {
                 // This test case never grants privileges to index_b1
                 assertThat(dlsRestriction, isFullyRestricted());
             } else if (userSpec.attributes.isEmpty()) {
-                // If a role uses undefined user attributes for DLS queries, the attribute templates
-                // remain unchanged in the resulting query. This is a property of the current attribute handling code.
-                // It would be probably better if an error would be raised in that case.
+                // If a role uses undefined user attributes for DLS queries, an exception should be raised
                 if (index == index_a1) {
                     if (userSpec.roles.contains("dls_role_1") && userSpec.roles.contains("dls_role_2")) {
                         assertNotNull(exception);
