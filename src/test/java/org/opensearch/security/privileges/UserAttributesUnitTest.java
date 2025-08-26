@@ -47,7 +47,7 @@ public class UserAttributesUnitTest {
             null
         );
 
-        String stringWithPlacholders = """
+        String stringWithPlaceholders = """
             {
                 \"name\": \"${user.name}\",
                 \"name2\": \"${user_name}\",
@@ -69,6 +69,6 @@ public class UserAttributesUnitTest {
                 \"security_roles2\": [\"role1\",\"mapped_role1\"],
             }
             """;
-        assertEquals(expectedString, UserAttributes.replaceProperties(stringWithPlacholders, ctx));
+        assertEquals(expectedString, UserAttributes.replaceProperties(stringWithPlaceholders, ctx));
     }
 }
