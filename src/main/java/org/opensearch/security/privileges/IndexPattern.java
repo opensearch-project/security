@@ -22,7 +22,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.support.WildcardMatcher;
 
 /**
