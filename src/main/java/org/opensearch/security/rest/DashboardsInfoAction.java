@@ -82,6 +82,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
+    private final boolean isResourceSharingFeatureEnabled;
+
     public static final String DEFAULT_PASSWORD_MESSAGE = "Password should be at least 8 characters long and contain at least one "
         + "uppercase letter, one lowercase letter, one digit, and one special character.";
 
@@ -94,6 +96,10 @@ public class DashboardsInfoAction extends BaseRestHandler {
         final ThreadPool threadPool
     ) {
         super();
+        isResourceSharingFeatureEnabled = settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
     }
@@ -139,6 +145,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                         "password_validation_regex",
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
+                    builder.field("resource_sharing_enabled", isResourceSharingFeatureEnabled);
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
