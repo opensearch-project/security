@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.support.WildcardMatcher;
 
 /**
@@ -220,7 +221,7 @@ public class IndexPattern {
 
                     if (indexPattern.startsWith("<") && indexPattern.endsWith(">")) {
                         this.dateMathExpressions.add(indexPattern);
-                    } else if (!containsPlaceholder(indexPattern)) {
+                    } else if (!UserAttributes.needsAttributeSubstitution(indexPattern)) {
                         this.constantPatterns.add(WildcardMatcher.from(indexPattern));
                     } else {
                         this.patternTemplates.add(indexPattern);
@@ -239,10 +240,6 @@ public class IndexPattern {
                 ImmutableList.copyOf(dateMathExpressions)
             );
         }
-    }
-
-    static boolean containsPlaceholder(String indexPattern) {
-        return indexPattern.indexOf("${") != -1;
     }
 
     public static IndexPattern from(List<String> source) {
