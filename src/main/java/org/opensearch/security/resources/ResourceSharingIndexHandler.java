@@ -534,7 +534,18 @@ public class ResourceSharingIndexHandler {
                         resourceId,
                         resourceIndex
                     );
-                    listener.onResponse(sharingInfo);
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        sharingInfo.getAllPrincipals(),
+                        ActionListener.wrap((updateResponse) -> {
+                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                            listener.onResponse(sharingInfo);
+                        }, (e) -> {
+                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                            listener.onResponse(sharingInfo);
+                        })
+                    );
                 }, (failResponse) -> {
                     LOGGER.error(failResponse.getMessage());
                     listener.onFailure(failResponse);
