@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M3 to 4.0.0-M4 ([#5583](https://github.com/opensearch-project/security/pull/5583))
 - Bump `net.bytebuddy:byte-buddy` from 1.17.6 to 1.17.7 ([#5586](https://github.com/opensearch-project/security/pull/5586))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.33 to 4.2.34 ([#5589](https://github.com/opensearch-project/security/pull/5589))
-- Bump `com.nimbusds:nimbus-jose-jwt:9.48` from 9.48 to 10.0.2 ([#5595](https://github.com/opensearch-project/security/pull/5595))
+- Bump `com.nimbusds:nimbus-jose-jwt:9.48` from 9.48 to 10.4.2 ([#5595](https://github.com/opensearch-project/security/pull/5595))
 
 ### Documentation
 
