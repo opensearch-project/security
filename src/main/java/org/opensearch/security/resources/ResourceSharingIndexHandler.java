@@ -225,7 +225,22 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                listener.onResponse(entry);
+                updateResourceVisibility(
+                    resourceId,
+                    resourceIndex,
+                    List.of("user:" + createdBy.getUsername()),
+                    ActionListener.wrap((updateResponse) -> {
+                        LOGGER.debug(
+                            "postUpdate: Successfully updated visibility for resource {} within index {}",
+                            resourceId,
+                            resourceIndex
+                        );
+                        listener.onResponse(entry);
+                    }, (e) -> {
+                        LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                        listener.onResponse(entry);
+                    })
+                );
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
