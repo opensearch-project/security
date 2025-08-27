@@ -53,8 +53,6 @@ import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.script.Script;
-import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -339,26 +337,98 @@ public class ResourceSharingIndexHandler {
         ActionListener<Set<String>> listener
     ) {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            // Search the RESOURCE INDEX directly (not the *-sharing index)
+            SearchRequest searchRequest = new SearchRequest(resourceIndex);
             searchRequest.scroll(scroll);
 
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+            // We match any doc whose "principals" contains at least one of the entities
+            // e.g., "user:alice", "role:admin", "backend:ops"
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("principals.keyword", entities));
 
-            boolQuery.must(actionGroupQuery);
-
-            executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
+            executeIdCollectingSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 ctx.restore();
-                LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
+                LOGGER.debug("Found {} accessible resources in {}", resourceIds.size(), resourceIndex);
                 listener.onResponse(resourceIds);
-
             }, exception -> {
                 LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, entities, exception);
                 listener.onFailure(exception);
-
             }));
         }
+    }
+
+    /**
+     * Executes a search request against the resource index and collects _id values (resource IDs) using scroll.
+     *
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param query         Query builder for the request
+     * @param listener      Listener to receive the collected resource IDs
+     */
+    private void executeIdCollectingSearchRequest(
+        Scroll scroll,
+        SearchRequest searchRequest,
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        ActionListener<Set<String>> listener
+    ) {
+        SearchSourceBuilder ssb = new SearchSourceBuilder().query(query).size(1000).fetchSource(false); // we only need _id
+
+        searchRequest.source(ssb);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            Set<String> collectedResourceIds = new HashSet<>();
+            String scrollId = initialResponse.getScrollId();
+            processScrollIds(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Recursively processes scroll results and collects hit IDs.
+     *
+     * @param collectedResourceIds Internal accumulator for resource IDs
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource IDs
+     */
+    private void processScrollIds(
+        Set<String> collectedResourceIds,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Set<String>> listener
+    ) {
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(collectedResourceIds), listener::onFailure));
+            return;
+        }
+
+        for (SearchHit hit : hits) {
+            // Resource ID is the document _id in the resource index
+            collectedResourceIds.add(hit.getId());
+        }
+
+        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollRequest,
+            ActionListener.wrap(
+                scrollResponse -> processScrollIds(
+                    collectedResourceIds,
+                    scroll,
+                    scrollResponse.getScrollId(),
+                    scrollResponse.getHits().getHits(),
+                    listener
+                ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
     }
 
     /**
@@ -824,63 +894,6 @@ public class ResourceSharingIndexHandler {
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
 
-        searchStep.whenComplete(initialResponse -> {
-            Set<String> collectedResourceIds = new HashSet<>();
-            String scrollId = initialResponse.getScrollId();
-            processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
-        }, listener::onFailure);
-    }
-
-    /**
-     * Executes a multi-clause query in a flattened fashion to boost performance by almost 20x for large queries.
-     * This is specifically to replace multi-match queries for wild-card expansions.
-     * @param scroll        Search scroll context
-     * @param searchRequest Initial search request
-     * @param filterQuery   Query builder for the request
-     * @param listener      Listener to receive the collected resource IDs
-     */
-    private void executeFlattenedSearchRequest(
-        Scroll scroll,
-        SearchRequest searchRequest,
-        BoolQueryBuilder filterQuery,
-        ActionListener<Set<String>> listener
-    ) {
-        // Painless script to emit all share_with principals
-        String scriptSource = """
-                // handle shared
-                if (params._source.share_with instanceof Map) {
-                  for (def grp : params._source.share_with.values()) {
-                    if (grp.users instanceof List) {
-                      for (u in grp.users) {
-                        emit("user:" + u);
-                      }
-                    }
-                    if (grp.roles instanceof List) {
-                      for (r in grp.roles) {
-                        emit("role:" + r);
-                      }
-                    }
-                    if (grp.backend_roles instanceof List) {
-                      for (b in grp.backend_roles) {
-                        emit("backend:" + b);
-                      }
-                    }
-                  }
-                }
-            """;
-
-        Script script = new Script(ScriptType.INLINE, "painless", scriptSource, Map.of());
-
-        SearchSourceBuilder ssb = new SearchSourceBuilder().derivedField(
-            "all_shared_principals",   // flattened runtime field
-            "keyword",                 // type
-            script
-        ).query(filterQuery).size(1000).fetchSource(new String[] { "resource_id" }, null);
-
-        searchRequest.source(ssb);
-
-        StepListener<SearchResponse> searchStep = new StepListener<>();
-        client.search(searchRequest, searchStep);
         searchStep.whenComplete(initialResponse -> {
             Set<String> collectedResourceIds = new HashSet<>();
             String scrollId = initialResponse.getScrollId();

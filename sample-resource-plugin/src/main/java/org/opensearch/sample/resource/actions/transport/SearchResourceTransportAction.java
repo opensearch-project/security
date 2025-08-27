@@ -70,6 +70,7 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
     private void searchFilteredIds(SearchRequest request, ActionListener<SearchResponse> listener) {
         SearchSourceBuilder src = request.source() != null ? request.source() : new SearchSourceBuilder();
         ActionListener<Set<String>> idsListener = ActionListener.wrap(resourceIds -> {
+            System.out.println("resourceIds to filter: " + resourceIds);
             mergeAccessibleFilter(src, resourceIds);
             request.source(src);
             nodeClient.search(request, listener);
