@@ -46,7 +46,6 @@ buildscript {
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
@@ -436,7 +435,6 @@ repositories {
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
