@@ -74,6 +74,11 @@ public class CertificateInfo implements Writeable, ToXContent {
             this.alias = in.readOptionalString();
             this.serialNumber = in.readOptionalString();
             this.hasPrivateKey = in.readBoolean();
+        } else {
+            this.format = null;
+            this.alias = null;
+            this.serialNumber = null;
+            this.hasPrivateKey = false;
         }
     }
 
