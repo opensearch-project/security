@@ -489,7 +489,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.19.0"
-            force "net.bytebuddy:byte-buddy:1.17.6"
+            force "net.bytebuddy:byte-buddy:1.17.7"
             force "org.ow2.asm:asm:9.8"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
@@ -664,7 +664,7 @@ dependencies {
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.4.2'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
@@ -702,7 +702,7 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.33"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.34"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
@@ -758,7 +758,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.0'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M3"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M4"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.4'

@@ -1411,3 +1411,35 @@ who_am_i:
   hidden: false
   description: "Test role to grant access to /whoami endpoint"
   cluster_permissions: [ "security:whoamiprotected" ]
+
+role_with_dls:
+  reserved: false
+  hidden: false
+  cluster_permissions:
+    - "read"
+  index_permissions:
+    - index_patterns:
+        - "captain-logs-*"
+      dls: "{\"term\": {\"starship\": \"${attr.proxy.starship}\" }}"
+      fls: null
+      allowed_actions:
+        - "indices:admin/create"
+        - "indices:admin/exists"
+        - "read"
+  tenant_permissions: []
+  static: false
+
+role_without_dls_write:
+  reserved: false
+  hidden: false
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "captain-logs-*"
+      dls: null
+      fls: null
+      allowed_actions:
+        - "indices_all"
+  tenant_permissions: []
+  static: false
