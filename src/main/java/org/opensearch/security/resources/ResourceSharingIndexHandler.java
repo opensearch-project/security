@@ -39,6 +39,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -64,6 +65,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 /**
  * This class handles the creation and management of the resource sharing index.
@@ -249,8 +251,30 @@ public class ResourceSharingIndexHandler {
         }
     }
 
+    public void fetchAllResourceSharingRecords(String resourceIndex, ActionListener<Set<ResourceSharing>> listener) {
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        LOGGER.debug("Fetching all documents asynchronously from {}", resourceSharingIndex);
+        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
+
+            MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
+
+            executeAllSearchRequest(scroll, searchRequest, query, ActionListener.wrap(recs -> {
+                ctx.restore();
+                LOGGER.debug("Found {} documents in {}", recs.size(), resourceSharingIndex);
+                listener.onResponse(recs);
+            }, exception -> {
+                LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
+                listener.onFailure(exception);
+            }));
+        }
+    }
+
     /**
-     * Helper method to fetch own and shared documents based on action-group match.
+     * Helper method to fetch own and shared document IDs based on action-group match.
      * This method uses scroll API to handle large result sets efficiently.
      *
      *
@@ -285,13 +309,62 @@ public class ResourceSharingIndexHandler {
 
             boolQuery.must(actionGroupQuery);
 
-            executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
+            executeFlattenedSearchRequestForResourceIds(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 ctx.restore();
                 LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
 
             }, exception -> {
                 LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, entities, exception);
+                listener.onFailure(exception);
+
+            }));
+        }
+    }
+
+    /**
+     * Helper method to fetch own and shared documents based on action-group match.
+     * This method uses scroll API to handle large result sets efficiently.
+     *
+     *
+     * @param resourceIndex The source index to match against the source_idx field
+     * @param principalsFlat      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
+     * @param accessQuery The query to match against the action-group field
+     * @param listener      The listener to be notified when the operation completes.
+     *                      The listener receives a set of resource shairng records as a result.
+     * @throws RuntimeException if the search operation fails
+     * @apiNote This method:
+     * <ul>
+     *   <li>Uses scroll API with 1-minute timeout</li>
+     *   <li>Processes results in batches of 1000 documents</li>
+     *   <li>Performs source filtering for optimization</li>
+     *   <li>Uses nested queries for accessing array elements</li>
+     *   <li>Properly cleans up scroll context after use</li>
+     * </ul>
+     */
+    public void fetchAccessibleResourceSharingRecords(
+        String resourceIndex,
+        Set<String> principalsFlat,
+        BoolQueryBuilder accessQuery,
+        ActionListener<Set<ResourceSharing>> listener
+    ) {
+        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
+
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+
+            boolQuery.must(accessQuery);
+
+            executeFlattenedSearchRequestFullRecord(scroll, searchRequest, boolQuery, ActionListener.wrap(recs -> {
+                ctx.restore();
+                LOGGER.debug("Found {} documents matching the criteria in {}", recs.size(), resourceSharingIndex);
+                listener.onResponse(recs);
+
+            }, exception -> {
+                LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, principalsFlat, exception);
                 listener.onFailure(exception);
 
             }));
@@ -511,7 +584,7 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceId      The ID of the resource from which to revoke access
      * @param resourceIndex   The name of the system index where the resource exists
-     * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
+     * @param revokeAccess    A map containing entity list (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
      * @param listener        Listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
@@ -746,20 +819,32 @@ public class ResourceSharingIndexHandler {
         }, listener::onFailure);
     }
 
-    /**
-     * Executes a multi-clause query in a flattened fashion to boost performance by almost 20x for large queries.
-     * This is specifically to replace multi-match queries for wild-card expansions.
-     * @param scroll        Search scroll context
-     * @param searchRequest Initial search request
-     * @param filterQuery   Query builder for the request
-     * @param listener      Listener to receive the collected resource IDs
-     */
-    private void executeFlattenedSearchRequest(
+    private void executeAllSearchRequest(
         Scroll scroll,
         SearchRequest searchRequest,
-        BoolQueryBuilder filterQuery,
-        ActionListener<Set<String>> listener
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        ActionListener<Set<ResourceSharing>> listener
     ) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
+            .size(1000)
+            .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
+
+        searchRequest.source(searchSourceBuilder);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            Set<ResourceSharing> recs = new HashSet<>();
+            String scrollId = initialResponse.getScrollId();
+            processScrollResultsParse(recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Updates the search request with multi-clause flattened query to search current user's accessible resources
+     */
+    private void updateSearchRequest(SearchRequest searchRequest, BoolQueryBuilder filterQuery, boolean forResourceIdsOnly) {
         // Painless script to emit all share_with principals
         String scriptSource = """
                 // handle shared
@@ -786,13 +871,40 @@ public class ResourceSharingIndexHandler {
 
         Script script = new Script(ScriptType.INLINE, "painless", scriptSource, Map.of());
 
-        SearchSourceBuilder ssb = new SearchSourceBuilder().derivedField(
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().derivedField(
             "all_shared_principals",   // flattened runtime field
             "keyword",                 // type
             script
-        ).query(filterQuery).size(1000).fetchSource(new String[] { "resource_id" }, null);
+        );
 
-        searchRequest.source(ssb);
+        searchSourceBuilder.query(filterQuery).size(1000);
+        // if request is to fetch resource-ids only we modify the source builder to only fetch resource_id from source, else we fetch the
+        // other two fields as well
+        if (forResourceIdsOnly) {
+            searchSourceBuilder.fetchSource(new String[] { "resource_id" }, null);
+        } else {
+            searchSourceBuilder.fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
+        }
+
+        searchRequest.source(searchSourceBuilder);
+    }
+
+    /**
+     * Executes a multi-clause query in a flattened fashion to boost performance by almost 20x for large queries.
+     * This is specifically to replace multi-match queries for wild-card expansions.
+     * Collects accessible resource IDs
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param filterQuery   Query builder for the request
+     * @param listener      Listener to receive the collected resource IDs
+     */
+    private void executeFlattenedSearchRequestForResourceIds(
+        Scroll scroll,
+        SearchRequest searchRequest,
+        BoolQueryBuilder filterQuery,
+        ActionListener<Set<String>> listener
+    ) {
+        updateSearchRequest(searchRequest, filterQuery, true);
 
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
@@ -800,6 +912,32 @@ public class ResourceSharingIndexHandler {
             Set<String> collectedResourceIds = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
             processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Executes a multi-clause query in a flattened fashion to boost performance by almost 20x for large queries.
+     * This is specifically to replace multi-match queries for wild-card expansions.
+     * Collects accessible resource sharing records.
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param filterQuery   Query builder for the request
+     * @param listener      Listener to receive the collected resource sharing records
+     */
+    private void executeFlattenedSearchRequestFullRecord(
+        Scroll scroll,
+        SearchRequest searchRequest,
+        BoolQueryBuilder filterQuery,
+        ActionListener<Set<ResourceSharing>> listener
+    ) {
+        updateSearchRequest(searchRequest, filterQuery, false);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+        client.search(searchRequest, searchStep);
+        searchStep.whenComplete(initialResponse -> {
+            Set<ResourceSharing> recs = new HashSet<>();
+            String scrollId = initialResponse.getScrollId();
+            processScrollResultsParse(recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
         }, listener::onFailure);
     }
 
@@ -842,6 +980,61 @@ public class ResourceSharingIndexHandler {
                     scrollResponse.getHits().getHits(),
                     listener
                 ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
+    }
+
+    /**
+     * Recursively processes scroll results and collects resource sharing records.
+     *
+     * @param resourceSharingRecords Internal accumulator for resource sharing records
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource sharing records
+     */
+    private void processScrollResultsParse(
+        Set<ResourceSharing> resourceSharingRecords,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Set<ResourceSharing>> listener
+    ) {
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(resourceSharingRecords), listener::onFailure));
+            return;
+        }
+
+        for (SearchHit hit : hits) {
+            try (
+                XContentParser parser = XContentHelper.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    hit.getSourceRef(),
+                    XContentType.JSON
+                )
+            ) {
+                parser.nextToken();
+                ResourceSharing rs = ResourceSharing.fromXContent(parser);
+                resourceSharingRecords.add(rs);
+            } catch (Exception e) {
+                // TODO: Decide how strict should this failure be:
+                // Option A: fail-fast
+                // listener.onFailure(e); return;
+                // Option B: log & skip bad docs
+                LOGGER.warn("Failed to parse resource-sharing doc id={}", hit.getId(), e);
+            }
+        }
+
+        final SearchScrollRequest scrollReq = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollReq,
+            ActionListener.wrap(
+                sr -> processScrollResultsParse(resourceSharingRecords, scroll, sr.getScrollId(), sr.getHits().getHits(), listener),
                 e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
                     e.addSuppressed(ex);
                     listener.onFailure(e);

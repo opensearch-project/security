@@ -97,8 +97,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
     ) {
         super();
         isResourceSharingFeatureEnabled = settings.getAsBoolean(
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;

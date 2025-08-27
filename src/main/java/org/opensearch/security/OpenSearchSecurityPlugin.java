@@ -181,6 +181,8 @@ import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.api.list.AccessibleResourcesRestAction;
+import org.opensearch.security.resources.api.list.ResourceTypesRestAction;
 import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.resources.api.share.ShareRestAction;
 import org.opensearch.security.resources.api.share.ShareTransportAction;
@@ -294,6 +296,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexHandler rsIndexHandler;
+    private ResourceAccessHandler resourceAccessHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
@@ -697,6 +700,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
                 )) {
                     handlers.add(new ShareRestAction());
+                    handlers.add(new ResourceTypesRestAction(resourcePluginInfo));
+                    handlers.add(new AccessibleResourcesRestAction(resourceAccessHandler));
                 }
 
             }
@@ -1200,7 +1205,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        ResourceAccessHandler resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, evaluator);
+        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, evaluator);
         if (settings.getAsBoolean(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
