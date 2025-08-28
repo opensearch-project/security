@@ -451,7 +451,7 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if (!dlsFlsValve.invoke(context, listener)) {
+                if (!pres.shouldSkipDlsValve() && !dlsFlsValve.invoke(context, listener)) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
@@ -465,6 +465,7 @@ public class SecurityFilter implements ActionFilter {
                         createIndexRequest.index(),
                         alias2Name(createIndexRequest.aliases())
                     );
+                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                     createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
                         if (createIndexResponse.isAcknowledged()) {
                             log.debug(

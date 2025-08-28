@@ -279,12 +279,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             if (request instanceof BulkShardRequest) {
                 for (BulkItemRequest inner : ((BulkShardRequest) request).items()) {
-                    if (inner.request() instanceof UpdateRequest) {
-                        listener.onFailure(
-                            new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
-                        );
-                        return false;
-                    }
+                    listener.onFailure(
+                        new OpenSearchSecurityException(
+                            inner.request().getClass().getSimpleName() + " is not supported when FLS or DLS or Fieldmasking is activated"
+                        )
+                    );
+                    return false;
                 }
             }
 

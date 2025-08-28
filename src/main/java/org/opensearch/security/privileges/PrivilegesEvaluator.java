@@ -537,6 +537,7 @@ public class PrivilegesEvaluator {
                             if (replaceResult.accessDenied) {
                                 auditLog.logMissingPrivileges(action0, request, task);
                             } else {
+                                presponse.shouldSkipDlsValve = true;
                                 presponse.allowed = true;
                                 presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
                             }
