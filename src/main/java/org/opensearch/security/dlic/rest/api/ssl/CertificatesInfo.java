@@ -12,7 +12,9 @@
 package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,7 +24,6 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.ssl.config.CertType;
 
 public class CertificatesInfo implements Writeable, ToXContent {
     private final Map<String, List<CertificateInfo>> certificates;
@@ -32,45 +33,32 @@ public class CertificatesInfo implements Writeable, ToXContent {
     }
 
     public CertificatesInfo(final StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_3_2_0)) {
-            certificates = in.readMap(StreamInput::readString, listIn -> listIn.readList(CertificateInfo::new));
+        if (in.getVersion().before(Version.V_3_0_0)) {
+            Map<CertificateType_2_19, List<CertificateInfo>> compatMap = in.readMap(
+                keyIn -> keyIn.readEnum(CertificateType_2_19.class),
+                listIn -> listIn.readList(CertificateInfo::new)
+            );
+            certificates = new HashMap<>();
+            for (Map.Entry<CertificateType_2_19, List<CertificateInfo>> entry : compatMap.entrySet()) {
+                certificates.put(entry.getKey().value(), entry.getValue());
+            }
         } else {
-            /*
-            Previous versions represent cert types with an enum and serialize based on
-            enum ordinal. To maintain backwards compatibility we fall back to mapping these
-            enum ordinals to the appropriate native certificate type.
-             */
-            certificates = in.readMap((StreamInput streamIn) -> switch (streamIn.readEnum(CertType.LegacyCertType.class)) {
-                case CertType.LegacyCertType.HTTP -> CertType.HTTP.id();
-                case CertType.LegacyCertType.TRANSPORT -> CertType.TRANSPORT.id();
-                case CertType.LegacyCertType.TRANSPORT_CLIENT -> CertType.TRANSPORT_CLIENT.id();
-            }, listIn -> listIn.readList(CertificateInfo::new));
+            certificates = in.readMap(StreamInput::readString, listIn -> listIn.readList(CertificateInfo::new));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_3_2_0)) {
-            out.writeMap(certificates, StreamOutput::writeString, StreamOutput::writeList);
-        } else {
-            /*
-            We need to write only map elements which previous versions will understand.
-            CertTypes are strictly bound to LegacyCertType enum in these versions and only has knowledge of
-            HTTP, TRANSPORT, TRANSPORT_CLIENT.
-             */
-            Set<String> legacyCerts = certificates.keySet();
-            legacyCerts.retainAll(List.of(CertType.HTTP.id(), CertType.TRANSPORT.id(), CertType.TRANSPORT_CLIENT.id()));
-            out.writeVInt(legacyCerts.size());
-            for (String certId : legacyCerts) {
-                if (CertType.HTTP.id().equals(certId)) {
-                    out.writeEnum(CertType.LegacyCertType.HTTP);
-                } else if (CertType.TRANSPORT.id().equals(certId)) {
-                    out.writeEnum(CertType.LegacyCertType.TRANSPORT);
-                } else if (CertType.TRANSPORT_CLIENT.id().equals(certId)) {
-                    out.writeEnum(CertType.LegacyCertType.TRANSPORT_CLIENT);
+        if (out.getVersion().before(Version.V_3_0_0)) {
+            Map<CertificateType_2_19, List<CertificateInfo>> compatMap = new HashMap<>();
+            for (Map.Entry<String, List<CertificateInfo>> entry : certificates.entrySet()) {
+                if (Set.of("http", "transport").contains(entry.getKey().toLowerCase(Locale.ROOT))) {
+                    compatMap.put(CertificateType_2_19.from(entry.getKey()), entry.getValue());
                 }
-                out.writeList(certificates.get(certId));
             }
+            out.writeMap(compatMap, StreamOutput::writeEnum, StreamOutput::writeList);
+        } else {
+            out.writeMap(certificates, StreamOutput::writeString, StreamOutput::writeList);
         }
     }
 
@@ -81,5 +69,39 @@ public class CertificatesInfo implements Writeable, ToXContent {
             builder.field(entry.getKey(), certificates.get(entry.getKey()));
         }
         return builder.endObject();
+    }
+
+    public enum CertificateType_2_19 {
+        HTTP("http"),
+        TRANSPORT("transport"),
+        ALL("all");
+
+        private final String value;
+
+        private CertificateType_2_19(String value) {
+            this.value = value;
+        }
+
+        public static boolean isHttp(final CertificateType_2_19 certificateType) {
+            return certificateType == HTTP || certificateType == ALL;
+        }
+
+        public static boolean isTransport(final CertificateType_2_19 certificateType) {
+            return certificateType == TRANSPORT || certificateType == ALL;
+        }
+
+        public String value() {
+            return value.toLowerCase(Locale.ROOT);
+        }
+
+        public static CertificateType_2_19 from(final String certType) {
+            if (certType == null) {
+                return ALL;
+            }
+            for (final var t : values())
+                if (t.value.equalsIgnoreCase(certType)) return t;
+            throw new IllegalArgumentException("Invalid certificate type: " + certType);
+        }
+
     }
 }
