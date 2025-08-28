@@ -44,7 +44,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.3-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.19.4-SNAPSHOT")
         opensearch_group = "org.opensearch"
         common_utils_version = System.getProperty("common_utils.version", '2.19.0.0')
         jackson_version = System.getProperty("jackson_version", "2.15.2")
@@ -52,7 +52,6 @@ buildscript {
     repositories {
         mavenLocal()
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -65,7 +64,6 @@ buildscript {
 repositories {
     mavenLocal()
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
 }
@@ -85,7 +83,7 @@ testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
 String previousVersion = System.getProperty("bwc.version.previous", "2.10.0.0")
-String nextVersion = System.getProperty("bwc.version.next", "2.19.3.0")
+String nextVersion = System.getProperty("bwc.version.next", "2.19.4.0")
 
 String bwcVersion = previousVersion
 String baseName = "securityBwcCluster"
