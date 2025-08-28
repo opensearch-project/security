@@ -9,6 +9,7 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -82,16 +83,15 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-
-        for (String accessLevel : sharingInfo.keySet()) {
-            builder.field(accessLevel);
-            Recipients recipients = sharingInfo.get(accessLevel);
-            recipients.toXContent(builder, params);
+    public XContentBuilder toXContent(XContentBuilder b, Params params) throws IOException {
+        b.startObject();
+        for (Map.Entry<String, Recipients> e : this.sharingInfo.entrySet()) {
+            Recipients norm = pruneRecipients(e.getValue());
+            if (norm == null) continue; // skip empty level
+            b.field(e.getKey());
+            norm.toXContent(b, params); // TODO ensure this skips empty arrays too
         }
-
-        return builder.endObject();
+        return b.endObject();
     }
 
     public static ShareWith fromXContent(XContentParser parser) throws IOException {
@@ -148,7 +148,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 return orig;
             });
         }
-        return new ShareWith(updated);
+        return new ShareWith(updated).prune();
     }
 
     /**
@@ -164,9 +164,39 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             Recipients revokeRecipients = entry.getValue();
             updated.computeIfPresent(level, (lvl, orig) -> {
                 orig.revoke(revokeRecipients);
-                return orig;
+                return pruneRecipients(orig); // removes any null levels
             });
         }
-        return new ShareWith(updated);
+        return new ShareWith(updated).prune();
     }
+
+    /** Return a normalized ShareWith with no empty buckets and no empty action-groups. */
+    public ShareWith prune() {
+        Map<String, Recipients> cleaned = new HashMap<>();
+        for (Map.Entry<String, Recipients> e : this.sharingInfo.entrySet()) {
+            Recipients prunedRecipients = pruneRecipients(e.getValue());
+            if (prunedRecipients != null) {
+                cleaned.put(e.getKey(), prunedRecipients);
+            }
+        }
+        return new ShareWith(cleaned);
+    }
+
+    private static Recipients pruneRecipients(Recipients r) {
+        if (r == null) return null;
+        Map<Recipient, Set<String>> src = r.getRecipients();
+        if (src == null || src.isEmpty()) return null;
+
+        Map<Recipient, Set<String>> cleaned = new EnumMap<>(Recipient.class);
+        for (Map.Entry<Recipient, Set<String>> e : src.entrySet()) {
+            Set<String> vals = e.getValue();
+            if (vals == null) continue;
+            Set<String> filtered = vals.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+            if (!filtered.isEmpty()) cleaned.put(e.getKey(), filtered);
+        }
+        return cleaned.isEmpty() ? null : new Recipients(cleaned); // use your builder/ctor
+    }
+
 }

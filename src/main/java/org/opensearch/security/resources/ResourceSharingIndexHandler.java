@@ -681,7 +681,11 @@ public class ResourceSharingIndexHandler {
                 updatedShareWith = updatedShareWith.revoke(revoke);
             }
 
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
+            ShareWith cleaned = updatedShareWith == null ? null : updatedShareWith.prune();
+
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
+
+            LOGGER.info("updted {}", updatedSharingInfo);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
