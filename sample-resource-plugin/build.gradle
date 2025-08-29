@@ -45,7 +45,6 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
 }
 
 configurations.all {
@@ -54,7 +53,7 @@ configurations.all {
         force 'org.apache.httpcomponents:httpcore:4.4.16'
         force 'commons-codec:commons-codec:1.19.0'
         force 'org.hamcrest:hamcrest:2.2'
-        force 'org.mockito:mockito-core:5.18.0'
+        force 'org.mockito:mockito-core:5.19.0'
         force 'org.slf4j:slf4j-api:1.7.36'
 
         // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc

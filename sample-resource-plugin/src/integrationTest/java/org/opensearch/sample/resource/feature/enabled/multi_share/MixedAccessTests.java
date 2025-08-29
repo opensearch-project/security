@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.feature.enabled.multi_share;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -47,9 +48,14 @@ public class MixedAccessTests {
         api.awaitSharingEntry(); // wait until sharing entry is created
     }
 
+    @After
+    public void cleanup() {
+        api.wipeOutResourceEntries();
+    }
+
     private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
@@ -58,7 +64,7 @@ public class MixedAccessTests {
 
     private void assertReadOnly(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
@@ -67,7 +73,7 @@ public class MixedAccessTests {
 
     private void assertFullAccess(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_OK);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_OK);
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_OK);
         api.assertApiRevoke(resourceId, user, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
         api.awaitSharingEntry();
