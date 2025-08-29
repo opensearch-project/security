@@ -305,8 +305,8 @@ public class SystemIndexAccessEvaluator {
         }
 
         // the following section should only be run for index actions
-        if (user.isPluginUser()) {
-            if (this.isSystemIndexEnabled && !isClusterPerm(action)) {
+        if (user.isPluginUser() && !isClusterPerm(action)) {
+            if (this.isSystemIndexEnabled) {
                 Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
                     user.getName().replace("plugin:", ""),
                     requestedResolved.getAllIndices()
