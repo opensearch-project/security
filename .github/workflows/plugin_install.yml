@@ -42,9 +42,20 @@ jobs:
 
       - name: Run Opensearch with A Single Plugin
         uses: derek-ho/start-opensearch@v7
+        if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
-          plugins: ${{ format('file:///{0}/{1}.zip', replace(github.workspace, '\', '/'), env.PLUGIN_NAME) }}
+          plugins: "file:///$(echo $(pwd) | sed 's|\\\\|/|g')/${{ env.PLUGIN_NAME }}.zip"
+          security-enabled: true
+          admin-password: ${{ steps.generate-password.outputs.password }}
+          jdk-version: 21
+
+      - name: Run Opensearch with A Single Plugin
+        uses: derek-ho/start-opensearch@v7
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugins: "file:///$(echo $(pwd.Path) | sed 's|\\\\|/|g')/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
