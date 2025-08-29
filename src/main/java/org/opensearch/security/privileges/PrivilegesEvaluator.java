@@ -459,7 +459,7 @@ public class PrivilegesEvaluator {
         OptionallyResolvedIndices resolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
-            log.debug("RequestedResolved : {}", resolvedIndices);
+            log.debug("ResolvedIndices: {}", resolvedIndices);
         }
 
         // check snapshot/restore requests

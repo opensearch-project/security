@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
@@ -84,7 +85,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     public PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        ResolvedIndices resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     ) {
         PrivilegesEvaluatorResponse response = this.index.checkWildcardIndexPrivilegesOnWellKnownActions(context, actions);
         if (response != null) {
@@ -100,7 +101,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
-        CheckTable<String, String> checkTable = CheckTable.create(fullyResolvedIndices(context, resolvedIndices), actions);
+        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.local().names(context.clusterState()), actions);
 
         StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
@@ -130,15 +131,15 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      */
     @Override
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-        PrivilegesEvaluationContext context,
-        Set<String> actions,
-        ResolvedIndices resolvedIndices
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            OptionallyResolvedIndices resolvedIndices
     ) {
         if (!CollectionUtils.containsAny(actions, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
             return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
         }
 
-        CheckTable<String, String> checkTable = CheckTable.create(fullyResolvedIndices(context, resolvedIndices), actions);
+        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.local().names(context.clusterState()), actions);
         return this.index.providesExplicitPrivilege(context, actions, checkTable);
     }
 
@@ -456,14 +457,5 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             PrivilegesEvaluationContext context,
             CheckTable<String, String> checkTable
         );
-    }
-
-    private Set<String> fullyResolvedIndices(PrivilegesEvaluationContext context, ResolvedIndices resolvedIndices) {
-        // TODO
-        if (resolvedIndices.isUnknown()) {
-            return context.getIndicesLookup().keySet();
-        } else {
-            return resolvedIndices.local().names();
-        }
     }
 }

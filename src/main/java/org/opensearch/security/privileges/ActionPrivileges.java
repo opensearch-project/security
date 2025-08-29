@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.Set;
 
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
 /**
@@ -77,7 +78,7 @@ public interface ActionPrivileges {
     PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        ResolvedIndices resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     );
 
     /**
@@ -88,9 +89,9 @@ public interface ActionPrivileges {
      * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
      */
     PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-        PrivilegesEvaluationContext context,
-        Set<String> actions,
-        ResolvedIndices resolvedIndices
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            OptionallyResolvedIndices resolvedIndices
     );
 
     ActionPrivileges EMPTY = new ActionPrivileges() {
@@ -113,7 +114,7 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            ResolvedIndices resolvedIndices
+            OptionallyResolvedIndices resolvedIndices
         ) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }
@@ -122,7 +123,7 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            ResolvedIndices resolvedIndices
+            OptionallyResolvedIndices resolvedIndices
         ) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }

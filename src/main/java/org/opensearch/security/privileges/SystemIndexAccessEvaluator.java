@@ -124,13 +124,13 @@ public class SystemIndexAccessEvaluator {
             final ActionRequest request,
             final Task task,
             final String action,
-            final ResolvedIndices requestedResolved,
+            final OptionallyResolvedIndices requestedResolved,
             final PrivilegesEvaluatorResponse presponse,
             final PrivilegesEvaluationContext context,
             final ActionPrivileges actionPrivileges,
             final User user
     ) {
-        boolean containsSystemIndex = false; // TODO requestedResolved.local().containsAny(this::isSystemIndex);
+        boolean containsSystemIndex = requestedResolved.local().containsAny(this::isSystemIndex);
 
         evaluateSystemIndicesAccess(
             action,
@@ -169,8 +169,7 @@ public class SystemIndexAccessEvaluator {
         }
 
         if (this.isSystemIndexEnabled) {
-            // TODO Simplify SystemIndexRegistry.matchesSystemIndexPattern() call
-            return this.systemIndexMatcher.test(index) || !SystemIndexRegistry.matchesSystemIndexPattern(Set.of(index)).isEmpty();
+            return this.systemIndexMatcher.test(index) || SystemIndexRegistry.matchesSystemIndexPattern(index);
         } else {
             return false;
         }
@@ -198,7 +197,7 @@ public class SystemIndexAccessEvaluator {
      */
     private void evaluateSystemIndicesAccess(
         final String action,
-        final ResolvedIndices requestedResolved,
+        final OptionallyResolvedIndices requestedResolved,
         final ActionRequest request,
         final Task task,
         final PrivilegesEvaluatorResponse presponse,
@@ -333,5 +332,27 @@ public class SystemIndexAccessEvaluator {
                 }
             }
         }
+    }
+
+    private PluginSystemIndexSelection areIndicesPluginSystemIndices(PrivilegesEvaluationContext context, String pluginClassName, OptionallyResolvedIndices optionallyResolvedIndices) {
+        if (optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            boolean containsNonPluginSystemIndex = false;
+            boolean containsOtherSystemIndex = false;
+
+            for (String index : resolvedIndices.local().namesOfIndices(context.clusterState())) {
+                if (SystemIndexRegistry.matchesPluginSystemIndexPattern(pluginClassName, index)) {
+
+                }
+            }
+        } else {
+            // If we have an unknown state, we must assume that other system indices are contained
+            return PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES;
+        }
+    }
+
+    enum PluginSystemIndexSelection {
+        ALL_ARE_PLUGIN_SYSTEM_INDICES,
+        CONTAINS_OTHER_SYSTEM_INDICES,
+        NO_SYSTEM_INDICES
     }
 }
