@@ -456,10 +456,10 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        OptionallyResolvedIndices resolvedIndices = context.getResolvedRequest();
+        OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
-            log.debug("ResolvedIndices: {}", resolvedIndices);
+            log.debug("ResolvedIndices: {}", optionallyResolvedIndices);
         }
 
         // check snapshot/restore requests
@@ -470,13 +470,13 @@ public class PrivilegesEvaluator {
         }
 
         // System index access
-        if (systemIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, context, actionPrivileges, user)
+        if (systemIndexAccessEvaluator.evaluate(request, task, action0, optionallyResolvedIndices, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, mappedRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, optionallyResolvedIndices, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -500,7 +500,7 @@ public class PrivilegesEvaluator {
                 log.info(
                     "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
-                    resolvedIndices,
+                    optionallyResolvedIndices,
                     action0,
                     mappedRoles,
                     presponse.getMissingPrivileges()
@@ -520,7 +520,7 @@ public class PrivilegesEvaluator {
                             action0,
                             user,
                             dcm,
-                            resolvedIndices,
+                            optionallyResolvedIndices,
                             context,
                             this.tenantPrivileges.get()
                         );
@@ -555,7 +555,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate(optionallyResolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
             return presponse;
         }
 
@@ -570,7 +570,7 @@ public class PrivilegesEvaluator {
         }
 
         if (isDebugEnabled) {
-            log.debug("Requested resolved index types: {}", resolvedIndices);
+            log.debug("Requested resolved index types: {}", optionallyResolvedIndices);
             log.debug("Security roles: {}", mappedRoles);
         }
 
@@ -583,7 +583,7 @@ public class PrivilegesEvaluator {
                 action0,
                 user,
                 dcm,
-                (ResolvedIndices) resolvedIndices,
+                optionallyResolvedIndices,
                 context,
                 this.tenantPrivileges.get()
             );
@@ -606,13 +606,13 @@ public class PrivilegesEvaluator {
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
-        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, (ResolvedIndices) resolvedIndices);
+        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, optionallyResolvedIndices);
 
         if (presponse.isPartiallyOk()) {
-            if (dnfofPossible) {
+            if (dnfofPossible && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
                 if (this.indicesRequestModifier.setLocalIndices(
                     request,
-                    (ResolvedIndices) resolvedIndices,
+                    resolvedIndices,
                     presponse.getAvailableIndices()
                 )) {
                     return PrivilegesEvaluatorResponse.ok();
@@ -635,7 +635,7 @@ public class PrivilegesEvaluator {
         }
 
         if (presponse.isAllowed()) {
-            if (checkFilteredAliases((ResolvedIndices) resolvedIndices, action0, isDebugEnabled)) {
+            if (checkFilteredAliases(optionallyResolvedIndices, action0, isDebugEnabled)) {
                 presponse.allowed = false;
                 return presponse;
             }
@@ -648,7 +648,7 @@ public class PrivilegesEvaluator {
                 "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
                 "index",
                 user,
-                resolvedIndices,
+                optionallyResolvedIndices,
                 presponse.getReason(),
                 action0,
                 mappedRoles
@@ -784,7 +784,7 @@ public class PrivilegesEvaluator {
     }
 
     @SuppressWarnings("unchecked")
-    private boolean checkFilteredAliases(ResolvedIndices requestedResolved, String action, boolean isDebugEnabled) {
+    private boolean checkFilteredAliases(OptionallyResolvedIndices optionallyRequestedResolved, String action, boolean isDebugEnabled) {
         final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
         if (!"disallow".equals(faMode)) {
@@ -792,6 +792,10 @@ public class PrivilegesEvaluator {
         }
 
         if (!ACTION_MATCHER.test(action)) {
+            return false;
+        }
+
+        if (!(optionallyRequestedResolved instanceof ResolvedIndices requestedResolved)) {
             return false;
         }
 
