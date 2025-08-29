@@ -160,7 +160,7 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setDoc(Map.of("principals", principals))
+                .setDoc(Map.of("all_shared_principals", principals))
                 .setId(resourceId)
                 .request();
 
@@ -345,7 +345,8 @@ public class ResourceSharingIndexHandler {
 
             // We match any doc whose "principals" contains at least one of the entities
             // e.g., "user:alice", "role:admin", "backend:ops"
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("principals.keyword", entities));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                .filter(QueryBuilders.termsQuery("all_shared_principals.keyword", entities));
 
             executeIdCollectingSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 ctx.restore();
