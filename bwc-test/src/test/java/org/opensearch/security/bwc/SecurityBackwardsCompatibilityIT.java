@@ -423,7 +423,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                   "index_patterns": [
                     "test_index*"
                   ],
-                  "dls": "{ \"bool\": { \"must\": { \"match\": { \"genre\": \"rock\" } } } }",
+                  "dls": "{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }",
                   "fls": [
                     "~lyrics"
                   ],
