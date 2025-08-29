@@ -10,9 +10,18 @@
  */
 package org.opensearch.security.privileges.dlsfls;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.user.User;
 
 /**
  * Maps index names to DLS/FLS/FM rules.
@@ -24,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
  * of the sub-classes of AbstractRuleBasedPrivileges.
  */
 public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
+    private static final Logger LOGGER = LogManager.getLogger(IndexToRuleMap.class);
     private static final IndexToRuleMap<?> UNRESTRICTED = new IndexToRuleMap<AbstractRuleBasedPrivileges.Rule>(ImmutableMap.of());
 
     private final ImmutableMap<String, Rule> indexMap;
@@ -57,5 +67,38 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
     @SuppressWarnings("unchecked")
     public static <Rule extends AbstractRuleBasedPrivileges.Rule> IndexToRuleMap<Rule> unrestricted() {
         return (IndexToRuleMap<Rule>) UNRESTRICTED;
+    }
+
+    public static IndexToRuleMap<DlsRestriction> resourceRestrictions(NamedXContentRegistry xContentRegistry, User user) {
+
+        List<String> principals = new ArrayList<>();
+        principals.add("user:" + user.getName());
+
+        // Security roles (OpenSearch Security roles)
+        if (user.getRoles() != null) {
+            user.getRoles().forEach(r -> principals.add("role:" + r));
+        }
+
+        // Backend roles (LDAP/SAML/etc) – adjust getter name to your version!
+        if (user.getRoles() != null) {
+            user.getRoles().forEach(br -> principals.add("backend_role:" + br));
+        }
+
+        // Build a single `terms` query JSON
+        String dlsJson = "{\"terms\":{\"all_shared_principals.keyword\":["
+            + principals.stream().map(p -> "\"" + p.replace("\"", "\\\"") + "\"").collect(Collectors.joining(","))
+            + "]}}";
+
+        System.out.println("dlsJson: " + dlsJson);
+
+        DlsRestriction restriction;
+        try {
+            restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));
+        } catch (IOException e) {
+            LOGGER.warn("Received error while applying resource restrictions.", e);
+            restriction = DlsRestriction.FULL;
+        }
+
+        return new IndexToRuleMap<>(ImmutableMap.of(".sample_resource", restriction));
     }
 }

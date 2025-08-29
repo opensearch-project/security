@@ -149,9 +149,19 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         );
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             System.out.println("set unrestricted");
+            DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+            IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+
+            IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
+                namedXContentRegistry,
+                userSubject.getUser()
+            );
+
+            System.out.println("sharedResourceMap: " + sharedResourceMap);
+
             return DlsFilterLevelActionHandler.handle(
                 context,
-                IndexToRuleMap.unrestricted(),
+                sharedResourceMap,
                 listener,
                 nodeClient,
                 clusterService,
