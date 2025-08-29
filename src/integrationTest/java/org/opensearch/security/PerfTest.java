@@ -1,11 +1,15 @@
 package org.opensearch.security;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -18,11 +22,6 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 // io.netty, org.apache.lucene, java.io, java.nio, org.apache.logging.
 // org.jcp
 //java.security.Provider$Service
@@ -34,7 +33,9 @@ public class PerfTest {
     public static void createTestData(LocalCluster cluster) throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
             {
-                CreateIndexRequest request = new CreateIndexRequest("test").settings(Map.of("index.number_of_shards", 3, "index.number_of_replicas", 1));
+                CreateIndexRequest request = new CreateIndexRequest("test").settings(
+                    Map.of("index.number_of_shards", 3, "index.number_of_replicas", 1)
+                );
                 CreateIndexResponse response = client.admin().indices().create(request).actionGet();
                 System.out.println(Strings.toString(XContentType.JSON, response));
             }
@@ -43,7 +44,9 @@ public class PerfTest {
 
             for (int i = 0; i < 1000; i++) {
                 String index = ".kibana_t_" + i + "_001";
-                CreateIndexRequest request = new CreateIndexRequest(index).settings(Map.of("index.number_of_shards", 1, "index.number_of_replicas", 0));
+                CreateIndexRequest request = new CreateIndexRequest(index).settings(
+                    Map.of("index.number_of_shards", 1, "index.number_of_replicas", 0)
+                );
                 CreateIndexResponse response = client.admin().indices().create(request).actionGet();
                 System.out.println(Strings.toString(XContentType.JSON, response));
                 indicesAliasesRequest.addAliasAction(IndicesAliasesRequest.AliasActions.add().alias(".kibana_t_" + i).indices(index));
@@ -53,18 +56,19 @@ public class PerfTest {
             client.admin().indices().refresh(new RefreshRequest()).actionGet();
             client.admin().indices().refresh(new RefreshRequest()).actionGet();
 
-
         }
     }
 
     @Test
     public void test() throws Exception {
 
-        try (LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
+        try (
+            LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
                 .authc(TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL)
                 .users(TestSecurityConfig.User.USER_ADMIN)
                 .nodeSettings(Map.of("cluster_manager.throttling.thresholds.auto-create.value", 3000, "cluster.max_shards_per_node", 10000))
-                .build()) {
+                .build()
+        ) {
 
             cluster.before();
 
@@ -79,13 +83,13 @@ public class PerfTest {
                     StringBuilder bulkBody = new StringBuilder();
                     for (int k = 0; k < 10; k++) {
                         bulkBody.append("""
-                                { "index": { "_index": "test" } }
-                                { "title": "foo", "year": 2020}
-                                """);
+                            { "index": { "_index": "test" } }
+                            { "title": "foo", "year": 2020}
+                            """);
                     }
                     try {
                         TestRestClient.HttpResponse response = client.postJson("_bulk", bulkBody.toString());
-                        //if (response.getStatusCode() >= 300) {
+                        // if (response.getStatusCode() >= 300) {
                         System.out.println(response.getBody());
                         // }
                     } catch (Exception e) {
@@ -111,14 +115,22 @@ public class PerfTest {
                 JsonNode node = nodes.get(nodeId);
                 JsonNode threadPool = node.get("thread_pool");
                 JsonNode managementThreadPool = threadPool.get("management");
-                result.append(nodeId + ": management thread pool: active: " + managementThreadPool.get("active") + "/5" + "; queue: " + managementThreadPool.get("queue") + "\n");
+                result.append(
+                    nodeId
+                        + ": management thread pool: active: "
+                        + managementThreadPool.get("active")
+                        + "/5"
+                        + "; queue: "
+                        + managementThreadPool.get("queue")
+                        + "\n"
+                );
             }
 
             return result.toString();
         }
     }
 
-    static TestSecurityConfig.Role [] createTestRoles() {
+    static TestSecurityConfig.Role[] createTestRoles() {
         List<TestSecurityConfig.Role> result = new ArrayList<>();
 
         for (int i = 0; i < 2500; i++) {

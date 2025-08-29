@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
-import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -131,9 +130,9 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      */
     @Override
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-            PrivilegesEvaluationContext context,
-            Set<String> actions,
-            OptionallyResolvedIndices resolvedIndices
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        OptionallyResolvedIndices resolvedIndices
     ) {
         if (!CollectionUtils.containsAny(actions, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
             return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));

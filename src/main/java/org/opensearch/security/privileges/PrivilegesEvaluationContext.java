@@ -22,7 +22,6 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
-import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -126,7 +125,11 @@ public class PrivilegesEvaluationContext {
     public OptionallyResolvedIndices getResolvedRequest() {
         OptionallyResolvedIndices result = this.resolvedIndices;
         if (result == null) {
-            this.resolvedIndices = result = this.indicesRequestResolver.resolve(this.request, this.actionRequestMetadata, this.clusterStateSupplier);
+            this.resolvedIndices = result = this.indicesRequestResolver.resolve(
+                this.request,
+                this.actionRequestMetadata,
+                this.clusterStateSupplier
+            );
         }
 
         return result;

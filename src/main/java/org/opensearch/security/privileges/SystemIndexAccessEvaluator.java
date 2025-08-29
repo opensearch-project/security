@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
@@ -121,14 +122,14 @@ public class SystemIndexAccessEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(
-            final ActionRequest request,
-            final Task task,
-            final String action,
-            final OptionallyResolvedIndices requestedResolved,
-            final PrivilegesEvaluatorResponse presponse,
-            final PrivilegesEvaluationContext context,
-            final ActionPrivileges actionPrivileges,
-            final User user
+        final ActionRequest request,
+        final Task task,
+        final String action,
+        final OptionallyResolvedIndices requestedResolved,
+        final PrivilegesEvaluatorResponse presponse,
+        final PrivilegesEvaluationContext context,
+        final ActionPrivileges actionPrivileges,
+        final User user
     ) {
         boolean containsSystemIndex = requestedResolved.local().containsAny(this::isSystemIndex);
 
@@ -209,13 +210,15 @@ public class SystemIndexAccessEvaluator {
         boolean serviceAccountUser = user.isServiceAccount();
 
         if (isSystemIndexPermissionEnabled) {
-            if (serviceAccountUser && requestedResolved.local().containsAny(index -> !isSystemIndex(index))) {
+            boolean containsRegularIndex = requestedResolved.local().containsAny(index -> !isSystemIndex(index));
+
+            if (serviceAccountUser && containsRegularIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (!containsSystemIndex && log.isInfoEnabled()) {
                     log.info("{} not permitted for a service account {} on non-system indices.", action, context.getMappedRoles());
                 } else if (containsSystemIndex && log.isDebugEnabled()) {
                     List<String> regularIndices = requestedResolved.local()
-                        .names()
+                        .names(context.clusterState())
                         .stream()
                         .filter(index -> !isSystemIndex(index))
                         .collect(Collectors.toList());
@@ -247,7 +250,11 @@ public class SystemIndexAccessEvaluator {
                             "No {} permission for user roles {} to System Indices {}",
                             action,
                             context.getMappedRoles(),
-                            requestedResolved.local().names().stream().filter(this::isSystemIndex).collect(Collectors.joining(", "))
+                            requestedResolved.local()
+                                .names(context.clusterState())
+                                .stream()
+                                .filter(this::isSystemIndex)
+                                .collect(Collectors.joining(", "))
                         );
                     }
                     presponse.allowed = false;
@@ -258,39 +265,34 @@ public class SystemIndexAccessEvaluator {
 
         // the following section should only be run for index actions
         if (this.isSystemIndexEnabled && user.isPluginUser() && !isClusterPerm(action)) {
-            Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+            PluginSystemIndexSelection pluginSystemIndexSelection = areIndicesPluginSystemIndices(
+                context,
                 user.getName().replace("plugin:", ""),
-                requestedResolved.local().names()
+                requestedResolved
             );
-            if (requestedResolved.local().names().equals(matchingPluginIndices)) {
+            if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES) {
                 // plugin is authorized to perform any actions on its own registered system indices
                 presponse.allowed = true;
                 presponse.markComplete();
                 return;
-            } else {
-                Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.local().names());
-                matchingSystemIndices.removeAll(matchingPluginIndices);
-                // See if request matches other system indices not belong to the plugin
-                if (!matchingSystemIndices.isEmpty()) {
-                    if (log.isInfoEnabled()) {
-                        log.info(
-                            "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
-                            user.getName(),
-                            action,
-                            matchingPluginIndices
-                        );
-                    }
-                    presponse.allowed = false;
-                    presponse.getMissingPrivileges();
-                    presponse.markComplete();
-                    return;
+            } else if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES) {
+                if (log.isInfoEnabled()) {
+                    log.info(
+                        "Plugin {} can only perform {} on it's own registered System Indices. Resolved indices: {}",
+                        user.getName(),
+                        action,
+                        requestedResolved
+                    );
                 }
+                presponse.allowed = false;
+                presponse.getMissingPrivileges();
+                presponse.markComplete();
+                return;
             }
         }
 
         if (isActionAllowed(action)) {
-            // TODO requestedResolved.isLocalAll()
-            if (false) {
+            if (!(requestedResolved instanceof ResolvedIndices resolvedIndices)) {
                 if (filterSecurityIndex) {
                     // TODO
                     // irr.replace(request, false, "*", "-" + securityIndex);
@@ -305,7 +307,7 @@ public class SystemIndexAccessEvaluator {
             // checks as it has already been performed via hasExplicitIndexPermission
             else if (containsSystemIndex && !isSystemIndexPermissionEnabled) {
                 if (filterSecurityIndex) {
-                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.local().names());
+                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.local().names(context.clusterState()));
                     allWithoutSecurity.remove(securityIndex);
                     if (allWithoutSecurity.isEmpty()) {
                         if (log.isDebugEnabled()) {
@@ -315,14 +317,14 @@ public class SystemIndexAccessEvaluator {
                         presponse.markComplete();
                         return;
                     }
-                    this.indicesRequestModifier.setLocalIndices(request, requestedResolved, allWithoutSecurity);
+                    this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, allWithoutSecurity);
                     if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
                     }
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     final String foundSystemIndexes = requestedResolved.local()
-                        .names()
+                        .names(context.clusterState())
                         .stream()
                         .filter(this::isSystemIndex)
                         .collect(Collectors.joining(", "));
@@ -334,15 +336,32 @@ public class SystemIndexAccessEvaluator {
         }
     }
 
-    private PluginSystemIndexSelection areIndicesPluginSystemIndices(PrivilegesEvaluationContext context, String pluginClassName, OptionallyResolvedIndices optionallyResolvedIndices) {
+    private PluginSystemIndexSelection areIndicesPluginSystemIndices(
+        PrivilegesEvaluationContext context,
+        String pluginClassName,
+        OptionallyResolvedIndices optionallyResolvedIndices
+    ) {
         if (optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            Predicate<String> pluginSystemIndexPredicate = SystemIndexRegistry.getPluginSystemIndexPredicate(pluginClassName);
+
             boolean containsNonPluginSystemIndex = false;
             boolean containsOtherSystemIndex = false;
 
             for (String index : resolvedIndices.local().namesOfIndices(context.clusterState())) {
-                if (SystemIndexRegistry.matchesPluginSystemIndexPattern(pluginClassName, index)) {
-
+                if (!pluginSystemIndexPredicate.test(index)) {
+                    containsNonPluginSystemIndex = true;
+                    if (SystemIndexRegistry.matchesSystemIndexPattern(index)) {
+                        containsOtherSystemIndex = true;
+                    }
                 }
+            }
+
+            if (!containsNonPluginSystemIndex) {
+                return PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES;
+            } else if (containsOtherSystemIndex) {
+                return PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES;
+            } else {
+                return PluginSystemIndexSelection.NO_SYSTEM_INDICES;
             }
         } else {
             // If we have an unknown state, we must assume that other system indices are contained
@@ -351,7 +370,7 @@ public class SystemIndexAccessEvaluator {
     }
 
     enum PluginSystemIndexSelection {
-        ALL_ARE_PLUGIN_SYSTEM_INDICES,
+        CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES,
         CONTAINS_OTHER_SYSTEM_INDICES,
         NO_SYSTEM_INDICES
     }

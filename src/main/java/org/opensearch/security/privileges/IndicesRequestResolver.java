@@ -10,7 +10,6 @@
  */
 package org.opensearch.security.privileges;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.opensearch.action.ActionRequest;

@@ -44,6 +44,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.security.privileges.DocumentAllowList;
@@ -98,7 +99,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final String action,
         final User user,
         final DynamicConfigModel config,
-        final ResolvedIndices requestedResolved,
+        final OptionallyResolvedIndices optionallyResolvedIndices,
         final PrivilegesEvaluationContext context,
         final TenantPrivileges tenantPrivileges
     ) {
@@ -106,6 +107,11 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final boolean enabled = config.isDashboardsMultitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
+            return CONTINUE_EVALUATION_REPLACE_RESULT;
+        }
+
+        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+            // If we have no information about the indices, it is safe to skip multi tenancy handling
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
@@ -129,7 +135,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         // intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias
         // involved
         final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername)
-            && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
+            && resolveToDashboardsIndexOrAlias(resolvedIndices, dashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
 
         TenantPrivileges.ActionType actionType = getActionTypeForAction(action);
@@ -157,12 +163,12 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         if (isDebugEnabled && !user.getName().equals(dashboardsServerUsername)) {
             // log statements only here
-            log.debug("requestedResolved: " + requestedResolved);
+            log.debug("requestedResolved: {}", resolvedIndices);
         }
 
         // request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isUnknown()) { // TODO
-            final Set<String> indices = requestedResolved.local().names();
+        if (!user.getName().equals(dashboardsServerUsername) && resolvedIndices.local().names().size() == 1) {
+            final Set<String> indices = resolvedIndices.local().namesOfIndices(context.clusterState());
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
@@ -201,7 +207,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             if (isTraceEnabled) {
                 log.trace("not a request to only the .kibana index");
                 log.trace(user.getName() + "/" + dashboardsServerUsername);
-                log.trace(requestedResolved + " does not contain only " + dashboardsIndexName);
+                log.trace(resolvedIndices + " does not contain only " + dashboardsIndexName);
             }
 
         }
@@ -394,9 +400,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final ResolvedIndices requestedResolved, final String dashboardsIndexName) {
-        if (requestedResolved.isUnknown()) { // TODO
-            return false;
-        }
         return requestedResolved.local().names().size() == 1 && requestedResolved.local().names().contains(dashboardsIndexName);
     }
 }

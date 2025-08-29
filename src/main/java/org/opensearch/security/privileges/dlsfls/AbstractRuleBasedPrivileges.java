@@ -33,7 +33,6 @@ import org.opensearch.security.privileges.PrivilegesConfigurationValidationExcep
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
@@ -133,7 +132,8 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
      * @throws PrivilegesEvaluationException If something went wrong during privileges evaluation. In such cases, any
      *                                       access should be denied to make sure that no unauthorized information is exposed.
      */
-    public boolean isUnrestricted(PrivilegesEvaluationContext context, OptionallyResolvedIndices optionallyResolvedIndices) throws PrivilegesEvaluationException {
+    public boolean isUnrestricted(PrivilegesEvaluationContext context, OptionallyResolvedIndices optionallyResolvedIndices)
+        throws PrivilegesEvaluationException {
         if (context.getMappedRoles().isEmpty()) {
             return false;
         }

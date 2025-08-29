@@ -38,6 +38,7 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -62,56 +63,59 @@ public class TermsAggregationEvaluator {
     public TermsAggregationEvaluator() {}
 
     public PrivilegesEvaluatorResponse evaluate(
-        final ResolvedIndices resolved,
-        final ActionRequest request,
+        OptionallyResolvedIndices optionallyResolvedIndices,
+        ActionRequest request,
         PrivilegesEvaluationContext context,
         ActionPrivileges actionPrivileges,
         PrivilegesEvaluatorResponse presponse
     ) {
+        // This is only applicable for SearchRequests and for present ResolvedIndices information (for SearchRequests that is usually the
+        // case)
+        if (!(request instanceof SearchRequest sr) || !(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+            return presponse;
+        }
+
         try {
-            if (request instanceof SearchRequest) {
-                SearchRequest sr = (SearchRequest) request;
 
-                if (sr.source() != null
-                    && sr.source().query() == null
-                    && sr.source().aggregations() != null
-                    && sr.source().aggregations().getAggregatorFactories() != null
-                    && sr.source().aggregations().getAggregatorFactories().size() == 1
-                    && sr.source().size() == 0) {
-                    AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().iterator().next();
-                    if (ab instanceof TermsAggregationBuilder && "terms".equals(ab.getType()) && "indices".equals(ab.getName())) {
-                        if ("_index".equals(((TermsAggregationBuilder) ab).field())
-                            && ab.getPipelineAggregations().isEmpty()
-                            && ab.getSubAggregations().isEmpty()) {
+            if (sr.source() != null
+                && sr.source().query() == null
+                && sr.source().aggregations() != null
+                && sr.source().aggregations().getAggregatorFactories() != null
+                && sr.source().aggregations().getAggregatorFactories().size() == 1
+                && sr.source().size() == 0) {
+                AggregationBuilder ab = sr.source().aggregations().getAggregatorFactories().iterator().next();
+                if (ab instanceof TermsAggregationBuilder && "terms".equals(ab.getType()) && "indices".equals(ab.getName())) {
+                    if ("_index".equals(((TermsAggregationBuilder) ab).field())
+                        && ab.getPipelineAggregations().isEmpty()
+                        && ab.getSubAggregations().isEmpty()) {
 
-                            PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
-                                context,
-                                READ_ACTIONS,
-                                resolved
-                                // TODO ResolvedIndices.all()
-                            );
+                        PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
+                            context,
+                            READ_ACTIONS,
+                            ResolvedIndices.unknown()
+                        );
 
-                            if (subResponse.isPartiallyOk()) {
-                                sr.source()
-                                    .query(
-                                        new TermsQueryBuilder(
-                                            "_index",
-                                            Streams.concat(
-                                                subResponse.getAvailableIndices().stream(),
-                                                resolved.remote().asRawExpressions().stream()
-                                            ).toArray(String[]::new)
-                                        )
-                                    );
-                            } else if (!subResponse.isAllowed()) {
-                                sr.source().query(NONE_QUERY);
-                            }
-
-                            presponse.allowed = true;
-                            return presponse.markComplete();
+                        if (subResponse.isPartiallyOk()) {
+                            sr.source()
+                                .query(
+                                    new TermsQueryBuilder(
+                                        "_index",
+                                        Streams.concat(
+                                            subResponse.getAvailableIndices().stream(),
+                                            resolvedIndices.remote().asRawExpressions().stream()
+                                        ).toArray(String[]::new)
+                                    )
+                                );
+                        } else if (!subResponse.isAllowed()) {
+                            sr.source().query(NONE_QUERY);
                         }
+
+                        presponse.allowed = true;
+                        return presponse.markComplete();
                     }
                 }
             }
+
         } catch (Exception e) {
             log.warn("Unable to evaluate terms aggregation", e);
             return presponse;

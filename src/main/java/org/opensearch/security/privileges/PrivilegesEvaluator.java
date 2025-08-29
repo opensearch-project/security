@@ -476,8 +476,7 @@ public class PrivilegesEvaluator {
         }
 
         // Protected index access
-        // TODO cast  (ResolvedIndices)
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, (ResolvedIndices) resolvedIndices, presponse, mappedRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, resolvedIndices, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -521,7 +520,7 @@ public class PrivilegesEvaluator {
                             action0,
                             user,
                             dcm,
-                                (ResolvedIndices) resolvedIndices,
+                            resolvedIndices,
                             context,
                             this.tenantPrivileges.get()
                         );
@@ -556,7 +555,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate((ResolvedIndices) resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
+        if (termsAggregationEvaluator.evaluate(resolvedIndices, request, context, actionPrivileges, presponse).isComplete()) {
             return presponse;
         }
 
@@ -584,7 +583,7 @@ public class PrivilegesEvaluator {
                 action0,
                 user,
                 dcm,
-                    (ResolvedIndices) resolvedIndices,
+                (ResolvedIndices) resolvedIndices,
                 context,
                 this.tenantPrivileges.get()
             );
@@ -611,7 +610,11 @@ public class PrivilegesEvaluator {
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
-                if (this.indicesRequestModifier.setLocalIndices(request, (ResolvedIndices) resolvedIndices, presponse.getAvailableIndices())) {
+                if (this.indicesRequestModifier.setLocalIndices(
+                    request,
+                    (ResolvedIndices) resolvedIndices,
+                    presponse.getAvailableIndices()
+                )) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }

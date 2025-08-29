@@ -14,7 +14,6 @@ package org.opensearch.security.privileges;
 import java.util.Set;
 
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
-import org.opensearch.cluster.metadata.ResolvedIndices;
 
 /**
  * Defines the general interface for evaluating privileges on actions. References to ActionPrivileges instances
@@ -89,9 +88,9 @@ public interface ActionPrivileges {
      * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
      */
     PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
-            PrivilegesEvaluationContext context,
-            Set<String> actions,
-            OptionallyResolvedIndices resolvedIndices
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        OptionallyResolvedIndices resolvedIndices
     );
 
     ActionPrivileges EMPTY = new ActionPrivileges() {

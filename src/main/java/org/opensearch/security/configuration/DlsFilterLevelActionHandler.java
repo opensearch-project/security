@@ -163,7 +163,9 @@ public class DlsFilterLevelActionHandler {
         this.threadContext = threadContext;
         this.resolver = resolver;
 
-        this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices ? resolvedIndices.local().names().size() != 1 : true;
+        this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices
+            ? resolvedIndices.local().names().size() != 1
+            : true;
     }
 
     private boolean handle() {
