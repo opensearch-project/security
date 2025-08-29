@@ -431,7 +431,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                     "artist"
                   ],
                   "allowed_actions": [
-                    "read",
+                    "read"
                   ]
                 }
               ],
