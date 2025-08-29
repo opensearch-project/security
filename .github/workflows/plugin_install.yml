@@ -44,7 +44,7 @@ jobs:
         uses: derek-ho/start-opensearch@v7
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
-          plugins: "file://$(pwd)/${{ env.PLUGIN_NAME }}.zip"
+          plugins: "file://$(echo $(pwd) | sed 's|\\\\|/|g')/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
