@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api.ssl;
 import java.io.IOException;
 import java.util.Optional;
 
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.support.nodes.BaseNodesRequest;
 import org.opensearch.core.common.Strings;
@@ -33,7 +34,11 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
 
     public CertificatesInfoNodesRequest(final StreamInput in) throws IOException {
         super(in);
-        certTypeID = in.readOptionalString();
+        if (in.getVersion().before(Version.V_3_0_0)) {
+            certTypeID = in.readEnum(CertificatesInfo.CertificateType_2_19.class).value();
+        } else {
+            certTypeID = in.readOptionalString();
+        }
         inMemory = in.readBoolean();
     }
 
@@ -48,7 +53,15 @@ public class CertificatesInfoNodesRequest extends BaseNodesRequest<CertificatesI
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalString(certTypeID);
+        if (out.getVersion().before(Version.V_3_0_0)) {
+            if (certTypeID == null) {
+                out.writeEnum(CertificatesInfo.CertificateType_2_19.ALL);
+            } else {
+                out.writeEnum(CertificatesInfo.CertificateType_2_19.valueOf(certTypeID));
+            }
+        } else {
+            out.writeOptionalString(certTypeID);
+        }
         out.writeBoolean(inMemory);
     }
 
