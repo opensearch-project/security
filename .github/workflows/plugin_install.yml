@@ -55,7 +55,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
-          plugins: "file:///$((Get-Location).Path -replace '\\','/')/${{ env.PLUGIN_NAME }}.zip"
+          plugins: "file:///$((Get-Location).Path -replace '\\\\','/')/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
