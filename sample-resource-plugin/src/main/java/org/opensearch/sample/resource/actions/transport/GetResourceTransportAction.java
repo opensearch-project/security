@@ -10,7 +10,6 @@ package org.opensearch.sample.resource.actions.transport;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -20,7 +19,6 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -72,18 +70,8 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
     }
 
     private void fetchAllResources(ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
-        if (client == null) {
-            fetchResourcesByIds(null, listener);
-            return;
-        }
-
-        client.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListener.wrap(ids -> {
-            if (ids.isEmpty()) {
-                listener.onResponse(new GetResourceResponse(Collections.emptySet()));
-            } else {
-                fetchResourcesByIds(ids, listener);
-            }
-        }, listener::onFailure));
+        System.out.println("fetchAllResources called");
+        fetchResourcesByIds(listener);
     }
 
     private void fetchResourceById(String resourceId, ActionListener<GetResourceResponse> listener) {
@@ -100,10 +88,9 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         });
     }
 
-    private void fetchResourcesByIds(@Nullable Set<String> ids, ActionListener<GetResourceResponse> listener) {
+    private void fetchResourcesByIds(ActionListener<GetResourceResponse> listener) {
         withThreadContext(stashed -> {
-            SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000)
-                .query(ids == null ? QueryBuilders.matchAllQuery() : QueryBuilders.idsQuery().addIds(ids.toArray(String[]::new)));
+            SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000).query(QueryBuilders.matchAllQuery());
 
             SearchRequest req = new SearchRequest(RESOURCE_INDEX_NAME).source(ssb);
             nodeClient.search(req, ActionListener.wrap(searchResponse -> {

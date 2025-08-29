@@ -67,6 +67,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -139,8 +140,26 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)
-            || (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction()))) {
+        System.out.println("context.action: " + context.getAction());
+        System.out.println("context.request: " + context.getRequest());
+        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        System.out.println("userSubject: " + userSubject.getUser());
+        System.out.println(
+            "HeaderHelper.isInternalOrPluginRequest(threadContext): " + HeaderHelper.isInternalOrPluginRequest(threadContext)
+        );
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            System.out.println("set unrestricted");
+            return DlsFilterLevelActionHandler.handle(
+                context,
+                IndexToRuleMap.unrestricted(),
+                listener,
+                nodeClient,
+                clusterService,
+                OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                resolver,
+                threadContext
+            );
+        } else if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
@@ -151,6 +170,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);
             boolean hasFlsRestrictions = !config.getFieldPrivileges().isUnrestricted(context, resolved);
             boolean hasFieldMasking = !config.getFieldMasking().isUnrestricted(context, resolved);
+
+            System.out.println("hasDlsRestrictions: " + hasDlsRestrictions);
 
             if (!hasDlsRestrictions && !hasFlsRestrictions && !hasFieldMasking) {
                 return true;
