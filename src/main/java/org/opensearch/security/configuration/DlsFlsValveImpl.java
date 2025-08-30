@@ -156,25 +156,29 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
             return true;
         }
-        if (isResourceSharingFeatureEnabled && HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            if (isResourceSharingFeatureEnabled) {
+                IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
-            IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
-                namedXContentRegistry,
-                resolved,
-                userSubject.getUser()
-            );
+                IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
+                    namedXContentRegistry,
+                    resolved,
+                    userSubject.getUser()
+                );
 
-            return DlsFilterLevelActionHandler.handle(
-                context,
-                sharedResourceMap,
-                listener,
-                nodeClient,
-                clusterService,
-                OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                resolver,
-                threadContext
-            );
+                return DlsFilterLevelActionHandler.handle(
+                    context,
+                    sharedResourceMap,
+                    listener,
+                    nodeClient,
+                    clusterService,
+                    OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                    resolver,
+                    threadContext
+                );
+            } else {
+                return true;
+            }
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
@@ -184,8 +188,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);
             boolean hasFlsRestrictions = !config.getFieldPrivileges().isUnrestricted(context, resolved);
             boolean hasFieldMasking = !config.getFieldMasking().isUnrestricted(context, resolved);
-
-            System.out.println("hasDlsRestrictions: " + hasDlsRestrictions);
 
             if (!hasDlsRestrictions && !hasFlsRestrictions && !hasFieldMasking) {
                 return true;
