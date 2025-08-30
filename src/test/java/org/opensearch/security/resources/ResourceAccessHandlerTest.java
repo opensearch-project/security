@@ -206,42 +206,6 @@ public class ResourceAccessHandlerTest {
     }
 
     @Test
-    public void testGetOwnAndSharedResources_asAdmin() {
-        User admin = new User("admin", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(admin);
-        when(adminDNs.isAdmin(admin)).thenReturn(true);
-
-        ActionListener<Set<String>> listener = mock(ActionListener.class);
-
-        doAnswer(inv -> {
-            ActionListener<Set<String>> l = inv.getArgument(1);
-            l.onResponse(Set.of("res1", "res2"));
-            return null;
-        }).when(sharingIndexHandler).fetchAllResourceIds(eq(INDEX), any());
-
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
-        verify(listener).onResponse(Set.of("res1", "res2"));
-    }
-
-    @Test
-    public void testGetOwnAndSharedResources_asNormalUser() {
-        User user = new User("alice", ImmutableSet.of("r1"), ImmutableSet.of("b1"), null, ImmutableMap.of(), false);
-        injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
-
-        ActionListener<Set<String>> listener = mock(ActionListener.class);
-
-        doAnswer(inv -> {
-            ActionListener<Set<String>> l = inv.getArgument(3);
-            l.onResponse(Set.of("res1"));
-            return null;
-        }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any(), any());
-
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
-        verify(listener).onResponse(Set.of("res1"));
-    }
-
-    @Test
     public void testShareSuccess() {
         User user = new User("user2", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(user);

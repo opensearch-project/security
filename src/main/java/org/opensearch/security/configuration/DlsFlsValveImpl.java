@@ -103,6 +103,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
+    private final AdminDNs adminDNs;
+    private boolean isResourceSharingFeatureEnabled = false;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -111,7 +113,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext
+        DlsFlsBaseContext dlsFlsBaseContext,
+        AdminDNs adminDNs
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -123,6 +126,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
+        this.adminDNs = adminDNs;
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -131,6 +135,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
+        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        this.isResourceSharingFeatureEnabled = isResourceSharingFeatureEnabled;
     }
 
     /**
@@ -140,24 +149,21 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        System.out.println("context.action: " + context.getAction());
-        System.out.println("context.request: " + context.getRequest());
         UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        System.out.println("userSubject: " + userSubject.getUser());
-        System.out.println(
-            "HeaderHelper.isInternalOrPluginRequest(threadContext): " + HeaderHelper.isInternalOrPluginRequest(threadContext)
-        );
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            System.out.println("set unrestricted");
-            DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
+            return true;
+        }
+        if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
+            return true;
+        }
+        if (isResourceSharingFeatureEnabled && HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
             IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
                 namedXContentRegistry,
+                resolved,
                 userSubject.getUser()
             );
-
-            System.out.println("sharedResourceMap: " + sharedResourceMap);
 
             return DlsFilterLevelActionHandler.handle(
                 context,
@@ -169,8 +175,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 resolver,
                 threadContext
             );
-        } else if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
-            return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();

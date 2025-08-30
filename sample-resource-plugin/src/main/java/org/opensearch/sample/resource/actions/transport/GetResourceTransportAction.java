@@ -29,13 +29,11 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRequest;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceResponse;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -59,36 +57,16 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
 
     @Override
     protected void doExecute(Task task, GetResourceRequest request, ActionListener<GetResourceResponse> listener) {
-        ResourceSharingClient client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
         String resourceId = request.getResourceId();
 
         if (Strings.isNullOrEmpty(resourceId)) {
-            fetchAllResources(listener, client);
+            fetchAllResources(listener);
         } else {
             fetchResourceById(resourceId, listener);
         }
     }
 
-    private void fetchAllResources(ActionListener<GetResourceResponse> listener, ResourceSharingClient client) {
-        System.out.println("fetchAllResources called");
-        fetchResourcesByIds(listener);
-    }
-
-    private void fetchResourceById(String resourceId, ActionListener<GetResourceResponse> listener) {
-        withThreadContext(stashed -> {
-            GetRequest req = new GetRequest(RESOURCE_INDEX_NAME, resourceId);
-            nodeClient.get(req, ActionListener.wrap(resp -> {
-                if (resp.isSourceEmpty()) {
-                    listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
-                } else {
-                    SampleResource resource = parseResource(resp.getSourceAsString());
-                    listener.onResponse(new GetResourceResponse(Set.of(resource)));
-                }
-            }, listener::onFailure));
-        });
-    }
-
-    private void fetchResourcesByIds(ActionListener<GetResourceResponse> listener) {
+    private void fetchAllResources(ActionListener<GetResourceResponse> listener) {
         withThreadContext(stashed -> {
             SearchSourceBuilder ssb = new SearchSourceBuilder().size(1000).query(QueryBuilders.matchAllQuery());
 
@@ -106,6 +84,20 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
                         }
                     }).collect(Collectors.toSet());
                     listener.onResponse(new GetResourceResponse(resources));
+                }
+            }, listener::onFailure));
+        });
+    }
+
+    private void fetchResourceById(String resourceId, ActionListener<GetResourceResponse> listener) {
+        withThreadContext(stashed -> {
+            GetRequest req = new GetRequest(RESOURCE_INDEX_NAME, resourceId);
+            nodeClient.get(req, ActionListener.wrap(resp -> {
+                if (resp.isSourceEmpty()) {
+                    listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
+                } else {
+                    SampleResource resource = parseResource(resp.getSourceAsString());
+                    listener.onResponse(new GetResourceResponse(Set.of(resource)));
                 }
             }, listener::onFailure));
         });

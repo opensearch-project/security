@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
 /**
@@ -69,7 +70,11 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
         return (IndexToRuleMap<Rule>) UNRESTRICTED;
     }
 
-    public static IndexToRuleMap<DlsRestriction> resourceRestrictions(NamedXContentRegistry xContentRegistry, User user) {
+    public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
+        NamedXContentRegistry xContentRegistry,
+        IndexResolverReplacer.Resolved resolved,
+        User user
+    ) {
 
         List<String> principals = new ArrayList<>();
         principals.add("user:" + user.getName());
@@ -89,8 +94,6 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
             + principals.stream().map(p -> "\"" + p.replace("\"", "\\\"") + "\"").collect(Collectors.joining(","))
             + "]}}";
 
-        System.out.println("dlsJson: " + dlsJson);
-
         DlsRestriction restriction;
         try {
             restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));
@@ -99,6 +102,10 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
             restriction = DlsRestriction.FULL;
         }
 
-        return new IndexToRuleMap<>(ImmutableMap.of(".sample_resource", restriction));
+        ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
+        for (String index : resolved.getAllIndices()) {
+            mapBuilder.put(index, restriction);
+        }
+        return new IndexToRuleMap<>(mapBuilder.build());
     }
 }
