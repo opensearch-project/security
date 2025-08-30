@@ -160,7 +160,6 @@ public class ApiAccessTests {
             api.assertApiShare(userResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdateUser");
             api.assertApiRevoke(userResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            System.out.println("Performing get request");
             api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
 
             // should not be able to search for admin's resource, can only see self-resource

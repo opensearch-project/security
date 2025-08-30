@@ -357,7 +357,6 @@ public final class TestUtils {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
-                System.out.println("get response json: " + response.getBody());
                 if (status == HttpStatus.SC_OK) assertThat(response.getBody(), containsString(expectedString));
             }
         }

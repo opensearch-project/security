@@ -156,8 +156,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
             return true;
         }
+        ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            if (isResourceSharingFeatureEnabled) {
+            if (isResourceSharingFeatureEnabled && request instanceof SearchRequest) {
                 IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
                 IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
@@ -181,7 +182,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
         try {
