@@ -72,6 +72,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.test.framework.matcher.IndexApiResponseMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -136,6 +137,11 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig doNotFailOnForbidden(boolean doNotFailOnForbidden) {
         config.doNotFailOnForbidden(doNotFailOnForbidden);
+        return this;
+    }
+
+    public TestSecurityConfig privilegesEvaluationType(String privilegesEvaluationType) {
+        config.privilegesEvaluationType(privilegesEvaluationType);
         return this;
     }
 
@@ -263,6 +269,7 @@ public class TestSecurityConfig {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
@@ -277,6 +284,11 @@ public class TestSecurityConfig {
 
         public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
             this.doNotFailOnForbidden = doNotFailOnForbidden;
+            return this;
+        }
+
+        public Config privilegesEvaluationType(String privilegesEvaluationType) {
+            this.privilegesEvaluationType = privilegesEvaluationType;
             return this;
         }
 
@@ -325,7 +337,9 @@ public class TestSecurityConfig {
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
             }
-
+            if (privilegesEvaluationType != null) {
+                xContentBuilder.field("privileges_evaluation_type", privilegesEvaluationType);
+            }
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
                 xContentBuilder.field("authz", authzDomainMap);
@@ -459,6 +473,8 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private Map<String, IndexApiResponseMatchers.IndexMatcher> indexMatchers = new HashMap<>();
+        private boolean adminCertUser = false;
 
         private Boolean hidden = null;
 
@@ -512,6 +528,21 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public User indexMatcher(String key, IndexApiResponseMatchers.IndexMatcher indexMatcher) {
+            this.indexMatchers.put(key, indexMatcher);
+            return this;
+        }
+
+        public IndexApiResponseMatchers.IndexMatcher indexMatcher(String key) {
+            IndexApiResponseMatchers.IndexMatcher result = this.indexMatchers.get(key);
+
+            if (result != null) {
+                return result;
+            } else {
+                throw new RuntimeException("Unknown index matcher " + key + " in user " + this.name);
+            }
+        }
+
         public User hash(String hash) {
             this.hash = hash;
             return this;
@@ -536,6 +567,20 @@ public class TestSecurityConfig {
 
         public Set<String> getRoleNames() {
             return roles.stream().map(Role::getName).collect(Collectors.toSet());
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public boolean isAdminCertUser() {
+            return adminCertUser;
+        }
+
+        public User adminCertUser() {
+            this.adminCertUser = true;
+            return this;
         }
 
         public Object getAttribute(String attributeName) {

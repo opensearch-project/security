@@ -71,21 +71,23 @@ public class ResourceAccessEvaluator {
         final PrivilegesEvaluationContext context,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
-        PrivilegesEvaluatorResponse pResponse = new PrivilegesEvaluatorResponse();
-
         log.debug("Evaluating resource access");
 
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
         DocRequest req = (DocRequest) request;
 
-        resourceAccessHandler.hasPermission(req.id(), req.index(), action, context, ActionListener.wrap(hasAccess -> {
-            if (hasAccess) {
-                pResponse.allowed = true;
-                pResponseListener.onResponse(pResponse.markComplete());
-                return;
-            }
-            pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
-        }, e -> { pResponseListener.onResponse(pResponse.markComplete()); }));
+        resourceAccessHandler.hasPermission(
+            req.id(),
+            req.index(),
+            action,
+            context,
+            ActionListener.wrap(
+                hasAccess -> pResponseListener.onResponse(
+                    hasAccess ? PrivilegesEvaluatorResponse.ok() : PrivilegesEvaluatorResponse.insufficient(action)
+                ),
+                pResponseListener::onFailure
+            )
+        );
     }
 
     /**

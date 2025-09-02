@@ -36,7 +36,7 @@ public class IndexPattern {
     /**
      * An IndexPattern which does not match any index.
      */
-    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of());
+    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of(), false);
 
     /**
      * Plain index patterns without any dynamic expressions like user attributes and date math.
@@ -54,12 +54,19 @@ public class IndexPattern {
      */
     private final ImmutableList<String> dateMathExpressions;
     private final int hashCode;
+    private final boolean memberIndexPrivilegesYieldAliasPrivileges;
 
-    private IndexPattern(WildcardMatcher staticPattern, ImmutableList<String> patternTemplates, ImmutableList<String> dateMathExpressions) {
+    private IndexPattern(
+        WildcardMatcher staticPattern,
+        ImmutableList<String> patternTemplates,
+        ImmutableList<String> dateMathExpressions,
+        boolean memberIndexPrivilegesYieldALiasPrivileges
+    ) {
         this.staticPattern = staticPattern;
         this.patternTemplates = patternTemplates;
         this.dateMathExpressions = dateMathExpressions;
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
+        this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldALiasPrivileges;
     }
 
     public boolean matches(
@@ -92,18 +99,21 @@ public class IndexPattern {
             }
 
             return false;
-        } else {
-            // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
+        } else if (this.memberIndexPrivilegesYieldAliasPrivileges
+            && (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream)) {
+                // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
 
-            for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
-                if (!matchesDirectly(memberIndex.getIndex().getName(), context)) {
-                    return false;
+                for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
+                    if (!matchesDirectly(memberIndex.getIndex().getName(), context)) {
+                        return false;
+                    }
                 }
-            }
 
-            // If we could match all members, we have a match
-            return true;
-        }
+                // If we could match all members, we have a match
+                return true;
+            } else {
+                return false;
+            }
     }
 
     private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context)
@@ -208,7 +218,12 @@ public class IndexPattern {
         if (patternTemplates.isEmpty() && dateMathExpressions.isEmpty()) {
             return EMPTY;
         } else {
-            return new IndexPattern(WildcardMatcher.NONE, this.patternTemplates, this.dateMathExpressions);
+            return new IndexPattern(
+                WildcardMatcher.NONE,
+                this.patternTemplates,
+                this.dateMathExpressions,
+                this.memberIndexPrivilegesYieldAliasPrivileges
+            );
         }
     }
 
@@ -237,6 +252,11 @@ public class IndexPattern {
         private List<WildcardMatcher> constantPatterns = new ArrayList<>();
         private List<String> patternTemplates = new ArrayList<>();
         private List<String> dateMathExpressions = new ArrayList<>();
+        private boolean memberIndexPrivilegesYieldAliasPrivileges;
+
+        public Builder(boolean memberIndexPrivilegesYieldAliasPrivileges) {
+            this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
+        }
 
         public void add(List<String> source) {
             for (int i = 0; i < source.size(); i++) {
@@ -261,18 +281,22 @@ public class IndexPattern {
             return new IndexPattern(
                 constantPatterns.size() != 0 ? WildcardMatcher.from(constantPatterns) : WildcardMatcher.NONE,
                 ImmutableList.copyOf(patternTemplates),
-                ImmutableList.copyOf(dateMathExpressions)
+                ImmutableList.copyOf(dateMathExpressions),
+                this.memberIndexPrivilegesYieldAliasPrivileges
             );
         }
     }
 
-    public static IndexPattern from(List<String> source) {
-        Builder builder = new Builder();
+    public static IndexPattern from(List<String> source, boolean memberIndexPrivilegesYieldAliasPrivileges) {
+        Builder builder = new Builder(memberIndexPrivilegesYieldAliasPrivileges);
         builder.add(source);
         return builder.build();
     }
 
-    public static IndexPattern from(String... source) {
-        return from(Arrays.asList(source));
+    /**
+     * Only for testing.
+     */
+    static IndexPattern from(String... source) {
+        return from(Arrays.asList(source), true);
     }
 }

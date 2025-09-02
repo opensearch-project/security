@@ -117,10 +117,12 @@ public class PrivilegesConfiguration {
                 PrivilegesEvaluationType privilegesEvaluationType = PrivilegesEvaluationType.getFrom(
                     configurationRepository.getConfiguration(CType.CONFIG)
                 );
-                PrivilegesEvaluationType currentEvaluationType = currentPrivilegesEvaluator == null ? null
-                    : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
+                PrivilegesEvaluationType currentEvaluationType =
+                    currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
                         ? PrivilegesEvaluationType.LEGACY
-                    : PrivilegesEvaluationType.NEXT_GEN;
+                        : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator
+                            ? PrivilegesEvaluationType.NEXT_GEN
+                        : null;
 
                 if (privilegesEvaluationType != currentEvaluationType) {
                     if (privilegesEvaluationType == PrivilegesEvaluationType.LEGACY) {
@@ -147,23 +149,25 @@ public class PrivilegesConfiguration {
                         }
                     } else {
                         PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                                new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
-                                        clusterService,
-                                        clusterStateSupplier,
-                                        roleMapper,
-                                        threadPool,
-                                        threadPool.getThreadContext(),
-                                        resolver,
-                                        auditLog,
-                                        settings,
-                                        privilegesInterceptor,
-                                        flattenedActionGroups,
-                                        staticActionGroups,
-                                        rolesConfiguration,
-                                        generalConfiguration,
-                                        pluginIdToRolePrivileges,
-                                        new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(this.specialIndices::isUniversallyDeniedIndex, this.specialIndices::isSystemIndex)
+                            new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
+                                clusterStateSupplier,
+                                roleMapper,
+                                threadPool,
+                                threadPool.getThreadContext(),
+                                resolver,
+                                auditLog,
+                                settings,
+                                privilegesInterceptor,
+                                flattenedActionGroups,
+                                staticActionGroups,
+                                rolesConfiguration,
+                                generalConfiguration,
+                                pluginIdToRolePrivileges,
+                                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                                    this.specialIndices::isUniversallyDeniedIndex,
+                                    this.specialIndices::isSystemIndex
                                 )
+                            )
                         );
                         if (oldInstance != null) {
                             oldInstance.shutdown();
@@ -257,7 +261,7 @@ public class PrivilegesConfiguration {
             if (config == null || config.dynamic == null) {
                 return defaultValue;
             }
-            if (config.dynamic.privilegesEvaluationType.equalsIgnoreCase(NEXT_GEN.name())) {
+            if (NEXT_GEN.name().equalsIgnoreCase(config.dynamic.privilegesEvaluationType)) {
                 return NEXT_GEN;
             } else {
                 return LEGACY;

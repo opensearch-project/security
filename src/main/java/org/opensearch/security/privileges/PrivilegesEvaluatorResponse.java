@@ -31,8 +31,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -42,12 +44,13 @@ import com.selectivem.collections.CheckTable;
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingSecurityRoles = new HashSet<>();
-    PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     CreateIndexRequestBuilder createIndexRequestBuilder;
     private Set<String> onlyAllowedForIndices = ImmutableSet.of();
     private CheckTable<String, String> indexToActionCheckTable;
+    private ImmutableList<PrivilegesEvaluatorResponse> subResults = ImmutableList.of();
     private String privilegeMatrix;
     private String reason;
+    private PrivilegesEvaluatorResponse originalResult;
 
     /**
      * Contains issues that were encountered during privilege evaluation. Can be used for logging.
@@ -101,7 +104,13 @@ public class PrivilegesEvaluatorResponse {
      * Returns a diagnostic string that contains issues that were encountered during privilege evaluation. Can be used for logging.
      */
     public String getEvaluationExceptionInfo() {
-        StringBuilder result = new StringBuilder("Exceptions encountered during privilege evaluation:\n");
+        if (this.evaluationExceptions.isEmpty()) {
+            return "No errors";
+        }
+
+        StringBuilder result = new StringBuilder(
+            this.evaluationExceptions.size() == 1 ? "One error:\n" : this.evaluationExceptions.size() + " errors:\n"
+        );
 
         for (PrivilegesEvaluationException evaluationException : this.evaluationExceptions) {
             result.append(evaluationException.getNestedMessages()).append("\n");
@@ -127,7 +136,23 @@ public class PrivilegesEvaluatorResponse {
         String result = this.privilegeMatrix;
 
         if (result == null) {
-            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            String topLevelMatrix;
+
+            if (this.indexToActionCheckTable != null) {
+                topLevelMatrix = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            } else {
+                topLevelMatrix = "n/a";
+            }
+
+            if (subResults.isEmpty()) {
+                result = topLevelMatrix;
+            } else {
+                StringBuilder resultBuilder = new StringBuilder(topLevelMatrix);
+                for (PrivilegesEvaluatorResponse subResult : subResults) {
+                    resultBuilder.append("\n");
+                    resultBuilder.append(subResult.getPrivilegeMatrix());
+                }
+            }
             this.privilegeMatrix = result;
         }
         return result;
@@ -141,22 +166,40 @@ public class PrivilegesEvaluatorResponse {
         return createIndexRequestBuilder;
     }
 
-    public PrivilegesEvaluatorResponse markComplete() {
-        this.state = PrivilegesEvaluatorResponseState.COMPLETE;
+    public PrivilegesEvaluatorResponse originalResult() {
+        return this.originalResult;
+    }
+
+    public boolean privilegesAreComplete() {
+        if (originalResult != null && !originalResult.privilegesAreComplete()) {
+            return false;
+        } else if (indexToActionCheckTable != null && !indexToActionCheckTable.isComplete()) {
+            return false;
+        } else if (!subResults.isEmpty() && subResults.stream().anyMatch(subResult -> !subResult.privilegesAreComplete())) {
+            return false;
+        } else {
+            return this.allowed;
+        }
+    }
+
+    public PrivilegesEvaluatorResponse insufficient(List<PrivilegesEvaluatorResponse> subResults) {
+        String reason = this.reason;
+        if (reason == null) {
+            reason = subResults.stream().map(result -> result.reason).filter(Objects::nonNull).findFirst().orElse(null);
+        }
+        PrivilegesEvaluatorResponse result = new PrivilegesEvaluatorResponse();
+        result.allowed = false;
+        result.indexToActionCheckTable = this.indexToActionCheckTable;
+        result.subResults = ImmutableList.copyOf(subResults);
+        return result;
+    }
+
+    public PrivilegesEvaluatorResponse originalResult(PrivilegesEvaluatorResponse originalResult) {
+        if (originalResult != null && !originalResult.evaluationExceptions.isEmpty()) {
+            this.originalResult = originalResult;
+            this.evaluationExceptions.addAll(originalResult.evaluationExceptions);
+        }
         return this;
-    }
-
-    public PrivilegesEvaluatorResponse markPending() {
-        this.state = PrivilegesEvaluatorResponseState.PENDING;
-        return this;
-    }
-
-    public boolean isComplete() {
-        return this.state == PrivilegesEvaluatorResponseState.COMPLETE;
-    }
-
-    public boolean isPending() {
-        return this.state == PrivilegesEvaluatorResponseState.PENDING;
     }
 
     @Override
@@ -172,6 +215,13 @@ public class PrivilegesEvaluatorResponse {
 
     public static PrivilegesEvaluatorResponse ok() {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.allowed = true;
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse ok(CheckTable<String, String> indexToActionCheckTable) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = indexToActionCheckTable;
         response.allowed = true;
         return response;
     }
