@@ -1196,7 +1196,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 xContentRegistry,
                 threadPool,
                 dlsFlsBaseContext,
-                adminDns
+                adminDns,
+                resourcePluginInfo != null ? resourcePluginInfo.getResourceIndices() : null
             );
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
