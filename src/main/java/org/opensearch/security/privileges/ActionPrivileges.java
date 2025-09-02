@@ -81,6 +81,15 @@ public interface ActionPrivileges {
     );
 
     /**
+     * Checks whether this instance provides privileges for the provided actions on any possible index.
+     * <p>
+     * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+     * <p>
+     * If no privileges are available, this method will return PrivilegeEvaluatorResponse.insufficient()
+     */
+    PrivilegesEvaluatorResponse hasIndexPrivilegeForAnyIndex(PrivilegesEvaluationContext context, Set<String> actions);
+
+    /**
      * Checks whether this instance provides explicit privileges for the combination of the provided action,
      * the provided indices and the provided roles.
      * <p>
@@ -115,6 +124,11 @@ public interface ActionPrivileges {
             Set<String> actions,
             OptionallyResolvedIndices resolvedIndices
         ) {
+            return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
+        }
+
+        @Override
+        public PrivilegesEvaluatorResponse hasIndexPrivilegeForAnyIndex(PrivilegesEvaluationContext context, Set<String> actions) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }
 

@@ -58,6 +58,11 @@ import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
+import org.opensearch.test.framework.data.TestAlias;
+import org.opensearch.test.framework.data.TestComponentTemplate;
+import org.opensearch.test.framework.data.TestDataStream;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexTemplate;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.XffConfig;
@@ -655,6 +660,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder doNotFailOnForbidden(boolean doNotFailOnForbidden) {
             testSecurityConfig.doNotFailOnForbidden(doNotFailOnForbidden);
+            return this;
+        }
+
+        public Builder privilegesEvaluationType(String privilegesEvaluationType) {
+            testSecurityConfig.privilegesEvaluationType(privilegesEvaluationType);
             return this;
         }
 

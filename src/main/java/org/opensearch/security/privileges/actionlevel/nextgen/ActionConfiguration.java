@@ -123,8 +123,10 @@ class ActionConfiguration {
         } else if (this.clusterActions.contains(action)) {
             return true;
         } else {
-            // TODO maybe switch to index:
-            return action.startsWith("cluster:");
+            // TODO maybe move to "indices:" prefix
+            return action.startsWith("cluster:")
+                || action.startsWith("indices:admin/template/")
+                || action.startsWith("indices:admin/index_template/");
         }
     }
 

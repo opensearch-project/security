@@ -21,7 +21,7 @@ import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
 public class IndicesRequestResolver {
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    protected final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public IndicesRequestResolver(IndexNameExpressionResolver indexNameExpressionResolver) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;

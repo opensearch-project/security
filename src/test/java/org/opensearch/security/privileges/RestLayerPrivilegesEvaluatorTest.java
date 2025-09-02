@@ -102,7 +102,8 @@ import static org.hamcrest.Matchers.equalTo;
             roles,
             FlattenedActionGroups.EMPTY,
             RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-            Settings.EMPTY
+            Settings.EMPTY,
+            false
         );
 
         return new PrivilegesEvaluator() {

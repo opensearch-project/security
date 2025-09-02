@@ -36,6 +36,11 @@ import org.opensearch.test.framework.data.TestDataStream;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.data.TestIndexTemplate;
+import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -510,13 +515,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 { "b": 1, "test": "putDocument_bulk", "@timestamp": "2025-09-15T12:00:01Z" }
                 """);
 
-            if (user == LIMITED_USER_PERMISSIONS_ON_BACKING_INDICES) {
-                // IndexResolverReplacer won't resolve data stream names to member index names, because it does not
-                // specify the includeDataStream option and thus just stumbles over an IndexNotFoundException
-                // Thus, in contrast to aliases, privileges on backing index names won't work
-                assertThat(httpResponse, isOk());
-                assertThat(httpResponse, containsExactly().at("items[*].create[?(@.result == 'created')]._index"));
-            } else if (user != LIMITED_USER_NONE) {
+            if (user != LIMITED_USER_NONE) {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_aw1, ds_bw1).at("items[*].create[?(@.result == 'created')]._index")

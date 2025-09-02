@@ -29,12 +29,16 @@ import org.opensearch.test.framework.data.TestDataStream;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.data.TestIndexTemplate;
+import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.data.TestIndex.openSearchSecurityConfigIndex;
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
@@ -261,14 +265,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
             } else {
-                // The dnfof implementation has the effect that the expand_wildcards=none option is disregarded
-                // Additionally, the dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                assertThat(httpResponse, isForbidden());
             }
         }
     }
@@ -277,13 +274,17 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_noPattern_allowNoIndicesFalse() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&allow_no_indices=false");
-
-            assertThat(
-                httpResponse,
-                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
-            );
+            if (user != LIMITED_USER_OTHER_PRIVILEGES) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_INDICES).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
+                );
+            } else {
+                // Due to allow_no_indices=false, we cannot reduce to the empty set for the user without any privileges. Thus we get a 403
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -308,14 +309,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
             } else {
-                // The dnfof implementation has the effect that the expand_wildcards=none option is disregarded
-                // Additionally, the dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                assertThat(httpResponse, isForbidden());
             }
         }
     }
@@ -338,11 +332,19 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_staticNames_noIgnoreUnavailable() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a1,ds_a2,ds_b1/_search?size=1000");
-            // With dnfof data streams with incomplete privileges will be replaced by their member indices
-            assertThat(
-                httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // In the old privilege evaluation, data streams with incomplete privileges will be replaced by their member indices
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                );
+            } else {
+                // In the new privilege evaluation, data streams with incomplete privileges will lead to a 403 error
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            }
         }
     }
 
@@ -477,7 +479,9 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get(
                 "ds_a*,ds_b*/_search?size=1000&expand_wildcards=none&ignore_unavailable=true"
             );
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+            if (clusterConfig.legacyPrivilegeEvaluation && (user == LIMITED_USER_B1 || user == LIMITED_USER_OTHER_PRIVILEGES)) {
+                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+            } else {
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
             } else {
@@ -531,19 +535,11 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                   }
                 }""");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("aggregations.indices.buckets[*].key")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(isOk())
-                );
-            } else {
-                // Users without full privileges will not see hidden indices here; thus on a cluster with only data streams, the result is
-                // often just empty
-                assertThat(httpResponse, isOk());
-                assertThat(httpResponse, containsExactly().at("aggregations.indices.buckets[*].key"));
-            }
+            assertThat(
+                httpResponse,
+                containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
+            );
+
         }
     }
 
@@ -595,11 +591,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStream_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream");
-            // The legacy mode does not support dnfof for indices:admin/data_stream/get
-            assertThat(
-                httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:admin/data_stream/get
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -607,11 +610,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStream_wildcard() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/*");
-            // The legacy mode does not support dnfof for indices:admin/data_stream/get
-            assertThat(
-                httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:admin/data_stream/get
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -619,11 +629,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStream_pattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/ds_a*");
-            // The legacy mode does not support dnfof for indices:admin/data_stream/get
-            assertThat(
-                httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:admin/data_stream/get
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -631,11 +648,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStream_pattern_negation() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/ds_*,-ds_b*");
-            // The legacy mode does not support dnfof for indices:admin/data_stream/get
-            assertThat(
-                httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:admin/data_stream/get
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -654,11 +678,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStreamStats_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/_stats");
-            // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
-            assertThat(
-                httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -666,11 +697,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStreamStats_wildcard() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/*/_stats");
-            // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
-            assertThat(
-                httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -678,11 +716,20 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void getDataStreamStats_pattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/ds_a*/_stats");
-            // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
-            assertThat(
-                httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
+                );
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].data_stream")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -753,11 +800,14 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void field_caps_staticIndices_noIgnoreUnavailable() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a1,ds_a2,ds_b1/_field_caps?fields=*");
-            assertThat(
-                httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_b1).at("indices").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-            );
-
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(ds_a1, ds_a2, ds_b1).at("indices").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, containsExactly(ds_a1, ds_a2, ds_b1).at("indices").butForbiddenIfIncomplete(user.reference(READ)));
+            }
         }
     }
 
@@ -800,28 +850,14 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void field_caps_indexPattern_minus() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-ds_b2,-ds_b3/_field_caps?fields=*");
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                // OpenSearch does not handle the expression ds_a*,ds_b*,-ds_b2,-ds_b3 in a way that excludes the data streams. See
-                // field_caps_indexPattern_minus_backingIndices for an alternative.
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            } else {
-                if (user == LIMITED_USER_B1) {
-                    // No wildcard in the index pattern
-                    assertThat(httpResponse, isForbidden());
-                } else {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                            .reducedBy(user.reference(READ))
-                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                    );
-                }
-            }
+            // does not handle the expression ds_a*,ds_b*,-ds_b2,-ds_b3 in a way that excludes the data streams. See
+            // field_caps_indexPattern_minus_backingIndices for an alternative.
+            assertThat(
+                httpResponse,
+                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+            );
         }
     }
 
