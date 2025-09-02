@@ -77,6 +77,7 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
     ) {
 
         List<String> principals = new ArrayList<>();
+        principals.add("user:*"); // Convention for publicly visible
         principals.add("user:" + user.getName());
 
         // Security roles (OpenSearch Security roles)
