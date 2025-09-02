@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
@@ -45,6 +45,9 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 
 public class TermsAggregationEvaluator {
 
@@ -66,13 +69,12 @@ public class TermsAggregationEvaluator {
         OptionallyResolvedIndices optionallyResolvedIndices,
         ActionRequest request,
         PrivilegesEvaluationContext context,
-        ActionPrivileges actionPrivileges,
-        PrivilegesEvaluatorResponse presponse
+        ActionPrivileges actionPrivileges
     ) {
         // This is only applicable for SearchRequests and for present ResolvedIndices information (for SearchRequests that is usually the
         // case)
         if (!(request instanceof SearchRequest sr) || !(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
-            return presponse;
+            return null;
         }
 
         try {
@@ -110,17 +112,15 @@ public class TermsAggregationEvaluator {
                             sr.source().query(NONE_QUERY);
                         }
 
-                        presponse.allowed = true;
-                        return presponse.markComplete();
+                        return PrivilegesEvaluatorResponse.ok();
                     }
                 }
             }
 
         } catch (Exception e) {
             log.warn("Unable to evaluate terms aggregation", e);
-            return presponse;
         }
 
-        return presponse;
+        return null;
     }
 }

@@ -30,8 +30,8 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -56,19 +56,19 @@ public class ResourceAccessHandler {
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
     @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns,
-        PrivilegesEvaluator evaluator
+        PrivilegesConfiguration privilegesConfiguration
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
-        this.privilegesEvaluator = evaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
     }
 
     /**
@@ -159,7 +159,9 @@ public class ResourceAccessHandler {
             return;
         }
 
-        PrivilegesEvaluationContext effectiveContext = context != null ? context : privilegesEvaluator.createContext(user, action);
+        PrivilegesEvaluationContext effectiveContext = context != null
+            ? context
+            : privilegesConfiguration.privilegesEvaluator().createContext(user, action);
 
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());

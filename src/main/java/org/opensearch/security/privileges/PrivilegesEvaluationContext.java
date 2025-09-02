@@ -143,18 +143,6 @@ public class PrivilegesEvaluationContext {
         return mappedRoles;
     }
 
-    /**
-     * Note: Ideally, mappedRoles would be an unmodifiable attribute. PrivilegesEvaluator however contains logic
-     * related to OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION which first validates roles and afterwards modifies
-     * them again. Thus, we need to be able to set this attribute.
-     *
-     * However, this method should be only used for this one particular phase. Normally, all roles should be determined
-     * upfront and stay constant during the whole privilege evaluation process.
-     */
-    void setMappedRoles(ImmutableSet<String> mappedRoles) {
-        this.mappedRoles = mappedRoles;
-    }
-
     public ClusterState clusterState() {
         return clusterStateSupplier.get();
     }

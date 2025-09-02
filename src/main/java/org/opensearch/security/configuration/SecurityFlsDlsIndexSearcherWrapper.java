@@ -37,9 +37,10 @@ import org.opensearch.index.shard.ShardUtils;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.privileges.DocumentAllowList;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
@@ -69,11 +70,12 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         final ClusterService clusterService,
         final AuditLog auditlog,
         final ComplianceIndexingOperationListener ciol,
-        final PrivilegesEvaluator evaluator,
+        final PrivilegesConfiguration privilegesConfiguration,
+        final RoleMapper roleMapper,
         final Supplier<DlsFlsProcessedConfig> dlsFlsProcessedConfigSupplier,
         final DlsFlsBaseContext dlsFlsBaseContext
     ) {
-        super(indexService, settings, adminDNs, evaluator);
+        super(indexService, settings, adminDNs, privilegesConfiguration, roleMapper);
         Set<String> metadataFieldsCopy;
         if (indexService.getMetadata().getState() == IndexMetadata.State.CLOSE) {
             if (log.isDebugEnabled()) {

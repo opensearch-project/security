@@ -23,7 +23,8 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.resources.migrate.MigrateResourceSharingInfoApiAction;
 import org.opensearch.security.ssl.SslSettingsManager;
@@ -45,7 +46,8 @@ public class SecurityRestApiActions {
         final ConfigurationRepository configurationRepository,
         final ClusterService clusterService,
         final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
+        final RoleMapper roleMapper,
+        final PrivilegesConfiguration privilegesConfiguration,
         final ThreadPool threadPool,
         final AuditLog auditLog,
         final SslSettingsManager sslSettingsManager,
@@ -57,11 +59,11 @@ public class SecurityRestApiActions {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
             configurationRepository,
-            evaluator,
-            new RestApiPrivilegesEvaluator(settings, adminDns, evaluator, principalExtractor, configPath, threadPool),
+            privilegesConfiguration,
+            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
             new RestApiAdminPrivilegesEvaluator(
                 threadPool.getThreadContext(),
-                evaluator,
+                privilegesConfiguration,
                 adminDns,
                 settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
             ),
@@ -85,7 +87,7 @@ public class SecurityRestApiActions {
                 configurationRepository,
                 clusterService,
                 principalExtractor,
-                evaluator,
+                roleMapper,
                 threadPool,
                 auditLog
             ),

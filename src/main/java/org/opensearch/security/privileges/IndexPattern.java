@@ -62,8 +62,11 @@ public class IndexPattern {
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
     }
 
-    public boolean matches(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
-        throws PrivilegesEvaluationException {
+    public boolean matches(
+        String indexOrAliasOrDatastream,
+        PrivilegesEvaluationContext context,
+        Map<String, IndexAbstraction> indexMetadata
+    ) throws PrivilegesEvaluationException {
 
         if (matchesDirectly(indexOrAliasOrDatastream, context)) {
             return true;
@@ -103,7 +106,8 @@ public class IndexPattern {
         }
     }
 
-    private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
+    private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context)
+        throws PrivilegesEvaluationException {
         if (staticPattern != WildcardMatcher.NONE && staticPattern.test(indexOrAliasOrDatastream)) {
             return true;
         }
