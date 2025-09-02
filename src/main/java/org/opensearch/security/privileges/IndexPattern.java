@@ -92,7 +92,7 @@ public class IndexPattern {
             }
 
             return false;
-        } else {
+        } else if (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream) {
             // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
 
             for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
@@ -103,6 +103,8 @@ public class IndexPattern {
 
             // If we could match all members, we have a match
             return true;
+        } else {
+            return false;
         }
     }
 

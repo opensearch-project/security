@@ -147,23 +147,26 @@ public class PrivilegesConfiguration {
                         }
                     } else {
                         PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                                new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
-                                        clusterService,
-                                        clusterStateSupplier,
-                                        roleMapper,
-                                        threadPool,
-                                        threadPool.getThreadContext(),
-                                        resolver,
-                                        auditLog,
-                                        settings,
-                                        privilegesInterceptor,
-                                        flattenedActionGroups,
-                                        staticActionGroups,
-                                        rolesConfiguration,
-                                        generalConfiguration,
-                                        pluginIdToRolePrivileges,
-                                        new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(this.specialIndices::isUniversallyDeniedIndex, this.specialIndices::isSystemIndex)
+                            new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
+                                clusterService,
+                                clusterStateSupplier,
+                                roleMapper,
+                                threadPool,
+                                threadPool.getThreadContext(),
+                                resolver,
+                                auditLog,
+                                settings,
+                                privilegesInterceptor,
+                                flattenedActionGroups,
+                                staticActionGroups,
+                                rolesConfiguration,
+                                generalConfiguration,
+                                pluginIdToRolePrivileges,
+                                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                                    this.specialIndices::isUniversallyDeniedIndex,
+                                    this.specialIndices::isSystemIndex
                                 )
+                            )
                         );
                         if (oldInstance != null) {
                             oldInstance.shutdown();
@@ -257,7 +260,7 @@ public class PrivilegesConfiguration {
             if (config == null || config.dynamic == null) {
                 return defaultValue;
             }
-            if (config.dynamic.privilegesEvaluationType.equalsIgnoreCase(NEXT_GEN.name())) {
+            if (NEXT_GEN.name().equalsIgnoreCase(config.dynamic.privilegesEvaluationType)) {
                 return NEXT_GEN;
             } else {
                 return LEGACY;

@@ -938,7 +938,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             ImmutableMap.Builder<String, IndexAbstraction> builder = ImmutableMap.builder();
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (universallyDeniedIndices.test(indexAbstraction.getName())) {
+                if (universallyDeniedIndices != null && universallyDeniedIndices.test(indexAbstraction.getName())) {
                     continue;
                 }
 

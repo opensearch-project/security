@@ -14,11 +14,11 @@ public class SpecialIndices {
 
     public SpecialIndices(Settings settings) {
         this.securityIndex = settings.get(
-                ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-                ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.manuallyConfiguredSystemIndexMatcher = WildcardMatcher.from(
-                settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
     }
 
@@ -29,6 +29,5 @@ public class SpecialIndices {
     public boolean isSystemIndex(String index) {
         return this.manuallyConfiguredSystemIndexMatcher.test(index) || SystemIndexRegistry.matchesSystemIndexPattern(index);
     }
-
 
 }

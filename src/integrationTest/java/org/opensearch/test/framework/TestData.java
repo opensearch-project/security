@@ -641,6 +641,14 @@ public class TestData {
         public Set<String> allIds() {
             return this.documents.keySet();
         }
+
+        public Map<String, TestData.TestDocument> allDocs() {
+            ImmutableMap.Builder<String, TestDocument> mapBuilder = ImmutableMap.builder();
+            for (TestDocument testDocument : this.documents.values()) {
+                mapBuilder.put(testDocument.id, testDocument);
+            }
+            return mapBuilder.build();
+        }
     }
 
     public static class TestDocument {

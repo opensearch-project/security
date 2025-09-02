@@ -10,9 +10,15 @@
  */
 package org.opensearch.security.privileges.actionlevel.nextgen;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
@@ -24,7 +30,6 @@ import org.opensearch.action.admin.indices.create.AutoCreateAction;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
-import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.opensearch.action.bulk.BulkAction;
@@ -37,7 +42,6 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.index.IndexAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
-import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.termvectors.MultiTermVectorsAction;
@@ -67,9 +71,7 @@ import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
-import org.opensearch.security.privileges.actionlevel.legacy.ProtectedIndexAccessEvaluator;
 import org.opensearch.security.privileges.actionlevel.legacy.SnapshotRestoreEvaluator;
-import org.opensearch.security.privileges.actionlevel.legacy.SystemIndexAccessEvaluator;
 import org.opensearch.security.privileges.actionlevel.legacy.TermsAggregationEvaluator;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -80,14 +82,9 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 
-public class PrivilegesEvaluator  implements org.opensearch.security.privileges.PrivilegesEvaluator  {
+public class PrivilegesEvaluator implements org.opensearch.security.privileges.PrivilegesEvaluator {
     private static final Logger log = LogManager.getLogger(PrivilegesEvaluator.class);
 
     private final Supplier<ClusterState> clusterStateSupplier;
@@ -107,23 +104,22 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
     private final ThreadPool threadPool;
     private final RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection;
 
-
     public PrivilegesEvaluator(
-             ClusterService clusterService,
-            Supplier<ClusterState> clusterStateSupplier,
-            RoleMapper roleMapper,
-            ThreadPool threadPool,
-             ThreadContext threadContext,
-             IndexNameExpressionResolver resolver,
-            AuditLog auditLog,
-             Settings settings,
-             PrivilegesInterceptor privilegesInterceptor,
-            FlattenedActionGroups actionGroups,
-            FlattenedActionGroups staticActionGroups,
-            SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-            ConfigV7 generalConfiguration,
-            Map<String, RoleV7> pluginIdToRolePrivileges,
-             RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
+        ClusterService clusterService,
+        Supplier<ClusterState> clusterStateSupplier,
+        RoleMapper roleMapper,
+        ThreadPool threadPool,
+        ThreadContext threadContext,
+        IndexNameExpressionResolver resolver,
+        AuditLog auditLog,
+        Settings settings,
+        PrivilegesInterceptor privilegesInterceptor,
+        FlattenedActionGroups actionGroups,
+        FlattenedActionGroups staticActionGroups,
+        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+        ConfigV7 generalConfiguration,
+        Map<String, RoleV7> pluginIdToRolePrivileges,
+        RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
     ) {
 
         super();
@@ -139,38 +135,39 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
         this.specialIndexProtection = specialIndexProtection;
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
-                ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
+            ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+            ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
 
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(
-                settings,
-                auditLog,
-                clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false
+            settings,
+            auditLog,
+            clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false
         );
 
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.indicesRequestResolver = new IndicesRequestResolver(resolver);
 
-        this.pluginIdToActionPrivileges.putAll(createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups, specialIndexProtection));
+        this.pluginIdToActionPrivileges.putAll(
+            createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups, specialIndexProtection)
+        );
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
 
     }
 
     @Override
     public void updateConfiguration(
-            FlattenedActionGroups flattenedActionGroups,
-            SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-            ConfigV7 generalConfiguration
+        FlattenedActionGroups flattenedActionGroups,
+        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+        ConfigV7 generalConfiguration
     ) {
-
 
         try {
             RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(
-                    rolesConfiguration,
-                    flattenedActionGroups,
-                    this.specialIndexProtection,
-                    this.settings
+                rolesConfiguration,
+                flattenedActionGroups,
+                this.specialIndexProtection,
+                this.settings
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -192,11 +189,11 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
 
     @Override
     public PrivilegesEvaluationContext createContext(
-            User user,
-            String action0,
-            ActionRequest request,
-            ActionRequestMetadata<?, ?> actionRequestMetadata,
-            Task task
+        User user,
+        String action0,
+        ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
+        Task task
     ) {
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
@@ -215,16 +212,16 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
         }
 
         return new PrivilegesEvaluationContext(
-                user,
-                mappedRoles,
-                action0,
-                request,
-                actionRequestMetadata,
-                task,
-                resolver,
-                indicesRequestResolver,
-                clusterStateSupplier,
-                actionPrivileges
+            user,
+            mappedRoles,
+            action0,
+            request,
+            actionRequestMetadata,
+            task,
+            resolver,
+            indicesRequestResolver,
+            clusterStateSupplier,
+            actionPrivileges
         );
     }
 
@@ -273,18 +270,18 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
 
             if (!presponse.isAllowed()) {
                 log.info(
-                        "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
-                        user,
-                        action0,
-                        mappedRoles,
-                        presponse.getMissingPrivileges()
+                    "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                    user,
+                    action0,
+                    mappedRoles,
+                    presponse.getMissingPrivileges()
                 );
             }
             return presponse;
         }
 
         {
-            PrivilegesEvaluatorResponse         presponse = snapshotRestoreEvaluator.evaluate(request, task, action0);
+            PrivilegesEvaluatorResponse presponse = snapshotRestoreEvaluator.evaluate(request, task, action0);
             if (presponse != null) {
                 return presponse;
             }
@@ -302,12 +299,12 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
 
             if (!presponse.isAllowed()) {
                 log.info(
-                        "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
-                        user,
-                        optionallyResolvedIndices,
-                        action0,
-                        mappedRoles,
-                        presponse.getMissingPrivileges()
+                    "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                    user,
+                    optionallyResolvedIndices,
+                    action0,
+                    mappedRoles,
+                    presponse.getMissingPrivileges()
                 );
                 return presponse;
             } else {
@@ -319,32 +316,32 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
                 } else {
 
                     PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                                request,
-                                action0,
-                                user,
-                                optionallyResolvedIndices,
-                                context
-                        );
-
-                        if (isDebugEnabled) {
-                            log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
-                        }
-
-                        if (!replaceResult.continueEvaluation) {
-                            if (replaceResult.accessDenied) {
-                                auditLog.logMissingPrivileges(action0, request, task);
-                                return PrivilegesEvaluatorResponse.insufficient(action0);
-                            } else {
-                                return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
-                            }
-                        }
-                    }
+                        request,
+                        action0,
+                        user,
+                        optionallyResolvedIndices,
+                        context
+                    );
 
                     if (isDebugEnabled) {
-                        log.debug("Allowed because we have cluster permissions for {}", action0);
+                        log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
                     }
-                    return presponse;
+
+                    if (!replaceResult.continueEvaluation) {
+                        if (replaceResult.accessDenied) {
+                            auditLog.logMissingPrivileges(action0, request, task);
+                            return PrivilegesEvaluatorResponse.insufficient(action0);
+                        } else {
+                            return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
+                        }
+                    }
                 }
+
+                if (isDebugEnabled) {
+                    log.debug("Allowed because we have cluster permissions for {}", action0);
+                }
+                return presponse;
+            }
 
         }
 
@@ -353,7 +350,12 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
         }
 
         {
-            PrivilegesEvaluatorResponse presponse = termsAggregationEvaluator.evaluate(optionallyResolvedIndices, request, context, actionPrivileges);
+            PrivilegesEvaluatorResponse presponse = termsAggregationEvaluator.evaluate(
+                optionallyResolvedIndices,
+                request,
+                context,
+                actionPrivileges
+            );
             if (presponse != null) {
                 return presponse;
             }
@@ -361,32 +363,36 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
 
         ImmutableSet<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                    request,
-                    action0,
-                    user,
-                    optionallyResolvedIndices,
-                    context
-            );
+        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
+            request,
+            action0,
+            user,
+            optionallyResolvedIndices,
+            context
+        );
 
-            if (isDebugEnabled) {
-                log.debug("Result from privileges interceptor: {}", replaceResult);
+        if (isDebugEnabled) {
+            log.debug("Result from privileges interceptor: {}", replaceResult);
+        }
+
+        if (!replaceResult.continueEvaluation) {
+            if (replaceResult.accessDenied) {
+                auditLog.logMissingPrivileges(action0, request, task);
+                return PrivilegesEvaluatorResponse.insufficient(action0);
+            } else {
+                return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
             }
+        }
 
-            if (!replaceResult.continueEvaluation) {
-                if (replaceResult.accessDenied) {
-                    auditLog.logMissingPrivileges(action0, request, task);
-                    return PrivilegesEvaluatorResponse.insufficient(action0);
-                } else {
-                    return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
-                }
-            }
-
-
-        PrivilegesEvaluatorResponse presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, optionallyResolvedIndices);
+        PrivilegesEvaluatorResponse presponse = actionPrivileges.hasIndexPrivilege(
+            context,
+            allIndexPermsRequired,
+            optionallyResolvedIndices
+        );
 
         if (presponse.isPartiallyOk()) {
-            if (isIndexReductionForIncompletePrivilegesPossible(request) && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            if (isIndexReductionForIncompletePrivilegesPossible(request)
+                && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
                 if (this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, presponse.getAvailableIndices())) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
@@ -400,16 +406,16 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
 
         if (presponse.isAllowed()) {
 
-                log.debug("Allowed because we have all indices permissions for {}", action0);
+            log.debug("Allowed because we have all indices permissions for {}", action0);
         } else {
             log.info(
-                    "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
-                    "index",
-                    user,
-                    optionallyResolvedIndices,
-                    presponse.getReason(),
-                    action0,
-                    mappedRoles
+                "No {}-level perm match for {} {}: {} [Action [{}]] [RolesChecked {}]",
+                "index",
+                user,
+                optionallyResolvedIndices,
+                presponse.getReason(),
+                action0,
+                mappedRoles
             );
             log.info("Index to privilege matrix:\n{}", presponse.getPrivilegeMatrix());
             if (presponse.hasEvaluationExceptions()) {
@@ -423,15 +429,16 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
     @Override
     public boolean isClusterPermission(String action) {
         return (action.startsWith("cluster:")
-                || action.startsWith("indices:admin/template/")
-                || action.startsWith("indices:admin/index_template/")
-                || action.startsWith(SearchScrollAction.NAME)
-                || (action.equals(BulkAction.NAME))
-                || (action.equals(MultiGetAction.NAME))
-                || (action.startsWith(MultiSearchAction.NAME))
-                || (action.equals(MultiTermVectorsAction.NAME))
-                || (action.equals(ReindexAction.NAME))
-                || (action.equals(RenderSearchTemplateAction.NAME)));    }
+            || action.startsWith("indices:admin/template/")
+            || action.startsWith("indices:admin/index_template/")
+            || action.startsWith(SearchScrollAction.NAME)
+            || (action.equals(BulkAction.NAME))
+            || (action.equals(MultiGetAction.NAME))
+            || (action.startsWith(MultiSearchAction.NAME))
+            || (action.equals(MultiTermVectorsAction.NAME))
+            || (action.equals(ReindexAction.NAME))
+            || (action.equals(RenderSearchTemplateAction.NAME)));
+    }
 
     @Override
     public void updateClusterStateMetadata(ClusterService clusterService) {
@@ -485,23 +492,15 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
         }
     }
 
-
     private static Map<String, SubjectBasedActionPrivileges> createActionPrivileges(
-            Map<String, RoleV7> pluginIdToRolePrivileges,
-            FlattenedActionGroups staticActionGroups,
-            RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
+        Map<String, RoleV7> pluginIdToRolePrivileges,
+        FlattenedActionGroups staticActionGroups,
+        RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
     ) {
         Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
 
         for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
-            result.put(
-                    entry.getKey(),
-                    new SubjectBasedActionPrivileges(
-                            entry.getValue(),
-                            staticActionGroups,
-                            specialIndexProtection
-                    )
-            );
+            result.put(entry.getKey(), new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups, specialIndexProtection));
         }
 
         return result;
@@ -596,9 +595,11 @@ public class PrivilegesEvaluator  implements org.opensearch.security.privileges.
     }
 
     boolean containsPattern(IndicesRequest indicesRequest) {
-        String [] indices = indicesRequest.indices();
+        String[] indices = indicesRequest.indices();
 
-        if (indices == null || indices.length == 0 || (indices.length == 1 && (Metadata.ALL.equals(indices[0]) || Regex.isMatchAllPattern(indices[0])))) {
+        if (indices == null
+            || indices.length == 0
+            || (indices.length == 1 && (Metadata.ALL.equals(indices[0]) || Regex.isMatchAllPattern(indices[0])))) {
             return true;
         }
 

@@ -75,6 +75,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -315,12 +317,12 @@ public class TestRestClient implements AutoCloseable {
         private void verifyContentType() {
             final String contentType = this.getHeader(HttpHeaders.CONTENT_TYPE).getValue();
             if (contentType.contains("application/json")) {
-                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
+                assertThat("Response body format was not json, body: " + body, body.charAt(0), anyOf(equalTo('{'), equalTo('[')));
             } else {
                 assertThat(
                     "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
                     body.charAt(0),
-                    not(equalTo('{'))
+                    allOf(not(equalTo('{')), not(equalTo('[')))
                 );
             }
 
