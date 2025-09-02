@@ -122,7 +122,8 @@ public class RestEndpointPermissionTests {
             createRolesConfig(),
             FlattenedActionGroups.EMPTY,
             RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-            Settings.EMPTY
+            Settings.EMPTY,
+            false
         );
     }
 

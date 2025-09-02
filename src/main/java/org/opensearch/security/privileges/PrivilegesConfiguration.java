@@ -259,7 +259,7 @@ public class PrivilegesConfiguration {
             if (config == null || config.dynamic == null) {
                 return defaultValue;
             }
-            if (config.dynamic.privilegesEvaluationType.equalsIgnoreCase(NEXT_GEN.name())) {
+            if (NEXT_GEN.name().equalsIgnoreCase(config.dynamic.privilegesEvaluationType)) {
                 return NEXT_GEN;
             } else {
                 return LEGACY;

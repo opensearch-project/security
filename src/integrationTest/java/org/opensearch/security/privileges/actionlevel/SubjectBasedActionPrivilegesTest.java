@@ -75,7 +75,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"), isAllowed());
         }
@@ -90,7 +91,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats/somethingnotwellknown"), isAllowed());
         }
@@ -105,7 +107,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/foo"), isForbidden());
         }
@@ -120,7 +123,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:whatever"), isAllowed());
         }
@@ -135,7 +139,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"), isAllowed());
         }
@@ -150,7 +155,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/notwellknown"), isAllowed());
         }
@@ -165,7 +171,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(
                 subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"),
@@ -183,7 +190,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasAnyClusterPrivilege(ctx().get(), ImmutableSet.of("cluster:monitor/nodes/stats")), isAllowed());
         }
@@ -198,7 +206,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
             assertThat(subject.hasAnyClusterPrivilege(ctx().get(), ImmutableSet.of("cluster:monitor/nodes/stats")), isAllowed());
         }
@@ -356,7 +365,8 @@ public class SubjectBasedActionPrivilegesTest {
                 this.subject = new SubjectBasedActionPrivileges(
                     config,
                     FlattenedActionGroups.EMPTY,
-                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    false
                 );
             }
 
@@ -505,7 +515,8 @@ public class SubjectBasedActionPrivilegesTest {
                 this.subject = new SubjectBasedActionPrivileges(
                     config,
                     FlattenedActionGroups.EMPTY,
-                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    false
                 );
             }
 
@@ -672,7 +683,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -694,7 +706,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -715,7 +728,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -736,7 +750,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -757,7 +772,8 @@ public class SubjectBasedActionPrivilegesTest {
             SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
                 config,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(

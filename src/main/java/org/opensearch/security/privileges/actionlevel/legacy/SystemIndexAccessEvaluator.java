@@ -38,10 +38,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
+import org.opensearch.common.regex.Regex;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
@@ -212,7 +216,9 @@ public class SystemIndexAccessEvaluator {
     ) {
         boolean serviceAccountUser = user.isServiceAccount();
 
-        if (isSystemIndexPermissionEnabled) {
+        if (isSystemIndexPermissionEnabled
+            && (!isClusterPermissionStatic(action) || RestoreSnapshotAction.NAME.equals(action))
+            && backwartsCompatGateForSystemIndexPrivileges(action, request)) {
             boolean containsRegularIndex = requestedResolved.local().containsAny(index -> !isSystemIndex(index));
 
             if (serviceAccountUser && containsRegularIndex) {
@@ -361,6 +367,46 @@ public class SystemIndexAccessEvaluator {
         } else {
             // If we have an unknown state, we must assume that other system indices are contained
             return PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES;
+        }
+    }
+
+    /**
+     * Previous versions of OpenSearch had the bug that indices requests on "*" (or _all) did not get checked
+     * in the block of evaluateSystemIndicesAccess() that checks for the explicit system index privileges.
+     * This is not nice, but also not a big problem, as write operations would be denied anyway at the end of
+     * the evaluateSystemIndicesAccess(). Read operations would be blocked anyway on the Lucene level.
+     * With the introduction of the ResolvedIndices object, we do not have a real notion of "is all" any more;
+     * thus, this method would now block many requests, even if these would be filtered out later by the DNFOF mode
+     * in PrivilegeEvaluator.
+     * <p>
+     * To keep backwards compatibility, we have this method which disables the first block of evaluateSystemIndicesAccess()
+     * for the same cases that were previously skipping its execution. Of course, this is totally hacky, but there
+     * is no better way to keep the available functionality other than rewriting the whole logic; which is actually done
+     * in the next gen privilege evaluation code.
+     * @return true, if the explicit privilege check in evaluateSystemIndicesAccess() shall be executed; false it it shall
+     * be skipped.
+     */
+    private boolean backwartsCompatGateForSystemIndexPrivileges(String action, ActionRequest actionRequest) {
+        if (!(actionRequest instanceof IndicesRequest indicesRequest)) {
+            // If we cannot resolve indices, we go into the explicit privilege check code; the code will then deny the request
+            return true;
+        }
+
+        if (deniedActionsMatcher.test(action)) {
+            // If this is an action that manipulates documents or indices, we also need to do the explicit privilege check.
+            return true;
+        }
+
+        String[] indices = indicesRequest.indices();
+        boolean isAll = indices == null
+            || indices.length == 0
+            || (indices.length == 1 && (indices[0] == null || Metadata.ALL.equals(indices[0]) || Regex.isMatchAllPattern(indices[0])));
+        if (!isAll) {
+            // For non-is-all requests, previous versions also went through the checks
+            return true;
+        } else {
+            // For is-all requests, we can skip the checks; any data in the indices will be filtered out on the Lucene level
+            return false;
         }
     }
 

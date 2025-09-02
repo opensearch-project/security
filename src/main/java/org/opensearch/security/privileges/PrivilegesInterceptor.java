@@ -47,6 +47,18 @@ public class PrivilegesInterceptor {
             this.accessDenied = accessDenied;
             this.createIndexRequestBuilder = createIndexRequestBuilder;
         }
+
+        @Override
+        public String toString() {
+            return "ReplaceResult{"
+                + "continueEvaluation="
+                + continueEvaluation
+                + ", accessDenied="
+                + accessDenied
+                + ", createIndexRequestBuilder="
+                + createIndexRequestBuilder
+                + '}';
+        }
     }
 
     public static final ReplaceResult CONTINUE_EVALUATION_REPLACE_RESULT = new ReplaceResult(true, false, null);

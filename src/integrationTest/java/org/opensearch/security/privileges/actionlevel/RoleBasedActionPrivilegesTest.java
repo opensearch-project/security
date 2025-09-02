@@ -86,7 +86,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(subject.hasClusterPrivilege(ctx().roles("test_role").get(), "cluster:monitor/nodes/stats"), isAllowed());
@@ -110,7 +111,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(
@@ -137,7 +139,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(subject.hasClusterPrivilege(ctx().roles("test_role").get(), "cluster:whatever"), isAllowed());
@@ -165,7 +168,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(subject.hasExplicitClusterPrivilege(ctx().roles("explicit_role").get(), "cluster:monitor/nodes/stats"), isAllowed());
@@ -201,7 +205,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(
@@ -232,7 +237,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(
@@ -267,7 +273,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(
@@ -309,7 +316,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             assertThat(subject.hasAnyClusterPrivilege(ctx().roles("test_role").get(), ImmutableSet.of("cluster:whatever")), isAllowed());
@@ -508,7 +516,8 @@ public class RoleBasedActionPrivilegesTest {
                     roles,
                     FlattenedActionGroups.EMPTY,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                    settings
+                    settings,
+                    false
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
@@ -682,7 +691,8 @@ public class RoleBasedActionPrivilegesTest {
                     roles,
                     FlattenedActionGroups.EMPTY,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                    settings
+                    settings,
+                    false
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
@@ -918,7 +928,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
@@ -949,7 +960,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -974,7 +986,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -996,7 +1009,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -1021,7 +1035,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -1046,7 +1061,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
@@ -1080,7 +1096,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
             subject.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), 2);
 
@@ -1113,7 +1130,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build()
+                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build(),
+                false
             );
             subject.updateStatefulIndexPrivileges(metadata, 1);
             assertEquals(0, subject.getEstimatedStatefulIndexByteSize());
@@ -1136,7 +1154,8 @@ public class RoleBasedActionPrivilegesTest {
                 roles,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                false
             );
 
             subject.updateStatefulIndexPrivileges(indices, 1);

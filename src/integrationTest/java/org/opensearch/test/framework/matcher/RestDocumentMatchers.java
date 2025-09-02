@@ -27,6 +27,7 @@ import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
 import org.opensearch.common.geo.GeoPoint;
+import org.opensearch.test.framework.data.TestData;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.data.TestData;
 

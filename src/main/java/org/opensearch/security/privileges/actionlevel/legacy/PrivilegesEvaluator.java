@@ -50,6 +50,7 @@ import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequ
 import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.opensearch.action.admin.indices.analyze.AnalyzeAction;
 import org.opensearch.action.admin.indices.create.AutoCreateAction;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -62,7 +63,6 @@ import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteAction;
-import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.index.IndexAction;
 import org.opensearch.action.search.MultiSearchAction;
@@ -192,15 +192,15 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
 
-        snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(
-            settings,
-            auditLog,
-            clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false
-        );
+        Supplier<Boolean> isLocalNodeElectedClusterManager = clusterService != null
+            ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager()
+            : () -> false;
+
+        snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog, isLocalNodeElectedClusterManager);
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        this.indicesRequestResolver = new IndicesRequestResolver(resolver);
+        this.indicesRequestResolver = new LegacyIndicesRequestResolver(resolver, isLocalNodeElectedClusterManager);
 
         this.pluginIdToActionPrivileges.putAll(createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups));
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
@@ -222,7 +222,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 rolesConfiguration,
                 flattenedActionGroups,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                settings
+                settings,
+                true
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -344,6 +345,9 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
+            if (request instanceof IndicesRequest indicesRequest) {
+                log.debug("IndicesRequest: {} {}", indicesRequest.indices(), indicesRequest.indicesOptions());
+            }
             log.debug("ResolvedIndices: {}", optionallyResolvedIndices);
         }
 
@@ -365,6 +369,13 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         presponse = protectedIndexAccessEvaluator.evaluate(request, task, action0, optionallyResolvedIndices, mappedRoles);
         if (presponse != null) {
             return presponse;
+        }
+
+        if (request instanceof AnalyzeAction.Request
+            && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices
+            && resolvedIndices.isEmpty()) {
+            // If we have an AnalyzeRequest which does not refer to any index, the user is going to execute an
+            // index independent analyze action.
         }
 
         final boolean dnfofEnabled = this.dnfofEnabled;
@@ -431,7 +442,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             }
         }
 
-        if (checkDocAllowListHeader(user, action0, request)) {
+        if (DocumentAllowList.isAllowed(request, threadContext)) {
             return PrivilegesEvaluatorResponse.ok();
         }
 
@@ -483,6 +494,22 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
+        if (optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices && resolvedIndices.isEmpty()) {
+            // If the request is empty, the normal privilege checks would just pass because technically the question
+            // "are all indices authorized" is true if the set of indices is empty. This means that certain operations
+            // would be available to any users regardless of their privileges. Thus, we check first whether the user
+            // has *any* privilege for the given action.
+            // The main example for such actions is the _analyze action which can operate on indices, but also can
+            // operate on an empty set of indices. Without this check, it would be always allowed.
+            // Note: This is a change from previous versions of OpenSearch. The old IndexResolverReplacer would
+            // get the state of the no-index AnalyzeAction.Request wrong and would always produce an "IndexNotFoundException"
+            // for analyze requests without any index.
+            PrivilegesEvaluatorResponse anyPrivilegesResult = actionPrivileges.hasIndexPrivilegeForAnyIndex(context, allIndexPermsRequired);
+            if (!anyPrivilegesResult.isAllowed()) {
+                return anyPrivilegesResult;
+            }
+        }
+
         presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, optionallyResolvedIndices);
 
         if (presponse.isPartiallyOk()) {
@@ -509,7 +536,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (presponse.isAllowed()) {
             if (checkFilteredAliases(optionallyResolvedIndices, action0, isDebugEnabled)) {
-                return presponse;
+                return PrivilegesEvaluatorResponse.insufficient(action0)
+                    .reason("It is not possible to read from indices with more than two filtered aliases");
             }
 
             if (isDebugEnabled) {
@@ -720,37 +748,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         return false;
     }
 
-    private boolean checkDocAllowListHeader(User user, String action, ActionRequest request) {
-        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
-
-        if (docAllowListHeader == null) {
-            return false;
-        }
-
-        if (!(request instanceof GetRequest)) {
-            return false;
-        }
-
-        try {
-            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
-            GetRequest getRequest = (GetRequest) request;
-
-            if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Request " + request + " is allowed by " + documentAllowList);
-                }
-
-                return true;
-            } else {
-                return false;
-            }
-
-        } catch (Exception e) {
-            log.error("Error while handling document allow list: " + docAllowListHeader, e);
-            return false;
-        }
-    }
-
     private List<String> toString(List<AliasMetadata> aliases) {
         if (aliases == null || aliases.size() == 0) {
             return Collections.emptyList();
@@ -779,7 +776,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 new SubjectBasedActionPrivileges(
                     entry.getValue(),
                     staticActionGroups,
-                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    true
                 )
             );
         }

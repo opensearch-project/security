@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -77,10 +78,16 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      * @param actionGroups The FlattenedActionGroups instance that shall be used to resolve the action groups
      *                     specified in the roles configuration.
      */
-    public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, SpecialIndexProtection specialIndexProtection) {
+    public SubjectBasedActionPrivileges(
+        RoleV7 role,
+        FlattenedActionGroups actionGroups,
+        SpecialIndexProtection specialIndexProtection,
+        boolean breakDownAliases
+    ) {
         super(
             new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
-            new IndexPrivileges(role, actionGroups, specialIndexProtection)
+            new IndexPrivileges(role, actionGroups, specialIndexProtection, breakDownAliases),
+            breakDownAliases
         );
     }
 
@@ -236,8 +243,17 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         /**
          * Creates pre-computed index privileges based on the given parameters.
          */
-        IndexPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, SpecialIndexProtection specialIndexProtection) {
+        IndexPrivileges(
+            RoleV7 role,
+            FlattenedActionGroups actionGroups,
+            SpecialIndexProtection specialIndexProtection,
+            boolean memberIndexPrivilegesYieldALiasPrivileges
+        ) {
             super(specialIndexProtection);
+
+            Function<Object, IndexPattern.Builder> indexPatternBuilder = k -> new IndexPattern.Builder(
+                memberIndexPrivilegesYieldALiasPrivileges
+            );
 
             Map<String, IndexPattern.Builder> actionToIndexPattern = new HashMap<>();
             Map<WildcardMatcher, IndexPattern.Builder> actionPatternToIndexPattern = new HashMap<>();
@@ -256,11 +272,10 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                     // as a last resort later.
 
                     if (WildcardMatcher.isExact(permission)) {
-                        actionToIndexPattern.computeIfAbsent(permission, k -> new IndexPattern.Builder())
-                            .add(indexPermissions.getIndex_patterns());
+                        actionToIndexPattern.computeIfAbsent(permission, indexPatternBuilder).add(indexPermissions.getIndex_patterns());
 
                         if (WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS.contains(permission)) {
-                            explicitActionToIndexPattern.computeIfAbsent(permission, k -> new IndexPattern.Builder())
+                            explicitActionToIndexPattern.computeIfAbsent(permission, indexPatternBuilder)
                                 .add(indexPermissions.getIndex_patterns());
                         }
 
@@ -271,20 +286,19 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
                         WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
 
                         for (String action : actionMatcher.iterateMatching(WellKnownActions.INDEX_ACTIONS)) {
-                            actionToIndexPattern.computeIfAbsent(action, k -> new IndexPattern.Builder())
-                                .add(indexPermissions.getIndex_patterns());
+                            actionToIndexPattern.computeIfAbsent(action, indexPatternBuilder).add(indexPermissions.getIndex_patterns());
 
                             if (indexPermissions.getIndex_patterns().contains("*")) {
                                 actionWithWildcardIndexPrivileges.add(permission);
                             }
                         }
 
-                        actionPatternToIndexPattern.computeIfAbsent(actionMatcher, k -> new IndexPattern.Builder())
+                        actionPatternToIndexPattern.computeIfAbsent(actionMatcher, indexPatternBuilder)
                             .add(indexPermissions.getIndex_patterns());
 
                         if (actionMatcher != WildcardMatcher.ANY) {
                             for (String action : actionMatcher.iterateMatching(WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
-                                explicitActionToIndexPattern.computeIfAbsent(action, k -> new IndexPattern.Builder())
+                                explicitActionToIndexPattern.computeIfAbsent(action, indexPatternBuilder)
                                     .add(indexPermissions.getIndex_patterns());
                             }
                         }
@@ -348,6 +362,45 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             }
 
             return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
+        }
+
+        @Override
+        protected PrivilegesEvaluatorResponse providesPrivilegeOnAnyIndex(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            CheckTable<String, String> checkTable
+        ) {
+            checkTable.checkIf(
+                checkTable.getRows(),
+                action -> !this.actionToIndexPattern.getOrDefault(action, IndexPattern.EMPTY).isEmpty()
+            );
+            if (checkTable.isComplete()) {
+                return PrivilegesEvaluatorResponse.ok(checkTable);
+            }
+
+            // If all actions are well-known, the index.rolesToActionToIndexPattern data structure that was evaluated above,
+            // would have contained all the actions if privileges are provided. If there are non-well-known actions among the
+            // actions, we also have to evaluate action patterns to check the authorization
+
+            if (!allWellKnownIndexActions(actions)) {
+                for (String action : actions) {
+                    for (Map.Entry<WildcardMatcher, IndexPattern> entry : this.actionPatternToIndexPattern.entrySet()) {
+                        WildcardMatcher actionMatcher = entry.getKey();
+                        IndexPattern indexPattern = entry.getValue();
+
+                        if (actionMatcher.test(action) && !indexPattern.isEmpty()) {
+                            checkTable.getRows().forEach(index -> checkTable.check(index, action));
+                            if (checkTable.isComplete()) {
+                                return PrivilegesEvaluatorResponse.ok(checkTable);
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            return PrivilegesEvaluatorResponse.insufficient(checkTable)
+                .reason("The user does not have any index privileges for the requested action");
         }
 
         /**

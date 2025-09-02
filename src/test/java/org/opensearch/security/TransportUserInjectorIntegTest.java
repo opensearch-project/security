@@ -131,7 +131,10 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             exception = ex;
             log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().toString().contains("no permissions for [indices:admin/create]"));
+            Assert.assertTrue(
+                exception.getMessage(),
+                exception.getMessage().toString().contains("no permissions for [indices:admin/create]")
+            );
         }
 
         // 3. with valid backend roles for injected user

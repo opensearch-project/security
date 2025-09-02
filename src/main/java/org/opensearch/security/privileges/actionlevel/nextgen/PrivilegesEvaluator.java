@@ -413,25 +413,33 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 }
             }
         } else if (!presponse.isAllowed()) {
-            // If the user has no privileges, there are certain conditions where we return an empty result instead of a 403 error
-            // These are:
-            // - The action supports it
-            // - The index expression contains a pattern expression or ignore_unavailable is true
-            // - The user has privileges for the given actions on some indices
 
-            if (isIndexReductionForNoPrivilegesPossible(request) && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
-                // We only allow returning empty results if the current user has at least the necessary privileges for any index
-                PrivilegesEvaluatorResponse allowedForAnyIndex = actionPrivileges.hasIndexPrivilegeForAnyIndex(
-                    context,
-                    requiredIndexPermissions
-                );
-
-                if (allowedForAnyIndex.isAllowed() && this.indicesRequestModifier.setLocalIndicesToEmpty(request, resolvedIndices)) {
-                    return PrivilegesEvaluatorResponse.ok()
-                        .reason("Not allowed for any indices; returning empty result")
-                        .originalResult(presponse);
+            if (isIndexReductionForIncompletePrivilegesPossible(request)
+                && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices
+                && !resolvedIndices.remote().isEmpty()) {
+                // If remote indices are requested, we reduce to these and let the request pass
+                if (this.indicesRequestModifier.setLocalIndicesToEmpty(request, resolvedIndices)) {
+                    return PrivilegesEvaluatorResponse.ok().reason("Only allowed for remote indices").originalResult(presponse);
                 }
-            }
+            } else if (isIndexReductionForNoPrivilegesPossible(request)
+                && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+                    // If the user has no privileges, there are certain conditions where we return an empty result instead of a 403 error
+                    // These are:
+                    // - The action supports it
+                    // - The index expression contains a pattern expression or ignore_unavailable is true
+                    // - The user has privileges for the given actions on some indices
+
+                    PrivilegesEvaluatorResponse allowedForAnyIndex = actionPrivileges.hasIndexPrivilegeForAnyIndex(
+                        context,
+                        requiredIndexPermissions
+                    );
+
+                    if (allowedForAnyIndex.isAllowed() && this.indicesRequestModifier.setLocalIndicesToEmpty(request, resolvedIndices)) {
+                        return PrivilegesEvaluatorResponse.ok()
+                            .reason("Not allowed for any indices; returning empty result")
+                            .originalResult(presponse);
+                    }
+                }
         }
 
         return presponse;

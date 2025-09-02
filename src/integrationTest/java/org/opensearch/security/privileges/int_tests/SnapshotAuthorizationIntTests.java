@@ -14,6 +14,7 @@ package org.opensearch.security.privileges.int_tests;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -25,6 +26,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -47,6 +50,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@NotThreadSafe
 public class SnapshotAuthorizationIntTests {
     static final TestIndex index_a1 = TestIndex.name("index_ar1").documentCount(10).seed(1).build();
     static final TestIndex index_a2 = TestIndex.name("index_ar2").documentCount(11).seed(2).build();
@@ -86,6 +90,7 @@ public class SnapshotAuthorizationIntTests {
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("index_a*")//
         .roles(
+            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -99,6 +104,7 @@ public class SnapshotAuthorizationIntTests {
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("index_b*")//
         .roles(
+            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -112,6 +118,7 @@ public class SnapshotAuthorizationIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_SYSTEM_INDEX = new TestSecurityConfig.User("limited_user_B_system_index")//
         .description("index_b*, .system_index_plugin")//
         .roles(
+            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -130,6 +137,7 @@ public class SnapshotAuthorizationIntTests {
     static TestSecurityConfig.User LIMITED_USER_AB = new TestSecurityConfig.User("limited_user_AB")//
         .description("index_a*, index_b*")//
         .roles(
+            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -218,6 +226,7 @@ public class SnapshotAuthorizationIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.post(
                 "_snapshot/test_repository/single_index_snapshot/_restore?wait_for_completion=true"
             );
+            System.out.println(httpResponse.getBody());
 
             assertThat(httpResponse, containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
@@ -237,6 +246,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/single_index_snapshot/_restore?wait_for_completion=true",
                 json("rename_pattern", "index_(.+)x1", "rename_replacement", "index_$1x2")
             );
+            System.out.println(httpResponse.getBody());
 
             assertThat(httpResponse, containsExactly(index_awx2).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
@@ -256,6 +266,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/single_index_snapshot/_restore?wait_for_completion=true",
                 json("rename_pattern", "index_a(.*)", "rename_replacement", "index_b$1")
             );
+            System.out.println(httpResponse.getBody());
 
             assertThat(httpResponse, containsExactly(index_bwx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
@@ -275,6 +286,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/single_index_snapshot/_restore?wait_for_completion=true",
                 json("rename_pattern", "index_awx1", "rename_replacement", system_index_plugin_not_existing.name())
             );
+            System.out.println(httpResponse.getBody());
 
             if (clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER) {
                 assertThat(
@@ -302,6 +314,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/all_index_snapshot/_restore?wait_for_completion=true",
                 json("indices", "index_awx1")
             );
+            System.out.println(httpResponse.getBody());
 
             assertThat(httpResponse, containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
@@ -323,6 +336,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/all_index_snapshot/_restore?wait_for_completion=true",
                 json("include_global_state", true)
             );
+            System.out.println(httpResponse.getBody());
 
             if (user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isOk());
