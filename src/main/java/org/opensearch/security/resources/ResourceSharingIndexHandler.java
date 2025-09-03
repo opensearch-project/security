@@ -10,6 +10,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,11 +57,13 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -80,11 +83,13 @@ public class ResourceSharingIndexHandler {
     private final Client client;
 
     private final ThreadPool threadPool;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
-    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
+    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool, final ResourcePluginInfo resourcePluginInfo) {
         this.client = client;
         this.threadPool = threadPool;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of(
@@ -251,7 +256,12 @@ public class ResourceSharingIndexHandler {
         }
     }
 
-    public void fetchAllResourceSharingRecords(String resourceIndex, ActionListener<Set<ResourceSharing>> listener) {
+    public void fetchAllResourceSharingRecords(
+        String resourceIndex,
+        User user,
+        boolean isAdmin,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug("Fetching all documents asynchronously from {}", resourceSharingIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -262,7 +272,7 @@ public class ResourceSharingIndexHandler {
 
             MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
 
-            executeAllSearchRequest(scroll, searchRequest, query, ActionListener.wrap(recs -> {
+            executeAllSearchRequest(resourceIndex, scroll, searchRequest, query, ActionListener.wrap(recs -> {
                 ctx.restore();
                 LOGGER.debug("Found {} documents in {}", recs.size(), resourceSharingIndex);
                 listener.onResponse(recs);
@@ -344,9 +354,10 @@ public class ResourceSharingIndexHandler {
      */
     public void fetchAccessibleResourceSharingRecords(
         String resourceIndex,
+        User user,
         Set<String> principalsFlat,
         BoolQueryBuilder accessQuery,
-        ActionListener<Set<ResourceSharing>> listener
+        ActionListener<Set<SharingRecord>> listener
     ) {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
         String resourceSharingIndex = getSharingIndex(resourceIndex);
@@ -358,7 +369,7 @@ public class ResourceSharingIndexHandler {
 
             boolQuery.must(accessQuery);
 
-            executeFlattenedSearchRequestFullRecord(scroll, searchRequest, boolQuery, ActionListener.wrap(recs -> {
+            executeFlattenedSearchRequestFullRecord(resourceIndex, user, scroll, searchRequest, boolQuery, ActionListener.wrap(recs -> {
                 ctx.restore();
                 LOGGER.debug("Found {} documents matching the criteria in {}", recs.size(), resourceSharingIndex);
                 listener.onResponse(recs);
@@ -822,10 +833,11 @@ public class ResourceSharingIndexHandler {
     }
 
     private void executeAllSearchRequest(
+        String resourceIndex,
         Scroll scroll,
         SearchRequest searchRequest,
         AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
-        ActionListener<Set<ResourceSharing>> listener
+        ActionListener<Set<SharingRecord>> listener
     ) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
             .size(1000)
@@ -837,9 +849,9 @@ public class ResourceSharingIndexHandler {
         client.search(searchRequest, searchStep);
 
         searchStep.whenComplete(initialResponse -> {
-            Set<ResourceSharing> recs = new HashSet<>();
+            Set<SharingRecord> recs = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResultsParse(recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResultsParse(null, true, resourceIndex, recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
         }, listener::onFailure);
     }
 
@@ -927,19 +939,21 @@ public class ResourceSharingIndexHandler {
      * @param listener      Listener to receive the collected resource sharing records
      */
     private void executeFlattenedSearchRequestFullRecord(
+        String resourceIndex,
+        User user,
         Scroll scroll,
         SearchRequest searchRequest,
         BoolQueryBuilder filterQuery,
-        ActionListener<Set<ResourceSharing>> listener
+        ActionListener<Set<SharingRecord>> listener
     ) {
         updateSearchRequest(searchRequest, filterQuery, false);
 
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
         searchStep.whenComplete(initialResponse -> {
-            Set<ResourceSharing> recs = new HashSet<>();
+            Set<SharingRecord> recs = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResultsParse(recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResultsParse(user, false, resourceIndex, recs, scroll, scrollId, initialResponse.getHits().getHits(), listener);
         }, listener::onFailure);
     }
 
@@ -1000,11 +1014,14 @@ public class ResourceSharingIndexHandler {
      * @param listener             Listener to receive final set of resource sharing records
      */
     private void processScrollResultsParse(
-        Set<ResourceSharing> resourceSharingRecords,
+        User user,
+        boolean isAdmin,
+        String resourceIndex,
+        Set<SharingRecord> resourceSharingRecords,
         Scroll scroll,
         String scrollId,
         SearchHit[] hits,
-        ActionListener<Set<ResourceSharing>> listener
+        ActionListener<Set<SharingRecord>> listener
     ) {
         if (hits == null || hits.length == 0) {
             clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(resourceSharingRecords), listener::onFailure));
@@ -1022,7 +1039,8 @@ public class ResourceSharingIndexHandler {
             ) {
                 parser.nextToken();
                 ResourceSharing rs = ResourceSharing.fromXContent(parser);
-                resourceSharingRecords.add(rs);
+                boolean canShare = canUserShare(user, isAdmin, rs, resourceIndex);
+                resourceSharingRecords.add(new SharingRecord(rs, canShare));
             } catch (Exception e) {
                 // TODO: Decide how strict should this failure be:
                 // Option A: fail-fast
@@ -1036,7 +1054,16 @@ public class ResourceSharingIndexHandler {
         client.searchScroll(
             scrollReq,
             ActionListener.wrap(
-                sr -> processScrollResultsParse(resourceSharingRecords, scroll, sr.getScrollId(), sr.getHits().getHits(), listener),
+                sr -> processScrollResultsParse(
+                    user,
+                    isAdmin,
+                    resourceIndex,
+                    resourceSharingRecords,
+                    scroll,
+                    sr.getScrollId(),
+                    sr.getHits().getHits(),
+                    listener
+                ),
                 e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
                     e.addSuppressed(ex);
                     listener.onFailure(e);
@@ -1063,6 +1090,51 @@ public class ResourceSharingIndexHandler {
             LOGGER.warn("Failed to clear scroll context", e);
             listener.onResponse(null);
         }));
+    }
+
+    // **** Check whether user can share this record further
+    /** Resolve access-level for THIS resource type and check required action. */
+    public boolean groupAllows(String resourceIndex, String accessLevel, String requiredAction) {
+        String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
+        if (resourceType == null || accessLevel == null || requiredAction == null) return false;
+        return resourcePluginInfo.flattenedForType(resourceType).resolve(Set.of(accessLevel)).contains(requiredAction);
+    }
+
+    /**
+     * Checks whether current user has sharing permission, i.e {@link ShareAction#NAME}
+     */
+    public boolean canUserShare(User user, boolean isAdmin, ResourceSharing resource, String resourceType) {
+        if (resource == null) return false;
+
+        if (isAdmin || resource.isCreatedBy(user.getName())) return true;
+
+        var sw = resource.getShareWith();
+        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
+
+        Set<String> users = Set.of(user.getName());
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        Set<String> backend = new HashSet<>(user.getRoles());
+
+        for (String level : sw.getSharingInfo().keySet()) {
+            if (!groupAllows(resourceType, level, ShareAction.NAME)) continue;
+
+            var recips = sw.atAccessLevel(level);
+            if (recips == null) continue;
+
+            var u = recips.getRecipients().getOrDefault(Recipient.USERS, Set.of());
+            var r = recips.getRecipients().getOrDefault(Recipient.ROLES, Set.of());
+            var b = recips.getRecipients().getOrDefault(Recipient.BACKEND_ROLES, Set.of());
+
+            boolean matches = u.contains("*")
+                || r.contains("*")
+                || b.contains("*")
+                || !Collections.disjoint(u, users)
+                || !Collections.disjoint(r, roles)
+                || !Collections.disjoint(b, backend);
+
+            if (matches) return true;
+        }
+        return false;
     }
 
 }

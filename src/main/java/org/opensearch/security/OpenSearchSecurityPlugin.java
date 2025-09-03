@@ -779,7 +779,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
             )) {
                 // Listening on POST and DELETE operations in resource indices
-                ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient);
+                ResourceIndexListener resourceIndexListener = new ResourceIndexListener(threadPool, localClient, resourcePluginInfo);
                 // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
                 Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();
                 // CS-ENFORCE-SINGLE
@@ -1182,7 +1182,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool);
+        rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool, resourcePluginInfo);
         evaluator = new PrivilegesEvaluator(
             clusterService,
             clusterService::state,
@@ -1231,12 +1231,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // CS-ENFORCE-SINGLE
         }
 
-        resourceAccessEvaluator = new ResourceAccessEvaluator(
-            resourcePluginInfo.getResourceIndices(),
-            settings,
-            resourceAccessHandler,
-            resourcePluginInfo
-        );
+        resourceAccessEvaluator = new ResourceAccessEvaluator(resourcePluginInfo.getResourceIndices(), settings, resourceAccessHandler);
 
         sf = new SecurityFilter(
             settings,

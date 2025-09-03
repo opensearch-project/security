@@ -20,9 +20,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -39,14 +37,9 @@ import static org.mockito.Mockito.verify;
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("unchecked") // action listener mock
 public class ResourceAccessEvaluatorTest {
-    @Mock
-    private ThreadPool threadPool;
 
     @Mock
     private ResourceAccessHandler resourceAccessHandler;
-
-    @Mock
-    private ResourcePluginInfo resourcePluginInfo;
 
     @Mock
     private PrivilegesEvaluationContext context;
@@ -60,7 +53,7 @@ public class ResourceAccessEvaluatorTest {
     public void setup() {
         Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
-        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler, resourcePluginInfo);
+        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler);
     }
 
     private void stubAuthenticatedUser() {

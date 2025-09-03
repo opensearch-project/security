@@ -10,8 +10,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -23,9 +21,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourcePluginInfo;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.support.ConfigConstants;
 
 /**
@@ -44,23 +39,14 @@ import org.opensearch.security.support.ConfigConstants;
 public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
-    public static final String SHARE_PERMISSION = "cluster:admin/security/resource/share";
-
     private final Set<String> resourceIndices;
     private final Settings settings;
     private final ResourceAccessHandler resourceAccessHandler;
-    private final ResourcePluginInfo resourcePluginInfo;
 
-    public ResourceAccessEvaluator(
-        Set<String> resourceIndices,
-        Settings settings,
-        ResourceAccessHandler resourceAccessHandler,
-        ResourcePluginInfo resourcePluginInfo
-    ) {
+    public ResourceAccessEvaluator(Set<String> resourceIndices, Settings settings, ResourceAccessHandler resourceAccessHandler) {
         this.resourceIndices = resourceIndices;
         this.settings = settings;
         this.resourceAccessHandler = resourceAccessHandler;
-        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     /**
@@ -123,54 +109,6 @@ public class ResourceAccessEvaluator {
             return false;
         }
         return true;
-    }
-
-    /** Resolve access-level for THIS resource type and check required action. */
-    public boolean groupAllows(String resourceType, String accessLevel, String requiredAction) {
-        if (resourceType == null || accessLevel == null || requiredAction == null) return false;
-        return resourcePluginInfo.flattenedForType(resourceType).resolve(Set.of(accessLevel)).contains(requiredAction);
-    }
-
-    /**
-     * Checks whether current user has sharing permission
-     * @param resource
-     * @param resourceType
-     * @param ctx
-     * @param isAdmin
-     * @return
-     */
-    public boolean canUserShare(ResourceSharing resource, String resourceType, PrivilegesEvaluationContext ctx, boolean isAdmin) {
-        if (resource == null) return false;
-
-        if (isAdmin || resource.isCreatedBy(ctx.getUser().getName())) return true;
-
-        var sw = resource.getShareWith();
-        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
-
-        Set<String> users = Set.of(ctx.getUser().getName());
-        Set<String> roles = new HashSet<>(ctx.getUser().getSecurityRoles());
-        Set<String> backend = new HashSet<>(ctx.getUser().getRoles());
-
-        for (String level : sw.getSharingInfo().keySet()) {
-            if (!groupAllows(resourceType, level, SHARE_PERMISSION)) continue;
-
-            var recips = sw.atAccessLevel(level);
-            if (recips == null) continue;
-
-            var u = recips.getRecipients().getOrDefault(Recipient.USERS, Set.of());
-            var r = recips.getRecipients().getOrDefault(Recipient.ROLES, Set.of());
-            var b = recips.getRecipients().getOrDefault(Recipient.BACKEND_ROLES, Set.of());
-
-            boolean matches = u.contains("*")
-                || r.contains("*")
-                || b.contains("*")
-                || !Collections.disjoint(u, users)
-                || !Collections.disjoint(r, roles)
-                || !Collections.disjoint(b, backend);
-
-            if (matches) return true;
-        }
-        return false;
     }
 
 }

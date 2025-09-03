@@ -141,7 +141,7 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to check for accessible resources.
      * @param listener      The listener to be notified with the set of resource sharing records.
      */
-    public void getResourceSharingInfoForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<ResourceSharing>> listener) {
+    public void getResourceSharingInfoForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
         UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         User user = userSub == null ? null : userSub.getUser();
 
@@ -152,7 +152,7 @@ public class ResourceAccessHandler {
         }
 
         if (adminDNs.isAdmin(user)) {
-            loadAllResourceSharingRecords(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            loadAllResourceSharingRecords(resourceIndex, user, true, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
 
@@ -160,7 +160,7 @@ public class ResourceAccessHandler {
         BoolQueryBuilder query = getAccessibleResourcesBoolQuery(user.getName(), flatPrincipals);
 
         // 3) Fetch all accessible resource sharing records
-        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, flatPrincipals, query, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, user, flatPrincipals, query, listener);
     }
 
     /**
@@ -444,7 +444,12 @@ public class ResourceAccessHandler {
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
-    private void loadAllResourceSharingRecords(String resourceIndex, ActionListener<Set<ResourceSharing>> listener) {
-        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, listener);
+    private void loadAllResourceSharingRecords(
+        String resourceIndex,
+        User user,
+        boolean isAdmin,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, user, isAdmin, listener);
     }
 }

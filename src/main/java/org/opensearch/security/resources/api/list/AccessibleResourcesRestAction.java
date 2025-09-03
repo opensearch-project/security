@@ -26,7 +26,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.SharingRecord;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -68,7 +68,7 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
             try (XContentBuilder b = channel.newBuilder()) {
                 b.startObject();
                 b.startArray("resources");
-                for (ResourceSharing row : rows) {
+                for (SharingRecord row : rows) {
                     row.toXContent(b, ToXContent.EMPTY_PARAMS);
                 }
                 b.endArray();
