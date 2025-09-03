@@ -1,0 +1,27 @@
+#sample_read_only:
+#  - "cluster:admin/sample-resource-plugin/get"
+#  - "indices:data/read*"
+#
+#sample_read_write:
+#  - "cluster:admin/sample-resource-plugin/*"
+#  - "indices:*"
+#
+#sample_full_access:
+#  - "cluster:admin/sample-resource-plugin/*"
+#  - "indices:*"
+#  - "cluster:admin/security/resource/share"
+
+resource_types:
+  org.opensearch.sample.SampleResource:
+      sample_read_only:
+        - "cluster:admin/sample-resource-plugin/get"
+        - "indices:data/read*"
+
+      sample_read_write:
+        - "cluster:admin/sample-resource-plugin/*"
+        - "indices:*"
+
+      sample_full_access:
+        - "cluster:admin/sample-resource-plugin/*"
+        - "indices:*"
+        - "cluster:admin/security/resource/share"

@@ -72,19 +72,9 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
-    public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_read_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:data/read*",
-        "cluster:admin/sample-resource-plugin/get"
-    );
-    public static final TestSecurityConfig.ActionGroup sampleAllAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_all_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:*",
-        "cluster:admin/sample-resource-plugin/*",
-        "cluster:admin/security/resource/share"
-    );
+    public static final String sampleReadOnlyResourceAG = "sample_read_only";
+    public static final String sampleReadWriteResourceAG = "sample_read_write";
+    public static final String sampleFullAccessResourceAG = "sample_full_access";
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
@@ -116,7 +106,6 @@ public final class TestUtils {
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
             .nodeSettings(
                 Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, featureEnabled, SECURITY_SYSTEM_INDICES_ENABLED_KEY, systemIndexEnabled)
             )

@@ -30,7 +30,7 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_END
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
+import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -68,14 +68,14 @@ public class AdminCertificateAccessTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
+                shareWithPayload(NO_ACCESS_USER.getName(), sampleFullAccessResourceAG)
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
 
             response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(NO_ACCESS_USER.getName(), sampleAllAG.name())
+                revokeAccessPayload(NO_ACCESS_USER.getName(), sampleFullAccessResourceAG)
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);

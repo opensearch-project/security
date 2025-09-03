@@ -37,7 +37,7 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_EN
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -113,13 +113,13 @@ public class SecurityDisabledTests {
 
             response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyResourceAG)
             );
             assertNotImplementedResponse(response, "Cannot share resource");
 
             response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyAG.name())
+                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyResourceAG)
             );
             assertNotImplementedResponse(response, "Cannot revoke access to resource");
 
