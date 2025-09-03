@@ -768,4 +768,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         return builder.build();
     }
+
+    public ThreadPool getThreadPool() {
+        return this.threadPool;
+    }
 }

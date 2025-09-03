@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 
+* Introduced new experimental versioned security configuration management feature ([#5357] (https://github.com/opensearch-project/security/pull/5357))
+* [Resource Sharing] Adds migrate API to move resource-sharing info to security plugin ([#5389](https://github.com/opensearch-project/security/pull/5389))
+* [Rule-based Autotagging] Add logic to extract security attributes for rule-based autotagging ([#5606](https://github.com/opensearch-project/security/pull/5606))
+* Introduces support for the Argon2 Password Hashing Algorithm ([#5441] (https://github.com/opensearch-project/security/pull/5441))
+* Introduced permission validation support using query parameter without executing the request ([#5496](https://github.com/opensearch-project/security/pull/5496))
+* Add support for configuring auxiliary transports for SSL only ([#5375] (https://github.com/opensearch-project/security/pull/5375))
+* Introduced SPIFFE X.509 SVID support via SPIFFEPrincipalExtractor ([#5521](https://github.com/opensearch-project/security/pull/5521))
+
 ### Enhancements
 
 - [Resource Sharing] Use DLS to automatically filter sharable resources for authenticated user based on `all_shared_principals` ([#5600](https://github.com/opensearch-project/security/pull/5600))
