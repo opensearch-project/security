@@ -62,6 +62,9 @@ public class ResourceAccessHandlerTest {
     @Mock
     private RoleBasedActionPrivileges roleBasedPrivileges;
 
+    @Mock
+    private ResourcePluginInfo resourcePluginInfo;
+
     private ThreadContext threadContext;
     private ResourceAccessHandler handler;
 
@@ -73,7 +76,7 @@ public class ResourceAccessHandlerTest {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator);
+        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
     }
 
     private void injectUser(User user) {

@@ -33,6 +33,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -57,18 +58,21 @@ public class ResourceAccessHandler {
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
     private final PrivilegesEvaluator privilegesEvaluator;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns,
-        PrivilegesEvaluator evaluator
+        PrivilegesEvaluator evaluator,
+        ResourcePluginInfo resourcePluginInfo
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
         this.privilegesEvaluator = evaluator;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     private Set<String> getFlatPrincipals(User user) {
@@ -237,11 +241,19 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            Set<String> allowedActions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
-            WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
+            // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
+            final String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
+            if (resourceType == null) {
+                LOGGER.debug("No resourceType mapping found for index '{}'; denying action {}", resourceIndex, action);
+                listener.onResponse(false);
+                return;
+            }
+
+            final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
+            final Set<String> allowedActions = agForType.resolve(accessLevels);
+            final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
 
             listener.onResponse(matcher.test(action));
-
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);

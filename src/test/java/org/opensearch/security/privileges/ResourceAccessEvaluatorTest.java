@@ -20,6 +20,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -45,6 +46,9 @@ public class ResourceAccessEvaluatorTest {
     private ResourceAccessHandler resourceAccessHandler;
 
     @Mock
+    private ResourcePluginInfo resourcePluginInfo;
+
+    @Mock
     private PrivilegesEvaluationContext context;
 
     private ThreadContext threadContext;
@@ -56,7 +60,7 @@ public class ResourceAccessEvaluatorTest {
     public void setup() {
         Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
-        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler);
+        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler, resourcePluginInfo);
     }
 
     private void stubAuthenticatedUser() {

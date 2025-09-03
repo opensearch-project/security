@@ -685,8 +685,6 @@ public class ResourceSharingIndexHandler {
 
             ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
 
-            LOGGER.info("updted {}", updatedSharingInfo);
-
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)

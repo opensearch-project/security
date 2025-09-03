@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -37,7 +38,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ResourceTypesRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceTypesRestAction.class);
 
-    private final Set<ResourcePluginInfo.ResourceTypeAndIndex> resourceTypes;
+    private final Set<ResourcePluginInfo.ResourceDashboardInfo> resourceTypes;
 
     public ResourceTypesRestAction(final ResourcePluginInfo resourcePluginInfo) {
         super();
@@ -61,23 +62,19 @@ public class ResourceTypesRestAction extends BaseRestHandler {
                 builder.startObject();
                 builder.startArray("types");
                 for (var p : resourceTypes) {
-                    builder.startObject();
-                    builder.field("type", p.resourceType());
-                    builder.field("index", p.resourceIndexName());
-                    builder.endObject();
+                    p.toXContent(builder, ToXContent.EMPTY_PARAMS);
                 }
                 builder.endArray();
                 builder.endObject();
 
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
             } catch (Exception e) {
-                // handleError() writes the error response itself; don't send another response after this.
-                handleError(channel, e);
+                handleErrorResponse(channel, e);
             }
         };
     }
 
-    private void handleError(RestChannel channel, Exception e) {
+    private void handleErrorResponse(RestChannel channel, Exception e) {
         LOGGER.error("Error while processing request", e);
         final String message = e.getMessage();
         if (e instanceof OpenSearchStatusException ex) {
