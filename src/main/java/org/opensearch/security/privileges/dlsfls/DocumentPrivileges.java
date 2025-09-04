@@ -18,6 +18,7 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.util.Strings;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -44,7 +45,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPrivileges.DlsQuery, DlsRestriction> {
-
     private final NamedXContentRegistry xContentRegistry;
 
     public DocumentPrivileges(
@@ -134,7 +134,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
 
         static DlsQuery create(String queryString, NamedXContentRegistry xContentRegistry)
             throws PrivilegesConfigurationValidationException {
-            if (queryString.contains("${")) {
+            if (UserAttributes.needsAttributeSubstitution(queryString)) {
                 return new DlsQuery.Dynamic(queryString, xContentRegistry);
             } else {
                 return new DlsQuery.Constant(queryString, xContentRegistry);
@@ -174,6 +174,12 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             @Override
             RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
                 String effectiveQueryString = UserAttributes.replaceProperties(this.queryString, context);
+                if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
+                    throw new PrivilegesEvaluationException(
+                        "Invalid DLS query: " + effectiveQueryString,
+                        new OpenSearchSecurityException("User attribute substitution failed")
+                    );
+                }
                 try {
                     return new RenderedDlsQuery(parseQuery(effectiveQueryString, xContentRegistry), effectiveQueryString);
                 } catch (Exception e) {

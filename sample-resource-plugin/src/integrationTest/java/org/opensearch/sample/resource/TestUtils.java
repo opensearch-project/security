@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -325,10 +326,10 @@ public final class TestUtils {
         }
 
         // Helper to create a sample resource and return its ID
-        public String createSampleResourceAs(TestSecurityConfig.User user) {
+        public String createSampleResourceAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"name\":\"sample\"}";
-                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
