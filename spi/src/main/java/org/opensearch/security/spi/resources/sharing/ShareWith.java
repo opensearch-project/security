@@ -148,7 +148,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 return orig;
             });
         }
-        return new ShareWith(updated).prune();
+        return new ShareWith(updated);
     }
 
     /**
@@ -164,10 +164,10 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             Recipients revokeRecipients = entry.getValue();
             updated.computeIfPresent(level, (lvl, orig) -> {
                 orig.revoke(revokeRecipients);
-                return pruneRecipients(orig); // removes any null levels
+                return orig;
             });
         }
-        return new ShareWith(updated).prune();
+        return new ShareWith(updated);
     }
 
     /** Return a normalized ShareWith with no empty buckets and no empty action-groups. */

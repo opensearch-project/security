@@ -204,7 +204,7 @@ public class ResourceAccessHandler {
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         // At present, plugins and tokens are not supported for access to resources
-        if (!(effectiveContext.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
+        if (!(effectiveContext.getActionPrivileges() instanceof RoleBasedActionPrivileges)) {
             LOGGER.debug(
                 "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
                 user.getName(),

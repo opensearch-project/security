@@ -77,6 +77,10 @@ public class ResourceAccessHandlerTest {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
+
+        // For tests that verify permission with action-group
+        when(resourcePluginInfo.typeByIndex(any())).thenReturn("org.example.Type");
+        when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
     }
 
     private void injectUser(User user) {
@@ -128,16 +132,22 @@ public class ResourceAccessHandlerTest {
         when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
         when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
+        // Document setup: shared with the user at access-level "read"
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.isCreatedBy("bob")).thenReturn(false);
         when(doc.fetchAccessLevels(eq(Recipient.USERS), any())).thenReturn(Set.of("read"));
         when(doc.fetchAccessLevels(eq(Recipient.ROLES), any())).thenReturn(Set.of());
         when(doc.fetchAccessLevels(eq(Recipient.BACKEND_ROLES), any())).thenReturn(Set.of());
 
-        FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
-        when(roleBasedPrivileges.flattenedActionGroups()).thenReturn(ag);
-        when(ag.resolve(Set.of("read"))).thenReturn(ImmutableSet.of("read"));
+        final String TYPE_FQN = "org.example.Type";
+        when(resourcePluginInfo.typeByIndex(INDEX)).thenReturn(TYPE_FQN);
 
+        FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
+        when(resourcePluginInfo.flattenedForType(TYPE_FQN)).thenReturn(ag);
+        // Resolve the access level "read" to the concrete allowed action "read" (could also be a wildcard)
+        when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));
+
+        // Return the sharing doc from the index handler
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
             l.onResponse(doc);

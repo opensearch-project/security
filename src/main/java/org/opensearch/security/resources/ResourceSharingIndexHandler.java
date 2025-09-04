@@ -692,7 +692,13 @@ public class ResourceSharingIndexHandler {
                 updatedShareWith = updatedShareWith.revoke(revoke);
             }
 
-            ShareWith cleaned = updatedShareWith == null ? null : updatedShareWith.prune();
+            ShareWith cleaned = null;
+            if (updatedShareWith != null) {
+                ShareWith pruned = updatedShareWith.prune();
+                if (!pruned.isPrivate()) {
+                    cleaned = pruned; // store only if something non-empty remains
+                }
+            }
 
             ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
 
