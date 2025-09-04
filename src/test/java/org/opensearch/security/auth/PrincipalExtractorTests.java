@@ -3,16 +3,19 @@ package org.opensearch.security.auth;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.commons.ConfigConstants;
 import org.opensearch.node.Node;
 import org.opensearch.rule.SecurityAttribute;
 import org.opensearch.rule.attribute_extractor.AttributeExtractor;
 import org.opensearch.rule.autotagging.Attribute;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.junit.Assert.assertEquals;
@@ -45,7 +48,10 @@ public class PrincipalExtractorTests {
     @Test
     public void testExtractWithUser() {
         ThreadContext threadContext = threadPool.getThreadContext();
-        threadContext.putTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT, "alice||all_access|");
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_USER,
+            new User("alice", ImmutableSet.of("all_access"), ImmutableSet.of(), null, ImmutableMap.of(), false)
+        );
         PrincipalExtractor extractor = new PrincipalExtractor(threadPool);
         Iterable<String> principalIter = extractor.extract();
         List<String> principals = StreamSupport.stream(principalIter.spliterator(), false).toList();
