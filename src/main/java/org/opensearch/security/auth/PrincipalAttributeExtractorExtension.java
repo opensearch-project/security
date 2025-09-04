@@ -1,17 +1,17 @@
 package org.opensearch.security.auth;
 
-import org.opensearch.plugin.wlm.spi.AttributeExtension;
+import org.opensearch.plugin.wlm.spi.AttributeExtractorExtension;
 import org.opensearch.rule.attribute_extractor.AttributeExtractor;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 
 /**
- * Extension that extracts the principal from the thread context
+ * Extension that provides the extraction logic for {@link PrincipalAttribute} to core workload-management plugin
  */
-public class PrincipalAttributeExtension implements AttributeExtension {
+public class PrincipalAttributeExtractorExtension implements AttributeExtractorExtension {
 
     private final OpenSearchSecurityPlugin plugin;
 
-    public PrincipalAttributeExtension(OpenSearchSecurityPlugin plugin) {
+    public PrincipalAttributeExtractorExtension(OpenSearchSecurityPlugin plugin) {
         this.plugin = plugin;
     }
 

@@ -6,4 +6,4 @@
 # compatible open source license.
 #
 
-org.opensearch.security.auth.PrincipalAttributeExtension
+org.opensearch.security.auth.PrincipalAttributesExtension
