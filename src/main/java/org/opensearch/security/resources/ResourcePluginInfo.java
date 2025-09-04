@@ -69,11 +69,6 @@ public class ResourcePluginInfo {
 
     public record ResourceDashboardInfo(String resourceType, String resourceIndexName, Set<String> actionGroups // names only (for UI)
     ) implements ToXContentObject {
-        // public ResourceDashboardInfo {
-        // Objects.requireNonNull(resourceType, "resourceType");
-        // Objects.requireNonNull(resourceIndexName, "resourceIndexName");
-        // Objects.requireNonNull(actionGroups, "actionGroups");
-        // }
         @Override
         public XContentBuilder toXContent(XContentBuilder b, Params p) throws IOException {
             b.startObject();
