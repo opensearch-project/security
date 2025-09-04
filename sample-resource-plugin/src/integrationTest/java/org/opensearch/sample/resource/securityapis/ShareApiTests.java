@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.resource;
+package org.opensearch.sample.resource.securityapis;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import org.opensearch.sample.resource.TestUtils;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.LocalCluster;

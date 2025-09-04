@@ -85,8 +85,10 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
-    static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
-    static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+    public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String SECURITY_TYPES_ENDPOINT = "_plugins/_security/api/resource/types";
+    public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
@@ -154,7 +156,7 @@ public final class TestUtils {
 
     }
 
-    static String migrationPayload_valid() {
+    public static String migrationPayload_valid() {
         return """
             {
             "source_index": "%s",
@@ -164,7 +166,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
     }
 
-    static String migrationPayload_valid_withSpecifiedAccessLevel() {
+    public static String migrationPayload_valid_withSpecifiedAccessLevel() {
         return """
             {
             "source_index": "%s",
@@ -175,7 +177,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
     }
 
-    static String migrationPayload_missingSourceIndex() {
+    public static String migrationPayload_missingSourceIndex() {
         return """
             {
             "username_path": "%s",
@@ -184,7 +186,7 @@ public final class TestUtils {
             """.formatted("user/name", "user/backend_roles");
     }
 
-    static String migrationPayload_missingUserName() {
+    public static String migrationPayload_missingUserName() {
         return """
             {
             "source_index": "%s",
@@ -193,7 +195,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
     }
 
-    static String migrationPayload_missingBackendRoles() {
+    public static String migrationPayload_missingBackendRoles() {
         return """
             {
             "source_index": "%s",
@@ -202,7 +204,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 
-    static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
+    public static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
         return """
             {
               "resource_id": "%s",

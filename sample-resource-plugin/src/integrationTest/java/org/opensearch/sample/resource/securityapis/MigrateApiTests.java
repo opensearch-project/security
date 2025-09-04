@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.sample.resource;
+package org.opensearch.sample.resource.securityapis;
 
 import java.util.List;
 import java.util.Map;
