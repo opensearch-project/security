@@ -19,11 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.commons.ConfigConstants;
-import org.opensearch.commons.authuser.User;
 import org.opensearch.rule.SecurityAttribute;
 import org.opensearch.rule.attribute_extractor.AttributeExtractor;
 import org.opensearch.rule.autotagging.Attribute;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -44,10 +44,9 @@ public class PrincipalExtractor implements AttributeExtractor<String> {
     @Override
     public Iterable<String> extract() {
         ThreadContext threadContext = threadPool.getThreadContext();
-        String userStr = threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
+        User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         List<String> principals = new ArrayList<>();
-        if (userStr != null && !userStr.isEmpty()) {
-            User user = User.parse(userStr);
+        if (user != null) {
             principals.add(String.join("_", SecurityAttribute.USERNAME, user.getName()));
             for (String role : user.getRoles()) {
                 principals.add(String.join("_", SecurityAttribute.ROLE, role));

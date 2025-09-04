@@ -670,7 +670,6 @@ dependencies {
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
     compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
-    implementation "org.opensearch:common-utils:${common_utils_version}"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -732,6 +731,7 @@ dependencies {
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
     testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
+    testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
