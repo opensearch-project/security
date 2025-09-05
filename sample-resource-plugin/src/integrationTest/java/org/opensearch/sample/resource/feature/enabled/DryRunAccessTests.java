@@ -38,8 +38,8 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_END
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
+import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -104,7 +104,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at readonly level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_OK);
 
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             // recheck read access
@@ -123,7 +123,7 @@ public class DryRunAccessTests {
             // cannot share resource
             resp = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
-                shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyResourceAG)
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
@@ -132,7 +132,7 @@ public class DryRunAccessTests {
             // cannot revoke resource access
             resp = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
-                revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyResourceAG)
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
@@ -146,7 +146,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at full-access level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
+        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, sampleFullAccessResourceAG, HttpStatus.SC_OK);
 
         // user will now also be able to update, share, revoke and delete resource
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
@@ -166,7 +166,7 @@ public class DryRunAccessTests {
             // can share resource
             resp = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
-                shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                shareWithPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyResourceAG)
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
@@ -175,7 +175,7 @@ public class DryRunAccessTests {
             // can revoke resource access
             resp = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true",
-                revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleReadOnlyResourceAG)
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));

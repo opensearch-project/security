@@ -40,8 +40,8 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_END
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
+import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
+import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -117,8 +117,8 @@ public class ApiAccessTests {
 
             // feature is disabled, and thus request is treated as normal request.
             // Since user doesn't have permission to the share and revoke endpoints they will receive 403s
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_FORBIDDEN);
 
             // search returns 403 since user doesn't have access to invoke search
             api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -161,10 +161,10 @@ public class ApiAccessTests {
                 adminResId,
                 LIMITED_ACCESS_USER,
                 LIMITED_ACCESS_USER,
-                sampleReadOnlyAG.name(),
+                sampleReadOnlyResourceAG,
                 HttpStatus.SC_NOT_IMPLEMENTED
             );
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // should be able to search for admin's resource
             api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
@@ -206,8 +206,8 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // should be able to search for admin's resource, 2 total results
             api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
@@ -245,14 +245,14 @@ public class ApiAccessTests {
                 // can't share or revoke, as handlers don't exist
                 resp = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
+                    shareWithPayload(FULL_ACCESS_USER.getName(), sampleFullAccessResourceAG)
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 resp = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
+                    revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleFullAccessResourceAG)
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
@@ -339,8 +339,8 @@ public class ApiAccessTests {
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_FORBIDDEN);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_FORBIDDEN);
 
             // search returns 403 since user doesn't have access to invoke search
             api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -385,10 +385,10 @@ public class ApiAccessTests {
                 adminResId,
                 LIMITED_ACCESS_USER,
                 LIMITED_ACCESS_USER,
-                sampleReadOnlyAG.name(),
+                sampleReadOnlyResourceAG,
                 HttpStatus.SC_NOT_IMPLEMENTED
             );
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // should be able to search for admin's resource
             api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
@@ -432,8 +432,8 @@ public class ApiAccessTests {
             api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyResourceAG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // should be able to search for admin's resource, 2 total results
             api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
@@ -470,13 +470,13 @@ public class ApiAccessTests {
                 // can't share or revoke, as handlers don't exist
                 resp = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
-                    shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
+                    shareWithPayload(FULL_ACCESS_USER.getName(), sampleFullAccessResourceAG)
                 );
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 resp = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
-                    revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
+                    revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleFullAccessResourceAG)
                 );
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 

@@ -33,6 +33,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -57,41 +58,24 @@ public class ResourceAccessHandler {
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
     private final PrivilegesEvaluator privilegesEvaluator;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns,
-        PrivilegesEvaluator evaluator
+        PrivilegesEvaluator evaluator,
+        ResourcePluginInfo resourcePluginInfo
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
         this.privilegesEvaluator = evaluator;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
-    /**
-     * Returns a set of accessible resource IDs for the current user within the specified resource index.
-     *
-     * @param resourceIndex The resource index to check for accessible resources.
-     * @param listener      The listener to be notified with the set of accessible resource IDs.
-     */
-    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
-
-        if (user == null) {
-            LOGGER.warn("No authenticated user; returning empty set");
-            listener.onResponse(Collections.emptySet());
-            return;
-        }
-
-        if (adminDNs.isAdmin(user)) {
-            loadAllResources(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
-            return;
-        }
-
+    private Set<String> getFlatPrincipals(User user) {
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
         Set<String> users = new HashSet<>();
@@ -106,22 +90,77 @@ public class ResourceAccessHandler {
         Set<String> backendRoles = new HashSet<>(user.getRoles());
         backendRoles.add("*"); // for matching against publicly shared resource
 
-        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
-        // BEST_FIELDS)
-        Set<String> flatPrincipals = Stream.concat(
+        // return flattened principals to build the bool query
+        return Stream.concat(
             // users
             users.stream().map(u -> "user:" + u),
             // then roles and backend_roles
             Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());
+    }
 
-        BoolQueryBuilder query = QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
+    private BoolQueryBuilder getAccessibleResourcesBoolQuery(String creatorName, Set<String> flatPrincipals) {
+        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
+        // BEST_FIELDS)
+        return QueryBuilders.boolQuery()
+            .should(QueryBuilders.termQuery("created_by.user.keyword", creatorName))
             .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
             .minimumShouldMatch(1);
+    }
+
+    /**
+     * Returns a set of accessible resource IDs for the current user within the specified resource index.
+     *
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @param listener      The listener to be notified with the set of accessible resource IDs.
+     */
+    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
+        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        User user = userSub == null ? null : userSub.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user; returning empty set of ids");
+            listener.onResponse(Collections.emptySet());
+            return;
+        }
+
+        if (adminDNs.isAdmin(user)) {
+            loadAllResourceIds(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            return;
+        }
+        Set<String> flatPrincipals = getFlatPrincipals(user);
+        BoolQueryBuilder query = getAccessibleResourcesBoolQuery(user.getName(), flatPrincipals);
 
         // 3) Fetch all accessible resource IDs
         resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, query, listener);
+    }
+
+    /**
+     * Returns a set of resource sharing records for the current user within the specified resource index.
+     *
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @param listener      The listener to be notified with the set of resource sharing records.
+     */
+    public void getResourceSharingInfoForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        User user = userSub == null ? null : userSub.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user; returning empty set of resource-sharing records");
+            listener.onResponse(Collections.emptySet());
+            return;
+        }
+
+        if (adminDNs.isAdmin(user)) {
+            loadAllResourceSharingRecords(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            return;
+        }
+
+        Set<String> flatPrincipals = getFlatPrincipals(user);
+        BoolQueryBuilder query = getAccessibleResourcesBoolQuery(user.getName(), flatPrincipals);
+
+        // 3) Fetch all accessible resource sharing records
+        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, user, flatPrincipals, query, listener);
     }
 
     /**
@@ -165,7 +204,7 @@ public class ResourceAccessHandler {
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         // At present, plugins and tokens are not supported for access to resources
-        if (!(effectiveContext.getActionPrivileges() instanceof RoleBasedActionPrivileges roleBasedActionPrivileges)) {
+        if (!(effectiveContext.getActionPrivileges() instanceof RoleBasedActionPrivileges)) {
             LOGGER.debug(
                 "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
                 user.getName(),
@@ -202,11 +241,19 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            Set<String> allowedActions = roleBasedActionPrivileges.flattenedActionGroups().resolve(accessLevels);
-            WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
+            // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
+            final String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
+            if (resourceType == null) {
+                LOGGER.debug("No resourceType mapping found for index '{}'; denying action {}", resourceIndex, action);
+                listener.onResponse(false);
+                return;
+            }
+
+            final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
+            final Set<String> allowedActions = agForType.resolve(accessLevels);
+            final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
 
             listener.onResponse(matcher.test(action));
-
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -393,7 +440,11 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to load resources from.
      * @param listener      The listener to be notified with the set of resource IDs.
      */
-    private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
+    private void loadAllResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
+    }
+
+    private void loadAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, listener);
     }
 }
