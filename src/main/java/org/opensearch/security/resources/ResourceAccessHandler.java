@@ -11,8 +11,11 @@
 
 package org.opensearch.security.resources;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +26,8 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -64,6 +69,59 @@ public class ResourceAccessHandler {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
         this.privilegesEvaluator = evaluator;
+    }
+
+    /**
+     * Returns a set of accessible resource IDs for the current user within the specified resource index.
+     *
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @param listener      The listener to be notified with the set of accessible resource IDs.
+     */
+    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
+        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        User user = userSub == null ? null : userSub.getUser();
+
+        if (user == null) {
+            LOGGER.warn("No authenticated user; returning empty set");
+            listener.onResponse(Collections.emptySet());
+            return;
+        }
+
+        if (adminDNs.isAdmin(user)) {
+            loadAllResources(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            return;
+        }
+
+        // 1) collect all entities we’ll match against share_with arrays
+        // for users:
+        Set<String> users = new HashSet<>();
+        users.add(user.getName());
+        users.add("*"); // for matching against publicly shared resource
+
+        // for roles:
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        roles.add("*"); // for matching against publicly shared resource
+
+        // for backend_roles:
+        Set<String> backendRoles = new HashSet<>(user.getRoles());
+        backendRoles.add("*"); // for matching against publicly shared resource
+
+        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
+        // BEST_FIELDS)
+        Set<String> flatPrincipals = Stream.concat(
+            // users
+            users.stream().map(u -> "user:" + u),
+            // then roles and backend_roles
+            Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
+        ).collect(Collectors.toSet());
+
+        BoolQueryBuilder query = QueryBuilders.boolQuery()
+            .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
+            .should(QueryBuilders.termsQuery("all_shared_principals.keyword", flatPrincipals))
+            .minimumShouldMatch(1);
+
+        // 3) Fetch all accessible resource IDs
+        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, query, listener);
     }
 
     /**

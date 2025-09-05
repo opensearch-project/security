@@ -8,6 +8,8 @@
 
 package org.opensearch.security.resources;
 
+import java.util.Set;
+
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -67,5 +69,16 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener) {
         resourceAccessHandler.revoke(resourceId, resourceIndex, target, listener);
+    }
+
+    /**
+     * Lists all resources the current user has access to within the given index.
+     *
+     * @param resourceIndex The index to search for accessible resources.
+     * @param listener      Callback receiving a set of resource ids.
+     */
+    @Override
+    public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
+        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceIndex, listener);
     }
 }

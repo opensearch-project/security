@@ -14,13 +14,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
@@ -78,25 +79,26 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
 
         List<String> principals = new ArrayList<>();
         principals.add("user:*"); // Convention for publicly visible
-        principals.add("user:" + user.getName());
+        principals.add("user:" + user.getName()); // owner
 
         // Security roles (OpenSearch Security roles)
         if (user.getRoles() != null) {
             user.getRoles().forEach(r -> principals.add("role:" + r));
         }
 
-        // Backend roles (LDAP/SAML/etc) – adjust getter name to your version!
+        // Backend roles (LDAP/SAML/etc)
         if (user.getRoles() != null) {
-            user.getRoles().forEach(br -> principals.add("backend_role:" + br));
+            user.getRoles().forEach(br -> principals.add("backend:" + br));
         }
 
-        // Build a single `terms` query JSON
-        String dlsJson = "{\"terms\":{\"all_shared_principals.keyword\":["
-            + principals.stream().map(p -> "\"" + p.replace("\"", "\\\"") + "\"").collect(Collectors.joining(","))
-            + "]}}";
-
+        XContentBuilder builder = null;
         DlsRestriction restriction;
         try {
+            // Build a single `terms` query JSON
+            builder = XContentFactory.jsonBuilder();
+            builder.startObject().startObject("terms").array("all_shared_principals.keyword", principals.toArray()).endObject().endObject();
+
+            String dlsJson = builder.toString();
             restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));
         } catch (IOException e) {
             LOGGER.warn("Received error while applying resource restrictions.", e);
