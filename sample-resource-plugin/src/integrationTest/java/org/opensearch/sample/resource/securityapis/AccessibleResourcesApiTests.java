@@ -160,18 +160,31 @@ public class AccessibleResourcesApiTests {
         assertListApiWithUser(FULL_ACCESS_USER);
     }
 
+    @SuppressWarnings("unchecked")
+    private void assertListApiWithOwnerAndSuperAdmin(TestRestClient client) {
+        TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
+        response.assertStatusCode(HttpStatus.SC_OK);
+        List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
+        assertThat(resources.size(), equalTo(1));
+        Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
+        assertThat(resource.get("resource_id"), equalTo(adminResId));
+        assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
+        assertThat(resource.get("can_share"), equalTo(Boolean.TRUE));
+    }
+
     @Test
     public void testListAccessibleResources_resourceOwner() {
         // owner should be able to see their own resource through list api
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
-            assertThat(resources.size(), equalTo(1));
-            Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
-            assertThat(resource.get("resource_id"), equalTo(adminResId));
-            assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
-            assertThat(resource.get("can_share"), equalTo(Boolean.TRUE));
+            assertListApiWithOwnerAndSuperAdmin(client);
+        }
+    }
+
+    @Test
+    public void testListAccessibleResources_superAdmin() {
+        // owner should be able to see their own resource through list api
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            assertListApiWithOwnerAndSuperAdmin(client);
         }
     }
 }

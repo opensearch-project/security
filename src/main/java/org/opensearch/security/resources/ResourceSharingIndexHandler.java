@@ -256,12 +256,7 @@ public class ResourceSharingIndexHandler {
         }
     }
 
-    public void fetchAllResourceSharingRecords(
-        String resourceIndex,
-        User user,
-        boolean isAdmin,
-        ActionListener<Set<SharingRecord>> listener
-    ) {
+    public void fetchAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug("Fetching all documents asynchronously from {}", resourceSharingIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));

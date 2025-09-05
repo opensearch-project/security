@@ -152,7 +152,7 @@ public class ResourceAccessHandler {
         }
 
         if (adminDNs.isAdmin(user)) {
-            loadAllResourceSharingRecords(resourceIndex, user, true, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            loadAllResourceSharingRecords(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
 
@@ -444,12 +444,7 @@ public class ResourceAccessHandler {
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
-    private void loadAllResourceSharingRecords(
-        String resourceIndex,
-        User user,
-        boolean isAdmin,
-        ActionListener<Set<SharingRecord>> listener
-    ) {
-        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, user, isAdmin, listener);
+    private void loadAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, listener);
     }
 }

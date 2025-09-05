@@ -108,6 +108,7 @@ opensearchplugin {
 
       # ...
     ```
+
 #### **Example resource-action-groups yml**
 ```yml
 resource_types:
