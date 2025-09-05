@@ -99,8 +99,8 @@ public class ResourceAccessEvaluator {
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
         if (!isResourceSharingFeatureEnabled) return false;
-        if (request instanceof GetRequest) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
+        if (request instanceof GetRequest) return false;
         if (Strings.isNullOrEmpty(docRequest.id())) {
             log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
             return false;
