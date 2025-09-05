@@ -82,8 +82,8 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
         principals.add("user:" + user.getName()); // owner
 
         // Security roles (OpenSearch Security roles)
-        if (user.getRoles() != null) {
-            user.getRoles().forEach(r -> principals.add("role:" + r));
+        if (user.getSecurityRoles() != null) {
+            user.getSecurityRoles().forEach(r -> principals.add("role:" + r));
         }
 
         // Backend roles (LDAP/SAML/etc)
