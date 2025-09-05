@@ -75,13 +75,11 @@ public final class TestUtils {
     public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_read_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:data/read*",
         "cluster:admin/sample-resource-plugin/get"
     );
     public static final TestSecurityConfig.ActionGroup sampleAllAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_all_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:*",
         "cluster:admin/sample-resource-plugin/*",
         "cluster:admin/security/resource/share"
     );
@@ -161,6 +159,18 @@ public final class TestUtils {
             }
             """.formatted(accessLevel, user);
 
+    }
+
+    public static String shareWithRolePayload(String role, String accessLevel) {
+        return """
+            {
+              "share_with": {
+                "%s" : {
+                    "roles": ["%s"]
+                }
+              }
+            }
+            """.formatted(accessLevel, role);
     }
 
     static String migrationPayload_valid() {
@@ -565,6 +575,22 @@ public final class TestUtils {
             assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
         }
 
+        public void assertApiShareByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel,
+            int status
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(
+                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                    shareWithRolePayload(targetRole, accessLevel)
+                );
+                response.assertStatusCode(status);
+            }
+        }
+
         private void assertRevoke(
             String endpoint,
             TestSecurityConfig.User user,
@@ -597,20 +623,21 @@ public final class TestUtils {
             }
         }
 
-        public void awaitSharingEntry() {
-            awaitSharingEntry("admin");
+        public void awaitSharingEntry(String resourceId) {
+            awaitSharingEntry(resourceId, "admin");
         }
 
-        public void awaitSharingEntry(String expectedString) {
+        public void awaitSharingEntry(String resourceId, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await("Wait for sharing entry").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
-                    response.assertStatusCode(200);
-                    String hitsJson = response.bodyAsMap().get("hits").toString();
-                    assertThat(hitsJson, containsString(expectedString));
-                    int size = response.bodyAsJsonNode().get("hits").get("hits").size();
-                    assertThat(size, greaterThanOrEqualTo(1));
-                });
+                Awaitility.await("Wait for sharing entry for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        String body = response.getBody();
+                        assertThat(body, containsString(expectedString));
+                        assertThat(body, containsString(resourceId));
+                    });
             }
         }
     }

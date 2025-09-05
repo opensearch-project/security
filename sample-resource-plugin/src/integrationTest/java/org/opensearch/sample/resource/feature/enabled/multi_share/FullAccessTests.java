@@ -45,7 +45,7 @@ public class FullAccessTests {
     @Before
     public void setup() {
         resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(); // wait until sharing entry is created
+        api.awaitSharingEntry(resourceId); // wait until sharing entry is created
     }
 
     @After
@@ -79,7 +79,7 @@ public class FullAccessTests {
         api.assertApiShare(resourceId, target, new TestSecurityConfig.User("test"), sampleAllAG.name(), HttpStatus.SC_OK);
 
         api.assertApiRevoke(resourceId, user, target, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry();
+        api.awaitSharingEntry(resourceId);
         api.assertApiGet(resourceId, target, HttpStatus.SC_FORBIDDEN, "");
     }
 

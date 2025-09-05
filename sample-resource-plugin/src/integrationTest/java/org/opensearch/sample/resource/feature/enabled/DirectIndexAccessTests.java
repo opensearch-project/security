@@ -180,7 +180,7 @@ public class DirectIndexAccessTests {
         @Before
         public void setup() {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry(); // wait until sharing entry is created
+            api.awaitSharingEntry(adminResId); // wait until sharing entry is created
         }
 
         @After
