@@ -386,4 +386,14 @@ public class ResourceAccessHandler {
             listener.onFailure(exception);
         }));
     }
+
+    /**
+     * Loads all resources within the specified resource index.
+     *
+     * @param resourceIndex The resource index to load resources from.
+     * @param listener      The listener to be notified with the set of resource IDs.
+     */
+    private void loadAllResources(String resourceIndex, ActionListener<Set<String>> listener) {
+        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
+    }
 }

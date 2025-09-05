@@ -467,10 +467,6 @@ public final class TestUtils {
                     assertThat(response.getBody(), containsString(expectedResourceName));
                 }
             }
-
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                TestRestClient.HttpResponse response = client.postJson(endpoint, searchPayload);
-            }
         }
 
         public void assertDirectGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {

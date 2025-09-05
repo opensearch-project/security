@@ -8,6 +8,8 @@
 
 package org.opensearch.security.spi.resources.client;
 
+import java.util.Set;
+
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -45,4 +47,11 @@ public interface ResourceSharingClient {
      * @param listener       The listener to be notified with the updated ResourceSharing document.
      */
     void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
+
+    /**
+     * Lists resourceIds of all shareable resources accessible by the current user.
+     * @param resourceIndex The index containing the resources.
+     * @param listener The listener to be notified with the set of accessible resources.
+     */
+    void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 }
