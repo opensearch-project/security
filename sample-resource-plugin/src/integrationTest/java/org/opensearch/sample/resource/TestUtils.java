@@ -460,8 +460,6 @@ public final class TestUtils {
         ) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.postJson(endpoint, searchPayload);
-                System.out.println("User: " + user);
-                System.out.println("Search response: " + response.getBody());
                 response.assertStatusCode(status);
                 if (status == HttpStatus.SC_OK) {
                     Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
@@ -472,8 +470,6 @@ public final class TestUtils {
 
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 TestRestClient.HttpResponse response = client.postJson(endpoint, searchPayload);
-                System.out.println("SuperAdmin: " + user);
-                System.out.println("Search response: " + response.getBody());
             }
         }
 
