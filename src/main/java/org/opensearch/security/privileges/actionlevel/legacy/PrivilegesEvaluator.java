@@ -200,7 +200,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        this.indicesRequestResolver = new IndicesRequestResolver(resolver);
+        this.indicesRequestResolver = new LegacyIndicesRequestResolver(resolver);
 
         this.pluginIdToActionPrivileges.putAll(createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups));
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
