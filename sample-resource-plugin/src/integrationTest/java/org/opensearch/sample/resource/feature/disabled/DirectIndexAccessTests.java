@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.feature.disabled;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -22,9 +23,12 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -49,6 +53,11 @@ public class DirectIndexAccessTests {
 
         private final TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
 
+        @After
+        public void cleanup() {
+            api.wipeOutResourceEntries();
+        }
+
         @Test
         public void testRawAccess_noAccessUser() {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
@@ -62,7 +71,13 @@ public class DirectIndexAccessTests {
             }
             api.assertDirectGet(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             api.assertDirectGetAll(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
+            // search returns 403 since user doesn't have access to invoke search
+            api.assertDirectGetSearchForbidden(NO_ACCESS_USER);
+            api.assertDirectPostSearchForbidden(searchAllPayload(), NO_ACCESS_USER);
+            api.assertDirectPostSearchForbidden(searchByNamePayload("sample"), NO_ACCESS_USER);
+
             api.assertDirectDelete(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -81,7 +96,14 @@ public class DirectIndexAccessTests {
             // cannot read admin's resource since system index protection is enabled, will show 404
             api.assertDirectGet(id, LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
             // cannot update or delete resource
-            api.assertDirectUpdate(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
+            // should not be able to search for admin's resource, can not see any resource since system index protection is enabled
+            api.assertDirectGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+
             api.assertDirectDelete(id, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -99,7 +121,14 @@ public class DirectIndexAccessTests {
             // cannot read admin's resource directly since SIP is enabled
             api.assertDirectGet(id, FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "sample");
             // cannot update or delete admin resource directly since SIP is enabled
-            api.assertDirectUpdate(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(id, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
+            // should not be able to search for any resource since System index protection is enabled
+            api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sampleUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+
             api.assertDirectDelete(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -109,6 +138,11 @@ public class DirectIndexAccessTests {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
+                // can search resources
+                client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload()).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated")).assertStatusCode(HttpStatus.SC_OK);
+
                 client.postJson(RESOURCE_INDEX_NAME + "/_doc/" + id, "{\"name\":\"adminDirectUpdated\"}")
                     .assertStatusCode(HttpStatus.SC_OK);
                 client.delete(RESOURCE_INDEX_NAME + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
@@ -134,6 +168,11 @@ public class DirectIndexAccessTests {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
         }
 
+        @After
+        public void cleanup() {
+            api.wipeOutResourceEntries();
+        }
+
         @Test
         public void testRawAccess_noAccessUser() {
             // user has no permissions
@@ -145,7 +184,14 @@ public class DirectIndexAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
             api.assertDirectGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+            // should not be able to search for any resource
+            api.assertDirectGetSearch(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchAllPayload(), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            api.assertDirectPostSearch(searchByNamePayload("sampleUpdateAdmin"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            // can see own resource
+            api.assertDirectPostSearch(searchByNamePayload("sampleUser"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+
             api.assertDirectDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -163,7 +209,15 @@ public class DirectIndexAccessTests {
             // can read admin's resource
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // cannot update or delete resource since user doesn't have update and delete permissions
-            api.assertDirectUpdate(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+
+            // should be able to search only for one resource, admin's
+            api.assertDirectGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertDirectPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertDirectPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            // can see own resource
+            api.assertDirectPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
+
             api.assertDirectDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -183,10 +237,23 @@ public class DirectIndexAccessTests {
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUser");
             // can update and delete all resources
-            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
-            api.assertDirectUpdate(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateAdmin");
+            api.assertDirectUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
+            api.assertDirectGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+
+            // should be able to search for all resources
+            api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateUser");
+            api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateUser");
+            api.assertDirectPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            // can see own resource
+            api.assertDirectPostSearch(
+                searchByNamePayload("sampleUpdateAdmin"),
+                FULL_ACCESS_USER,
+                HttpStatus.SC_OK,
+                1,
+                "sampleUpdateAdmin"
+            );
 
             api.assertDirectDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
             api.assertDirectDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
@@ -202,6 +269,11 @@ public class DirectIndexAccessTests {
                 client.get(RESOURCE_INDEX_NAME + "/_doc/" + adminResId).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(RESOURCE_INDEX_NAME + "/_doc/" + adminResId, "{\"name\":\"adminDirectUpdated\"}")
                     .assertStatusCode(HttpStatus.SC_OK);
+                // can search resources
+                client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload()).assertStatusCode(HttpStatus.SC_OK);
+                client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated")).assertStatusCode(HttpStatus.SC_OK);
+
                 client.delete(RESOURCE_INDEX_NAME + "/_doc/" + adminResId).assertStatusCode(HttpStatus.SC_OK);
             }
         }

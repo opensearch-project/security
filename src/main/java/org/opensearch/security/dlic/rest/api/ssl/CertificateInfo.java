@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api.ssl;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.opensearch.Version;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
@@ -68,10 +69,17 @@ public class CertificateInfo implements Writeable, ToXContent {
         this.issuer = in.readOptionalString();
         this.notAfter = in.readOptionalString();
         this.notBefore = in.readOptionalString();
-        this.format = in.readOptionalString();
-        this.alias = in.readOptionalString();
-        this.serialNumber = in.readOptionalString();
-        this.hasPrivateKey = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_3_0_0)) {
+            this.format = in.readOptionalString();
+            this.alias = in.readOptionalString();
+            this.serialNumber = in.readOptionalString();
+            this.hasPrivateKey = in.readBoolean();
+        } else {
+            this.format = null;
+            this.alias = null;
+            this.serialNumber = null;
+            this.hasPrivateKey = false;
+        }
     }
 
     @Override
@@ -81,10 +89,12 @@ public class CertificateInfo implements Writeable, ToXContent {
         out.writeOptionalString(issuer);
         out.writeOptionalString(notAfter);
         out.writeOptionalString(notBefore);
-        out.writeOptionalString(format);
-        out.writeOptionalString(alias);
-        out.writeOptionalString(serialNumber);
-        out.writeBoolean(hasPrivateKey);
+        if (out.getVersion().onOrAfter(Version.V_3_0_0)) {
+            out.writeOptionalString(format);
+            out.writeOptionalString(alias);
+            out.writeOptionalString(serialNumber);
+            out.writeBoolean(hasPrivateKey);
+        }
     }
 
     @Override

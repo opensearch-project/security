@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.feature.disabled;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -24,6 +25,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
@@ -32,6 +35,7 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_EN
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
@@ -68,6 +72,11 @@ public class ApiAccessTests {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
         }
 
+        @After
+        public void cleanup() {
+            api.wipeOutResourceEntries();
+        }
+
         @Test
         public void testPluginInstalledCorrectly() {
             try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -99,14 +108,22 @@ public class ApiAccessTests {
 
             // cannot get admin's resource
             api.assertApiGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            // get non-existent resource returns 403
+            api.assertApiGet("randomId", NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, and thus request is treated as normal request.
             // Since user doesn't have permission to the share and revoke endpoints they will receive 403s
             api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
             api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+
+            // search returns 403 since user doesn't have access to invoke search
+            api.assertApiGetSearchForbidden(NO_ACCESS_USER);
+            api.assertApiPostSearchForbidden(searchAllPayload(), NO_ACCESS_USER);
+            api.assertApiPostSearchForbidden(searchByNamePayload("sample"), NO_ACCESS_USER);
 
             // cannot delete admin's resource
             api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -130,11 +147,14 @@ public class ApiAccessTests {
             // can see admin's resource
             api.assertApiGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            // get non-existent resource returns 404
+            api.assertApiGet("randomId", LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
+
             // cannot update admin's resource since user doesn't have update permission
-            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
             // cannot update own resource since user doesn't have update permission
-            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             // feature is disabled, no handler's exist
             api.assertApiShare(
@@ -145,6 +165,12 @@ public class ApiAccessTests {
                 HttpStatus.SC_NOT_IMPLEMENTED
             );
             api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+
+            // should be able to search for admin's resource
+            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertApiPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
 
             // cannot delete own resource since user doesn't have delete permission
             api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -169,17 +195,26 @@ public class ApiAccessTests {
             // can see admin's resource since feature is disabled and user has * permissions
             api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            // get non-existent resource returns 404
+            api.assertApiGet("randomId", FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
 
             // can update admin's resource since feature is disabled and user has * permissions
-            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateAdmin");
             // can update own resource since feature is disabled and user has * permissions
-            api.assertApiUpdate(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
+            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
 
             // feature is disabled, no handler's exist
             api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
             api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+
+            // should be able to search for admin's resource, 2 total results
+            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
+            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
+            api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateAdmin");
+            // can search for own resource
+            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
             // can delete own resource since user has * permissions
             api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
@@ -192,41 +227,51 @@ public class ApiAccessTests {
         public void testApiAccess_adminCertificateUsers() {
             // super-admin can perform any operation
 
-            // can see admin's resource
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                // can see admin's resource
                 HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sample"));
-            }
+                // get non-existent resource returns 404
+                resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/randomId");
+                resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
 
-            // can update admin's resource
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                // can update admin's resource
                 String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
-                TestRestClient.HttpResponse resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId, updatePayload);
+                resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId, updatePayload);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
-            }
 
-            // can't share or revoke, as handlers don't exist
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                TestRestClient.HttpResponse response = client.postJson(
+                // can't share or revoke, as handlers don't exist
+                resp = client.postJson(
                     SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
                     shareWithPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
-                response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
+                resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
-                response = client.postJson(
+                resp = client.postJson(
                     SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
                     revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
 
-                response.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
-            }
+                resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
-            // can delete admin's resource
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                HttpResponse resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId);
+                // can search resources
+                resp = client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
+
+                resp = client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload());
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
+
+                resp = client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated"));
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
+
+                // can delete admin's resource
+                resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
                 resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
@@ -246,6 +291,11 @@ public class ApiAccessTests {
         public static LocalCluster cluster = newCluster(false, false);
 
         private final TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
+
+        @After
+        public void cleanup() {
+            api.wipeOutResourceEntries();
+        }
 
         @Test
         public void testPluginInstalledCorrectly() {
@@ -281,13 +331,21 @@ public class ApiAccessTests {
 
             // cannot get admin's resource
             api.assertApiGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            // get non-existent resource returns 404
+            api.assertApiGet("randomId", NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, no handler's exist
             api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
             api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_FORBIDDEN);
+
+            // search returns 403 since user doesn't have access to invoke search
+            api.assertApiGetSearchForbidden(NO_ACCESS_USER);
+            api.assertApiPostSearchForbidden(searchAllPayload(), NO_ACCESS_USER);
+            api.assertApiPostSearchForbidden(searchByNamePayload("sample"), NO_ACCESS_USER);
 
             // cannot delete admin's resource
             api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -313,11 +371,14 @@ public class ApiAccessTests {
             // can see admin's resource
             api.assertApiGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            // get non-existent resource returns 404
+            api.assertApiGet("randomId", LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
+
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
             // cannot update own resource
-            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             // feature is disabled, no handler's exist
             api.assertApiShare(
@@ -328,6 +389,12 @@ public class ApiAccessTests {
                 HttpStatus.SC_NOT_IMPLEMENTED
             );
             api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+
+            // should be able to search for admin's resource
+            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+            api.assertApiPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
 
             // cannot delete resource since feature is disabled and user doesn't have delete permission
             api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
@@ -354,17 +421,26 @@ public class ApiAccessTests {
             // can see admin's resource
             api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            // get non-existent resource returns 404
+            api.assertApiGet("randomId", LIMITED_ACCESS_USER, HttpStatus.SC_NOT_FOUND, "");
 
             // can update admin's resource
-            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateAdmin");
             // can update a resource
-            api.assertApiUpdate(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdated");
+            api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
+            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
 
             // feature is disabled, no handler's exist
             api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
             api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_NOT_IMPLEMENTED);
+
+            // should be able to search for admin's resource, 2 total results
+            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
+            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
+            api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateAdmin");
+            // can see own resource
+            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
             // can delete a resource
             api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
@@ -381,6 +457,9 @@ public class ApiAccessTests {
                 HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + id);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(resp.getBody(), containsString("sample"));
+                // get non-existent resource returns 404
+                resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/randomId");
+                resp.assertStatusCode(HttpStatus.SC_NOT_FOUND);
 
                 // can update all resources
                 String updatePayload = "{" + "\"name\": \"sampleUpdated\"" + "}";
@@ -400,6 +479,19 @@ public class ApiAccessTests {
                     revokeAccessPayload(FULL_ACCESS_USER.getName(), sampleAllAG.name())
                 );
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
+
+                // can search resources
+                resp = client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
+
+                resp = client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchAllPayload());
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
+
+                resp = client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchByNamePayload("sampleUpdated"));
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can delete admin's resource
                 resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + id);

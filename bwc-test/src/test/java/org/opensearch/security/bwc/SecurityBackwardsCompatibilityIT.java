@@ -226,9 +226,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> nodeCerts = (Map<String, Object>) nodeInfo.get("certificates");
                 for (String expectCertKey : expectCertificates) {
-                    assertTrue(nodeCerts.containsKey(expectCertKey));
+                    // required cert types
+                    if (Set.of("http", "transport").contains(expectCertKey)) {
+                        assertTrue(nodeCerts.containsKey(expectCertKey));
+                    }
                     @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> certList = (List<Map<String, Object>>) nodeCerts.get(expectCertKey);
+                    List<Map<String, Object>> certList = (List<Map<String, Object>>) nodeCerts.getOrDefault(expectCertKey, List.of());
                     for (Map<String, Object> singleCert : certList) {
                         verifyCertificateInfo(singleCert);
                     }

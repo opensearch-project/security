@@ -19,6 +19,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
     - [Access control](#access-control)
     - [Audit/Compliance logging](#auditcompliance-logging)
     - [OpenSearch Dashboards multi-tenancy](#opensearch-dashboards-multi-tenancy)
+    - [Resource Sharing and Access Control](#resource-sharing-and-access-control)
   - [Installation](#installation)
   - [Test and Build](#test-and-build)
   - [Config hot reloading](#config-hot-reloading)
@@ -65,6 +66,10 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 
 ### OpenSearch Dashboards multi-tenancy
 * True OpenSearch Dashboards multi-tenancy
+
+
+### Resource Sharing and Access Control
+* Allows users to manage access to own and shared resources. For details about the feature read: [RESOURCE_SHARING_AND_ACCESS_CONTROL.md](./RESOURCE_SHARING_AND_ACCESS_CONTROL.md)
 
 ## Installation
 

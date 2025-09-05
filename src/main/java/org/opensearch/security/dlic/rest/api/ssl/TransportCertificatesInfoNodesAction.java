@@ -88,10 +88,11 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
         final var sslCertRequest = request.sslCertsInfoNodesRequest;
 
         try {
-            return new CertificatesNodesResponse.CertificatesNodeResponse(
-                clusterService.localNode(),
-                loadCertificates(sslCertRequest.certificateType())
-            );
+            Optional<String> certType = sslCertRequest.certificateType();
+            if (certType.isPresent() && "all".equals(certType.get())) {
+                certType = Optional.empty(); // backward compatibility with 2.19
+            }
+            return new CertificatesNodesResponse.CertificatesNodeResponse(clusterService.localNode(), loadCertificates(certType));
         } catch (final Exception e) {
             return new CertificatesNodesResponse.CertificatesNodeResponse(clusterService.localNode(), e);
         }

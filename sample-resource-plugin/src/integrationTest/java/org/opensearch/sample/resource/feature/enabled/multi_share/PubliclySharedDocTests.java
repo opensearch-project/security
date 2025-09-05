@@ -11,6 +11,7 @@ package org.opensearch.sample.resource.feature.enabled.multi_share;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -47,9 +48,14 @@ public class PubliclySharedDocTests {
         api.awaitSharingEntry(); // wait until sharing entry is created
     }
 
+    @After
+    public void cleanup() {
+        api.wipeOutResourceEntries();
+    }
+
     private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
         api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, HttpStatus.SC_FORBIDDEN);
+        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
@@ -57,27 +63,21 @@ public class PubliclySharedDocTests {
     }
 
     private void assertReadOnly() {
-        api.assertApiGet(resourceId, TestUtils.FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, TestUtils.FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, TestUtils.FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+        api.assertApiGet(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+        api.assertApiUpdate(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+        api.assertApiDelete(resourceId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
-        api.assertApiShare(resourceId, TestUtils.FULL_ACCESS_USER, TestUtils.FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(
-            resourceId,
-            TestUtils.FULL_ACCESS_USER,
-            TestUtils.FULL_ACCESS_USER,
-            sampleAllAG.name(),
-            HttpStatus.SC_FORBIDDEN
-        );
+        api.assertApiShare(resourceId, FULL_ACCESS_USER, TestUtils.FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
     }
 
     private void assertFullAccess() {
-        api.assertApiGet(resourceId, TestUtils.LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, TestUtils.LIMITED_ACCESS_USER, HttpStatus.SC_OK);
-        api.assertApiShare(resourceId, TestUtils.LIMITED_ACCESS_USER, TestUtils.LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.assertApiRevoke(resourceId, TestUtils.LIMITED_ACCESS_USER, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
+        api.assertApiGet(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+        api.assertApiUpdate(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, LIMITED_ACCESS_USER, TestUtils.LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
+        api.assertApiRevoke(resourceId, LIMITED_ACCESS_USER, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
         api.awaitSharingEntry();
-        api.assertApiDelete(resourceId, TestUtils.LIMITED_ACCESS_USER, HttpStatus.SC_OK);
+        api.assertApiDelete(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK);
     }
 
     @Test

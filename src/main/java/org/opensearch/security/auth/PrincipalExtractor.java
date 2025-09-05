@@ -56,7 +56,7 @@ public class PrincipalExtractor implements AttributeExtractor<String> {
     }
 
     @Override
-    public CombinationStyle getCombinationStyle() {
-        return CombinationStyle.OR;
+    public LogicalOperator getLogicalOperator() {
+        return LogicalOperator.OR;
     }
 }
