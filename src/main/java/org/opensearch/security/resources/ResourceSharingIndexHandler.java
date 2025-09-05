@@ -85,14 +85,7 @@ public class ResourceSharingIndexHandler {
         this.threadPool = threadPool;
     }
 
-    public final static Map<String, Object> INDEX_SETTINGS = Map.of(
-        "index.number_of_shards",
-        1,
-        "index.auto_expand_replicas",
-        "0-all",
-        "index.hidden",
-        "true"
-    );
+    public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
     /**
      * Creates the resource sharing index if it doesn't already exist.
