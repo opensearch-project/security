@@ -104,7 +104,7 @@ public class TenantPrivileges {
                 for (RoleV7.Tenant tenantPermissions : role.getTenant_permissions()) {
                     List<ActionType> actionTypes = resolveActionType(tenantPermissions.getAllowed_actions(), actionGroups);
                     for (String tenantPattern : tenantPermissions.getTenant_patterns()) {
-                        if (isDynamic(tenantPattern)) {
+                        if (UserAttributes.needsAttributeSubstitution(tenantPattern)) {
                             // If a tenant pattern contains a user attribute (like ${user.name}), we can only
                             // do the tenant pattern matching during the actual tenant privilege evaluation, when the user is known.
                             // Thus, we just keep these patterns here unprocessed
@@ -250,10 +250,6 @@ public class TenantPrivileges {
         } else {
             return READ;
         }
-    }
-
-    static boolean isDynamic(String tenantPattern) {
-        return tenantPattern.contains("${");
     }
 
     private static ImmutableMap<ActionType, ImmutableCompactSubSet<String>> build(

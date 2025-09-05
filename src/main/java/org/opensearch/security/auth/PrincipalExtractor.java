@@ -47,16 +47,16 @@ public class PrincipalExtractor implements AttributeExtractor<String> {
         User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         List<String> principals = new ArrayList<>();
         if (user != null) {
-            principals.add(String.join("_", SecurityAttribute.USERNAME, user.getName()));
+            principals.add(String.join("|", SecurityAttribute.USERNAME, user.getName()));
             for (String role : user.getRoles()) {
-                principals.add(String.join("_", SecurityAttribute.ROLE, role));
+                principals.add(String.join("|", SecurityAttribute.ROLE, role));
             }
         }
         return principals;
     }
 
     @Override
-    public CombinationStyle getCombinationStyle() {
-        return CombinationStyle.OR;
+    public LogicalOperator getLogicalOperator() {
+        return LogicalOperator.OR;
     }
 }

@@ -25,6 +25,10 @@ import org.opensearch.security.user.User;
  * This code was moved over from ConfigModelV7.
  */
 public class UserAttributes {
+    public static boolean needsAttributeSubstitution(String patternString) {
+        return patternString.contains("${");
+    }
+
     public static String replaceProperties(String orig, PrivilegesEvaluationContext context) {
         User user = context.getUser();
 

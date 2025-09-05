@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,13 +56,6 @@ public class SystemIndexDisabledTests {
         )
         .build();
 
-    @Before
-    public void setup() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            client.delete(".system-index1");
-        }
-    }
-
     @Test
     public void testPluginShouldBeAbleToIndexIntoAnySystemIndexWhenProtectionIsDisabled() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
@@ -79,10 +71,12 @@ public class SystemIndexDisabledTests {
                 response.getBody(),
                 not(
                     containsString(
-                        "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                        "no permissions for [indices:data/write/bulk[s], indices:data/write/index] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
                     )
                 )
             );
+
+            assertThat(response.getBody(), not(containsString("\"errors\":true")));
         }
     }
 }

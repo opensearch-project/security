@@ -17,6 +17,9 @@ import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
+import static org.opensearch.core.xcontent.XContentParser.Token.VALUE_NULL;
+import static org.opensearch.core.xcontent.XContentParser.Token.VALUE_STRING;
+
 /**
  * This class is used to store information about the creator of a resource.
  *
@@ -25,22 +28,41 @@ import org.opensearch.core.xcontent.XContentParser;
 public class CreatedBy implements ToXContentFragment, NamedWriteable {
 
     private final String username;
+    private final String tenant; // capture tenant if multi-tenancy is enabled
 
     public CreatedBy(String username) {
         this.username = username;
+        this.tenant = null;
+    }
+
+    public CreatedBy(String username, String tenant) {
+        this.username = username;
+        this.tenant = tenant;
     }
 
     public CreatedBy(StreamInput in) throws IOException {
         this.username = in.readString();
+        this.tenant = in.readOptionalString();
     }
 
     public String getUsername() {
         return username;
     }
 
+    public String getTenant() {
+        return tenant;
+    }
+
     @Override
     public String toString() {
-        return "CreatedBy {user='" + this.username + '\'' + '}';
+        if (tenant != null) {
+            return """
+                CreatedBy {user='%s', tenant='%s'}
+                """.formatted(username, tenant).trim();
+        }
+        return """
+            CreatedBy {user='%s'}
+            """.formatted(username).trim();
     }
 
     @Override
@@ -51,24 +73,42 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(username);
+        out.writeOptionalString(tenant);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        if (tenant != null) {
+            return builder.startObject().field("user", username).field("tenant", tenant).endObject();
+        }
         return builder.startObject().field("user", username).endObject();
     }
 
     public static CreatedBy fromXContent(XContentParser parser) throws IOException {
         String username = null;
-        XContentParser.Token token;
+        String tenant = null;
 
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (token == XContentParser.Token.FIELD_NAME) {
-                if (!"user".equals(parser.currentName())) {
-                    throw new IllegalArgumentException("created_by must only contain a single field with user");
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+
+                switch (fieldName) {
+                    case "user":
+                        if (VALUE_STRING == parser.currentToken()) {
+                            username = parser.text();
+                        } else {
+                            throw new IllegalArgumentException("created_by cannot be empty");
+                        }
+                        break;
+
+                    case "tenant":
+                        tenant = (parser.currentToken() == VALUE_NULL) ? null : parser.text();
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException("created_by contains unknown field: " + fieldName);
                 }
-            } else if (token == XContentParser.Token.VALUE_STRING) {
-                username = parser.text();
             }
         }
 
@@ -76,6 +116,6 @@ public class CreatedBy implements ToXContentFragment, NamedWriteable {
             throw new IllegalArgumentException("created_by cannot be empty");
         }
 
-        return new CreatedBy(username);
+        return new CreatedBy(username, tenant);
     }
 }

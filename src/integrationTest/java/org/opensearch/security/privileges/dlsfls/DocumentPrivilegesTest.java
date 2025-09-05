@@ -69,6 +69,7 @@ import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -94,7 +95,6 @@ import static org.junit.Assert.fail;
     DocumentPrivilegesTest.DataStreams_getRestriction.class,
     DocumentPrivilegesTest.DlsQuery.class })
 public class DocumentPrivilegesTest {
-
     static NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(
         ImmutableList.of(
             new NamedXContentRegistry.Entry(
@@ -364,23 +364,25 @@ public class DocumentPrivilegesTest {
                 new TestSecurityConfig.Role("non_dls_role").indexPermissions("*").on("index_a*")
             );
 
-            DocumentPrivileges subject = createSubject(roleConfig);
+            Exception exception = null;
+            DlsRestriction dlsRestriction = null;
+            DocumentPrivileges subject = null;
 
-            DlsRestriction dlsRestriction = subject.getRestriction(context, index.getName());
+            try {
+                subject = createSubject(roleConfig);
+                dlsRestriction = subject.getRestriction(context, index.getName());
+            } catch (PrivilegesEvaluationException ex) {
+                exception = ex;
+            }
 
             if (index == index_b1) {
                 // This test case never grants privileges to index_b1
                 assertThat(dlsRestriction, isFullyRestricted());
             } else if (userSpec.attributes.isEmpty()) {
-                // If a role uses undefined user attributes for DLS queries, the attribute templates
-                // remain unchanged in the resulting query. This is a property of the current attribute handling code.
-                // It would be probably better if an error would be raised in that case.
+                // If a role uses undefined user attributes for DLS queries, an exception should be raised
                 if (index == index_a1) {
                     if (userSpec.roles.contains("dls_role_1") && userSpec.roles.contains("dls_role_2")) {
-                        assertThat(
-                            dlsRestriction,
-                            isRestricted(termQuery("dept", "${attr.attr_a}1"), termQuery("dept", "${attr.attr_a}2"))
-                        );
+                        assertNotNull(exception);
                     }
                 }
             } else if (userSpec.roles.contains("non_dls_role") && dfmEmptyOverridesAll) {
@@ -417,7 +419,7 @@ public class DocumentPrivilegesTest {
             }
 
             boolean isUnrestricted = subject.isUnrestricted(context, index.getName());
-            if (dlsRestriction.isUnrestricted()) {
+            if (dlsRestriction != null && dlsRestriction.isUnrestricted()) {
                 assertTrue("isUnrestricted() should return true according to " + dlsRestriction, isUnrestricted);
             } else {
                 assertFalse("isUnrestricted() should return false according to " + dlsRestriction, isUnrestricted);
