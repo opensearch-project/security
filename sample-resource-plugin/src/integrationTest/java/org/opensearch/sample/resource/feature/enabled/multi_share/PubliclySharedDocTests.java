@@ -85,7 +85,7 @@ public class PubliclySharedDocTests {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
         api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry("*");
+        api.awaitSharingEntry(resourceId, "*");
 
         // 2. check read-only access for full-access user
         assertReadOnly();
@@ -96,7 +96,7 @@ public class PubliclySharedDocTests {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
         api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry("*");
+        api.awaitSharingEntry(resourceId, "*");
 
         // 2. check read-only access for full-access user
         assertFullAccess();
