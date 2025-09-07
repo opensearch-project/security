@@ -66,7 +66,11 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            api.assertDirectGet(id, user, HttpStatus.SC_NOT_FOUND, "");
+            if (NO_ACCESS_USER.getName().equals(user.getName())) {
+                api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            } else {
+                api.assertDirectGet(id, user, HttpStatus.SC_NOT_FOUND, "");
+            }
             api.assertDirectUpdate(id, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             api.assertDirectDelete(id, user, HttpStatus.SC_FORBIDDEN);
