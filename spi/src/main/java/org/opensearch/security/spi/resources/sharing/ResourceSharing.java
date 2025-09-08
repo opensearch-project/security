@@ -9,8 +9,10 @@
 package org.opensearch.security.spi.resources.sharing;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -266,5 +268,48 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             }
         }
         return matchingGroups;
+    }
+
+    /**
+     * Returns all principals (users, roles, backend_roles) that have access to this resource,
+     * including the creator and all shared recipients, formatted with appropriate prefixes.
+     *
+     * @return List of principals in format ["user:username", "role:rolename", "backend:backend_role"]
+     */
+    public List<String> getAllPrincipals() {
+        List<String> principals = new ArrayList<>();
+
+        // Add creator
+        if (createdBy != null) {
+            principals.add("user:" + createdBy.getUsername());
+        }
+
+        // Add shared recipients
+        if (shareWith != null) {
+            // shared with at any access level
+            for (Recipients recipients : shareWith.getSharingInfo().values()) {
+                Map<Recipient, Set<String>> recipientMap = recipients.getRecipients();
+
+                // Add users
+                Set<String> users = recipientMap.getOrDefault(Recipient.USERS, Collections.emptySet());
+                for (String user : users) {
+                    principals.add("user:" + user);
+                }
+
+                // Add roles
+                Set<String> roles = recipientMap.getOrDefault(Recipient.ROLES, Collections.emptySet());
+                for (String role : roles) {
+                    principals.add("role:" + role);
+                }
+
+                // Add backend roles
+                Set<String> backendRoles = recipientMap.getOrDefault(Recipient.BACKEND_ROLES, Collections.emptySet());
+                for (String backendRole : backendRoles) {
+                    principals.add("backend:" + backendRole);
+                }
+            }
+        }
+
+        return principals;
     }
 }
