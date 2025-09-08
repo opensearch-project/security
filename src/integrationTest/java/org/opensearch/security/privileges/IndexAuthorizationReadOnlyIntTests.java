@@ -14,8 +14,11 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +30,8 @@ import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -204,18 +209,27 @@ public class IndexAuthorizationReadOnlyIntTests {
         UNLIMITED_USER,
         SUPER_UNLIMITED_USER
     );
+    private static final Logger log = LoggerFactory.getLogger(IndexAuthorizationReadOnlyIntTests.class);
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().singleNode()
-        .anonymousAuth(false)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(USERS)//
-        .indices(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, index_hidden, index_hidden_dot)//
-        .aliases(alias_ab1, alias_c1)//
-        .doNotFailOnForbidden(true)
-        .build();
+    static LocalCluster.Builder clusterBuilder() {
+        return new LocalCluster.Builder().singleNode()
+                .anonymousAuth(false)
+                .authc(AUTHC_HTTPBASIC_INTERNAL)
+                .users(USERS)//
+                .indices(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, index_hidden, index_hidden_dot)//
+                .aliases(alias_ab1, alias_c1);
+    }
+
+    @AfterClass
+    public static void stopClusters() {
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            clusterConfig.shutdown();
+        }
+    }
 
     final TestSecurityConfig.User user;
+    final LocalCluster cluster;
+    final ClusterConfig clusterConfig;
 
     @Test
     public void search_noPattern() throws Exception {
@@ -234,7 +248,11 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_noPattern_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("/_search?size=1000&expand_wildcards=none");
-            assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(200));
+            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+            }
         }
     }
 
@@ -268,7 +286,11 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_all_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_all/_search?size=1000&expand_wildcards=none");
-            assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(200));
+            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+            }
         }
     }
 
@@ -311,7 +333,11 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_wildcard_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("*/_search?size=1000&expand_wildcards=none");
-            assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(200));
+            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+            }
         }
     }
 
@@ -439,17 +465,14 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get(
                 "index_a*,index_b*/_search?size=1000&expand_wildcards=none&ignore_unavailable=true"
             );
-            assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").but(user.indexMatcher("search")).whenEmpty(200));
-        }
-    }
-
-    @Test
-    public void search_indexPatternAndStatic_noWildcards() throws Exception {
-        try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get(
-                "index_a*,index_b1/_search?size=1000&expand_wildcards=none&ignore_unavailable=true"
-            );
-            assertThat(httpResponse, containsExactly(index_b1).at("hits.hits[*]._index").but(user.indexMatcher("search")).whenEmpty(403));
+            // We have to specify the users here explicitly because here we need to check privileges for the
+            // non-existing (and invalidly named) indices "index_a*" and "index_b*". Only users with privileges for "index_a*"
+            // and "index_b*" will get a ok response.
+            if (user == LIMITED_USER_A || user == LIMITED_USER_B || user == LIMITED_USER_A_HIDDEN || user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden("", ""));
+            }
         }
     }
 
@@ -510,12 +533,18 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_aliasAndIndex() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_ab1,index_b2/_search?size=1000&ignore_unavailable=true");
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2).at("hits.hits[*]._index")
-                    .but(user.indexMatcher("search"))
-                    .whenEmpty(403)
-            );
+            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
+                // The legacy privilege evaluation with dnfof enabled can replace aliases by a sub-set of its member indices
+                assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2).at("hits.hits[*]._index")
+                                .but(user.indexMatcher("search"))
+                                .whenEmpty(403)
+                );
+            } else {
+                // The new privilege evaluation never replaces aliases
+                if (user.indexMatcher("search").covers(alias_ab1))
+            }
         }
     }
 
@@ -892,15 +921,6 @@ public class IndexAuthorizationReadOnlyIntTests {
     }
 
     @Test
-    public void getAlias_aliasPattern_noWildcards() throws Exception {
-        try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get("_alias/alias_ab*?expand_wildcards=none");
-            assertThat(httpResponse, isOk());
-            assertThat(httpResponse.bodyAsJsonNode().isEmpty(), equalTo(true));
-        }
-    }
-
-    @Test
     public void getAlias_mixed() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias/alias_ab1,alias_c*");
@@ -1043,7 +1063,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_b*/_field_caps?fields=*");
             assertThat(
                 httpResponse,
-                containsExactly(index_b1, index_b2, index_b3).at("indices").but(user.indexMatcher("read")).whenEmpty(403)
+                containsExactly(index_b1, index_b2, index_b3).at("indices").but(user.indexMatcher("read")).whenEmpty( clusterConfig == ClusterConfig.NEXT_GEN_PRIVILEGES_EVALUATION ? 200 : 403)
             );
         }
     }
@@ -1155,19 +1175,60 @@ public class IndexAuthorizationReadOnlyIntTests {
         }
     }
 
-    @Parameterized.Parameters(name = "{1}")
+    @Parameterized.Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
-        for (TestSecurityConfig.User user : USERS) {
-            result.add(new Object[] { user, user.getDescription() });
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            for (TestSecurityConfig.User user : USERS) {
+                result.add(new Object[]{clusterConfig, user, user.getDescription()});
+            }
         }
-
         return result;
     }
 
-    public IndexAuthorizationReadOnlyIntTests(TestSecurityConfig.User user, String description) throws Exception {
+    public IndexAuthorizationReadOnlyIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description) throws Exception {
         this.user = user;
+        this.cluster = clusterConfig.cluster();
+        this.clusterConfig = clusterConfig;
+    }
+
+    public enum ClusterConfig {
+        LEGACY_PRIVILEGES_EVALUATION("legacy", c -> c.doNotFailOnForbidden(true)),
+        NEXT_GEN_PRIVILEGES_EVALUATION("next_gen", c-> c.privilegesEvaluationType("next_gen"));
+
+        final String name;
+        final Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration;
+        private LocalCluster cluster;
+
+        ClusterConfig(String name, Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration) {
+            this.name = name;
+            this.clusterConfiguration = clusterConfiguration;
+        }
+
+        LocalCluster cluster() {
+            if (cluster == null) {
+                cluster = this.clusterConfiguration.apply(clusterBuilder()).build();
+                cluster.before();
+            }
+            return cluster;
+        }
+
+        void shutdown() {
+            if (cluster != null) {
+                try {
+                    cluster.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                cluster = null;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
 }

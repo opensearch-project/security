@@ -609,7 +609,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                             for (String index : checkTable.iterateUncheckedRows(action)) {
                                 try {
                                     if (indexPattern.matches(index, context, indexMetadata) && checkTable.check(index, action)) {
-                                        return PrivilegesEvaluatorResponse.ok();
+                                        return PrivilegesEvaluatorResponse.ok(checkTable);
                                     }
                                 } catch (PrivilegesEvaluationException e) {
                                     // We can ignore these errors, as this max leads to fewer privileges than available

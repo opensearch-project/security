@@ -10,8 +10,13 @@
  */
 package org.opensearch.security.privileges.actionlevel.nextgen;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -24,12 +29,8 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
-import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.AutoCreateAction;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.opensearch.action.bulk.BulkAction;
@@ -362,8 +363,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             }
         }
 
-        ImmutableSet<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
-
         final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
             request,
             action0,
@@ -385,11 +384,33 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             }
         }
 
+        boolean sameIndicesAcrossAllActions = sameIndicesAcrossAllActions(optionallyResolvedIndices);
+        ImmutableSet<String> requiredIndexPermissions = requiredIndexPermissions(request, action0, sameIndicesAcrossAllActions ?namesOfSubActions(optionallyResolvedIndices) : Collections.emptySet());
+
         PrivilegesEvaluatorResponse presponse = actionPrivileges.hasIndexPrivilege(
             context,
-            allIndexPermsRequired,
+            requiredIndexPermissions,
             optionallyResolvedIndices
         );
+
+        if (!sameIndicesAcrossAllActions && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices && !resolvedIndices.local().subActions().isEmpty()) {
+            List<PrivilegesEvaluatorResponse> subActionResults = new ArrayList<>(resolvedIndices.local().subActions().size());
+            boolean allowed = true;
+            for (Map.Entry<String, ResolvedIndices.Local> subAction : resolvedIndices.local().subActions().entrySet()) {
+                PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
+                        context,
+                        Set.of(subAction.getKey()),
+                        ResolvedIndices.of(subAction.getValue())
+                );
+                subActionResults.add(subResponse);
+                if (!subResponse.isAllowed()) {
+                    allowed = false;
+                }
+            }
+            if (!allowed) {
+                presponse = presponse.insufficient(subActionResults);
+            }
+        }
 
         if (presponse.isPartiallyOk()) {
             if (isIndexReductionForIncompletePrivilegesPossible(request)
@@ -493,6 +514,28 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         }
     }
 
+    boolean sameIndicesAcrossAllActions(OptionallyResolvedIndices optionallyResolvedIndices) {
+        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+            return true;
+        }
+        if (resolvedIndices.local().subActions().isEmpty()) {
+            return true;
+        }
+        for (ResolvedIndices.Local subActionIndices : resolvedIndices.local().subActions().values()) {
+            if (!subActionIndices.names().equals(resolvedIndices.local().names())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    Set<String> namesOfSubActions(OptionallyResolvedIndices optionallyResolvedIndices) {
+        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+            return Collections.emptySet();
+        }
+        return resolvedIndices.local().subActions().keySet();
+    }
+
     private static Map<String, SubjectBasedActionPrivileges> createActionPrivileges(
         Map<String, RoleV7> pluginIdToRolePrivileges,
         FlattenedActionGroups staticActionGroups,
@@ -507,15 +550,15 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         return result;
     }
 
-    private ImmutableSet<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
-        ImmutableSet.Builder<String> additionalPermissionsRequired = ImmutableSet.builder();
+    private ImmutableSet<String> requiredIndexPermissions(final ActionRequest request, final String originalAction, Collection<String> moreActions) {
+        ImmutableSet.Builder<String> allRequiredPermissions = ImmutableSet.builder();
 
         if (!isClusterPermission(originalAction)) {
-            additionalPermissionsRequired.add(originalAction);
+            allRequiredPermissions.add(originalAction);
         }
 
         if (request instanceof ClusterSearchShardsRequest) {
-            additionalPermissionsRequired.add(SearchAction.NAME);
+            allRequiredPermissions.add(SearchAction.NAME);
         }
 
         if (request instanceof BulkShardRequest) {
@@ -523,56 +566,30 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             for (BulkItemRequest bir : bsr.items()) {
                 switch (bir.request().opType()) {
                     case CREATE:
-                        additionalPermissionsRequired.add(IndexAction.NAME);
+                        allRequiredPermissions.add(IndexAction.NAME);
                         break;
                     case INDEX:
-                        additionalPermissionsRequired.add(IndexAction.NAME);
+                        allRequiredPermissions.add(IndexAction.NAME);
                         break;
                     case DELETE:
-                        additionalPermissionsRequired.add(DeleteAction.NAME);
+                        allRequiredPermissions.add(DeleteAction.NAME);
                         break;
                     case UPDATE:
-                        additionalPermissionsRequired.add(UpdateAction.NAME);
+                        allRequiredPermissions.add(UpdateAction.NAME);
                         break;
                 }
-            }
-        }
-
-        if (request instanceof IndicesAliasesRequest) {
-            IndicesAliasesRequest bsr = (IndicesAliasesRequest) request;
-            for (IndicesAliasesRequest.AliasActions bir : bsr.getAliasActions()) {
-                switch (bir.actionType()) {
-                    case REMOVE_INDEX:
-                        additionalPermissionsRequired.add(DeleteIndexAction.NAME);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        if (request instanceof CreateIndexRequest) {
-            CreateIndexRequest cir = (CreateIndexRequest) request;
-            if (cir.aliases() != null && !cir.aliases().isEmpty()) {
-                additionalPermissionsRequired.add(IndicesAliasesAction.NAME);
             }
         }
 
         if (request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-            additionalPermissionsRequired.addAll(ConfigConstants.SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
+            allRequiredPermissions.addAll(ConfigConstants.SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
-        ImmutableSet<String> result = additionalPermissionsRequired.build();
-
-        if (result.size() > 1) {
-            traceAction("Additional permissions required: {}", result);
+        if (!moreActions.isEmpty()) {
+            allRequiredPermissions.addAll(moreActions);
         }
 
-        if (log.isDebugEnabled() && result.size() > 1) {
-            log.debug("Additional permissions required: {}", result);
-        }
-
-        return result;
+        return allRequiredPermissions.build();
     }
 
     boolean isIndexReductionForIncompletePrivilegesPossible(ActionRequest request) {

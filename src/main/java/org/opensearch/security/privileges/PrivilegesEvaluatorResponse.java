@@ -31,13 +31,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 
 import com.selectivem.collections.CheckTable;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
@@ -46,6 +51,7 @@ public class PrivilegesEvaluatorResponse {
     CreateIndexRequestBuilder createIndexRequestBuilder;
     private Set<String> onlyAllowedForIndices = ImmutableSet.of();
     private CheckTable<String, String> indexToActionCheckTable;
+    private ImmutableList<PrivilegesEvaluatorResponse> subResults = ImmutableList.of();
     private String privilegeMatrix;
     private String reason;
 
@@ -127,7 +133,23 @@ public class PrivilegesEvaluatorResponse {
         String result = this.privilegeMatrix;
 
         if (result == null) {
-            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            String topLevelMatrix;
+
+            if (this.indexToActionCheckTable != null) {
+                topLevelMatrix = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            } else {
+                topLevelMatrix = "n/a";
+            }
+
+            if (subResults.isEmpty()) {
+                result = topLevelMatrix;
+            } else {
+                StringBuilder resultBuilder = new StringBuilder(topLevelMatrix);
+                for (PrivilegesEvaluatorResponse subResult : subResults) {
+                    resultBuilder.append("\n");
+                    resultBuilder.append(subResult.getPrivilegeMatrix());
+                }
+            }
             this.privilegeMatrix = result;
         }
         return result;
@@ -159,6 +181,18 @@ public class PrivilegesEvaluatorResponse {
         return this.state == PrivilegesEvaluatorResponseState.PENDING;
     }
 
+    public PrivilegesEvaluatorResponse insufficient(List<PrivilegesEvaluatorResponse> subResults) {
+        String reason = this.reason;
+        if (reason == null) {
+            reason = subResults.stream().map(result -> result.reason).filter(Objects::nonNull).findFirst().orElse(null);
+        }
+        PrivilegesEvaluatorResponse result = new PrivilegesEvaluatorResponse();
+        result.allowed = false;
+        result.indexToActionCheckTable = this.indexToActionCheckTable;
+        result.subResults = ImmutableList.copyOf(subResults);
+        return result;
+    }
+
     @Override
     public String toString() {
         return "PrivEvalResponse [\nallowed="
@@ -172,6 +206,13 @@ public class PrivilegesEvaluatorResponse {
 
     public static PrivilegesEvaluatorResponse ok() {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.allowed = true;
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse ok(CheckTable<String, String> indexToActionCheckTable) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = indexToActionCheckTable;
         response.allowed = true;
         return response;
     }

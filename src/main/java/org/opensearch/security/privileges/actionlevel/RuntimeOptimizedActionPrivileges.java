@@ -498,7 +498,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             }
 
             if (checkTable.isComplete()) {
-                return PrivilegesEvaluatorResponse.ok();
+                return PrivilegesEvaluatorResponse.ok(checkTable);
             }
 
             Set<String> availableIndices = checkTable.getCompleteRows();
