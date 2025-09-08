@@ -26,9 +26,9 @@ import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -64,8 +64,8 @@ public class ReadOnlyAccessTests {
         api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
-        api.assertApiShare(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
     }
 
     private void assertReadOnly(TestSecurityConfig.User user) {
@@ -73,15 +73,15 @@ public class ReadOnlyAccessTests {
         api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
-        api.assertApiShare(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
     }
 
     @Test
     public void fullAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry(FULL_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(FULL_ACCESS_USER);
     }
@@ -90,7 +90,7 @@ public class ReadOnlyAccessTests {
     public void limitedAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry(LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(LIMITED_ACCESS_USER);
     }
@@ -99,7 +99,7 @@ public class ReadOnlyAccessTests {
     public void noAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
         assertNoAccessBeforeSharing(NO_ACCESS_USER);
         // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleReadOnlyResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry(NO_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(NO_ACCESS_USER);
     }

@@ -29,6 +29,7 @@ import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -36,7 +37,6 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_EN
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -111,13 +111,13 @@ public class SecurityDisabledTests {
 
             response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(USER_ADMIN.getName(), sampleReadOnlyResourceAG)
+                shareWithPayload(USER_ADMIN.getName(), SAMPLE_READ_ONLY_RESOURCE_AG)
             );
             assertNotImplementedResponse(response, "Cannot share resource");
 
             response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(USER_ADMIN.getName(), sampleReadOnlyResourceAG)
+                revokeAccessPayload(USER_ADMIN.getName(), SAMPLE_READ_ONLY_RESOURCE_AG)
             );
             assertNotImplementedResponse(response, "Cannot revoke access to resource");
 

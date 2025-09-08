@@ -23,6 +23,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
@@ -30,7 +31,6 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_END
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
 import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -68,14 +68,14 @@ public class AdminCertificateAccessTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse response = client.postJson(
                 SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(NO_ACCESS_USER.getName(), sampleFullAccessResourceAG)
+                shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
 
             response = client.postJson(
                 SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(NO_ACCESS_USER.getName(), sampleFullAccessResourceAG)
+                revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);

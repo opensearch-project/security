@@ -23,9 +23,9 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.sampleFullAccessResourceAG;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyResourceAG;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -58,8 +58,8 @@ public class PubliclySharedDocTests {
         api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
 
-        api.assertApiShare(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
     }
 
     private void assertReadOnly() {
@@ -67,15 +67,27 @@ public class PubliclySharedDocTests {
         api.assertApiUpdate(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(resourceId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
-        api.assertApiShare(resourceId, FULL_ACCESS_USER, TestUtils.FULL_ACCESS_USER, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleFullAccessResourceAG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(
+            resourceId,
+            FULL_ACCESS_USER,
+            TestUtils.FULL_ACCESS_USER,
+            SAMPLE_FULL_ACCESS_RESOURCE_AG,
+            HttpStatus.SC_FORBIDDEN
+        );
+        api.assertApiRevoke(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
     }
 
     private void assertFullAccess() {
         api.assertApiGet(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
         api.assertApiUpdate(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.assertApiShare(resourceId, LIMITED_ACCESS_USER, TestUtils.LIMITED_ACCESS_USER, sampleFullAccessResourceAG, HttpStatus.SC_OK);
-        api.assertApiRevoke(resourceId, LIMITED_ACCESS_USER, USER_ADMIN, sampleFullAccessResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(
+            resourceId,
+            LIMITED_ACCESS_USER,
+            TestUtils.LIMITED_ACCESS_USER,
+            SAMPLE_FULL_ACCESS_RESOURCE_AG,
+            HttpStatus.SC_OK
+        );
+        api.assertApiRevoke(resourceId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry();
         api.assertApiDelete(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK);
     }
@@ -84,7 +96,7 @@ public class PubliclySharedDocTests {
     public void readOnly() {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
-        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleReadOnlyResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry("*");
 
         // 2. check read-only access for full-access user
@@ -95,7 +107,7 @@ public class PubliclySharedDocTests {
     public void fullAccess() {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
-        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), sampleFullAccessResourceAG, HttpStatus.SC_OK);
+        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
         api.awaitSharingEntry("*");
 
         // 2. check read-only access for full-access user

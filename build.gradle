@@ -572,7 +572,6 @@ allprojects {
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
-        integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
     }
 }
 

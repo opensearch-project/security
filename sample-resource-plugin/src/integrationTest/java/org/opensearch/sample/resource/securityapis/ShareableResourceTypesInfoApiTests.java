@@ -34,7 +34,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class TypesApiTests {
+public class ShareableResourceTypesInfoApiTests {
     @ClassRule
     public static LocalCluster cluster = newCluster(true, true);
 

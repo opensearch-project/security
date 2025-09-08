@@ -75,39 +75,6 @@ public class ResourceAccessHandler {
         this.resourcePluginInfo = resourcePluginInfo;
     }
 
-    private Set<String> getFlatPrincipals(User user) {
-        // 1) collect all entities we’ll match against share_with arrays
-        // for users:
-        Set<String> users = new HashSet<>();
-        users.add(user.getName());
-        users.add("*"); // for matching against publicly shared resource
-
-        // for roles:
-        Set<String> roles = new HashSet<>(user.getSecurityRoles());
-        roles.add("*"); // for matching against publicly shared resource
-
-        // for backend_roles:
-        Set<String> backendRoles = new HashSet<>(user.getRoles());
-        backendRoles.add("*"); // for matching against publicly shared resource
-
-        // return flattened principals to build the bool query
-        return Stream.concat(
-            // users
-            users.stream().map(u -> "user:" + u),
-            // then roles and backend_roles
-            Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
-        ).collect(Collectors.toSet());
-    }
-
-    private BoolQueryBuilder getAccessibleResourcesBoolQuery(String creatorName, Set<String> flatPrincipals) {
-        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
-        // BEST_FIELDS)
-        return QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user.keyword", creatorName))
-            .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
-            .minimumShouldMatch(1);
-    }
-
     /**
      * Returns a set of accessible resource IDs for the current user within the specified resource index.
      *
@@ -157,10 +124,9 @@ public class ResourceAccessHandler {
         }
 
         Set<String> flatPrincipals = getFlatPrincipals(user);
-        BoolQueryBuilder query = getAccessibleResourcesBoolQuery(user.getName(), flatPrincipals);
 
         // 3) Fetch all accessible resource sharing records
-        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, user, flatPrincipals, query, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, user, flatPrincipals, listener);
     }
 
     /**
@@ -435,7 +401,7 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Loads all resources within the specified resource index.
+     * Loads all resource-ids within the specified resource index.
      *
      * @param resourceIndex The resource index to load resources from.
      * @param listener      The listener to be notified with the set of resource IDs.
@@ -444,7 +410,57 @@ public class ResourceAccessHandler {
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
+    /**
+     * Loads all resource-sharing records for the specified resource index.
+     *
+     * @param resourceIndex The resource index to load records from.
+     * @param listener      The listener to be notified with the set of resource-sharing records.
+     */
     private void loadAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
         this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, listener);
+    }
+
+    /**
+     * Returns flat principals to be used when querying the sharing index and while searching resource-ids.
+     * @param user user whose security-config (name, roles and backend_roles) is to be flattened.
+     * @return the set of flattened principals
+     */
+    private Set<String> getFlatPrincipals(User user) {
+        // 1) collect all entities we’ll match against share_with arrays
+        // for users:
+        Set<String> users = new HashSet<>();
+        users.add(user.getName());
+        users.add("*"); // for matching against publicly shared resource
+
+        // for roles:
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        roles.add("*"); // for matching against publicly shared resource
+
+        // for backend_roles:
+        Set<String> backendRoles = new HashSet<>(user.getRoles());
+        backendRoles.add("*"); // for matching against publicly shared resource
+
+        // return flattened principals to build the bool query
+        return Stream.concat(
+            // users
+            users.stream().map(u -> "user:" + u),
+            // then roles and backend_roles
+            Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
+        ).collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns accessible resources query built on flattened principals.
+     * @param creatorName the name of the owner of the resource which is the requesting user
+     * @param flatPrincipals user's flattened config. i.e. name, roles and backend_roles
+     * @return the query builder with the bool-query.
+     */
+    private BoolQueryBuilder getAccessibleResourcesBoolQuery(String creatorName, Set<String> flatPrincipals) {
+        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
+        // BEST_FIELDS)
+        return QueryBuilders.boolQuery()
+            .should(QueryBuilders.termQuery("created_by.user.keyword", creatorName))
+            .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
+            .minimumShouldMatch(1);
     }
 }

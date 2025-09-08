@@ -14,6 +14,11 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 
+/**
+ * Record class that is used as response to dashboards api {@code `/resource/list`} request
+ * @param resourceSharing the sharing record document to be returned
+ * @param canShare to indicate whether user can share this further
+ */
 public record SharingRecord(ResourceSharing resourceSharing, boolean canShare) implements ToXContentObject {
 
     @Override

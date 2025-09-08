@@ -63,8 +63,6 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
 
         return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceIndex, ActionListener.wrap(rows -> {
 
-            // TODO evaluate which user can share and which cannot
-
             try (XContentBuilder b = channel.newBuilder()) {
                 b.startObject();
                 b.startArray("resources");

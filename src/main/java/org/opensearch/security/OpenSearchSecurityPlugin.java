@@ -30,7 +30,6 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -45,7 +44,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -181,6 +179,7 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceActionGroupsHelper;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
@@ -196,10 +195,7 @@ import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
@@ -241,8 +237,6 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
-
-import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
@@ -2455,116 +2449,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
         resourcePluginInfo.setResourceSharingExtensions(exts);
 
-        for (var ext : exts) {
-            URL url = ext.getClass().getClassLoader().getResource("resource-action-groups.yml");
-            if (url == null) {
-                log.info("resource-action-groups.yml not found for {}", ext.getClass().getName());
-                continue;
-            }
-
-            try (var in = url.openStream()) {
-                String yaml = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-
-                Map<String, Object> root = new Yaml().load(yaml);
-                if (root == null) {
-                    log.info("Empty resource-action-groups.yml for {}", ext.getClass().getName());
-                    continue;
-                }
-
-                Object rtNode = root.get("resource_types");
-                if (!(rtNode instanceof Map<?, ?> byType)) {
-                    log.warn("'resource_types' missing or invalid in {}", ext.getClass().getName());
-                    continue;
-                }
-
-                // For each type this extension provides, read its OWN map directly as groups (no wrapper)
-                for (var rp : ext.getResourceProviders()) {
-                    String typeFqn = rp.resourceType();
-
-                    Object typeCfgNode = byType.get(typeFqn);
-                    if (!(typeCfgNode instanceof Map<?, ?> typeMapRaw)) {
-                        log.info("No per-type block for {} in {}", typeFqn, ext.getClass().getName());
-                        continue; // no fallback
-                    }
-
-                    // buildActionGroupsYaml() accepts only lists-of-strings; anything else becomes allowed_actions: []
-                    String perTypeAgYaml = buildActionGroupsYaml(typeMapRaw);
-
-                    // Parse + flatten for THIS type
-                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromYaml(
-                        perTypeAgYaml,
-                        CType.ACTIONGROUPS
-                    );
-
-                    // prune groups that ended up empty after normalization
-                    cfg.getCEntries()
-                        .entrySet()
-                        .removeIf(
-                            e -> e.getValue() == null
-                                || e.getValue().getAllowed_actions() == null
-                                || e.getValue().getAllowed_actions().isEmpty()
-                        );
-
-                    FlattenedActionGroups flattened = new FlattenedActionGroups(cfg);
-
-                    // Publish to ResourcePluginInfo → used by UI and authZ
-                    resourcePluginInfo.registerActionGroupNames(typeFqn, cfg.getCEntries().keySet());
-                    resourcePluginInfo.registerFlattened(typeFqn, flattened);
-
-                    log.info("Registered {} action-groups for {}", cfg.getCEntries().size(), typeFqn);
-                }
-
-            } catch (Exception e) {
-                log.warn("Failed loading/parsing resource-action-groups.yml for {}: {}", ext.getClass().getName(), e.toString());
-            }
-        }
+        // load action-groups in memory
+        ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
     }
-
-    /**
-     * Build a minimal action-groups YAML from a per-type "action_groups" map.
-     * Input shape:
-     * { actionGroupName -> [ ... ] }
-     * Output YAML:
-     *   actionGroupName:
-     *     allowed_actions:
-     *       - "..."
-     */
-    private static String buildActionGroupsYaml(Map<?, ?> groupsRaw) {
-        Map<String, Object> normalized = new LinkedHashMap<>();
-
-        if (groupsRaw != null) {
-            for (Map.Entry<?, ?> e : groupsRaw.entrySet()) {
-                String group = String.valueOf(e.getKey());
-                Object v = e.getValue();
-
-                // default to empty list
-                List<String> actions = List.of();
-
-                // Accept ONLY shape A: group: [ "action:a", "action:b", ... ]
-                if (v instanceof Collection<?> coll) {
-                    List<String> tmp = new ArrayList<>(coll.size());
-                    boolean allStrings = true;
-                    for (Object item : coll) {
-                        if (!(item instanceof String s)) {
-                            allStrings = false;
-                            break;
-                        }
-                        tmp.add(s);
-                    }
-                    if (allStrings) {
-                        actions = tmp;
-                    }
-                }
-
-                Map<String, Object> groupObj = new LinkedHashMap<>();
-                groupObj.put("allowed_actions", actions);
-                normalized.put(group, groupObj);
-            }
-        }
-
-        return new Yaml().dump(normalized);
-    }
-
     // CS-ENFORCE-SINGLE
 
     public static class GuiceHolder implements LifecycleComponent {

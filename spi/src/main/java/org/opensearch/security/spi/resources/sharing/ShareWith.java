@@ -11,8 +11,10 @@ package org.opensearch.security.spi.resources.sharing;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -193,10 +195,10 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             if (vals == null) continue;
             Set<String> filtered = vals.stream()
                 .filter(s -> s != null && !s.isBlank())
-                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+                .collect(Collectors.toCollection(LinkedHashSet::new));
             if (!filtered.isEmpty()) cleaned.put(e.getKey(), filtered);
         }
-        return cleaned.isEmpty() ? null : new Recipients(cleaned); // use your builder/ctor
+        return cleaned.isEmpty() ? null : new Recipients(cleaned);
     }
 
 }

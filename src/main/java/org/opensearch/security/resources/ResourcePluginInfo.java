@@ -51,8 +51,9 @@ public class ResourcePluginInfo {
         resourceSharingExtensions.clear();
         resourceSharingExtensions.addAll(extensions);
 
-        // also cache type→index mapping
+        // also cache type->index and index->type mapping
         typeToIndex.clear();
+        indexToType.clear();
         for (var ext : extensions) {
             for (var rp : ext.getResourceProviders()) {
                 typeToIndex.put(rp.resourceType(), rp.resourceIndexName());

@@ -72,9 +72,9 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
-    public static final String sampleReadOnlyResourceAG = "sample_read_only";
-    public static final String sampleReadWriteResourceAG = "sample_read_write";
-    public static final String sampleFullAccessResourceAG = "sample_full_access";
+    public static final String SAMPLE_READ_ONLY_RESOURCE_AG = "sample_read_only";
+    public static final String SAMPLE_READ_WRITE_RESOURCE_AG = "sample_read_write";
+    public static final String SAMPLE_FULL_ACCESS_RESOURCE_AG = "sample_full_access";
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
