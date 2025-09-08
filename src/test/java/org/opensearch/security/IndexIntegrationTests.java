@@ -674,14 +674,14 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         // We do not have privileges for the index below, thus we get a 403 error
         HttpResponse res = rh.executeGetRequest(
-            URLEncoder.encode("_##pdt_data/_search", "UTF-8"),
+            "/_pdt_data/_search",
             encodeBasicHeader("ccsresolv", "nagilum")
         );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // We have privileges for the invalid index name below, thus we get through to the validation logic
         res = rh.executeGetRequest(
-                URLEncoder.encode("aabc#data/_search", "UTF-8"),
+               "/_abcdata/_search",
                 encodeBasicHeader("ccsresolv", "nagilum")
         );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));

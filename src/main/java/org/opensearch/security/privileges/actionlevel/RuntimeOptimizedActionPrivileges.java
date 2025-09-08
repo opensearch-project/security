@@ -12,6 +12,8 @@
 package org.opensearch.security.privileges.actionlevel;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -54,9 +57,18 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     protected final ClusterPrivileges cluster;
     protected final StaticIndexPrivileges index;
 
-    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index) {
+    /**
+     * If true, aliases or data streams which do not have direct privileges, will be broken down into individual indices
+     * to check whether there are privileges for the individual indices. This is mainly for backwards compatibility. The
+     * new privilege evaluation mode won't use this, as this does not work well with filtered aliases (the filters would
+     * just disappear).
+     */
+    protected final boolean breakDownAliases;
+
+    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index, boolean breakDownAliases) {
         this.cluster = cluster;
         this.index = index;
+        this.breakDownAliases = breakDownAliases;
     }
 
     @Override
@@ -122,6 +134,13 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
         }
 
         IntermediateResult resultFromStaticIndex = this.index.providesPrivilege(context, actions, checkTable);
+
+        if (this.breakDownAliases && !checkTable.isComplete() && resolvedIndices instanceof ResolvedIndices && containsAliasesOrDataStreams(context, checkTable.getIncompleteRows())) {
+            // If we could not gather privileges for all aliases, try to break down aliases and data streams into individual members
+            // This is for backwards compatibility only
+            return this.breakDownAliases(context, actions, checkTable);
+        }
+
         return this.index.finalizeResult(context, resultFromStaticIndex);
     }
 
@@ -151,6 +170,55 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      * can choose to return null here; then, a slower evaluation path will be used.
      */
     protected abstract StatefulIndexPrivileges currentStatefulIndexPrivileges();
+
+    protected PrivilegesEvaluatorResponse breakDownAliases( PrivilegesEvaluationContext context,
+                                                            Set<String> actions,
+                                                            CheckTable<String, String> checkTable) {
+        Map<String, IndexAbstraction> indicesLookup = context.getIndicesLookup();
+        Set<String> newIndices = new HashSet<>();
+
+        for (String index : checkTable.getRows()) {
+            if (checkTable.isRowComplete(index)) {
+                newIndices.add(index);
+            } else {
+                IndexAbstraction indexAbstraction = indicesLookup.get(index);
+                if (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream) {
+                    indexAbstraction.getIndices().forEach(i -> newIndices.add(i.getIndex().getName()));
+                } else {
+                    newIndices.add(index);
+                }
+            }
+        }
+
+        CheckTable<String, String> newCheckTable = CheckTable.create(newIndices, actions);
+        for (String action : actions) {
+            newCheckTable.checkIf(index -> checkTable.getRows().contains(index) && checkTable.isChecked(index, action), action);
+        }
+
+        StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
+        if (statefulIndex != null) {
+            IntermediateResult resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, context, newCheckTable);
+            if (resultFromStatefulIndex != null) {
+                // If we get a result from statefulIndex, we are done.
+                return this.index.finalizeResult(context, resultFromStatefulIndex);
+            }
+        }
+
+        IntermediateResult resultFromStaticIndex = this.index.providesPrivilege(context, actions, newCheckTable);
+        return this.index.finalizeResult(context, resultFromStaticIndex);
+    }
+
+    private boolean containsAliasesOrDataStreams(PrivilegesEvaluationContext context, Collection<String> names) {
+        Map<String, IndexAbstraction> indicesLookup = context.getIndicesLookup();
+        for (String name : names) {
+            IndexAbstraction indexAbstraction = indicesLookup.get(name);
+            if (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Base class for evaluating cluster privileges.

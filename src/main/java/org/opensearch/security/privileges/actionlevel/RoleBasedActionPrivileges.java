@@ -110,9 +110,10 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         SecurityDynamicConfiguration<RoleV7> roles,
         FlattenedActionGroups actionGroups,
         SpecialIndexProtection specialIndexProtection,
-        Settings settings
+        Settings settings,
+            boolean breakDownAliases
     ) {
-        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups, specialIndexProtection));
+        super(new ClusterPrivileges(roles, actionGroups), new IndexPrivileges(roles, actionGroups, specialIndexProtection), breakDownAliases);
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);

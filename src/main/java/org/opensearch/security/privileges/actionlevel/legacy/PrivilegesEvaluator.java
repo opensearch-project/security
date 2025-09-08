@@ -192,15 +192,17 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
 
+        Supplier<Boolean> isLocalNodeElectedClusterManager = clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false;
+
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(
             settings,
             auditLog,
-            clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false
+            isLocalNodeElectedClusterManager
         );
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        this.indicesRequestResolver = new LegacyIndicesRequestResolver(resolver);
+        this.indicesRequestResolver = new LegacyIndicesRequestResolver(resolver, isLocalNodeElectedClusterManager);
 
         this.pluginIdToActionPrivileges.putAll(createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups));
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
@@ -222,7 +224,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 rolesConfiguration,
                 flattenedActionGroups,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                settings
+                settings,
+                    true
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -340,6 +343,9 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
 
         if (isDebugEnabled) {
+            if (request instanceof IndicesRequest indicesRequest) {
+                log.debug("IndicesRequest: {} {}", indicesRequest.indices(), indicesRequest.indicesOptions());
+            }
             log.debug("ResolvedIndices: {}", optionallyResolvedIndices);
         }
 
@@ -507,7 +513,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (presponse.isAllowed()) {
             if (checkFilteredAliases(optionallyResolvedIndices, action0, isDebugEnabled)) {
-                return presponse;
+                return PrivilegesEvaluatorResponse.insufficient(action0).reason("It is not possible to read from indices with more than two filtered aliases");
             }
 
             if (isDebugEnabled) {
@@ -777,7 +783,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 new SubjectBasedActionPrivileges(
                     entry.getValue(),
                     staticActionGroups,
-                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                        true
                 )
             );
         }

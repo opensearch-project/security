@@ -167,7 +167,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 rolesConfiguration,
                 flattenedActionGroups,
                 this.specialIndexProtection,
-                this.settings
+                this.settings,
+                    false
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -500,7 +501,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
 
         for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
-            result.put(entry.getKey(), new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups, specialIndexProtection));
+            result.put(entry.getKey(), new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups, specialIndexProtection, false));
         }
 
         return result;

@@ -142,7 +142,8 @@ public class SystemIndexAccessEvaluatorTest {
                 rolesConfig,
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY
+                Settings.EMPTY,
+                    false
             );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

@@ -142,7 +142,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)
-            || (isApplicable(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction()))) {
+            || !isApplicable(context.getAction())) {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
