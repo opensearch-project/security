@@ -9,7 +9,7 @@
 package org.opensearch.sample.resource.feature.enabled;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -50,7 +50,7 @@ public class DirectIndexAccessTests {
      * This is how the feature is intended to be utilized.
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexEnabled {
 
         @ClassRule
@@ -167,7 +167,7 @@ public class DirectIndexAccessTests {
      * Shows the importance of System-Index protection feature for this new authz mechanism, by showing what would happen if SIP is disabled and the feature is enabled.
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexDisabled {
 
         @ClassRule

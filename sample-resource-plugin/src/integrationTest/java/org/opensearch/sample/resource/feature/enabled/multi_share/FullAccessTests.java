@@ -9,7 +9,7 @@
 package org.opensearch.sample.resource.feature.enabled.multi_share;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -33,7 +33,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * All tests are against USER_ADMIN's resource created during setup.
  */
 @RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
 public class FullAccessTests {
 
     @ClassRule

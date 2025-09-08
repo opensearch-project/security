@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -54,8 +54,8 @@ import static org.opensearch.test.framework.audit.AuditMessagePredicate.privileg
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticatedPredicate;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I = new TestSecurityConfig.User("who_am_i_user").roles(
         new Role("who_am_i_role").clusterPermissions("security:whoamiprotected")

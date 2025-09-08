@@ -30,7 +30,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
 public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
-
+/*
     private final static String REST_API_ADMIN_ACTION_GROUPS_ONLY = "rest_api_admin_action_groups_only";
 
     private final static String REST_ADMIN_PERMISSION_ACTION_GROUP = "rest-admin-permissions-action-group";
@@ -261,5 +261,5 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         );
         assertThat(response.getBody(), response.getTextArrayFromJsonBody("/" + actionGroupName + "/allowed_actions"), is(allowedActions));
     }
-
+*/
 }

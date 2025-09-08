@@ -9,7 +9,7 @@
 package org.opensearch.sample.resource.feature.enabled;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -57,7 +57,7 @@ public class ApiAccessTests {
      * Users can only access resources they are shared with or owner of.
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexEnabled {
 
         @ClassRule
@@ -279,7 +279,7 @@ public class ApiAccessTests {
      * Users will only be able to access resources they are shared_with or owner of, via plugin APIs, even if system index protection is disabled.
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexDisabled {
         @ClassRule
         public static LocalCluster cluster = newCluster(true, false);

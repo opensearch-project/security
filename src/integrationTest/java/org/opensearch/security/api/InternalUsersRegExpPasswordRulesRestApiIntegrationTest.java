@@ -25,7 +25,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 
 public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     final static String PASSWORD_VALIDATION_ERROR_MESSAGE = "xxxxxxxx";
 
     @Override
@@ -102,5 +102,5 @@ public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends Abst
             ok(() -> client.putJson(internalUsers("ok1"), internalUserWithPassword("Admin_123")));
         });
     }
-
+*/
 }

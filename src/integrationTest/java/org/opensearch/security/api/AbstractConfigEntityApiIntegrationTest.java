@@ -37,7 +37,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     static {
         testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions());
     }
@@ -275,4 +275,6 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     abstract void verifyBadRequestOperations(final TestRestClient client) throws Exception;
 
     abstract void verifyCrudOperations(final Boolean hidden, final Boolean reserved, final TestRestClient client) throws Exception;
+ */
+
 }

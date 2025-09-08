@@ -9,7 +9,7 @@
 */
 package org.opensearch.security.http;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpHeaders;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -24,8 +24,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class BasicAuthWithoutChallengeTests {
 
     @ClassRule

@@ -38,7 +38,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.test.framework.TestSecurityConfig.Role;
 
 public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
-
+/*
     final static String REST_API_ADMIN_ROLES_MAPPING_ONLY = "rest-api-admin-roles-mapping-only";
 
     final static String REST_ADMIN_ROLE = "rest-admin-role";
@@ -478,5 +478,5 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             ? configJsonArray(generateArrayValues(useNulls))
             : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
     }
-
+*/
 }

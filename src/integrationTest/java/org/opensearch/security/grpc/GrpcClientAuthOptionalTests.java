@@ -11,7 +11,6 @@ package org.opensearch.security.grpc;
 
 import java.io.IOException;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,8 +30,7 @@ import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
 public class GrpcClientAuthOptionalTests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

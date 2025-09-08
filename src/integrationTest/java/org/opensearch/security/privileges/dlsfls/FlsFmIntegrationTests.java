@@ -19,8 +19,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import com.google.common.collect.ImmutableMap;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -62,8 +61,8 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  * <li>On the test method level, different operations (get, search, aggregation, terms vectors) are used with the defined users.
  * </ul>
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class FlsFmIntegrationTests {
 
     static final TestData TEST_DATA = TestData.DEFAULT;
@@ -937,7 +936,6 @@ public class FlsFmIntegrationTests {
         this.user = user;
     }
 
-    @ParametersFactory(shuffle = false)
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 

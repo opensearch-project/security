@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.hamcrest.Matcher;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -112,8 +112,8 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class FlsAndFieldMaskingTests {
 
     static final String FIRST_INDEX_ID_SONG_1 = "INDEX_1_S1";

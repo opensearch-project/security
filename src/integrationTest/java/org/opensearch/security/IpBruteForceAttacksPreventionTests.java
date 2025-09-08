@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.RateLimiting;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -30,7 +30,6 @@ import org.opensearch.test.framework.log.LogsRule;
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonArray;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
@@ -38,8 +37,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
     protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
     protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
@@ -219,5 +216,21 @@ public class IpBruteForceAttacksPreventionTests {
                 response.assertStatusCode(SC_UNAUTHORIZED);
             }
         }
+    }
+
+    public static ToXContentObject configJsonArray(final String... values) {
+        return (builder, params) -> {
+            builder.startArray();
+            if (values != null) {
+                for (final var v : values) {
+                    if (v == null) {
+                        builder.nullValue();
+                    } else {
+                        builder.value(v);
+                    }
+                }
+            }
+            return builder.endArray();
+        };
     }
 }

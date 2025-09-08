@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
@@ -34,8 +33,6 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class AbstractDefaultConfigurationTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin");
     private static final TestSecurityConfig.User NEW_USER = new TestSecurityConfig.User("new-user");

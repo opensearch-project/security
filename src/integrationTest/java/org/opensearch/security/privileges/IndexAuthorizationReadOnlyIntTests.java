@@ -15,13 +15,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.junit.runners.Parameterized;
 import org.opensearch.test.framework.TestAlias;
 import org.opensearch.test.framework.TestData;
 import org.opensearch.test.framework.TestIndex;
@@ -45,8 +44,9 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+//
+@RunWith(Parameterized.class)
+//
 public class IndexAuthorizationReadOnlyIntTests {
 
     static final TestIndex index_a1 = TestIndex.name("index_a1").documentCount(100).seed(1).build();
@@ -216,21 +216,6 @@ public class IndexAuthorizationReadOnlyIntTests {
         .build();
 
     final TestSecurityConfig.User user;
-
-    @ParametersFactory(shuffle = false)
-    public static Collection<Object[]> params() {
-        List<Object[]> result = new ArrayList<>();
-
-        for (TestSecurityConfig.User user : USERS) {
-            result.add(new Object[] { user, user.getDescription() });
-        }
-
-        return result;
-    }
-
-    public IndexAuthorizationReadOnlyIntTests(TestSecurityConfig.User user, String description) {
-        this.user = user;
-    }
 
     @Test
     public void search_noPattern() throws Exception {
@@ -1169,4 +1154,20 @@ public class IndexAuthorizationReadOnlyIntTests {
             );
         }
     }
+
+    @Parameterized.Parameters(name = "{1}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+
+        for (TestSecurityConfig.User user : USERS) {
+            result.add(new Object[] { user, user.getDescription() });
+        }
+
+        return result;
+    }
+
+    public IndexAuthorizationReadOnlyIntTests(TestSecurityConfig.User user, String description) throws Exception {
+        this.user = user;
+    }
+
 }

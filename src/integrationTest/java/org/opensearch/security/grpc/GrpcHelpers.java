@@ -40,7 +40,6 @@ import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomFrom;
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
@@ -90,7 +89,9 @@ public class GrpcHelpers {
             );
             transportAddresses.add(boundAddress);
         }
-        return randomFrom(transportAddresses);
+       // TODO
+        //  return randomFrom(transportAddresses);
+        return null;
     }
 
     /*

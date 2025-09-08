@@ -11,7 +11,7 @@ package org.opensearch.sample.resource.feature.enabled;
 import java.util.List;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -47,7 +47,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * These tests run simulation on resource access
  */
 @RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
 public class DryRunAccessTests {
 
     @ClassRule

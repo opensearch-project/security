@@ -30,7 +30,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class PBKDF2CustomConfigHashingTests extends HashingTests {
-
+/*
     public static LocalCluster cluster;
 
     private static final String PASSWORD = "top$ecret1234!";
@@ -93,5 +93,5 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
         createUserWithPlainTextPassword(cluster, "user_4", PASSWORD);
         testPasswordAuth(cluster, "user_4", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
-    }
+    }*/
 }

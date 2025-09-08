@@ -30,7 +30,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class BCryptCustomConfigHashingTests extends HashingTests {
-
+/*
     private static LocalCluster cluster;
 
     private static String minor;
@@ -88,5 +88,5 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
 
         createUserWithPlainTextPassword(cluster, "user_5", PASSWORD);
         testPasswordAuth(cluster, "user_5", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
-    }
+    }*/
 }

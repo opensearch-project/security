@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -200,8 +200,8 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
 import static org.opensearch.test.framework.matcher.UpdateResponseMatchers.isSuccessfulUpdateResponse;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class SearchOperationTest {
 
     private static final Logger log = LogManager.getLogger(SearchOperationTest.class);

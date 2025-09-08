@@ -11,7 +11,7 @@ package org.opensearch.sample.resource;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -46,8 +46,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * This class defines a test scenario where security plugin is disabled
  * It checks access through sample plugin as well as through direct security API calls
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class SecurityDisabledTests {
 
     @ClassRule

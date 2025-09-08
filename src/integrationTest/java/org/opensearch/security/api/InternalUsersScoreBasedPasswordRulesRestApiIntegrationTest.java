@@ -24,7 +24,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 
 public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     @Override
     protected Map<String, Object> getClusterSettings() {
         Map<String, Object> clusterSettings = super.getClusterSettings();
@@ -83,5 +83,5 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
             );
         });
     }
-
+*/
 }

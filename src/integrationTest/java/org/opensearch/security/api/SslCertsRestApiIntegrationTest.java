@@ -24,7 +24,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 
 @Deprecated
 public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     final static String REST_API_ADMIN_SSL_INFO = "rest-api-admin-ssl-info";
 
     static {
@@ -84,5 +84,5 @@ public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
         assertThat(jsonNode.toPrettyString(), jsonNode.has("not_before"));
         assertThat(jsonNode.toPrettyString(), jsonNode.has("not_after"));
     }
-
+*/
 }

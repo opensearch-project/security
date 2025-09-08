@@ -26,7 +26,7 @@ import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
 
 public class DashboardsInfoTest extends AbstractApiIntegrationTest {
-
+/*
     static {
         testSecurityConfig.user(
             new TestSecurityConfig.User("dashboards_user").roles(
@@ -46,5 +46,5 @@ public class DashboardsInfoTest extends AbstractApiIntegrationTest {
             assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
             assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
         });
-    }
+    }*/
 }

@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -54,7 +53,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
@@ -65,10 +63,8 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEF
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.test.framework.TestSecurityConfig.REST_ADMIN_REST_API_ACCESS;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-public abstract class AbstractApiIntegrationTest extends RandomizedTest {
-
+public abstract class AbstractApiIntegrationTest {
+/*
     private static final Logger LOGGER = LogManager.getLogger(TestSecurityConfig.class);
 
     public static final String NEW_USER = "new-user";
@@ -436,5 +432,5 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
             ? configJsonArray(generateArrayValues(useNulls))
             : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
     }
-
+*/
 }

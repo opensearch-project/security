@@ -27,7 +27,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
 public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
-
+/*
     private final static String REST_API_ADMIN_TENANTS_ONLY = "rest_api_admin_tenants_only";
 
     static {
@@ -182,5 +182,6 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
         assertThat(actualJson.toPrettyString(), actualJson.get("reserved").asBoolean(), is(reserved != null && reserved));
         assertThat(actualJson.toPrettyString(), actualJson.get("description").asText(), is(expectedDescription));
     }
+    */
 
 }

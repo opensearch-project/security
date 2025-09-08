@@ -18,7 +18,7 @@ import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -72,8 +72,8 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numbe
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class DlsIntegrationTests {
 
     static final String FIRST_INDEX_ID_SONG_1 = "INDEX_1_S1";

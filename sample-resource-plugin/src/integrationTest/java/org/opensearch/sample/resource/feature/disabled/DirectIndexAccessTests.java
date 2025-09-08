@@ -9,7 +9,7 @@
 package org.opensearch.sample.resource.feature.disabled;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public class DirectIndexAccessTests {
      * No user except super-admin can access documents directly since system index protection is enabled
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexEnabled {
 
         @ClassRule
@@ -154,7 +154,7 @@ public class DirectIndexAccessTests {
      * Users with appropriate index permissions will be able to access and update resources directly, since system index protection is disabled
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class SystemIndexDisabled {
 
         @ClassRule

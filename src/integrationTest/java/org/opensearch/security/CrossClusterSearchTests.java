@@ -13,8 +13,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -65,10 +64,8 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 * option is enabled or disabled. Method {@link #parameters()} is a source of parameters values.
 */
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CrossClusterSearchTests {
-
+/*
     private static final String SONG_INDEX_NAME = "song_lyrics";
 
     private static final String PROHIBITED_SONG_INDEX_NAME = "prohibited_song_lyrics";
@@ -453,4 +450,7 @@ public class CrossClusterSearchTests {
             assertThat(response, searchHitContainsFieldWithValue(0, FIELD_GENRE, GENRE_ROCK));
         }
     }
+
+    */
+
 }

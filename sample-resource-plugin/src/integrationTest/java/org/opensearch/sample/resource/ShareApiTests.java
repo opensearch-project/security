@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -71,7 +71,7 @@ public class ShareApiTests {
      * Tests exercising the share API endpoints, GET, PUT & PATCH
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+    
     public static class RoutesTests extends BaseTests {
         private final TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
         private String adminResId;

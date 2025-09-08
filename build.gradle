@@ -485,7 +485,6 @@ configurations {
             force "org.checkerframework:checker-qual:3.49.5"
             force "ch.qos.logback:logback-classic:1.5.18"
             force "commons-io:commons-io:2.20.0"
-            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.19.0"
             force "net.bytebuddy:byte-buddy:1.17.7"
@@ -525,9 +524,6 @@ allprojects {
         testImplementation "org.mockito:mockito-core:5.19.0"
 
         //integration test framework:
-        integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
-            exclude(group: 'junit', module: 'junit')
-        }
         integrationTestImplementation 'junit:junit:4.13.2'
         integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
             exclude(group: 'org.slf4j', module: 'slf4j-api')

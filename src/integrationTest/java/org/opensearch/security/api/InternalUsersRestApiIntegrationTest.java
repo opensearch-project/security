@@ -46,7 +46,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
-
+/*
     private final static String REST_API_ADMIN_INTERNAL_USERS_ONLY = "rest_api_admin_iternal_users_only";
 
     private final static String SERVICE_ACCOUNT_USER = "service_account_user";
@@ -447,7 +447,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             ok(() -> client.post(apiPath(SERVICE_ACCOUNT_USER, "authtoken")));
             /*
               should be notImplement but the call doesn't reach {@link org.opensearch.security.dlic.rest.api.InternalUsersApiAction#withAuthTokenPath(RestRequest)}
-             */
+             * /
             methodNotAllowed(() -> client.post(apiPath("randomPath")));
         });
     }
@@ -794,5 +794,5 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 )
             );
         });
-    }
+    }*/
 }

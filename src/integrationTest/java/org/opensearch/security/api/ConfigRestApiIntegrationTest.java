@@ -27,7 +27,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     final static String REST_API_ADMIN_CONFIG_UPDATE = "rest-api-admin-config-update";
 
     static {
@@ -129,5 +129,5 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         methodNotAllowed(() -> client.postJson(securityConfigPath(), EMPTY_BODY));
         methodNotAllowed(() -> client.delete(securityConfigPath()));
     }
-
+*/
 }

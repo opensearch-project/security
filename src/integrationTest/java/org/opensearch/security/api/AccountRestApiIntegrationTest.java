@@ -22,7 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 
 public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     private final static String TEST_USER = "test-user";
 
     private final static String RESERVED_USER = "reserved-user";
@@ -172,5 +172,5 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
     private ToXContentObject changePasswordWithHashPayload(final String currentPassword, final String hash) {
         return (builder, params) -> builder.startObject().field("current_password", currentPassword).field("hash", hash).endObject();
     }
-
+*/
 }

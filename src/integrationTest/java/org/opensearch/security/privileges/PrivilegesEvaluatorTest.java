@@ -11,7 +11,7 @@
 
 package org.opensearch.security.privileges;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -35,8 +35,8 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 * org.opensearch.security.privileges.PrivilegesEvaluatorTest to the new test
 * framework for direct comparison
 */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class PrivilegesEvaluatorTest {
 
     protected final static TestSecurityConfig.User NEGATIVE_LOOKAHEAD = new TestSecurityConfig.User("negative_lookahead_user").roles(

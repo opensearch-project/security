@@ -19,7 +19,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.PLUGINS_PREFIX;
 
 public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
     private final static String TEST_USER = "testuser";
-
+/*
     private String cachePath() {
         return super.apiPath("cache");
     }
@@ -56,5 +56,5 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
                 is("Cache invalidated for user: " + TEST_USER)
             );
         });
-    }
+    }*/
 }

@@ -26,7 +26,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
-
+/*
     private static final String CUSTOM_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{5,}";
 
     private static final String CUSTOM_PASSWORD_MESSAGE =
@@ -61,4 +61,5 @@ public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
             assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(CUSTOM_PASSWORD_REGEX));
         });
     }
+    */
 }

@@ -11,7 +11,7 @@ package org.opensearch.security.http;
 
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,8 +28,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class RolesMappingTests {
     static final TestSecurityConfig.User USER_A = new TestSecurityConfig.User("userA").password("s3cret").backendRoles("mapsToRoleA");
     static final TestSecurityConfig.User USER_B = new TestSecurityConfig.User("userB").password("P@ssw0rd").backendRoles("mapsToRoleB");

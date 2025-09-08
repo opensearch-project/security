@@ -30,6 +30,10 @@ package org.opensearch.test.framework.cluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -608,5 +612,4 @@ public class LocalOpenSearchCluster {
     public Random getRandom() {
         return random;
     }
-
 }

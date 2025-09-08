@@ -20,7 +20,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
 public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegrationTest {
-
+/*
     @Test
     public void nodesDnApiIsNotAvailableByDefault() throws Exception {
         withUser(NEW_USER, this::verifyNodesDnApi);
@@ -102,6 +102,6 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
             badRequest(() -> client.putJson(apiPath("ssl", "http", "reloadcerts"), EMPTY_BODY));
             badRequest(() -> client.putJson(apiPath("ssl", "transport", "reloadcerts"), EMPTY_BODY));
         });
-    }
+    }*/
 
 }

@@ -9,7 +9,7 @@
 package org.opensearch.sample.resource.feature.disabled;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -58,7 +58,7 @@ public class ApiAccessTests {
      * Only those users with appropriate index permissions will be able to access resources via APIs
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
     public static class SystemIndexEnabled {
 
         @ClassRule
@@ -284,7 +284,7 @@ public class ApiAccessTests {
      * All users can access all resources through the plugin APIs given they have appropriate index permission, since system index protection is disabled
      */
     @RunWith(RandomizedRunner.class)
-    @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
     public static class SystemIndexDisabled {
 
         @ClassRule

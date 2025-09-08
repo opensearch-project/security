@@ -12,7 +12,7 @@ package org.opensearch.security.systemindex;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -39,8 +39,8 @@ import static org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+
+
 public class SystemIndexTests {
 
     public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");

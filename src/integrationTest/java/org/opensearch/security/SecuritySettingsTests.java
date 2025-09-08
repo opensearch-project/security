@@ -8,7 +8,6 @@
  */
 package org.opensearch.security;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -24,8 +23,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SecuritySettingsTests {
 
     @ClassRule

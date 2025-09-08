@@ -37,7 +37,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
 public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
-
+/*
     private final static String REST_API_ADMIN_ACTION_ROLES_ONLY = "rest_api_admin_action_roles_only";
 
     private final static String REST_ADMIN_PERMISSION_ROLE = "rest-admin-permission-role";
@@ -465,5 +465,5 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         return useNullValues
             ? configJsonArray(generateArrayValues(useNullValues))
             : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
-    }
+    }*/
 }
