@@ -58,7 +58,10 @@ import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.TestAlias;
+import org.opensearch.test.framework.TestComponentTemplate;
+import org.opensearch.test.framework.TestDataStream;
 import org.opensearch.test.framework.TestIndex;
+import org.opensearch.test.framework.TestIndexTemplate;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.XffConfig;
@@ -100,6 +103,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private volatile LocalOpenSearchCluster localOpenSearchCluster;
     private final List<TestIndex> testIndices;
     private final List<TestAlias> testAliases;
+    private final List<TestDataStream> testDataStreams;
+    private final List<TestComponentTemplate> testComponentTemplates;
+    private final List<TestIndexTemplate> testIndexTemplates;
 
     private boolean loadConfigurationIntoIndex;
 
@@ -117,6 +123,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         Map<String, LocalCluster> remotes,
         List<TestIndex> testIndices,
         List<TestAlias> testAliases,
+        List<TestDataStream> testDataStreams,
+        List<TestComponentTemplate> testComponentTemplates,
+        List<TestIndexTemplate> testIndexTemplates,
         boolean loadConfigurationIntoIndex,
         String defaultConfigurationInitDirectory,
         Integer expectedNodeStartupCount
@@ -135,6 +144,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         this.clusterDependencies = clusterDependencies;
         this.testIndices = testIndices;
         this.testAliases = testAliases;
+        this.testDataStreams = testDataStreams;
+        this.testComponentTemplates = testComponentTemplates;
+        this.testIndexTemplates = testIndexTemplates;
         this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
         if (StringUtils.isNoneBlank(defaultConfigurationInitDirectory)) {
             System.setProperty(INIT_CONFIGURATION_DIR, defaultConfigurationInitDirectory);
@@ -267,17 +279,25 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             }
 
             try (Client client = getInternalNodeClient()) {
+                for (TestComponentTemplate testComponentTemplate : this.testComponentTemplates) {
+                    testComponentTemplate.create(client);
+                }
+                for (TestIndexTemplate indexTemplate : this.testIndexTemplates) {
+                    indexTemplate.create(client);
+                }
+
                 for (TestIndex index : this.testIndices) {
                     index.create(client);
                 }
-            }
 
-            try (Client client = getInternalNodeClient()) {
+                for (TestDataStream dataStream : this.testDataStreams) {
+                    dataStream.create(client);
+                }
+
                 for (TestAlias alias : this.testAliases) {
                     alias.create(client);
                 }
             }
-
         } catch (Exception e) {
             log.error("Local ES cluster start failed", e);
             throw new RuntimeException(e);
@@ -346,6 +366,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
         private List<TestAlias> testAliases = new ArrayList<>();
+        private List<TestDataStream> testDataStreams = new ArrayList<>();
+        private List<TestIndexTemplate> testIndexTemplates = new ArrayList<>();
+        private List<TestComponentTemplate> testComponentTemplates = new ArrayList<>();
         private ClusterManager clusterManager = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
@@ -485,6 +508,23 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder aliases(TestAlias... aliases) {
             this.testAliases.addAll(Arrays.asList(aliases));
+            return this;
+        }
+
+        public Builder dataStreams(TestDataStream ... dataStreams) {
+            this.testDataStreams.addAll(Arrays.asList(dataStreams));
+            return this;
+        }
+
+        public Builder indexTemplates(TestIndexTemplate ... indexTemplates) {
+            for (TestIndexTemplate indexTemplate : indexTemplates) {
+                this.testIndexTemplates.add(indexTemplate);
+                for (TestComponentTemplate testComponentTemplate : indexTemplate.getComposedOf()) {
+                    if (!this.testComponentTemplates.contains(testComponentTemplate)) {
+                        this.testComponentTemplates.add(testComponentTemplate);
+                    }
+                }
+            }
             return this;
         }
 
@@ -632,6 +672,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     remoteClusters,
                     testIndices,
                     testAliases,
+                    testDataStreams,
+                    testComponentTemplates,
+                    testIndexTemplates,
                     loadConfigurationIntoIndex,
                     defaultConfigurationInitDirectory,
                     expectedNodeStartupCount

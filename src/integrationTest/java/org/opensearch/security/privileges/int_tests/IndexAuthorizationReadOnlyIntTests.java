@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.int_tests;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1217,46 +1217,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     public IndexAuthorizationReadOnlyIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster();
+        this.cluster = clusterConfig.cluster(IndexAuthorizationReadOnlyIntTests::clusterBuilder);
         this.clusterConfig = clusterConfig;
     }
-
-    public enum ClusterConfig {
-        LEGACY_PRIVILEGES_EVALUATION("legacy", c -> c.doNotFailOnForbidden(true)),
-        NEXT_GEN_PRIVILEGES_EVALUATION("next_gen", c -> c.privilegesEvaluationType("next_gen"));
-
-        final String name;
-        final Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration;
-        private LocalCluster cluster;
-
-        ClusterConfig(String name, Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration) {
-            this.name = name;
-            this.clusterConfiguration = clusterConfiguration;
-        }
-
-        LocalCluster cluster() {
-            if (cluster == null) {
-                cluster = this.clusterConfiguration.apply(clusterBuilder()).build();
-                cluster.before();
-            }
-            return cluster;
-        }
-
-        void shutdown() {
-            if (cluster != null) {
-                try {
-                    cluster.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                cluster = null;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
 }
