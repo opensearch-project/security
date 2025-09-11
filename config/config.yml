@@ -140,7 +140,7 @@ config:
             subject_key: null
         authentication_backend:
           type: noop
-      
+
       # JWT Authentication with JWKS Endpoint
       # To test: Set http_enabled: true, disable jwt_auth_domain
       jwt_jwks_auth_domain:
@@ -154,7 +154,7 @@ config:
           config:
             # JWKS endpoint URL (required)
             jwks_uri: 'https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json'
-            
+
             # Caching and timeout configuration
             cache_jwks_endpoint: true
             jwks_queued_thread_timeout_ms: 2500
@@ -164,7 +164,7 @@ config:
             max_jwks_response_size_bytes: 1048576
             refresh_rate_limit_count: 10
             refresh_rate_limit_time_window_ms: 10000
-            
+
             # Standard JWT settings
             jwt_header: "Authorization"
             jwt_url_parameter: null
