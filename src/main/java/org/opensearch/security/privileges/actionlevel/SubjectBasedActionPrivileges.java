@@ -58,11 +58,16 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      * @param actionGroups The FlattenedActionGroups instance that shall be used to resolve the action groups
      *                     specified in the roles configuration.
      */
-    public SubjectBasedActionPrivileges(RoleV7 role, FlattenedActionGroups actionGroups, SpecialIndexProtection specialIndexProtection, boolean breakDownAliases) {
+    public SubjectBasedActionPrivileges(
+        RoleV7 role,
+        FlattenedActionGroups actionGroups,
+        SpecialIndexProtection specialIndexProtection,
+        boolean breakDownAliases
+    ) {
         super(
             new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
             new IndexPrivileges(role, actionGroups, specialIndexProtection),
-                breakDownAliases
+            breakDownAliases
         );
     }
 

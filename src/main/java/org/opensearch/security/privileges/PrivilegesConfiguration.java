@@ -118,10 +118,10 @@ public class PrivilegesConfiguration {
                     configurationRepository.getConfiguration(CType.CONFIG)
                 );
                 PrivilegesEvaluationType currentEvaluationType =
-                     currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
+                    currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
                         ? PrivilegesEvaluationType.LEGACY
-                    : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator ?
-                        PrivilegesEvaluationType.NEXT_GEN
+                        : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator
+                            ? PrivilegesEvaluationType.NEXT_GEN
                         : null;
 
                 if (privilegesEvaluationType != currentEvaluationType) {

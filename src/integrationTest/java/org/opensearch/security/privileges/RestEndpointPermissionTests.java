@@ -123,7 +123,7 @@ public class RestEndpointPermissionTests {
             FlattenedActionGroups.EMPTY,
             RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
             Settings.EMPTY,
-                false
+            false
         );
     }
 

@@ -11,11 +11,9 @@
 
 package org.opensearch.security.privileges;
 
-
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
@@ -35,7 +33,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 * org.opensearch.security.privileges.PrivilegesEvaluatorTest to the new test
 * framework for direct comparison
 */
-
 
 public class PrivilegesEvaluatorTest {
 

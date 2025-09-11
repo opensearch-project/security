@@ -102,7 +102,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             FlattenedActionGroups.EMPTY,
             RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
             Settings.EMPTY,
-                false
+            false
         );
 
         return new PrivilegesEvaluator() {

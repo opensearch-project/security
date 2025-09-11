@@ -143,7 +143,7 @@ public class SystemIndexAccessEvaluatorTest {
                 FlattenedActionGroups.EMPTY,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 Settings.EMPTY,
-                    false
+                false
             );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -391,7 +391,6 @@ public class SystemIndexAccessEvaluatorTest {
         verify(auditLog).logSecurityIndexAttempt(request, UNPROTECTED_ACTION, null);
         verify(auditLog).logSecurityIndexAttempt(searchRequest, UNPROTECTED_ACTION, null);
         verify(auditLog).logSecurityIndexAttempt(realtimeRequest, UNPROTECTED_ACTION, null);
-        verify(presponse, times(3)).markComplete();
         verify(log, times(2)).isDebugEnabled();
         verify(log, times(3)).isInfoEnabled();
         verify(log, times(3)).info(

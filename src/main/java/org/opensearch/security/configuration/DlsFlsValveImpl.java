@@ -38,7 +38,6 @@ import org.opensearch.action.admin.indices.shrink.ResizeRequest;
 import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
-import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
@@ -141,8 +140,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)
-            || !isApplicable(context.getAction())) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext) || !isApplicable(context.getAction())) {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();

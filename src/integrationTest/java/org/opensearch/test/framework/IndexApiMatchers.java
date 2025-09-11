@@ -35,6 +35,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 
 import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
@@ -368,7 +369,7 @@ public class IndexApiMatchers {
         }
 
         @Override
-        public boolean covers(TestIndex testIndex) {
+        public boolean covers(TestIndexLike testIndex) {
             return indexNameMap.containsKey(testIndex.name());
         }
 
@@ -452,7 +453,7 @@ public class IndexApiMatchers {
         }
 
         @Override
-        public boolean covers(TestIndex testIndex) {
+        public boolean covers(TestIndexLike testIndex) {
             return indexNameMap.containsKey(testIndex.name());
         }
 
@@ -611,7 +612,7 @@ public class IndexApiMatchers {
         }
 
         @Override
-        public boolean covers(TestIndex testIndex) {
+        public boolean covers(TestIndexLike testIndex) {
             return true;
         }
     }
@@ -700,12 +701,12 @@ public class IndexApiMatchers {
         }
 
         @Override
-        public boolean covers(TestIndex testIndex) {
+        public boolean covers(TestIndexLike testIndex) {
             return false;
         }
     }
 
-    public static interface IndexMatcher extends Matcher<Object> {
+    public interface IndexMatcher extends Matcher<Object> {
         IndexMatcher but(IndexMatcher other);
 
         IndexMatcher butFailIfIncomplete(IndexMatcher other, int statusCode);
@@ -728,7 +729,7 @@ public class IndexApiMatchers {
 
         boolean containsDocument(String id);
 
-        boolean covers(TestIndex testIndex);
+        boolean covers(TestIndexLike testIndex);
     }
 
     static abstract class AbstractIndexMatcher extends DiagnosingMatcher<Object> implements IndexMatcher {
@@ -792,7 +793,15 @@ public class IndexApiMatchers {
             if (jsonPath != null) {
                 Configuration config = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
 
-                item = JsonPath.using(config).parse(item).read(jsonPath);
+                try {
+                    item = JsonPath.using(config).parse(item).read(jsonPath);
+                } catch (PathNotFoundException e) {
+                    mismatchDescription.appendText("Unable to find JSON Path: ")
+                        .appendValue(jsonPath)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
+                    return false;
+                }
 
                 if (item == null) {
                     mismatchDescription.appendText("Unable to find JSON Path: ")

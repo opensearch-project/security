@@ -26,7 +26,6 @@
 
 package org.opensearch.security;
 
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -673,17 +672,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
         // The security plugin should not engage itself in any validation logic that is outside of its scope.
 
         // We do not have privileges for the index below, thus we get a 403 error
-        HttpResponse res = rh.executeGetRequest(
-            "/_pdt_data/_search",
-            encodeBasicHeader("ccsresolv", "nagilum")
-        );
+        HttpResponse res = rh.executeGetRequest("/_pdt_data/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // We have privileges for the invalid index name below, thus we get through to the validation logic
-        res = rh.executeGetRequest(
-               "/_abcdata/_search",
-                encodeBasicHeader("ccsresolv", "nagilum")
-        );
+        res = rh.executeGetRequest("/_abcdata/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(res.getBody().contains("invalid_index_name_exception"));
     }

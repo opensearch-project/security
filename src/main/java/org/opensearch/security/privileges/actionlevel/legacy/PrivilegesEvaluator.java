@@ -192,13 +192,11 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
 
-        Supplier<Boolean> isLocalNodeElectedClusterManager = clusterService != null ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager() : () -> false;
+        Supplier<Boolean> isLocalNodeElectedClusterManager = clusterService != null
+            ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager()
+            : () -> false;
 
-        snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(
-            settings,
-            auditLog,
-            isLocalNodeElectedClusterManager
-        );
+        snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog, isLocalNodeElectedClusterManager);
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
@@ -225,7 +223,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 flattenedActionGroups,
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 settings,
-                    true
+                true
             );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
@@ -513,7 +511,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (presponse.isAllowed()) {
             if (checkFilteredAliases(optionallyResolvedIndices, action0, isDebugEnabled)) {
-                return PrivilegesEvaluatorResponse.insufficient(action0).reason("It is not possible to read from indices with more than two filtered aliases");
+                return PrivilegesEvaluatorResponse.insufficient(action0)
+                    .reason("It is not possible to read from indices with more than two filtered aliases");
             }
 
             if (isDebugEnabled) {
@@ -784,7 +783,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                     entry.getValue(),
                     staticActionGroups,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                        true
+                    true
                 )
             );
         }

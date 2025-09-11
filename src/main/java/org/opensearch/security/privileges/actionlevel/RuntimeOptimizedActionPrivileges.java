@@ -135,7 +135,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
         IntermediateResult resultFromStaticIndex = this.index.providesPrivilege(context, actions, checkTable);
 
-        if (this.breakDownAliases && !checkTable.isComplete() && resolvedIndices instanceof ResolvedIndices && containsAliasesOrDataStreams(context, checkTable.getIncompleteRows())) {
+        if (this.breakDownAliases
+            && !checkTable.isComplete()
+            && resolvedIndices instanceof ResolvedIndices
+            && containsAliasesOrDataStreams(context, checkTable.getIncompleteRows())) {
             // If we could not gather privileges for all aliases, try to break down aliases and data streams into individual members
             // This is for backwards compatibility only
             return this.breakDownAliases(context, actions, checkTable);
@@ -171,9 +174,11 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      */
     protected abstract StatefulIndexPrivileges currentStatefulIndexPrivileges();
 
-    protected PrivilegesEvaluatorResponse breakDownAliases( PrivilegesEvaluationContext context,
-                                                            Set<String> actions,
-                                                            CheckTable<String, String> checkTable) {
+    protected PrivilegesEvaluatorResponse breakDownAliases(
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        CheckTable<String, String> checkTable
+    ) {
         Map<String, IndexAbstraction> indicesLookup = context.getIndicesLookup();
         Set<String> newIndices = new HashSet<>();
 
@@ -218,7 +223,6 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
         }
         return false;
     }
-
 
     /**
      * Base class for evaluating cluster privileges.

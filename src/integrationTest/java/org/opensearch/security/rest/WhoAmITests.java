@@ -21,12 +21,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.test.framework.AuditCompliance;
@@ -53,8 +51,6 @@ import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedP
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticatedPredicate;
 import static org.junit.Assert.assertTrue;
-
-
 
 public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I = new TestSecurityConfig.User("who_am_i_user").roles(
