@@ -21,7 +21,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -38,8 +37,6 @@ import static org.mockito.Mockito.verify;
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("unchecked") // action listener mock
 public class ResourceAccessEvaluatorTest {
-    @Mock
-    private ThreadPool threadPool;
 
     @Mock
     private ResourceAccessHandler resourceAccessHandler;
