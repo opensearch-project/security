@@ -187,7 +187,56 @@ Each **action-group** entry contains the following access definitions:
 }
 ```
 
-## **4. Using the Client for Access Control**
+## **4a. Filtering results based on authenticated user**
+
+When performing a search on a resource index, Security will automatically filter the results based on the logged in user without
+a plugin having to be conscious of who the logged in user is. One of the goals of Resource Sharing and Authorization is to remove
+reasons for why plugins must rely on [common-utils](https://github.com/opensearch-project/common-utils/) today.
+
+In order for this implicit filtering to work, plugins must declare themselves as an `IdentityAwarePlugin` and use their assigned
+subject to run privileged operations against the resource index. See [Geospatial PR](https://github.com/opensearch-project/geospatial/pull/715) for an example
+of how to make the switch for system index access. In future versions of OpenSearch, it will be required for plugins to replace usages of ThreadContext.stashContext to
+access system indices.
+
+Behind-the-scenes, Security will filter the resultset based on who the authenticated user is.
+
+To accomplish this, Security will keep track of the list of principals that a particular resource is visible to as a new field on the resource
+metadata itself in your plugin's resource index.
+
+For example:
+
+```
+{
+  "name": "sharedDashboard",
+  "description": "A dashboard resource that is shared with multiple principals",
+  "type": "dashboard",
+  "created_at": "2025-09-02T14:30:00Z",
+  "attributes": {
+    "category": "analytics",
+    "sensitivity": "internal"
+  },
+  "all_shared_principals": [
+    "user:resource_sharing_test_user_alice",
+    "user:resource_sharing_test_user_bob",
+    "role:analytics_team",
+    "role:all_access",
+    "role:auditor"
+  ]
+}
+```
+
+For some high-level pseudo code for a plugin writing an API to search or list resources:
+
+1. Plugin will expose an API to list resources. For example `/_plugins/_reports/definitions` is an API that reporting plugin exposes to list report definitons.
+2. The plugin implementing search or list, will perform a plugin system-level request to search on the resource index. In the reporting plugin example, that would be a search on `.opendistro-reports-definitions`
+3. Security will apply a DLS Filter behind-the-scenes to limit the result set based on the logged in user.
+
+For the example above, imagine the authenticated user has `username: resource_sharing_test_user_alice` and `role: analytics_team`
+
+Resource sharing will limit the resultset to documents that have either `user:resource_sharing_test_user_alice`, `role:analytics_team` or `user:*`
+in the `all_shared_principals` section. Note that `user:*` is the convention used for publicly visible.
+
+## **4b. Using the Client for Access Control**
 
 [`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
