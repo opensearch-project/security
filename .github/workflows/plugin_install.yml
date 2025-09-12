@@ -56,7 +56,7 @@ jobs:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugins: "file:///$((Get-Location).Path -replace '\\\\','/')/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
-          admin-password: ${{ steps.generate-password.outputs.password }}
+          admin-password: ${{ steps.random-password.outputs.password }}
           jdk-version: 17
 
       - name: Run sanity tests
