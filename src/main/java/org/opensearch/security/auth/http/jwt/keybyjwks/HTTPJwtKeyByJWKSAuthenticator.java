@@ -12,16 +12,31 @@
 package org.opensearch.security.auth.http.jwt.keybyjwks;
 
 import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.http.jwt.AbstractHTTPJwtAuthenticator;
+import org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator;
 import org.opensearch.security.auth.http.jwt.keybyoidc.KeyProvider;
 import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetRetriever;
 import org.opensearch.security.auth.http.jwt.keybyoidc.SelfRefreshingKeySet;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.KeyUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
+
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 
 /**
  * JWT authenticator that uses JWKS (JSON Web Key Set) endpoints for key retrieval.
@@ -49,18 +64,34 @@ import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator {
 
     private final static Logger log = LogManager.getLogger(HTTPJwtKeyByJWKSAuthenticator.class);
+    
+    // Fallback to static JWT authenticator if jwks_uri is null
+    private final HTTPJwtAuthenticator staticJwtAuthenticator;
+    private final boolean useJwks;
 
     public HTTPJwtKeyByJWKSAuthenticator(Settings settings, Path configPath) {
         super(settings, configPath);
+        
+        String jwksUri = settings.get("jwks_uri");
+        this.useJwks = !Strings.isNullOrEmpty(jwksUri);
+        
+        // Initialize static JWT authenticator as fallback if jwks_uri is not configured
+        if (!useJwks) {
+            log.info("jwks_uri is not configured, falling back to static JWT authentication");
+            this.staticJwtAuthenticator = new HTTPJwtAuthenticator(settings, configPath);
+        } else {
+            this.staticJwtAuthenticator = null;
+        }
     }
 
     @Override
     protected KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception {
         String jwksUri = settings.get("jwks_uri");
-        log.warn("Initializing JWKS key provider with endpoint: {}", jwksUri);
-
+        
+        // If jwks_uri is not configured, return null (will use static JWT fallback)
         if (jwksUri == null || jwksUri.isBlank()) {
-            throw new IllegalArgumentException("jwks_uri is required for JWKS authenticator");
+            log.info("jwks_uri is not configured, will use static JWT authentication fallback");
+            return null;
         }
 
         log.info("Initializing JWKS key provider with endpoint: {}", jwksUri);
@@ -99,12 +130,26 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         return selfRefreshingKeySet;
     }
 
+    @Override
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
+        
+        // If jwks_uri is not configured, delegate to static JWT authenticator
+        if (!useJwks && staticJwtAuthenticator != null) {
+            log.debug("Delegating to static JWT authenticator since jwks_uri is not configured");
+            return staticJwtAuthenticator.extractCredentials(request, context);
+        }
+        
+        // Otherwise, use the standard JWKS authentication flow
+        return super.extractCredentials(request, context);
+    }
+
     private static SettingsBasedSSLConfigurator.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
         return new SettingsBasedSSLConfigurator(settings, configPath, "jwks").buildSSLConfig();
     }
 
     @Override
     public String getType() {
-        return "jwt-key-by-jwks";
+        return "jwt";
     }
 }

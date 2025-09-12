@@ -137,6 +137,13 @@ config:
             jwt_clock_skew_tolerance_seconds: 30
             roles_key: null
             subject_key: null
+            # JWKS-specific settings (optional)
+            cache_jwks_endpoint: true
+            jwks_request_timeout_ms: 5000
+            max_jwks_keys: 10
+            max_jwks_response_size_bytes: 1048576
+            refresh_rate_limit_count: 10
+            refresh_rate_limit_time_window_ms: 10000
         authentication_backend:
           type: noop
       clientcert_auth_domain:
