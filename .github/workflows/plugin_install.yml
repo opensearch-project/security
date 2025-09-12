@@ -41,11 +41,22 @@ jobs:
 
       - name: Run Opensearch with A Single Plugin
         uses: derek-ho/start-opensearch@v6
+        if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.random-password.outputs.generated_name }}
+          jdk-version: 17
+
+      - name: Run Opensearch with A Single Plugin
+        uses: derek-ho/start-opensearch@v7
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugins: "file:///$((Get-Location).Path -replace '\\\\','/')/${{ env.PLUGIN_NAME }}.zip"
+          security-enabled: true
+          admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 17
 
       - name: Run sanity tests
