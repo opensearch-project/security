@@ -63,6 +63,21 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return true;
+        }
+
+        @Override
+        public boolean matchAll(String... candidates) {
+            return true;
+        }
+
+        @Override
         public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {
             return candidates.collect(collector);
         }
@@ -98,6 +113,21 @@ public abstract class WildcardMatcher implements Predicate<String> {
         @Override
         public boolean matchAny(String... candidates) {
             return false;
+        }
+
+        @Override
+        public boolean matchAll(Stream<String> candidates) {
+            return candidates.findAny().isEmpty();
+        }
+
+        @Override
+        public boolean matchAll(Collection<String> candidates) {
+            return candidates.isEmpty();
+        }
+
+        @Override
+        public boolean matchAll(String... candidates) {
+            return candidates.length == 0;
         }
 
         @Override
@@ -231,6 +261,18 @@ public abstract class WildcardMatcher implements Predicate<String> {
 
     public boolean matchAny(String... candidates) {
         return matchAny(Arrays.stream(candidates));
+    }
+
+    public boolean matchAll(Stream<String> candidates) {
+        return candidates.allMatch(this);
+    }
+
+    public boolean matchAll(Collection<String> candidates) {
+        return matchAll(candidates.stream());
+    }
+
+    public boolean matchAll(String... candidates) {
+        return matchAll(Arrays.stream(candidates));
     }
 
     public <T extends Collection<String>> T getMatchAny(Stream<String> candidates, Collector<String, ?, T> collector) {

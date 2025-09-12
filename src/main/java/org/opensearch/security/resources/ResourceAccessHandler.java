@@ -117,7 +117,7 @@ public class ResourceAccessHandler {
 
         BoolQueryBuilder query = QueryBuilders.boolQuery()
             .should(QueryBuilders.termQuery("created_by.user.keyword", user.getName()))
-            .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
+            .should(QueryBuilders.termsQuery("all_shared_principals.keyword", flatPrincipals))
             .minimumShouldMatch(1);
 
         // 3) Fetch all accessible resource IDs
