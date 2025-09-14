@@ -130,7 +130,7 @@ config:
           type: jwt
           challenge: false
           config:
-            jwks_uri: 'https://rishavaz-new-jwks.s3.eu-west-1.amazonaws.com/jwks.json'
+            jwks_uri: 'https://your-jwks-endpoint.com/.well-known/jwks.json'
             signing_key: "base64 encoded HMAC key or public RSA/ECDSA pem key"
             jwt_header: "Authorization"
             jwt_url_parameter: null
