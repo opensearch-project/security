@@ -32,11 +32,7 @@ import org.opensearch.security.auth.http.jwt.keybyoidc.KeySetRetriever;
 import org.opensearch.security.auth.http.jwt.keybyoidc.SelfRefreshingKeySet;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.KeyUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
-
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
 
 /**
  * JWT authenticator that uses JWKS (JSON Web Key Set) endpoints for key retrieval.
