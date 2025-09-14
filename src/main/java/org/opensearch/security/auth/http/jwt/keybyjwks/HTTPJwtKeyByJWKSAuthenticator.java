@@ -12,16 +12,11 @@
 package org.opensearch.security.auth.http.jwt.keybyjwks;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -60,17 +55,17 @@ import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator {
 
     private final static Logger log = LogManager.getLogger(HTTPJwtKeyByJWKSAuthenticator.class);
-    
+
     // Fallback to static JWT authenticator if jwks_uri is null
     private final HTTPJwtAuthenticator staticJwtAuthenticator;
     private final boolean useJwks;
 
     public HTTPJwtKeyByJWKSAuthenticator(Settings settings, Path configPath) {
         super(settings, configPath);
-        
+
         String jwksUri = settings.get("jwks_uri");
         this.useJwks = !Strings.isNullOrEmpty(jwksUri);
-        
+
         // Initialize static JWT authenticator as fallback if jwks_uri is not configured
         if (!useJwks) {
             log.info("jwks_uri is not configured, falling back to static JWT authentication");
@@ -83,7 +78,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
     @Override
     protected KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception {
         String jwksUri = settings.get("jwks_uri");
-        
+
         // If jwks_uri is not configured, return null (will use static JWT fallback)
         if (jwksUri == null || jwksUri.isBlank()) {
             log.info("jwks_uri is not configured, will use static JWT authentication fallback");
@@ -129,13 +124,13 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
     @Override
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
-        
+
         // If jwks_uri is not configured, delegate to static JWT authenticator
         if (!useJwks && staticJwtAuthenticator != null) {
             log.debug("Delegating to static JWT authenticator since jwks_uri is not configured");
             return staticJwtAuthenticator.extractCredentials(request, context);
         }
-        
+
         // Otherwise, use the standard JWKS authentication flow
         return super.extractCredentials(request, context);
     }
