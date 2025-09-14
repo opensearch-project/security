@@ -68,7 +68,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
 
         // Initialize static JWT authenticator as fallback if jwks_uri is not configured
         if (!useJwks) {
-            log.info("jwks_uri is not configured, falling back to static JWT authentication");
+            log.warn("jwks_uri is not configured, falling back to static JWT authentication");
             this.staticJwtAuthenticator = new HTTPJwtAuthenticator(settings, configPath);
         } else {
             this.staticJwtAuthenticator = null;
@@ -81,11 +81,11 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
 
         // If jwks_uri is not configured, return null (will use static JWT fallback)
         if (jwksUri == null || jwksUri.isBlank()) {
-            log.info("jwks_uri is not configured, will use static JWT authentication fallback");
+            log.warn("jwks_uri is not configured, will use static JWT authentication fallback");
             return null;
         }
 
-        log.info("Initializing JWKS key provider with endpoint: {}", jwksUri);
+        log.warn("Initializing JWKS key provider with endpoint: {}", jwksUri);
 
         // Initialize configuration parameters
         int jwksRequestTimeoutMs = settings.getAsInt("jwks_request_timeout_ms", 5000);
@@ -95,7 +95,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         boolean cacheJwksEndpoint = settings.getAsBoolean("cache_jwks_endpoint", true);
         int maxJwksKeys = settings.getAsInt("max_jwks_keys", 10); // Default to 10 keys
 
-        log.info("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
+        log.warn("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
 
         // Add security configuration parameters
         long maxJwksResponseSizeBytes = settings.getAsLong("max_jwks_response_size_bytes", 1024L * 1024L); // 1MB default
@@ -117,7 +117,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         selfRefreshingKeySet.setRefreshRateLimitTimeWindowMs(refreshRateLimitTimeWindowMs);
         selfRefreshingKeySet.setRefreshRateLimitCount(refreshRateLimitCount);
 
-        log.info("JWKS key provider successfully initialized with key limit: {}", maxJwksKeys);
+        log.warn("JWKS key provider successfully initialized with key limit: {}", maxJwksKeys);
         return selfRefreshingKeySet;
     }
 
