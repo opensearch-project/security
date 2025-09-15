@@ -190,12 +190,16 @@ public class KeySetRetrieverTest {
         );
 
         // First call should be a cache miss
-        retriever.get();
+        JWKSet keySet1 = retriever.get();
+        assertThat(keySet1, is(notNullValue()));
+        assertThat(keySet1.getKeys().size(), is(greaterThan(0)));
         assertThat(retriever.getOidcCacheMisses(), is(1));
         assertThat(retriever.getOidcCacheHits(), is(0));
 
         // Second call should be a cache hit
-        retriever.get();
+        JWKSet keySet2 = retriever.get();
+        assertThat(keySet2, is(notNullValue()));
+        assertThat(keySet2.getKeys().size(), is(greaterThan(0)));
         assertThat(retriever.getOidcCacheMisses(), is(1));
         assertThat(retriever.getOidcCacheHits(), is(1));
     }
@@ -205,11 +209,17 @@ public class KeySetRetrieverTest {
     public void testDirectJwksUri_BypassesOidcDiscovery() {
         String jwksUri = mockJwksServer.getJwksUri();
 
+        // NOTE: This constructor bypasses OIDC discovery entirely by providing jwksUri directly
+        // The 'false' parameter disables caching for this instance
         KeySetRetriever retriever = new KeySetRetriever(null, false, jwksUri);
 
         JWKSet keySet = retriever.get();
         assertThat(keySet, is(notNullValue()));
         assertThat(keySet.getKeys().size(), is(greaterThan(0)));
+
+        // Verify that no caching was used since caching was disabled (false parameter)
+        assertThat(retriever.getOidcCacheMisses(), is(0));
+        assertThat(retriever.getOidcCacheHits(), is(0));
     }
 
     @Test

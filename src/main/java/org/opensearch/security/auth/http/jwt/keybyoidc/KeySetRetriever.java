@@ -83,6 +83,8 @@ public class KeySetRetriever implements KeySetProvider {
      *
      * @param sslConfig SSL configuration for HTTPS connections
      * @param useCacheForJwksEndpoint whether to enable caching for JWKS endpoint
+     *                                When true, JWKS responses will be cached to improve performance
+     *                                and reduce network calls to the JWKS endpoint.
      * @param jwksUri the JWKS endpoint URI
      * @param maxResponseSizeBytes maximum allowed HTTP response size in bytes
      * @param maxKeyCount maximum number of keys allowed in JWKS
@@ -105,7 +107,10 @@ public class KeySetRetriever implements KeySetProvider {
     public JWKSet get() throws AuthenticatorUnavailableException {
         String uri = getJwksUri();
 
-        try (CloseableHttpClient httpClient = createHttpClient(null)) {
+        // Use cache storage for JWKS if configured (when jwksUri is provided directly)
+        HttpCacheStorage cacheStorage = (!Strings.isNullOrEmpty(jwksUri)) ? oidcHttpCacheStorage : null;
+
+        try (CloseableHttpClient httpClient = createHttpClient(cacheStorage)) {
 
             HttpGet httpGet = new HttpGet(uri);
 
@@ -116,7 +121,15 @@ public class KeySetRetriever implements KeySetProvider {
 
             httpGet.setConfig(requestConfig);
 
-            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+            HttpCacheContext httpContext = null;
+            if (cacheStorage != null) {
+                httpContext = new HttpCacheContext();
+            }
+
+            try (CloseableHttpResponse response = httpClient.execute(httpGet, httpContext)) {
+                if (httpContext != null) {
+                    logCacheResponseStatus(httpContext);
+                }
                 log.warn("JWKS retrieved from " + uri + " successfully");
                 log.warn("response code: " + response.getCode() + " - " + response.getReasonPhrase());
                 if (response.getCode() < 200 || response.getCode() >= 300) {
