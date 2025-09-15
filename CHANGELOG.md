@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.33 to 4.2.34 ([#5589](https://github.com/opensearch-project/security/pull/5589))
 - Bump `com.nimbusds:nimbus-jose-jwt:9.48` from 9.48 to 10.4.2 ([#5595](https://github.com/opensearch-project/security/pull/5595))
 - Bump `actions/github-script` from 7 to 8 ([#5610](https://github.com/opensearch-project/security/pull/5610))
+- Bump `org.checkerframework:checker-qual` from 3.49.5 to 3.51.0 ([#5627](https://github.com/opensearch-project/security/pull/5627))
 
 ### Documentation
 
