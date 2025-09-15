@@ -76,4 +76,19 @@ public class HealthTests extends SingleClusterTest {
         assertContains(res, "*strict*");
         assertNotContains(res, "*UP*");
     }
+
+    @Test
+    public void testHealthUnitialized_securityNotInitialized() throws Exception {
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, false);
+
+        RestHelper rh = nonSslRestHelper();
+        HttpResponse res;
+        assertThat(
+            HttpStatus.SC_SERVICE_UNAVAILABLE,
+            is((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode())
+        );
+        assertContains(res, "*DOWN*");
+        assertContains(res, "*strict*");
+        assertNotContains(res, "*UP*");
+    }
 }
