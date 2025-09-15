@@ -107,7 +107,7 @@ public class KeySetRetriever implements KeySetProvider {
     public JWKSet get() throws AuthenticatorUnavailableException {
         String uri = getJwksUri();
 
-        // Use cache storage if it's configured, regardless of whether we're using OIDC discovery or direct JWKS URI
+        // Use cache storage if it's configured
         HttpCacheStorage cacheStorage = oidcHttpCacheStorage;
 
         try (CloseableHttpClient httpClient = createHttpClient(cacheStorage)) {
@@ -130,8 +130,6 @@ public class KeySetRetriever implements KeySetProvider {
                 if (httpContext != null) {
                     logCacheResponseStatus(httpContext);
                 }
-                log.warn("JWKS retrieved from " + uri + " successfully");
-                log.warn("response code: " + response.getCode() + " - " + response.getReasonPhrase());
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
                 }
@@ -183,7 +181,6 @@ public class KeySetRetriever implements KeySetProvider {
     String getJwksUri() throws AuthenticatorUnavailableException {
 
         if (!Strings.isNullOrEmpty(jwksUri)) {
-            log.warn("Using jwks_uri: " + jwksUri);
             return jwksUri;
         }
 
