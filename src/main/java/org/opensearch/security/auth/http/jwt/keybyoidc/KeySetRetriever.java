@@ -107,8 +107,8 @@ public class KeySetRetriever implements KeySetProvider {
     public JWKSet get() throws AuthenticatorUnavailableException {
         String uri = getJwksUri();
 
-        // Use cache storage for JWKS if configured (when jwksUri is provided directly)
-        HttpCacheStorage cacheStorage = (!Strings.isNullOrEmpty(jwksUri)) ? oidcHttpCacheStorage : null;
+        // Use cache storage if it's configured, regardless of whether we're using OIDC discovery or direct JWKS URI
+        HttpCacheStorage cacheStorage = oidcHttpCacheStorage;
 
         try (CloseableHttpClient httpClient = createHttpClient(cacheStorage)) {
 
