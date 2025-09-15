@@ -380,7 +380,7 @@ public class KeySetRetrieverTest {
             protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
                 response.setCode(200);
-                response.setEntity(null); // Empty response entity
+                response.setEntity(new StringEntity("")); // Empty string entity to trigger ParseException
             }
         }) {
             String jwksUri = emptyMockServer.getJwksUri();
@@ -389,7 +389,7 @@ public class KeySetRetrieverTest {
 
             AuthenticatorUnavailableException exception = assertThrows(AuthenticatorUnavailableException.class, () -> retriever.get());
 
-            assertTrue(exception.getMessage().contains("Empty response entity"));
+            assertTrue(exception.getMessage().contains("Error parsing JWKS"));
         }
     }
 
@@ -408,10 +408,11 @@ public class KeySetRetrieverTest {
 
             KeySetRetriever retriever = KeySetRetriever.createForJwksUri(null, false, jwksUri, 1024 * 1024, 10);
 
-            // Should throw RuntimeException due to ParseException
-            RuntimeException exception = assertThrows(RuntimeException.class, () -> retriever.get());
+            // Should throw AuthenticatorUnavailableException due to ParseException being wrapped
+            AuthenticatorUnavailableException exception = assertThrows(AuthenticatorUnavailableException.class, () -> retriever.get());
 
-            // The RuntimeException should wrap a ParseException
+            // The exception message should contain parsing error information
+            assertTrue(exception.getMessage().contains("Error parsing JWKS"));
             assertThat(exception.getCause(), is(notNullValue()));
         }
     }

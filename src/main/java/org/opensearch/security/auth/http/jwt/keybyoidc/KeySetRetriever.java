@@ -128,7 +128,7 @@ public class KeySetRetriever implements KeySetProvider {
 
             try (CloseableHttpResponse response = httpClient.execute(httpGet, httpContext)) {
                 if (httpContext != null) {
-                    logCacheResponseStatus(httpContext);
+                    logCacheResponseStatus(httpContext, true);
                 }
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
@@ -170,7 +170,7 @@ public class KeySetRetriever implements KeySetProvider {
 
                 return keySet;
             } catch (ParseException e) {
-                throw new RuntimeException(e);
+                throw new AuthenticatorUnavailableException("Error parsing JWKS from " + uri + ": " + e.getMessage(), e);
             }
         } catch (IOException e) {
             throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + e, e);
@@ -248,21 +248,43 @@ public class KeySetRetriever implements KeySetProvider {
     }
 
     private void logCacheResponseStatus(HttpCacheContext httpContext) {
+        logCacheResponseStatus(httpContext, false);
+    }
+
+    private void logCacheResponseStatus(HttpCacheContext httpContext, boolean isJwksRequest) {
         this.oidcRequests++;
 
-        switch (httpContext.getCacheResponseStatus()) {
-            case CACHE_HIT:
-                this.oidcCacheHits++;
-                break;
-            case CACHE_MODULE_RESPONSE:
-                this.oidcCacheModuleResponses++;
-                break;
-            case CACHE_MISS:
+        // Handle cache statistics based on the response status
+        // For OIDC discovery flow, only count the JWKS request (not the discovery request)
+        // For direct JWKS URI, count all requests
+        boolean shouldCountStats = (jwksUri != null) || isJwksRequest;
+
+        if (!shouldCountStats) {
+            log.debug("Skipping cache statistics for OIDC discovery request #{}", this.oidcRequests);
+            return;
+        }
+
+        if (httpContext.getCacheResponseStatus() == null) {
+            if (oidcHttpCacheStorage != null) {
                 this.oidcCacheMisses++;
-                break;
-            case VALIDATED:
-                this.oidcCacheHitsValidated++;
-                break;
+                log.debug("Null cache status - counting as cache miss. Total misses: {}", this.oidcCacheMisses);
+            }
+        } else {
+            switch (httpContext.getCacheResponseStatus()) {
+                case CACHE_HIT:
+                    this.oidcCacheHits++;
+                    break;
+                case CACHE_MODULE_RESPONSE:
+                    this.oidcCacheModuleResponses++;
+                    break;
+                case CACHE_MISS:
+                    this.oidcCacheMisses++;
+                    break;
+                case VALIDATED:
+                    this.oidcCacheHits++;
+                    this.oidcCacheHitsValidated++;
+                    break;
+            }
         }
 
         long now = System.currentTimeMillis();
@@ -279,7 +301,6 @@ public class KeySetRetriever implements KeySetProvider {
             );
             lastCacheStatusLog = now;
         }
-
     }
 
     private CloseableHttpClient createHttpClient(HttpCacheStorage httpCacheStorage) {
