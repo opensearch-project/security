@@ -1,0 +1,1197 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+package org.opensearch.security.privileges.int_tests;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
+
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.google.common.collect.ImmutableList;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import org.opensearch.action.admin.indices.open.OpenIndexRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.test.framework.TestAlias;
+import org.opensearch.test.framework.TestIndex;
+import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
+import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.matcher.IndexApiResponseMatchers;
+import org.opensearch.transport.client.Client;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.cluster.TestRestClient.json;
+import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
+import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
+import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimited;
+import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
+import static org.opensearch.test.framework.matcher.RestMatchers.*;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+
+/**
+ * This class defines a huge test matrix for index related access controls. This class is especially for read/write operations on indices and aliases.
+ * It uses the following dimensions:
+ * <ul>
+ *     <li>ClusterConfig: At the moment, we test without and with system index permission enabled. New semantics will follow later.</li>
+ *     <li>TestSecurityConfig.User: We have quite a few of different users with different privileges configurations.</li>
+ *     <li>The test methods represent different operations with different options that are tested</li>
+ * </ul>
+ * To cope with the huge space of tests, this class uses test oracles to verify the result of the operations.
+ * These are defined with the "indexMatcher()" method of TestSecurityConfig.User. See there and the class IndexApiMatchers.
+ */
+@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@NotThreadSafe
+public class IndexAuthorizationReadWriteIntTests {
+
+    static final TestIndex index_ar1 = TestIndex.name("index_ar1").documentCount(10).build();
+    static final TestIndex index_ar2 = TestIndex.name("index_ar2").documentCount(10).build();
+    static final TestIndex index_aw1 = TestIndex.name("index_aw1").documentCount(10).build();
+    static final TestIndex index_aw2 = TestIndex.name("index_aw2").documentCount(10).build();
+    static final TestIndex index_br1 = TestIndex.name("index_br1").documentCount(10).build();
+    static final TestIndex index_br2 = TestIndex.name("index_br2").documentCount(10).build();
+    static final TestIndex index_bw1 = TestIndex.name("index_bw1").documentCount(10).build();
+    static final TestIndex index_bw2 = TestIndex.name("index_bw2").documentCount(10).build();
+    static final TestIndex index_cr1 = TestIndex.name("index_cr1").documentCount(10).build();
+    static final TestIndex index_cw1 = TestIndex.name("index_cw1").documentCount(10).build();
+    static final TestIndex index_hidden = TestIndex.name("index_hidden").hidden().documentCount(1).seed(8).build();
+    static final TestIndex system_index_plugin = TestIndex.name(".system_index_plugin").hidden().documentCount(1).seed(8).build();
+    static final TestIndex system_index_plugin_not_existing = TestIndex.name(".system_index_plugin_not_existing")
+        .hidden()
+        .documentCount(0)
+        .build(); // not initially created
+
+    static final TestAlias alias_ab1r = new TestAlias("alias_ab1r", index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1);
+    static final TestAlias alias_ab1w = new TestAlias("alias_ab1w", index_aw1, index_aw2, index_bw1).writeIndex(index_aw1);
+    static final TestAlias alias_ab1w_nowriteindex = new TestAlias("alias_ab1w_nowriteindex", index_aw1, index_aw2, index_bw1);
+
+    static final TestAlias alias_c1 = new TestAlias("alias_c1", index_cr1, index_cw1);
+
+    static final TestIndex index_bwx1 = TestIndex.name("index_bwx1").documentCount(0).build(); // not initially created
+    static final TestIndex index_bwx2 = TestIndex.name("index_bwx2").documentCount(0).build(); // not initially created
+
+    static final TestAlias alias_bwx = new TestAlias("alias_bwx"); // not initially created
+
+    static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
+        .description("index_a*")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_a*")//
+                .indexPermissions("write")
+                .on("index_aw*")
+        )//
+        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
+        .indexMatcher("write", limitedTo(index_aw1, index_aw2))//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
+        .description("index_b*")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*")//
+                .indexPermissions("write")
+                .on("index_bw*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_B_CREATE_INDEX = new TestSecurityConfig.User("limited_user_B_create_index")//
+        .description("index_b* with create index privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*")//
+                .indexPermissions("write")
+                .on("index_bw*")//
+                .indexPermissions("create_index")
+                .on("index_bw*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_B_MANAGE_INDEX = new TestSecurityConfig.User("limited_user_B_manage_index")//
+        .description("index_b* with manage privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*")//
+                .indexPermissions("write")
+                .on("index_bw*")//
+                .indexPermissions("manage")
+                .on("index_bw*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("get_alias", limitedTo());
+
+    static TestSecurityConfig.User LIMITED_USER_B_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User("limited_user_B_manage_index_alias")//
+        .description("index_b*, alias_bwx* with manage privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*")//
+                .indexPermissions("write")
+                .on("index_bw*")//
+                .indexPermissions("manage")
+                .on("index_bw*")//
+                .indexPermissions("manage_aliases")
+                .on("alias_bwx*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("get_alias", limitedTo(alias_bwx));
+
+    static TestSecurityConfig.User LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User(
+        "limited_user_B_hidden_manage_index_alias"
+    )//
+        .description("index_b*, index_hidden*, alias_bwx* with manage privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*", "index_hidden*")//
+                .indexPermissions("write")
+                .on("index_bw*", "index_hidden*")//
+                .indexPermissions("manage")
+                .on("index_bw*", "index_hidden*")//
+                .indexPermissions("manage_aliases")
+                .on("alias_bwx*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
+        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
+        .indexMatcher("get_alias", limitedTo(alias_bwx));
+
+    static TestSecurityConfig.User LIMITED_USER_B_SYSTEM_INDEX_MANAGE = new TestSecurityConfig.User("limited_user_B_system_index_manage")//
+        .description("index_b*, .system_index_plugin with manage privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*", "system:admin/system_index")
+                .on("index_b*", "index_hidden*", ".system_index_plugin")//
+                .indexPermissions("write", "system:admin/system_index")
+                .on("index_bw*", ".system_index_plugin", ".system_index_plugin_*")//
+                .indexPermissions("manage", "system:admin/system_index")
+                .on("index_bw*", ".system_index_plugin", ".system_index_plugin_*")
+        )//
+        .indexMatcher(
+            "read",
+            limitedTo(
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                system_index_plugin,
+                system_index_plugin_not_existing
+            )
+        )//
+        .indexMatcher(
+            "write",
+            limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
+        )//
+        .indexMatcher(
+            "create_index",
+            limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
+        )//
+        .indexMatcher(
+            "manage_index",
+            limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
+        )//
+        .indexMatcher(
+            "manage_alias",
+            limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
+        )//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
+        .description("index_c*")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh")
+                .on("index_c*")//
+                .indexPermissions("write")
+                .on("index_cw*")
+        )//
+        .indexMatcher("read", limitedTo(index_cr1, index_cw1))//
+        .indexMatcher("write", limitedTo(index_cw1))//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_AB1_ALIAS = new TestSecurityConfig.User("limited_user_alias_AB1")//
+        .description("alias_ab1")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get")
+                .on("alias_ab1r")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get", "write", "indices:admin/refresh*")
+                .on("alias_ab1w*")
+        )//
+        .indexMatcher(
+            "read",
+            limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1, alias_ab1r, alias_ab1w, alias_ab1w_nowriteindex)
+        )//
+        .indexMatcher("write", limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w, alias_ab1w_nowriteindex))//
+        .indexMatcher("create_index", limitedTo(index_aw1, index_aw2, index_bw1))//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1, alias_ab1r, alias_ab1w));
+
+    static TestSecurityConfig.User LIMITED_USER_AB1_ALIAS_READ_ONLY = new TestSecurityConfig.User("limited_user_alias_AB1_read_only")//
+        .description("read/only on alias_ab1w, but with write privs in write index index_aw1")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "write", "indices:admin/refresh")
+                .on("index_aw1")//
+                .indexPermissions("read")
+                .on("alias_ab1w")
+        )//
+        .indexMatcher("read", limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w))//
+        .indexMatcher("write", limitedTo(index_aw1))//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_ALIAS_C1 = new TestSecurityConfig.User("limited_user_alias_C1")//
+        .description("alias_c1")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "write", "indices_monitor")
+                .on("alias_c1")
+        )//
+        .indexMatcher("read", limitedTo(index_cr1, index_cw1, alias_c1))//
+        .indexMatcher("write", limitedTo(index_cr1, index_cw1, alias_c1)) //
+        .indexMatcher("create_index", limitedTo(index_cw1))//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedTo(alias_c1));
+
+    static TestSecurityConfig.User LIMITED_READ_ONLY_ALL = new TestSecurityConfig.User("limited_read_only_all")//
+        .description("read/only on *")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read")
+                .on("*")
+        )//
+        .indexMatcher("read", unlimited())//
+        .indexMatcher("write", limitedToNone())//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_READ_ONLY_A = new TestSecurityConfig.User("limited_read_only_A")//
+        .description("read/only on index_a*")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read")
+                .on("index_a*")
+        )//
+        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
+        .indexMatcher("write", limitedToNone())//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User LIMITED_USER_OTHER_PRIVILEGES = new TestSecurityConfig.User("limited_user_other_privileges")//
+        .description("no privileges for existing indices")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("crud", "indices_monitor")
+                .on("index_does_not_exist_*")
+        )//
+        .indexMatcher("read", limitedToNone())//
+        .indexMatcher("write", limitedToNone())//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
+        .description("no index privileges")//
+        .roles(
+            new TestSecurityConfig.Role("r1")//
+                .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
+        )//
+        .indexMatcher("read", limitedToNone())//
+        .indexMatcher("write", limitedToNone())//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedToNone())//
+        .indexMatcher("manage_alias", limitedToNone())//
+        .indexMatcher("get_alias", limitedToNone());
+
+    static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
+        .description("unlimited")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("*")
+                .on("*")//
+                .indexPermissions("*")
+                .on("*")
+
+        )//
+        .indexMatcher(
+            "read",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        )//
+        .indexMatcher(
+            "write",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        )//
+        .indexMatcher(
+            "create_index",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        )//
+        .indexMatcher(
+            "manage_index",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        )//
+        .indexMatcher(
+            "manage_alias",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        )//
+        .indexMatcher(
+            "get_alias",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_cr1,
+                index_cw1,
+                alias_ab1w,
+                alias_ab1r,
+                alias_c1,
+                alias_bwx,
+                alias_ab1w_nowriteindex,
+                index_hidden
+            )
+        );
+
+    /**
+     * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
+     * This serves as a base for comparison with the default behavior.
+     */
+    static TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
+        .description("super unlimited (admin cert)")//
+        .adminCertUser()//
+        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
+        .indexMatcher("write", unlimitedIncludingOpenSearchSecurityIndex())//
+        .indexMatcher("create_index", unlimitedIncludingOpenSearchSecurityIndex())//
+        .indexMatcher("manage_index", unlimitedIncludingOpenSearchSecurityIndex())//
+        .indexMatcher("manage_alias", unlimitedIncludingOpenSearchSecurityIndex())//
+        .indexMatcher("get_alias", unlimitedIncludingOpenSearchSecurityIndex());
+
+    static List<TestSecurityConfig.User> USERS = ImmutableList.of(
+        LIMITED_USER_A,
+        LIMITED_USER_B,
+        LIMITED_USER_B_CREATE_INDEX,
+        LIMITED_USER_B_MANAGE_INDEX,
+        LIMITED_USER_B_MANAGE_INDEX_ALIAS,
+        LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS,
+        LIMITED_USER_B_SYSTEM_INDEX_MANAGE,
+        LIMITED_USER_C,
+        LIMITED_USER_AB1_ALIAS,
+        LIMITED_USER_AB1_ALIAS_READ_ONLY,
+        LIMITED_USER_ALIAS_C1,
+        LIMITED_READ_ONLY_ALL,
+        LIMITED_READ_ONLY_A,
+        LIMITED_USER_OTHER_PRIVILEGES,
+        LIMITED_USER_NONE,
+        UNLIMITED_USER,
+        SUPER_UNLIMITED_USER
+    );
+
+    static LocalCluster.Builder clusterBuilder() {
+        return new LocalCluster.Builder().singleNode()
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(USERS)//
+            .indices(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_cr1,
+                index_cw1,
+                index_hidden,
+                system_index_plugin
+            )//
+            .aliases(alias_ab1r, alias_ab1w, alias_ab1w_nowriteindex, alias_c1)//
+            .nodeSettings(Map.of("action.destructive_requires_name", false))
+            .plugin(IndexAuthorizationReadOnlyIntTests.SystemIndexTestPlugin.class);
+    }
+
+    @AfterClass
+    public static void stopClusters() {
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            clusterConfig.shutdown();
+        }
+    }
+
+    final TestSecurityConfig.User user;
+    final LocalCluster cluster;
+    final ClusterConfig clusterConfig;
+
+    @Test
+    public void putDocument() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.put("index_bw1/_doc/put_test_1", json("a", 1));
+            assertThat(
+                httpResponse,
+                containsExactly(index_bw1).at("_index").reducedBy(user.indexMatcher("write")).whenEmpty(isForbidden())
+            );
+        } finally {
+            delete("index_bw1/_doc/put_test_1");
+        }
+    }
+
+    @Test
+    public void putDocument_systemIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.put(".system_index_plugin/_doc/put_test_1", json("a", 1));
+            if (clusterConfig.systemIndexPrivilegeEnabled && user.indexMatcher("write").covers(system_index_plugin)) {
+                assertThat(httpResponse, isCreated());
+            } else if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isCreated());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(".system_index_plugin/_doc/put_test_1");
+        }
+    }
+
+    @Test
+    public void deleteDocument() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user); TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+
+            // Initialization
+            {
+                HttpResponse httpResponse = adminRestClient.put("index_bw1/_doc/put_delete_test_1?refresh=true", json("a", 1));
+                assertThat(httpResponse, isCreated());
+            }
+
+            HttpResponse httpResponse = restClient.delete("index_bw1/_doc/put_delete_test_1");
+            assertThat(
+                httpResponse,
+                containsExactly(index_bw1).at("_index").reducedBy(user.indexMatcher("write")).whenEmpty(isForbidden())
+            );
+        } finally {
+            delete("index_bw1/_doc/put_delete_test_1");
+        }
+    }
+
+    @Test
+    public void deleteByQuery_indexPattern() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user); TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+
+            HttpResponse httpResponse = adminRestClient.put(
+                "index_bw1/_doc/put_delete_delete_by_query_b1?refresh=true",
+                json("delete_by_query_test", "yes")
+            );
+            assertThat(httpResponse, isCreated());
+            httpResponse = adminRestClient.put(
+                "index_bw1/_doc/put_delete_delete_by_query_b2?refresh=true",
+                json("delete_by_query_test", "no")
+            );
+            assertThat(httpResponse, isCreated());
+            httpResponse = adminRestClient.put(
+                "index_aw1/_doc/put_delete_delete_by_query_a1?refresh=true",
+                json("delete_by_query_test", "yes")
+            );
+            assertThat(httpResponse, isCreated());
+            httpResponse = adminRestClient.put(
+                "index_aw1/_doc/put_delete_delete_by_query_a2?refresh=true",
+                json("delete_by_query_test", "no")
+            );
+            assertThat(httpResponse, isCreated());
+
+            httpResponse = restClient.postJson("index_aw*,index_bw*/_delete_by_query?refresh=true&wait_for_completion=true", """
+                {
+                  "query": {
+                    "term": {
+                      "delete_by_query_test": "yes"
+                    }
+                  }
+                }""");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // dnfof is not applicable to indices:data/write/delete/byquery, so we need privileges for all indices
+                if (user.indexMatcher("write").coversAll(index_aw1, index_aw2, index_bw1, index_bw2)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+
+        } finally {
+            delete(
+                "index_bw1/_doc/put_delete_delete_by_query_b1",
+                "index_bw1/_doc/put_delete_delete_by_query_b2",
+                "index_aw1/_doc/put_delete_delete_by_query_a1",
+                "index_aw1/_doc/put_delete_delete_by_query_a2"
+            );
+        }
+    }
+
+    @Test
+    public void putDocument_bulk() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            IndexApiResponseMatchers.IndexMatcher writePrivileges = user.indexMatcher("write");
+
+            HttpResponse httpResponse = restClient.putJson("_bulk?refresh=true", """
+                {"index": {"_index": "index_aw1", "_id": "new_doc_aw1"}}
+                {"a": 1}
+                {"index": {"_index": "index_bw1", "_id": "new_doc_bw1"}}
+                {"a": 1}
+                {"index": {"_index": "index_cw1", "_id": "new_doc_cw1"}}
+                {"a": 1}
+                """);
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_aw1, index_bw1, index_cw1).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(writePrivileges)
+                        .whenEmpty(isOk())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete("index_aw1/_doc/new_doc_aw1", "index_bw1/_doc/new_doc_bw1", "index_cw1/_doc/new_doc_cw1");
+        }
+    }
+
+    @Test
+    public void putDocument_alias() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.put("alias_ab1w/_doc/put_doc_alias_test_1", json("a, 1"));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("write").coversAll(index_aw1, index_aw2, index_bw1)) {
+                    assertThat(httpResponse, isCreated());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            delete("alias_ab1w/_doc/put_doc_alias_test_1");
+        }
+    }
+
+    @Test
+    public void putDocument_alias_noWriteIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.put("alias_ab1w_nowriteindex/_doc/put_doc_alias_test_1", json("a, 1"));
+
+            if (containsExactly(alias_ab1w_nowriteindex).reducedBy(user.indexMatcher("write")).isEmpty()) {
+                assertThat(httpResponse, isForbidden());
+            } else {
+                assertThat(httpResponse, isBadRequest());
+            }
+        }
+    }
+
+    @Test
+    public void putDocument_bulk_alias() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.putJson("_bulk?refresh=true", """
+                {"index": {"_index": "alias_ab1w", "_id": "put_doc_alias_bulk_test_1"}}
+                {"a": 1}
+                """);
+
+            if (user == LIMITED_USER_A || user == LIMITED_USER_AB1_ALIAS_READ_ONLY) {
+                // Theoretically, a user with privileges for index_aw* could write into alias_ab2w, as the write index is index_aw1
+                // However, the index resolution code is not aware that this is a write operation; thus it resolves
+                // to all alias members which contain also index_bw1, for which we do not have permissions
+                assertThat(httpResponse, containsExactly().at("items[*].index[?(@.result == 'created')]._index"));
+            } else if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_aw1).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(user.indexMatcher("write"))
+                        .whenEmpty(isOk())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+
+        } finally {
+            delete("index_aw1/_doc/put_doc_alias_bulk_test_1");
+        }
+    }
+
+    @Test
+    public void putDocument_noExistingIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.put("index_bwx1/_doc/put_doc_non_existing_index_test_1", json("a, 1"));
+            assertThat(
+                httpResponse,
+                containsExactly(index_bwx1).at("_index").reducedBy(user.indexMatcher("create_index")).whenEmpty(isForbidden())
+            );
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void createIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.putJson("index_bwx1", "{}");
+            assertThat(
+                httpResponse,
+                containsExactly(index_bwx1).at("index").reducedBy(user.indexMatcher("create_index")).whenEmpty(isForbidden())
+            );
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void createIndex_systemIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.putJson(".system_index_plugin_not_existing", "{}");
+
+            if (user.indexMatcher("create_index").covers(system_index_plugin_not_existing)) {
+                assertThat(httpResponse, isOk());
+            } else if (user == SUPER_UNLIMITED_USER || (user == UNLIMITED_USER && !clusterConfig.systemIndexPrivilegeEnabled)) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(system_index_plugin_not_existing);
+        }
+    }
+
+    @Test
+    public void deleteIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(index_bwx1);
+
+            HttpResponse httpResponse = restClient.delete("index_bwx1");
+            if (user.indexMatcher("manage_index").isEmpty()) {
+                assertThat(httpResponse, isForbidden());
+            } else {
+                assertThat(httpResponse, isOk());
+            }
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void deleteIndex_systemIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(system_index_plugin_not_existing);
+
+            HttpResponse httpResponse = restClient.delete(".system_index_plugin_not_existing");
+
+            if (clusterConfig.systemIndexPrivilegeEnabled && user.indexMatcher("manage_index").covers(system_index_plugin_not_existing)) {
+                assertThat(httpResponse, isOk());
+            } else if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(system_index_plugin_not_existing);
+        }
+    }
+
+    @Test
+    public void createIndex_withAlias() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.putJson("index_bwx1", """
+                {
+                  "aliases": {
+                    "alias_bwx": {}
+                  }
+                }""");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("manage_alias").covers(index_bwx1)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void deleteAlias_staticIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(alias_bwx.on(index_bw1));
+
+            HttpResponse httpResponse = restClient.delete("index_bw1/_aliases/alias_bwx");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void deleteAlias_wildcard() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(alias_bwx.on(index_bw1));
+
+            HttpResponse httpResponse = restClient.delete("*/_aliases/alias_bwx");
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void aliases_createAlias() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "add": { "index": "index_bw1", "alias": "alias_bwx" } }
+                  ]
+                }""");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void aliases_createAlias_indexPattern() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "add": { "indices": ["index_bw*"], "alias": "alias_bwx" } }
+                  ]
+                }""");
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("manage_alias").coversAll(index_bw1, index_bw2)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void aliases_deleteAlias_staticIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(alias_bwx.on(index_bw1));
+
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "remove": { "index": "index_bw1", "alias": "alias_bwx" } }
+                  ]
+                }""");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void aliases_deleteAlias_wildcard() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(alias_bwx.on(index_bw1, index_bw2));
+
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "remove": { "index": "*", "alias": "alias_bwx" } }
+                  ]
+                }""");
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(alias_bwx);
+        }
+    }
+
+    @Test
+    public void aliases_removeIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(index_bwx1);
+
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "remove_index": { "index": "index_bwx1" } }
+                  ]
+                }""");
+
+            if (user.indexMatcher("manage_index").covers(index_bwx1)) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void reindex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.postJson("_reindex", """
+                {
+                  "source": { "index": "index_br1" },
+                  "dest": { "index": "index_bwx1" }
+                }""");
+            if (containsExactly(index_bwx1).reducedBy(user.indexMatcher("create_index")).isEmpty()) {
+                assertThat(httpResponse, isForbidden());
+                assertThat(cluster.getAdminCertRestClient().get("index_bwx1/_search"), isNotFound());
+            } else {
+                assertThat(httpResponse, isOk());
+                assertThat(cluster.getAdminCertRestClient().get("index_bwx1/_search"), isOk());
+            }
+        } finally {
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void cloneIndex() throws Exception {
+        String sourceIndex = "index_bw1";
+        String targetIndex = "index_bwx1";
+
+        Client client = cluster.getInternalNodeClient();
+        client.admin()
+            .indices()
+            .updateSettings(new UpdateSettingsRequest(sourceIndex).settings(Settings.builder().put("index.blocks.write", true).build()))
+            .actionGet();
+
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.post(sourceIndex + "/_clone/" + targetIndex);
+            assertThat(
+                httpResponse,
+                containsExactly(index_bwx1).at("index").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+            );
+        } finally {
+            cluster.getInternalNodeClient()
+                .admin()
+                .indices()
+                .updateSettings(
+                    new UpdateSettingsRequest(sourceIndex).settings(Settings.builder().put("index.blocks.write", false).build())
+                )
+                .actionGet();
+            delete(index_bwx1);
+        }
+    }
+
+    @Test
+    public void closeIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.post("index_bw1/_close");
+            assertThat(
+                httpResponse,
+                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+            );
+        } finally {
+            cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("index_bw1")).actionGet();
+        }
+    }
+
+    @Test
+    public void closeIndex_wildcard() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.post("*/_close");
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                // WARN SystemIndexAccessEvaluator:361 - indices:admin/close for '_all' indices is not allowed for a regular user
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("*")).actionGet();
+        }
+    }
+
+    @Test
+    public void closeIndex_openIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            HttpResponse httpResponse = restClient.post("index_bw1/_close");
+            assertThat(
+                httpResponse,
+                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+            );
+            httpResponse = restClient.post("index_bw1/_open");
+
+            if (containsExactly(index_bw1).reducedBy(user.indexMatcher("manage_index")).isEmpty()) {
+                assertThat(httpResponse, isForbidden());
+            } else {
+                assertThat(httpResponse, isOk());
+            }
+        } finally {
+            cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("index_bw1")).actionGet();
+        }
+    }
+
+    @After
+    public void refresh() {
+        cluster.getInternalNodeClient().admin().indices().refresh(new RefreshRequest("*")).actionGet();
+    }
+
+    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            for (TestSecurityConfig.User user : USERS) {
+                result.add(new Object[] { clusterConfig, user, user.getDescription() });
+            }
+        }
+        return result;
+    }
+
+    public IndexAuthorizationReadWriteIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
+        throws Exception {
+        this.user = user;
+        this.cluster = clusterConfig.cluster(IndexAuthorizationReadWriteIntTests::clusterBuilder);
+        this.clusterConfig = clusterConfig;
+    }
+
+    private void createInitialTestObjects(TestIndexOrAliasOrDatastream... testIndexOrAliasOrDatastreamArray) {
+        TestIndexOrAliasOrDatastream.createInitialTestObjects(cluster, testIndexOrAliasOrDatastreamArray);
+    }
+
+    private void delete(TestIndexOrAliasOrDatastream... testIndexOrAliasOrDatastreamArray) {
+        TestIndexOrAliasOrDatastream.delete(cluster, testIndexOrAliasOrDatastreamArray);
+    }
+
+    private void delete(String... paths) {
+        try (TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+            for (String path : paths) {
+                HttpResponse response = adminRestClient.delete(path);
+                if (response.getStatusCode() != 200 && response.getStatusCode() != 404) {
+                    throw new RuntimeException("Error while deleting " + path + "\n" + response.getBody());
+                }
+            }
+        }
+    }
+}
