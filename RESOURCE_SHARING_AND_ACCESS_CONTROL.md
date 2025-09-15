@@ -44,6 +44,7 @@ This feature introduces **one primary component** for plugin developers:
 ### **Plugin Implementation Requirements:**
 
 - **Resource indices must be declared as system indices** to prevent unauthorized direct access.
+  NOTE: If system-index protection is disabled, requests will be evaluated as normal index requests.
 - **Declare a `compileOnly` dependency** on `opensearch-security-spi` package and opensearch-security plugin zip:
 ```build.gradle
 configurations {
@@ -90,7 +91,7 @@ opensearchplugin {
   - This file must be structured in a following way:
     ```yml
     resource_types:
-      <fully-qualified-resource-class-name-1>:
+      <resource-type-1>:
           <action-group-1>:
           - <action1>
           - <action2>
@@ -98,7 +99,7 @@ opensearchplugin {
           - <action1>
           - <action2>
 
-      <fully-qualified-resource-class-name-2>:
+      <resource-type-2>:
           <action-group-1>:
           - <action1>
           - <action2>
@@ -108,22 +109,20 @@ opensearchplugin {
 
       # ...
     ```
+NOTE: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
 
 #### **Example resource-action-groups yml**
 ```yml
 resource_types:
-  org.opensearch.sample.SampleResource:
+  sample-resource:
       sample_read_only:
         - "cluster:admin/sample-resource-plugin/get"
-        - "indices:data/read*"
 
       sample_read_write:
         - "cluster:admin/sample-resource-plugin/*"
-        - "indices:*"
 
       sample_full_access:
         - "cluster:admin/sample-resource-plugin/*"
-        - "indices:*"
         - "cluster:admin/security/resource/share"
 ```
 

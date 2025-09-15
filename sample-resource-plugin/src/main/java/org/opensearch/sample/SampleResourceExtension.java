@@ -27,7 +27,7 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
     @Override
     public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
+        return Set.of(new ResourceProvider("sample-resource", RESOURCE_INDEX_NAME));
     }
 
     @Override

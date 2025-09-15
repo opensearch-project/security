@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -49,17 +50,30 @@ public class ResourcePluginInfo {
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         resourceSharingExtensions.clear();
-        resourceSharingExtensions.addAll(extensions);
-
-        // also cache type->index and index->type mapping
         typeToIndex.clear();
         indexToType.clear();
-        for (var ext : extensions) {
-            for (var rp : ext.getResourceProviders()) {
-                typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                indexToType.put(rp.resourceIndexName(), rp.resourceType());
+        // Enforce resource-type unique-ness
+        Set<String> resourceTypes = new HashSet<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (var rp : extension.getResourceProviders()) {
+                if (!resourceTypes.contains(rp.resourceType())) {
+                    // add name seen so far to the resource-types set
+                    resourceTypes.add(rp.resourceType());
+                    // also cache type->index and index->type mapping
+                    typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
+                    indexToType.put(rp.resourceIndexName(), rp.resourceType());
+                } else {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
+                            rp.resourceType(),
+                            extension.getClass().getName()
+                        )
+                    );
+                }
             }
         }
+        resourceSharingExtensions.addAll(extensions);
     }
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
