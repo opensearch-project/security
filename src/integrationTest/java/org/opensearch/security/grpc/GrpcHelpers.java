@@ -142,7 +142,7 @@ public class GrpcHelpers {
                     "field": "doc %d body"
                 }
                 """.formatted(i);
-            IndexOperation.Builder indexOp = IndexOperation.newBuilder().setUnderscoreId(String.valueOf(i));
+            IndexOperation.Builder indexOp = IndexOperation.newBuilder().setXId(String.valueOf(i));
             OperationContainer.Builder opCont = OperationContainer.newBuilder().setIndex(indexOp);
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
                 .setOperationContainer(opCont)
