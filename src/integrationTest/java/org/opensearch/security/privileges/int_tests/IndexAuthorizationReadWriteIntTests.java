@@ -47,8 +47,11 @@ import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnU
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimited;
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
-import static org.opensearch.test.framework.matcher.RestMatchers.*;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
  * This class defines a huge test matrix for index related access controls. This class is especially for read/write operations on indices and aliases.
