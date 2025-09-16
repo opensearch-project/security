@@ -37,6 +37,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 
 import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
 
@@ -573,6 +574,8 @@ public class IndexApiResponseMatchers {
             if (jsonPath != null) {
                 Configuration config = Configuration.builder()
                     .jsonProvider(new JacksonJsonProvider())
+                    .mappingProvider(new JacksonMappingProvider())
+                    .evaluationListener()
                     .options(Option.SUPPRESS_EXCEPTIONS)
                     .build();
 
