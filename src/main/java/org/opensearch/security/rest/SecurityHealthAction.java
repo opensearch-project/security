@@ -108,7 +108,7 @@ public class SecurityHealthAction extends BaseRestHandler {
 
                     builder.startObject();
 
-                    if ("strict".equalsIgnoreCase(mode) && (!registry.isInitialized() || !privilegesEvaluator.isInitialized())) {
+                    if ("strict".equalsIgnoreCase(mode) && !(registry.isInitialized() && privilegesEvaluator.isInitialized())) {
                         status = "DOWN";
                         message = "Not initialized";
                         restStatus = RestStatus.SERVICE_UNAVAILABLE;
