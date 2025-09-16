@@ -635,7 +635,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 handlers.add(
                     new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool))
                 );
-                handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
+                handlers.add(
+                    new SecurityHealthAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(backendRegistry),
+                        Objects.requireNonNull(evaluator)
+                    )
+                );
                 handlers.add(
                     new DashboardsInfoAction(
                         settings,
