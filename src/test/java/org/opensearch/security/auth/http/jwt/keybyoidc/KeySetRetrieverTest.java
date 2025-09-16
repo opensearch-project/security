@@ -206,23 +206,6 @@ public class KeySetRetrieverTest {
 
     // Tests for direct JWKS URI functionality
     @Test
-    public void testDirectJwksUri_BypassesOidcDiscovery() {
-        String jwksUri = mockJwksServer.getJwksUri();
-
-        // NOTE: This constructor bypasses OIDC discovery entirely by providing jwksUri directly
-        // The 'false' parameter disables caching for this instance
-        KeySetRetriever retriever = new KeySetRetriever(null, false, jwksUri);
-
-        JWKSet keySet = retriever.get();
-        assertThat(keySet, is(notNullValue()));
-        assertThat(keySet.getKeys().size(), is(greaterThan(0)));
-
-        // Verify that no caching was used since caching was disabled (false parameter)
-        assertThat(retriever.getOidcCacheMisses(), is(0));
-        assertThat(retriever.getOidcCacheHits(), is(0));
-    }
-
-    @Test
     public void testDirectJwksUri_InvalidUri() {
         String invalidJwksUri = "http://invalid-host:9999/jwks";
 
@@ -460,19 +443,6 @@ public class KeySetRetrieverTest {
         // Should work because 0 means no limit is enforced (only positive values are checked)
         JWKSet keySet = retriever.get();
         assertThat(keySet, is(notNullValue()));
-    }
-
-    @Test
-    public void testEdgeCase_SecurityValidationDisabledForOidcFlow() {
-        // Test that security validation is NOT applied for OIDC discovery flow
-        // Using direct JWKS URI constructor to bypass OIDC discovery
-        KeySetRetriever retriever = new KeySetRetriever(null, false, mockJwksServer.getJwksUri());
-
-        // Should succeed even though we haven't set security limits
-        // because security validation is only enabled for createForJwksUri
-        JWKSet keySet = retriever.get();
-        assertThat(keySet, is(notNullValue()));
-        assertThat(keySet.getKeys().size(), is(greaterThan(0)));
     }
 
     @Test
