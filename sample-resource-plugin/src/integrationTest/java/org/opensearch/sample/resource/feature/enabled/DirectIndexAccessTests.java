@@ -228,7 +228,6 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            // cannot read admin's resource directly since system index protection is enabled
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // once admin share's record, user can then query it directly
             api.assertDirectShare(adminResId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
@@ -269,7 +268,6 @@ public class DirectIndexAccessTests {
             api.awaitSharingEntry(adminResId, FULL_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
-            // admin cannot read user's resource until after they share it with admin
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
             api.assertDirectShare(userResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
