@@ -45,7 +45,7 @@ public class MixedAccessTests {
     @Before
     public void setup() {
         resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(); // wait until sharing entry is created
+        api.awaitSharingEntry(resourceId); // wait until sharing entry is created
     }
 
     @After
@@ -76,7 +76,7 @@ public class MixedAccessTests {
         api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_OK);
         api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_OK);
         api.assertApiRevoke(resourceId, user, USER_ADMIN, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry();
+        api.awaitSharingEntry(resourceId);
         api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
     }
 
@@ -87,15 +87,15 @@ public class MixedAccessTests {
         // 1. share at read-only for full-access user and at full-access for limited-perms user
         api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
         api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(FULL_ACCESS_USER.getName());
-        api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
+        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
+        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName());
 
         // 2. check read-only access for full-access user
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. limited access user shares with full-access user at sampleAllAG
         api.assertApiShare(resourceId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(FULL_ACCESS_USER.getName());
+        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
 
         // 4. full-access user now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
@@ -109,7 +109,7 @@ public class MixedAccessTests {
         // 1. share with both users at read-only level
         api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
         api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(sampleReadOnlyAG.name());
+        api.awaitSharingEntry(resourceId, sampleReadOnlyAG.name());
 
         // 2. assert both now have read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
@@ -121,14 +121,14 @@ public class MixedAccessTests {
 
         // 1. share with user at read-only level
         api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
+        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName());
 
         // 2. assert user now has read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
 
         // 3. share with user at full-access level
         api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(sampleAllAG.name());
+        api.awaitSharingEntry(resourceId, sampleAllAG.name());
 
         // 4. assert user now has full access
         assertFullAccess(LIMITED_ACCESS_USER);
