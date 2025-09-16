@@ -1228,7 +1228,6 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void getAlias_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias");
-            System.out.println(httpResponse.getBody());
             if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
                 // The legacy privilege evaluation also allows regular users access to metadata of the security index
                 // This is not a security issue, as the metadata are not really security relevant
