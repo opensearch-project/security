@@ -351,10 +351,10 @@ public class KeySetRetrieverTest {
     // Tests for error handling scenarios
     @Test
     public void testErrorHandling_HttpErrorResponse() throws IOException {
-        // Create a mock server that returns HTTP error
-        try (MockIpdServer errorMockServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        // Create a mock JWKS server that returns HTTP error
+        try (MockJwksServer errorMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
             @Override
-            protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+            protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
                 response.setCode(404);
                 response.setReasonPhrase("Not Found");
@@ -374,10 +374,10 @@ public class KeySetRetrieverTest {
 
     @Test
     public void testErrorHandling_EmptyResponse() throws IOException {
-        // Create a mock server that returns empty response
-        try (MockIpdServer emptyMockServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        // Create a mock JWKS server that returns empty response
+        try (MockJwksServer emptyMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
             @Override
-            protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+            protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
                 response.setCode(200);
                 response.setEntity(new StringEntity("")); // Empty string entity to trigger ParseException
@@ -395,10 +395,10 @@ public class KeySetRetrieverTest {
 
     @Test
     public void testErrorHandling_MalformedJwks() throws IOException {
-        // Create a mock server that returns malformed JWKS
-        try (MockIpdServer malformedMockServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        // Create a mock JWKS server that returns malformed JWKS
+        try (MockJwksServer malformedMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
             @Override
-            protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+            protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
                 response.setCode(200);
                 response.setEntity(new StringEntity("{ invalid json }"));
@@ -420,7 +420,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_MissingBothEndpoints() {
         // Test when both openIdConnectEndpoint and jwksUri are null/empty
-        KeySetRetriever retriever = new KeySetRetriever(null, null, false);
+        KeySetRetriever retriever = new KeySetRetriever(null, false, null);
 
         AuthenticatorUnavailableException exception = assertThrows(AuthenticatorUnavailableException.class, () -> retriever.get());
 
@@ -430,7 +430,7 @@ public class KeySetRetrieverTest {
     // Tests for edge cases
     @Test
     public void testEdgeCase_ZeroResponseSizeLimit() {
-        String jwksUri = mockIdpServer.getJwksUri();
+        String jwksUri = mockJwksServer.getJwksUri();
 
         KeySetRetriever retriever = KeySetRetriever.createForJwksUri(
             null,
@@ -447,7 +447,7 @@ public class KeySetRetrieverTest {
 
     @Test
     public void testEdgeCase_ZeroKeyCountLimit() {
-        String jwksUri = mockIdpServer.getJwksUri();
+        String jwksUri = mockJwksServer.getJwksUri();
 
         KeySetRetriever retriever = KeySetRetriever.createForJwksUri(
             null,
@@ -465,7 +465,8 @@ public class KeySetRetrieverTest {
     @Test
     public void testEdgeCase_SecurityValidationDisabledForOidcFlow() {
         // Test that security validation is NOT applied for OIDC discovery flow
-        KeySetRetriever retriever = new KeySetRetriever(mockIdpServer.getDiscoverUri(), null, false);
+        // Using direct JWKS URI constructor to bypass OIDC discovery
+        KeySetRetriever retriever = new KeySetRetriever(null, false, mockJwksServer.getJwksUri());
 
         // Should succeed even though we haven't set security limits
         // because security validation is only enabled for createForJwksUri
@@ -476,7 +477,8 @@ public class KeySetRetrieverTest {
 
     @Test
     public void testRequestTimeout_Configuration() {
-        KeySetRetriever retriever = new KeySetRetriever(mockIdpServer.getDiscoverUri(), null, false);
+        // Test timeout configuration using direct JWKS URI approach
+        KeySetRetriever retriever = new KeySetRetriever(null, false, mockJwksServer.getJwksUri());
 
         // Test default timeout
         assertThat(retriever.getRequestTimeoutMs(), is(10000));
