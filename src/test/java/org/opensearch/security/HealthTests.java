@@ -78,7 +78,7 @@ public class HealthTests extends SingleClusterTest {
     }
 
     @Test
-    public void testHealthUnitialized_securityNotInitialized() throws Exception {
+    public void testHealthUninitialized_securityNotInitialized() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, false);
 
         RestHelper rh = nonSslRestHelper();
