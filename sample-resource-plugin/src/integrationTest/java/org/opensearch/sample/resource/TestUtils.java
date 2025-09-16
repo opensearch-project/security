@@ -588,20 +588,21 @@ public final class TestUtils {
             }
         }
 
-        public void awaitSharingEntry() {
-            awaitSharingEntry("admin");
+        public void awaitSharingEntry(String resourceId) {
+            awaitSharingEntry(resourceId, "admin");
         }
 
-        public void awaitSharingEntry(String expectedString) {
+        public void awaitSharingEntry(String resourceId, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await("Wait for sharing entry").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
-                    response.assertStatusCode(200);
-                    String hitsJson = response.bodyAsMap().get("hits").toString();
-                    assertThat(hitsJson, containsString(expectedString));
-                    int size = response.bodyAsJsonNode().get("hits").get("hits").size();
-                    assertThat(size, greaterThanOrEqualTo(1));
-                });
+                Awaitility.await("Wait for sharing entry for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        String body = response.getBody();
+                        assertThat(body, containsString(expectedString));
+                        assertThat(body, containsString(resourceId));
+                    });
             }
         }
     }

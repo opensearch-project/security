@@ -14,7 +14,6 @@ import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -67,7 +66,11 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            if (NO_ACCESS_USER.getName().equals(user.getName())) {
+                api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            } else {
+                api.assertDirectGet(id, user, HttpStatus.SC_NOT_FOUND, "");
+            }
             api.assertDirectUpdate(id, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             api.assertDirectDelete(id, user, HttpStatus.SC_FORBIDDEN);
@@ -85,7 +88,7 @@ public class DirectIndexAccessTests {
         @Before
         public void setUp() {
             id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry("kirk");
+            api.awaitSharingEntry(id, "kirk");
         }
 
         @After
@@ -169,7 +172,6 @@ public class DirectIndexAccessTests {
      */
     @RunWith(RandomizedRunner.class)
     @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-    @Ignore // Direct index access should be checked as normal index access request
     public static class SystemIndexDisabled {
 
         @ClassRule
@@ -182,7 +184,7 @@ public class DirectIndexAccessTests {
         @Before
         public void setup() {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry(); // wait until sharing entry is created
+            api.awaitSharingEntry(adminResId); // wait until sharing entry is created
         }
 
         @After
@@ -226,11 +228,10 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            // cannot read admin's resource directly since system index protection is enabled
-            api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // once admin share's record, user can then query it directly
             api.assertDirectShare(adminResId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
+            api.awaitSharingEntry(adminResId, LIMITED_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
             // should be able to access the record since user has direct index access
@@ -273,15 +274,13 @@ public class DirectIndexAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 userResId = resp.getTextFromJsonBody("/_id");
             }
-            // cannot read admin's resource directly since resource is not shared with them
-            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // once admin share's record, user can then query it directly
             api.assertDirectShare(adminResId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.awaitSharingEntry(FULL_ACCESS_USER.getName());
+            api.awaitSharingEntry(adminResId, FULL_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
-            // admin cannot read user's resource until after they share it with admin
-            api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
             api.assertDirectShare(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 

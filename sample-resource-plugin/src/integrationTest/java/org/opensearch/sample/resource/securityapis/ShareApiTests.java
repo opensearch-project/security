@@ -80,7 +80,7 @@ public class ShareApiTests {
         @Before
         public void setup() {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry();
+            api.awaitSharingEntry(adminResId);
         }
 
         @Test
