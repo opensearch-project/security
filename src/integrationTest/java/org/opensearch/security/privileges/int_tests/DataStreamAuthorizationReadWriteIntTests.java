@@ -82,7 +82,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("ds_a*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -98,7 +97,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("ds_b*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -114,7 +112,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_READ_ONLY_A = new TestSecurityConfig.User("limited_user_B_read_only_A")//
         .description("ds_b*; read only on ds_a*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -136,7 +133,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_AUTO_PUT_ON_ALL = new TestSecurityConfig.User("limited_user_B_auto_put_on_all")//
         .description("ds_b* with full auto put")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -154,7 +150,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_CREATE_DS = new TestSecurityConfig.User("limited_user_B_create_ds")//
         .description("ds_b* with create ds privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -172,7 +167,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_MANAGE_DS = new TestSecurityConfig.User("limited_user_B_manage_ds")//
         .description("ds_b* with manage privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -190,7 +184,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_AB_MANAGE_INDEX = new TestSecurityConfig.User("limited_user_AB_manage_index")//
         .description("ds_a*, ds_b* with manage index privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -208,7 +201,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
         .description("index_c*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh")
@@ -224,7 +216,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_READ_ONLY_ALL = new TestSecurityConfig.User("limited_read_only_all")//
         .description("read/only on *")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read")
@@ -238,7 +229,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_READ_ONLY_A = new TestSecurityConfig.User("limited_read_only_A")//
         .description("read/only on ds_a*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read")
@@ -252,7 +242,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_OTHER_PRIVILEGES = new TestSecurityConfig.User("limited_user_other_privileges")//
         .description("no privileges for existing indices")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("crud", "indices_monitor")
@@ -279,7 +268,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     )//
         .description("ds_a* on backing indices")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -295,7 +283,6 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("*")
