@@ -58,13 +58,13 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DataStreamAuthorizationReadOnlyIntTests {
 
-    static TestDataStream ds_a1 = TestDataStream.name("ds_a1").documentCount(100).rolloverAfter(10).seed(1)/*.attr("prefix", "a")*/.build();
-    static TestDataStream ds_a2 = TestDataStream.name("ds_a2").documentCount(110).rolloverAfter(10).seed(2)/*.attr("prefix", "a")*/.build();
-    static TestDataStream ds_a3 = TestDataStream.name("ds_a3").documentCount(120).rolloverAfter(10).seed(3)/*.attr("prefix", "a")*/.build();
+    static TestDataStream ds_a1 = TestDataStream.name("ds_a1").documentCount(100).rolloverAfter(10).seed(1).build();
+    static TestDataStream ds_a2 = TestDataStream.name("ds_a2").documentCount(110).rolloverAfter(10).seed(2).build();
+    static TestDataStream ds_a3 = TestDataStream.name("ds_a3").documentCount(120).rolloverAfter(10).seed(3).build();
     static TestDataStream ds_ax = TestDataStream.name("ds_ax").build(); // Not existing data stream
-    static TestDataStream ds_b1 = TestDataStream.name("ds_b1").documentCount(51).rolloverAfter(10).seed(4)/*.attr("prefix", "b")*/.build();
-    static TestDataStream ds_b2 = TestDataStream.name("ds_b2").documentCount(52).rolloverAfter(10).seed(5)/*.attr("prefix", "a")*/.build();
-    static TestDataStream ds_b3 = TestDataStream.name("ds_b3").documentCount(53).rolloverAfter(10).seed(6)/*.attr("prefix", "a")*/.build();
+    static TestDataStream ds_b1 = TestDataStream.name("ds_b1").documentCount(51).rolloverAfter(10).seed(4).build();
+    static TestDataStream ds_b2 = TestDataStream.name("ds_b2").documentCount(52).rolloverAfter(10).seed(5).build();
+    static TestDataStream ds_b3 = TestDataStream.name("ds_b3").documentCount(53).rolloverAfter(10).seed(6).build();
     static TestIndex index_c1 = TestIndex.name("index_c1").documentCount(5).seed(7).build();
 
     static final List<TestIndexOrAliasOrDatastream> ALL_INDICES = List.of(
@@ -81,7 +81,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("ds_a*")//
         .roles(
-            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")//
                 .indexPermissions(
@@ -100,7 +99,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("ds_b*")//
         .roles(
-            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")//
                 .indexPermissions(
@@ -119,7 +117,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User LIMITED_USER_B1 = new TestSecurityConfig.User("limited_user_B1")//
         .description("ds_b1")//
         .roles(
-            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")//
                 .indexPermissions(
@@ -138,7 +135,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no privileges for existing indices")//
         .roles(
-            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")//
                 .indexPermissions(
@@ -157,7 +153,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
-            //
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")//
                 .indexPermissions("*")
