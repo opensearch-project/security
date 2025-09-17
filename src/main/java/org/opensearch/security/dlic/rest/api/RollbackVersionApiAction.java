@@ -156,9 +156,9 @@ public class RollbackVersionApiAction extends AbstractApiAction {
     private ValidationResult<SecurityConfiguration> rollbackToSpecificVersion(String versionId) throws IOException {
         SecurityConfigVersionDocument doc = versionsLoader.loadFullDocument();
 
-        var maybeVer = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst();
+        var versionSpecificDoc = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst();
 
-        if (maybeVer.isEmpty()) {
+        if (versionSpecificDoc.isEmpty()) {
             return ValidationResult.error(NOT_FOUND, payload(NOT_FOUND, "Version " + versionId + " not found"));
         }
 
@@ -166,11 +166,10 @@ public class RollbackVersionApiAction extends AbstractApiAction {
     }
 
     private ValidationResult<SecurityConfiguration> rollbackCommon(String versionId, SecurityConfigVersionDocument doc) throws IOException {
-        var maybeVer = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst().orElse(null);
+        var versionSpecificDoc = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst().orElse(null);
 
         try {
-
-            rollbackConfigsToSecurityIndex(maybeVer);
+            rollbackConfigsToSecurityIndex(versionSpecificDoc);
 
             return ValidationResult.error(OK, (builder, params) -> {
                 XContentBuilder inner = buildRollbackResponseJson(versionId);
@@ -244,6 +243,7 @@ public class RollbackVersionApiAction extends AbstractApiAction {
             }
 
         } catch (Exception e) {
+            log.error("Rollback to version {} failed", versionData.getVersion_id(), e);
             revertRollbackOnFailure(backups, e);
         }
     }

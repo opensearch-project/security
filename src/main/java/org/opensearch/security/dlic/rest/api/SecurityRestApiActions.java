@@ -71,45 +71,47 @@ public class SecurityRestApiActions {
             auditLog,
             settings
         );
-        List<RestHandler> handler = List.of(
-            new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
-            new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
-            new RolesApiAction(clusterService, threadPool, securityApiDependencies),
-            new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
-            new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies),
-            new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
-            // FIXME Change inheritance for PermissionsInfoAction
-            new PermissionsInfoAction(
-                settings,
-                configPath,
-                controller,
-                client,
-                adminDns,
-                configurationRepository,
-                clusterService,
-                principalExtractor,
-                evaluator,
-                threadPool,
-                auditLog
-            ),
-            new AuthTokenProcessorAction(clusterService, threadPool, securityApiDependencies),
-            new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
-            new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher),
-            new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
-            new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
-            new AuditApiAction(clusterService, threadPool, securityApiDependencies),
-            new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
-            new RateLimitersApiAction(clusterService, threadPool, securityApiDependencies),
-            new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
-            new SecuritySSLCertsApiAction(
-                clusterService,
-                threadPool,
-                sslSettingsManager,
-                certificatesReloadEnabled,
-                securityApiDependencies
-            ),
-            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
-            new MigrateResourceSharingInfoApiAction(clusterService, threadPool, securityApiDependencies, resourceSharingIndexHandler)
+        List<RestHandler> handler = new ArrayList<>(
+            List.of(
+                new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
+                new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
+                new RolesApiAction(clusterService, threadPool, securityApiDependencies),
+                new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
+                new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies),
+                new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
+                // FIXME Change inheritance for PermissionsInfoAction
+                new PermissionsInfoAction(
+                    settings,
+                    configPath,
+                    controller,
+                    client,
+                    adminDns,
+                    configurationRepository,
+                    clusterService,
+                    principalExtractor,
+                    evaluator,
+                    threadPool,
+                    auditLog
+                ),
+                new AuthTokenProcessorAction(clusterService, threadPool, securityApiDependencies),
+                new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
+                new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher),
+                new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
+                new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
+                new AuditApiAction(clusterService, threadPool, securityApiDependencies),
+                new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
+                new RateLimitersApiAction(clusterService, threadPool, securityApiDependencies),
+                new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
+                new SecuritySSLCertsApiAction(
+                    clusterService,
+                    threadPool,
+                    sslSettingsManager,
+                    certificatesReloadEnabled,
+                    securityApiDependencies
+                ),
+                new CertificatesApiAction(clusterService, threadPool, securityApiDependencies),
+                new MigrateResourceSharingInfoApiAction(clusterService, threadPool, securityApiDependencies, resourceSharingIndexHandler)
+            )
         );
 
         if (SecurityConfigVersionHandler.isVersionIndexEnabled(settings)) {
