@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.mockito:mockito-core` from 5.18.0 to 5.19.0 ([#5566](https://github.com/opensearch-project/security/pull/5566))
 - Bump `open_saml_version` from 5.1.4 to 5.1.6 ([#5567](https://github.com/opensearch-project/security/pull/5567), [#5614](https://github.com/opensearch-project/security/pull/5614))
 - Bump `com.google.j2objc:j2objc-annotations` from 3.0.0 to 3.1 ([#5570](https://github.com/opensearch-project/security/pull/5570))
-- Bump `spring_version` from 6.2.9 to 6.2.10 ([#5569](https://github.com/opensearch-project/security/pull/5569))
+- Bump `spring_version` from 6.2.9 to 6.2.11 ([#5569](https://github.com/opensearch-project/security/pull/5569), [#5636](https://github.com/opensearch-project/security/pull/5636))
 - Bump `com.github.spotbugs` from 6.2.4 to 6.3.0 ([#5584](https://github.com/opensearch-project/security/pull/5584), [#5611](https://github.com/opensearch-project/security/pull/5611))
 - Bump `open_saml_shib_version` from 9.1.4 to 9.1.6 ([#5585](https://github.com/opensearch-project/security/pull/5585), [#5612](https://github.com/opensearch-project/security/pull/5612))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M3 to 4.0.0-M4 ([#5583](https://github.com/opensearch-project/security/pull/5583))
