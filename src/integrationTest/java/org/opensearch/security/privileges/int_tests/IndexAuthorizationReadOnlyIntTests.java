@@ -370,7 +370,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_noPattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get("/_search?size=1000");
+            TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000");
 
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
@@ -394,7 +394,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_noPattern_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get("/_search?size=1000&expand_wildcards=none");
+            TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&expand_wildcards=none");
 
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 // Users with full privileges get an empty result, like expected due to the expand_wildcards=none option
@@ -416,7 +416,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_noPattern_allowNoIndicesFalse() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get("/_search?size=1000&allow_no_indices=false");
+            TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&allow_no_indices=false");
 
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
