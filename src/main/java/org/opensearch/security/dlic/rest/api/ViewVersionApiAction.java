@@ -22,9 +22,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -37,7 +36,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
-import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -65,7 +63,7 @@ public class ViewVersionApiAction extends AbstractApiAction {
         super(Endpoint.VIEW_VERSION, clusterService, threadPool, securityApiDependencies);
         this.versionsLoader = versionsLoader;
 
-        this.requestHandlersBuilder.allMethodsNotImplemented().onGetRequest((restRequest) -> {
+        this.requestHandlersBuilder.allMethodsNotImplemented().onJsonContentGetRequest((restRequest) -> {
             String versionParam = restRequest.param("versionID");
             return handleGetRequest(versionParam);
         });
@@ -81,42 +79,31 @@ public class ViewVersionApiAction extends AbstractApiAction {
         return null;
     }
 
-    private ValidationResult<SecurityConfiguration> handleGetRequest(String versionParam) throws IOException {
+    private ValidationResult<ToXContent> handleGetRequest(String versionParam) throws IOException {
         try {
+            SecurityConfigVersionDocument doc = versionsLoader.loadFullDocument();
             if (versionParam == null) {
-                return viewAllVersions();
+                return viewAllVersions(doc);
             } else {
-                return viewSpecificVersion(versionParam);
+                return viewSpecificVersion(doc, versionParam);
             }
         } catch (Exception e) {
             return ValidationResult.error(RestStatus.INTERNAL_SERVER_ERROR, payload(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
         }
     }
 
-    private ValidationResult<SecurityConfiguration> viewAllVersions() throws IOException {
-        SecurityConfigVersionDocument doc = versionsLoader.loadFullDocument();
-
-        return ValidationResult.error(OK, (builder, params) -> {
-            XContentBuilder inner = buildVersionsJsonBuilder(doc.getVersions());
-            builder.copyCurrentStructure(JsonXContent.jsonXContent.createParser(null, null, BytesReference.bytes(inner).streamInput()));
-            return builder;
-        });
+    private ValidationResult<ToXContent> viewAllVersions(SecurityConfigVersionDocument doc) throws IOException {
+        return ValidationResult.success(Responses.payload(buildVersionsJsonBuilder(doc.getVersions())));
     }
 
-    private ValidationResult<SecurityConfiguration> viewSpecificVersion(String versionId) throws IOException {
-        SecurityConfigVersionDocument doc = versionsLoader.loadFullDocument();
+    private ValidationResult<ToXContent> viewSpecificVersion(SecurityConfigVersionDocument doc, String versionId) throws IOException {
+        var versionSpecificDoc = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst();
 
-        var maybeVer = doc.getVersions().stream().filter(v -> versionId.equals(v.getVersion_id())).findFirst();
-
-        if (maybeVer.isEmpty()) {
+        if (versionSpecificDoc.isEmpty()) {
             return ValidationResult.error(NOT_FOUND, payload(NOT_FOUND, "Version " + versionId + " not found"));
         }
 
-        return ValidationResult.error(OK, (builder, params) -> {
-            XContentBuilder inner = buildVersionsJsonBuilder(List.of(maybeVer.get()));
-            builder.copyCurrentStructure(JsonXContent.jsonXContent.createParser(null, null, BytesReference.bytes(inner).streamInput()));
-            return builder;
-        });
+        return ValidationResult.success(Responses.payload(buildVersionsJsonBuilder(List.of(versionSpecificDoc.get()))));
     }
 
     /**
