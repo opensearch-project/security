@@ -212,14 +212,20 @@ public class IndexAuthorizationReadOnlyIntTests {
         .roles(
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
-                .indexPermissions("read", "indices_monitor", "indices:admin/analyze")
-                .on("index_c*")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/analyze", "system:admin/system_index")
+                .indexPermissions("read", "indices_monitor", "indices:admin/analyze", "indices:admin/aliases/get")
+                .on("index_c*", "alias_c1")//
+                .indexPermissions(
+                    "read",
+                    "indices_monitor",
+                    "indices:admin/analyze",
+                    "indices:admin/aliases/get",
+                    "system:admin/system_index"
+                )
                 .on(".system_index_plugin")
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1, system_index_plugin))//
         .indexMatcher("search", limitedTo(index_c1, alias_c1, system_index_plugin))//
-        .indexMatcher("get_alias", limitedToNone());
+        .indexMatcher("get_alias", limitedTo(index_c1, alias_c1, system_index_plugin));
 
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
@@ -726,6 +732,59 @@ public class IndexAuthorizationReadOnlyIntTests {
     }
 
     @Test
+    public void search_indexPattern_includeHidden() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("*index*/_search?size=1000&expand_wildcards=all");
+
+            if (user == SUPER_UNLIMITED_USER) {
+                // The super admin sees everything
+                assertThat(
+                    httpResponse,
+                    containsExactly(
+                        index_a1,
+                        index_a2,
+                        index_a3,
+                        index_b1,
+                        index_b2,
+                        index_b3,
+                        index_c1,
+                        index_hidden,
+                        index_hidden_dot,
+                        system_index_plugin
+                    ).at("hits.hits[*]._index")
+                        .reducedBy(user.indexMatcher("search"))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else if (!clusterConfig.systemIndexPrivilegeEnabled) {
+                // Without system index privileges, the system_index_plugin will be never included
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, index_hidden, index_hidden_dot)
+                        .at("hits.hits[*]._index")
+                        .reducedBy(user.indexMatcher("search"))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                // Things get buggy here; basically all requests fail with a 403
+                if (user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
+                    // This user is supposed to have the system index privilege for the index .system_index_plugin
+                    // However, the system index privilege evaluation code only works correct when the system index is the
+                    // only requested index. If also non system indices are requested in the same request, it will require
+                    // the presence of the system index privilege for all indices. As this is not the case, the request
+                    // will be denied with a 403 error.
+                    assertThat(httpResponse, isForbidden());
+                } else {
+                    // The other users do not have privileges for the system index. The dnfof feature promises to filter
+                    // out indices without authorization from eligible requests. However, the SystemIndexAccessEvaluator
+                    // is not aware of this and just denies all these requests
+                    // See also https://github.com/opensearch-project/security/issues/5546
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        }
+    }
+
+    @Test
     public void search_alias() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_ab1/_search?size=1000");
@@ -789,7 +848,6 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_nonExisting_static() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("x_does_not_exist/_search?size=1000");
-            // TODO adapt name to match privs for some others
             if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isNotFound());
             } else {
@@ -1228,7 +1286,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void getAlias_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias");
-            if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
+            if (user == UNLIMITED_USER) {
                 // The legacy privilege evaluation also allows regular users access to metadata of the security index
                 // This is not a security issue, as the metadata are not really security relevant
                 assertThat(httpResponse, containsExactly(ALL_INDICES).at("$.keys()"));
@@ -1283,7 +1341,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly(alias_ab1).at("$.*.aliases.keys()").reducedBy(user.indexMatcher("get_alias")));
                 assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("$.keys()"));
-            } else if (user == LIMITED_USER_ALIAS_C1) {
+            } else if (user == LIMITED_USER_ALIAS_C1 || user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
                 // This is also a kind of anomaly in the legacy privilege evaluation: Even though we do not have permissions
                 // we get a 200 response with an empty result
                 assertThat(httpResponse, isOk());
@@ -1291,7 +1349,68 @@ public class IndexAuthorizationReadOnlyIntTests {
             } else {
                 assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/aliases/get]"));
             }
+        }
+    }
 
+    @Test
+    public void getAlias_indexPattern_includeHidden() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("*index*/_alias?expand_wildcards=all");
+            if (user == SUPER_UNLIMITED_USER) {
+                // The super admin sees everything
+                assertThat(httpResponse, isOk());
+                assertThat(httpResponse, containsExactly(alias_ab1, alias_c1).at("$.*.aliases.keys()"));
+                assertThat(
+                    httpResponse,
+                    containsExactly(
+                        index_a1,
+                        index_a2,
+                        index_a3,
+                        index_b1,
+                        index_b2,
+                        index_b3,
+                        index_c1,
+                        index_hidden,
+                        index_hidden_dot,
+                        system_index_plugin
+                    ).at("$.keys()")
+                );
+            } else if (!clusterConfig.systemIndexPrivilegeEnabled) {
+                if (user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(
+                            index_a1,
+                            index_a2,
+                            index_a3,
+                            index_b1,
+                            index_b2,
+                            index_b3,
+                            index_c1,
+                            index_hidden,
+                            index_hidden_dot,
+                            system_index_plugin
+                        ).at("$.keys()")
+                    );
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(alias_ab1, alias_c1).at("$.*.aliases.keys()")
+                            .reducedBy(user.indexMatcher("get_alias"))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("$.keys()")
+                            .reducedBy(user.indexMatcher("get_alias"))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
+            } else {
+                // If the system index privilege is enabled, we only get 403 errors, as SystemIndexPrivilegeEvaluator
+                // is not aware of dnfof; see https://github.com/opensearch-project/security/issues/5546
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
