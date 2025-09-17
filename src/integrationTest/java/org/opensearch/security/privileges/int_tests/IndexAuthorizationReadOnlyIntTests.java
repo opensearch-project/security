@@ -130,7 +130,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*")
         )//
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_ax))//
-        .indexMatcher("search", limitedTo(index_a1, index_a2, index_a3, index_ax))//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
@@ -142,7 +141,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b*")
         )//
         .indexMatcher("read", limitedTo(index_b1, index_b2, index_b3))//
-        .indexMatcher("search", limitedTo(index_b1, index_b2, index_b3))//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_B1 = new TestSecurityConfig.User("limited_user_B1")//
@@ -154,7 +152,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b1")
         )//
         .indexMatcher("read", limitedTo(index_b1))//
-        .indexMatcher("search", limitedTo(index_b1))//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
@@ -166,7 +163,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_c*")
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1))//
-        .indexMatcher("search", limitedTo(index_c1, alias_c1))//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_ALIAS_AB1 = new TestSecurityConfig.User("limited_user_alias_AB1")//
@@ -178,7 +174,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_ab1*")
         )//
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
-        .indexMatcher("search", limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
         .indexMatcher("get_alias", limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1));
 
     static final TestSecurityConfig.User LIMITED_USER_ALIAS_C1 = new TestSecurityConfig.User("limited_user_alias_C1")//
@@ -190,7 +185,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_c1")
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1))//
-        .indexMatcher("search", limitedTo(index_c1, alias_c1))//
         .indexMatcher("get_alias", limitedTo(index_c1, alias_c1));
 
     static final TestSecurityConfig.User LIMITED_USER_A_HIDDEN = new TestSecurityConfig.User("limited_user_A_hidden")//
@@ -202,7 +196,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*", "index_hidden*", ".index_hidden*")
         )//
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
-        .indexMatcher("search", limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_C_WITH_SYSTEM_INDICES = new TestSecurityConfig.User(
@@ -224,7 +217,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on(".system_index_plugin")
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1, system_index_plugin))//
-        .indexMatcher("search", limitedTo(index_c1, alias_c1, system_index_plugin))//
         .indexMatcher("get_alias", limitedTo(index_c1, alias_c1, system_index_plugin));
 
     /**
@@ -242,7 +234,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_does_not_exist_*")
         )//
         .indexMatcher("read", limitedToNone())//
-        .indexMatcher("search", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
@@ -252,7 +243,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
         .indexMatcher("read", limitedToNone())//
-        .indexMatcher("search", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
     static final TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
@@ -266,23 +256,6 @@ public class IndexAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher(
             "read",
-            limitedTo(
-                index_a1,
-                index_a2,
-                index_a3,
-                index_b1,
-                index_b2,
-                index_b3,
-                index_c1,
-                alias_ab1,
-                alias_c1,
-                index_hidden,
-                index_hidden_dot,
-                index_ax
-            )
-        )//
-        .indexMatcher(
-            "search",
             limitedTo(
                 index_a1,
                 index_a2,
@@ -324,7 +297,6 @@ public class IndexAuthorizationReadOnlyIntTests {
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
         .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("search", unlimitedIncludingOpenSearchSecurityIndex())//
         .indexMatcher("get_alias", unlimitedIncludingOpenSearchSecurityIndex());
 
     static final List<TestSecurityConfig.User> USERS = ImmutableList.of(
@@ -382,7 +354,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -391,7 +363,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -413,7 +385,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -428,7 +400,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(isForbidden())
                 );
             } else {
@@ -437,7 +409,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
                 );
             }
         }
@@ -452,7 +424,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -461,7 +433,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -483,7 +455,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -501,7 +473,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                         ? ALL_INDICES
                         : ALL_INDICES_EXCEPT_SYSTEM_INDICES
                 ).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -516,7 +488,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -525,7 +497,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -547,7 +519,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
                         "hits.hits[*]._index"
-                    ).reducedBy(user.indexMatcher("search")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    ).reducedBy(user.indexMatcher("read")).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
         }
@@ -565,7 +537,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                         ? ALL_INDICES
                         : ALL_INDICES_EXCEPT_SYSTEM_INDICES
                 ).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -577,7 +549,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a1/_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(index_a1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("search")).whenEmpty(isForbidden())
+                containsExactly(index_a1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
             );
         }
     }
@@ -590,7 +562,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -601,7 +573,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_ax/_search?size=1000");
 
-            if (containsExactly(index_ax).reducedBy(user.indexMatcher("search")).isEmpty()) {
+            if (containsExactly(index_ax).reducedBy(user.indexMatcher("read")).isEmpty()) {
                 assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
             } else {
                 assertThat(httpResponse, isNotFound());
@@ -615,7 +587,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_hidden/_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(index_hidden).at("hits.hits[*]._index").butForbiddenIfIncomplete(user.indexMatcher("search"))
+                containsExactly(index_hidden).at("hits.hits[*]._index").butForbiddenIfIncomplete(user.indexMatcher("read"))
             );
         }
     }
@@ -627,7 +599,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             if (clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
-                    containsExactly(system_index_plugin).at("hits.hits[*]._index").butForbiddenIfIncomplete(user.indexMatcher("search"))
+                    containsExactly(system_index_plugin).at("hits.hits[*]._index").butForbiddenIfIncomplete(user.indexMatcher("read"))
                 );
             } else {
                 // legacy privilege evaluation without system index privilege enabled
@@ -651,7 +623,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -665,7 +637,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -687,7 +659,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -708,7 +680,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -725,7 +697,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -752,7 +724,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                         index_hidden_dot,
                         system_index_plugin
                     ).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else if (!clusterConfig.systemIndexPrivilegeEnabled) {
@@ -761,7 +733,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, index_hidden, index_hidden_dot)
                         .at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -793,7 +765,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(isForbidden())
                 );
             }
@@ -808,7 +780,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -821,7 +793,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("search"))
+                    .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -836,7 +808,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("search"))
+                        .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(isForbidden())
                 );
 
@@ -885,7 +857,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at(
                     "aggregations.indices.buckets[*].key"
-                ).reducedBy(user.indexMatcher("search")).whenEmpty(isOk())
+                ).reducedBy(user.indexMatcher("read")).whenEmpty(isOk())
             );
         }
     }
@@ -904,7 +876,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 index_b3
             );
 
-            if (indexMatcher.reducedBy(user.indexMatcher("search")).isEmpty()) {
+            if (indexMatcher.reducedBy(user.indexMatcher("read")).isEmpty()) {
                 assertThat(
                     httpResponse,
                     isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/point_in_time/create]")
@@ -920,7 +892,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     }
                     """, pitId));
                 assertThat(httpResponse, isOk());
-                assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("search")));
+                assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")));
             }
         }
     }
@@ -948,7 +920,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 );
             }
 
-            if (indexMatcher.reducedBy(user.indexMatcher("search")).isEmpty()) {
+            if (indexMatcher.reducedBy(user.indexMatcher("read")).isEmpty()) {
                 assertThat(
                     httpResponse,
                     isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/point_in_time/create]")
@@ -971,7 +943,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     assertThat(httpResponse, isForbidden());
                 } else {
                     assertThat(httpResponse, isOk());
-                    assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("search")));
+                    assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")));
                 }
             }
         }
@@ -984,7 +956,7 @@ public class IndexAuthorizationReadOnlyIntTests {
 
             IndexApiResponseMatchers.OnResponseIndexMatcher indexMatcher = containsExactly(index_a1);
 
-            if (indexMatcher.reducedBy(user.indexMatcher("search")).isEmpty()) {
+            if (indexMatcher.reducedBy(user.indexMatcher("read")).isEmpty()) {
                 assertThat(
                     httpResponse,
                     isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/point_in_time/create]")
@@ -999,7 +971,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                       }
                     }
                     """, pitId));
-                assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("search")));
+                assertThat(httpResponse, indexMatcher.at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")));
             }
         }
     }
@@ -1009,7 +981,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.post("index_a*/_search/point_in_time?keep_alive=1m");
 
-            if (user.indexMatcher("search").coversAll(index_a1, index_a2, index_a3)) {
+            if (user.indexMatcher("read").coversAll(index_a1, index_a2, index_a3)) {
                 assertThat(httpResponse, isOk());
                 String pitId = httpResponse.getTextFromJsonBody("/pit_id");
                 httpResponse = restClient.postJson("index_b*/_search?size=1000", String.format("""
