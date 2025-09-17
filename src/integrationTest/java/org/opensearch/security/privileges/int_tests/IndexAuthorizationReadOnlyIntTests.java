@@ -868,10 +868,18 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_termsAggregation_index() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.postJson(
-                "/_search",
-                "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":1000}}}}"
-            );
+            TestRestClient.HttpResponse httpResponse = restClient.postJson("/_search", """
+                {
+                  "size": 0,
+                  "aggs": {
+                    "indices": {
+                      "terms": {
+                        "field": "_index",
+                        "size": 1000
+                      }
+                    }
+                  }
+                }""");
 
             assertThat(
                 httpResponse,
@@ -1516,7 +1524,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void field_caps_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                TestRestClient.HttpResponse httpResponse = restClient.get("/_field_caps?fields=*");
+                TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices")
@@ -1525,7 +1533,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 );
 
             } else {
-                TestRestClient.HttpResponse httpResponse = restClient.get("/_field_caps?fields=*");
+                TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
                 assertThat(
                     httpResponse,
                     containsExactly(ALL_INDICES).at("indices")
