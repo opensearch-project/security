@@ -14,8 +14,11 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -101,6 +104,12 @@ public class Responses {
 
     public static ToXContent payload(final RestStatus status, final String message) {
         return (builder, params) -> builder.startObject().field("status", status.name()).field("message", message).endObject();
+    }
+
+    public static ToXContent payload(final XContentBuilder xContentBuilder) {
+        return (builder, params) -> builder.copyCurrentStructure(
+            JsonXContent.jsonXContent.createParser(null, null, BytesReference.bytes(xContentBuilder).streamInput())
+        );
     }
 
 }
