@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.checkerframework:checker-qual` from 3.49.5 to 3.51.0 ([#5627](https://github.com/opensearch-project/security/pull/5627))
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.4.2 to 10.5 ([#5629](https://github.com/opensearch-project/security/pull/5629))
 - Bump `derek-ho/start-opensearch` from 7 to 8 ([#5630](https://github.com/opensearch-project/security/pull/5630))
+- Bump `org.opensearch:protobufs` from 0.6.0 to 0.13.0 ([#5639](https://github.com/opensearch-project/security/pull/5639))
 
 ### Documentation
 
