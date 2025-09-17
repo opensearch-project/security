@@ -700,7 +700,7 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.34"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.37"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
