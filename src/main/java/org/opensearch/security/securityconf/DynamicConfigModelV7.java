@@ -325,16 +325,18 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                     }
 
                     String httpAuthenticatorType = ad.getValue().http_authenticator.type; // no default
-                    
-                    // Smart JWT authenticator selection: if jwks_uri is present and type is "jwt", 
+
+                    // Smart JWT authenticator selection: if jwks_uri is present and type is "jwt",
                     // use HTTPJwtKeyByJWKSAuthenticator instead of HTTPJwtAuthenticator
                     if ("jwt".equals(httpAuthenticatorType)) {
-                        Settings tempSettings = Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build();
+                        Settings tempSettings = Settings.builder()
+                            .loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON)
+                            .build();
                         if (tempSettings.get("jwks_uri") != null) {
                             httpAuthenticatorType = HTTPJwtKeyByJWKSAuthenticator.class.getName();
                         }
                     }
-                    
+
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType == null
                         ? null
                         : (HTTPAuthenticator) newInstance(
