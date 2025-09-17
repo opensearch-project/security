@@ -85,7 +85,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
             return null;
         }
 
-        log.warn("Initializing JWKS key provider with endpoint: {}", jwksUri);
+        log.debug("Initializing JWKS key provider with endpoint: {}", jwksUri);
 
         // Initialize configuration parameters
         int jwksRequestTimeoutMs = settings.getAsInt("jwks_request_timeout_ms", 5000);
@@ -95,7 +95,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         boolean cacheJwksEndpoint = settings.getAsBoolean("cache_jwks_endpoint", true);
         int maxJwksKeys = settings.getAsInt("max_jwks_keys", 10); // Default to 10 keys
 
-        log.warn("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
+        log.debug("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
 
         // Add security configuration parameters
         long maxJwksResponseSizeBytes = settings.getAsLong("max_jwks_response_size_bytes", 1024L * 1024L); // 1MB default
@@ -117,7 +117,6 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         selfRefreshingKeySet.setRefreshRateLimitTimeWindowMs(refreshRateLimitTimeWindowMs);
         selfRefreshingKeySet.setRefreshRateLimitCount(refreshRateLimitCount);
 
-        log.warn("JWKS key provider successfully initialized with key limit: {}", maxJwksKeys);
         return selfRefreshingKeySet;
     }
 
@@ -131,7 +130,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
             return staticJwtAuthenticator.extractCredentials(request, context);
         }
 
-        // Otherwise, use the standard JWKS authentication flow
+        // Use the standard JWKS authentication flow
         return super.extractCredentials(request, context);
     }
 
