@@ -92,9 +92,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_a*")
         )//
-        .indexMatcher("read", limitedTo(ds_a1, ds_a2, ds_a3, ds_ax))//
-        .indexMatcher("read_top_level", limitedTo(ds_a1, ds_a2, ds_a3))//
-        .indexMatcher("get_alias", limitedToNone());
+        .indexMatcher("read", limitedTo(ds_a1, ds_a2, ds_a3, ds_ax));
 
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("ds_b*")//
@@ -110,9 +108,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_b*")
         )//
-        .indexMatcher("read", limitedTo(ds_b1, ds_b2, ds_b3))//
-        .indexMatcher("read_top_level", limitedTo(ds_b1, ds_b2, ds_b3))//
-        .indexMatcher("get_alias", limitedToNone());
+        .indexMatcher("read", limitedTo(ds_b1, ds_b2, ds_b3));
 
     static TestSecurityConfig.User LIMITED_USER_B1 = new TestSecurityConfig.User("limited_user_B1")//
         .description("ds_b1")//
@@ -128,9 +124,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_b1")
         )//
-        .indexMatcher("read", limitedTo(ds_b1))//
-        .indexMatcher("read_top_level", limitedTo(ds_b1))//
-        .indexMatcher("get_alias", limitedToNone());
+        .indexMatcher("read", limitedTo(ds_b1));
 
     static TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no privileges for existing indices")//
@@ -146,9 +140,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_does_not_exist_*")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("read_top_level", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .indexMatcher("read", limitedToNone());
 
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
@@ -158,9 +150,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 .indexPermissions("*")
                 .on("*")//
         )//
-        .indexMatcher("read", unlimited())//
-        .indexMatcher("read_top_level", unlimited())//
-        .indexMatcher("get_alias", unlimited());
+        .indexMatcher("read", unlimited());
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -169,9 +159,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
-        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("read_top_level", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("get_alias", unlimitedIncludingOpenSearchSecurityIndex());
+        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex());
 
     static List<TestSecurityConfig.User> USERS = List.of(
         LIMITED_USER_A,
