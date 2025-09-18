@@ -86,9 +86,9 @@ public class IndexAuthorizationReadWriteIntTests {
         .documentCount(0)
         .build(); // not initially created
 
-    static final TestAlias alias_ab1r = new TestAlias("alias_ab1r", index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1);
-    static final TestAlias alias_ab1w = new TestAlias("alias_ab1w", index_aw1, index_aw2, index_bw1).writeIndex(index_aw1);
-    static final TestAlias alias_ab1w_nowriteindex = new TestAlias("alias_ab1w_nowriteindex", index_aw1, index_aw2, index_bw1);
+    static final TestAlias alias_ab1r = new TestAlias("alias_ab1r").on(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1);
+    static final TestAlias alias_ab1w = new TestAlias("alias_ab1w").on(index_aw1, index_aw2, index_bw1).writeIndex(index_aw1);
+    static final TestAlias alias_ab1w_nowriteindex = new TestAlias("alias_ab1w_nowriteindex").on(index_aw1, index_aw2, index_bw1);
 
     static final TestAlias alias_c1 = new TestAlias("alias_c1", index_cr1, index_cw1);
 
@@ -198,13 +198,13 @@ public class IndexAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User(
         "limited_user_B_hidden_manage_index_alias"
     )//
-        .description("index_b*, index_hidden*, alias_bwx* with manage privs")//
+        .description("index_b*, index_hidden*, alias_bwx* with manage privs, index_a* read only")//
         .roles(
             //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
-                .on("index_b*", "index_hidden*")//
+                .on("index_a*", "index_b*", "index_hidden*")//
                 .indexPermissions("write")
                 .on("index_bw*", "index_hidden*")//
                 .indexPermissions("manage")
@@ -212,7 +212,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("manage_aliases")
                 .on("alias_bwx*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
         .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
         .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
         .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
@@ -1152,6 +1152,50 @@ public class IndexAuthorizationReadWriteIntTests {
             }
         } finally {
             cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("index_bw1")).actionGet();
+        }
+    }
+
+    @Test
+    public void rollover_explicitTargetIndex() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestObjects(alias_bwx.on(index_bw1, index_bw2));
+
+            HttpResponse httpResponse = restClient.postJson("_aliases", """
+                {
+                  "actions": [
+                    { "remove": { "index": "*", "alias": "alias_bwx" } }
+                  ]
+                }""");
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // This is only allowed if we have privileges for all indices, even if not all indices are member of alias_bwx
+                if (user.indexMatcher("manage_alias")
+                        .coversAll(
+                                index_ar1,
+                                index_ar2,
+                                index_aw1,
+                                index_aw2,
+                                index_br1,
+                                index_br2,
+                                index_bw1,
+                                index_bw1,
+                                index_cr1,
+                                index_cw1
+                        )) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                if (user.indexMatcher("manage_alias").coversAll(alias_bwx)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+
+        } finally {
+            delete(alias_bwx);
         }
     }
 

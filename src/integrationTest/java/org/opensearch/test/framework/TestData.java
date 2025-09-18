@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
@@ -92,6 +93,8 @@ public class TestData {
         "attr_object.obj_attr_object.obj_obj_attr_text.keyword"
     );
 
+    public static final ImmutableList<String> DEPARTMENTS = ImmutableList.of("dept_a_1", "dept_a_2", "dept_a_3", "dept_b_1", "dept_b_2", "dept_c", "dept_d");
+
     private static final Cache<Key, TestData> cache;
 
     static {
@@ -101,7 +104,6 @@ public class TestData {
 
     private String[] ipAddresses;
     private String[] threeWordPhrases;
-    private String[] departments = new String[] { "dept_a_1", "dept_a_2", "dept_a_3", "dept_b_1", "dept_b_2", "dept_c", "dept_d" };
     private int size;
     private int deletedDocumentCount;
     private int refreshAfter;
@@ -122,33 +124,6 @@ public class TestData {
         this.subRandomSeed = random.nextLong();
         this.timestampColumn = timestampColumnName;
         this.createTestDocuments(random);
-    }
-
-    private TestData(
-        String[] ipAddresses,
-        String[] departments,
-        int size,
-        int deletedDocumentCount,
-        int refreshAfter,
-        Map<String, TestDocument> allDocuments,
-        Map<String, TestDocument> retainedDocuments,
-        Map<String, Map<String, TestDocument>> documentsByDepartment,
-        Set<String> deletedDocuments,
-        long subRandomSeed,
-        String timestampColumnName
-    ) {
-        super();
-        this.ipAddresses = ipAddresses;
-        this.departments = departments;
-        this.size = size;
-        this.deletedDocumentCount = deletedDocumentCount;
-        this.refreshAfter = refreshAfter;
-        this.allDocuments = allDocuments;
-        this.retainedDocuments = retainedDocuments;
-        this.documentsByDepartment = documentsByDepartment;
-        this.deletedDocuments = deletedDocuments;
-        this.subRandomSeed = subRandomSeed;
-        this.timestampColumn = timestampColumnName;
     }
 
     public void createIndex(Client client, String name, Settings settings) {
@@ -408,7 +383,7 @@ public class TestData {
     }
 
     private String randomDepartmentName(Random random) {
-        return departments[random.nextInt(departments.length)];
+        return DEPARTMENTS.get(random.nextInt(DEPARTMENTS.size()));
     }
 
     private String randomTimestamp(Random random) {

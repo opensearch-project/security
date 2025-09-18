@@ -170,372 +170,80 @@ public class IndexApiResponseMatchers {
          */
         int size();
 
-        boolean containsOpenSearchIndices();
+        /**
+         * Returns true if the set of indices is expected to contain the security config index
+         */
+        boolean containsOpenSearchSecurityIndex();
 
+        /**
+         * Returns true if this matcher expects the given index to be present
+         */
         boolean covers(TestIndexOrAliasOrDatastream testIndex);
 
+        /**
+         * Returns true if this matcher expects all the given indices to be present
+         */
         default boolean coversAll(TestIndexOrAliasOrDatastream... testIndices) {
             return Stream.of(testIndices).allMatch(this::covers);
         }
     }
 
-    static class ContainsExactlyMatcher extends AbstractIndexMatcher implements OnResponseIndexMatcher {
-        private static final Pattern DS_BACKING_INDEX_PATTERN = Pattern.compile("\\.ds-(.+)-[0-9]+");
+    // ----------------------------------------------------------------------------------
+    // Actual matcher implementations
+    // (created by static methods in OnResponseIndexMatcher and OnUserIndexMatcher above)
+    // ----------------------------------------------------------------------------------
 
-        ContainsExactlyMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchIndices) {
-            super(indexNameMap, containsOpenSearchIndices);
-        }
-
-        ContainsExactlyMatcher(
-            Map<String, TestIndexOrAliasOrDatastream> indexNameMap,
-            boolean containsOpenSearchIndices,
-            String jsonPath,
-            RestMatchers.HttpResponseMatcher statusCodeWhenEmpty
-        ) {
-            super(indexNameMap, containsOpenSearchIndices, jsonPath, statusCodeWhenEmpty);
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            if (indexNameMap.isEmpty()) {
-                if (this.statusCodeWhenEmpty.statusCode() == 200) {
-                    description.appendText("a 200 OK response with an empty result set");
-                } else {
-                    this.statusCodeWhenEmpty.describeTo(description);
-                    description.appendText("a response with status code " + this.statusCodeWhenEmpty);
-                }
-            } else {
-                description.appendText(
-                    "a 200 OK response with exactly the indices " + indexNameMap.keySet().stream().collect(Collectors.joining(", "))
-                );
-            }
-        }
-
-        @Override
-        protected boolean matchesImpl(Collection<?> collection, Description mismatchDescription, TestRestClient.HttpResponse response) {
-            // Flatten the collection
-            collection = collection.stream()
-                .flatMap(e -> e instanceof Collection ? ((Collection<?>) e).stream() : Stream.of(e))
-                .collect(Collectors.toSet());
-
-            return matchesByIndices(collection, mismatchDescription, response);
-        }
-
-        protected boolean matchesByIndices(
-            Collection<?> collection,
-            Description mismatchDescription,
-            TestRestClient.HttpResponse response
-        ) {
-            ImmutableSet<String> expectedIndices = this.getExpectedIndices();
-            ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
-            ImmutableSet.Builder<String> seenOpenSearchIndicesBuilder = new ImmutableSet.Builder<>();
-
-            for (Object object : collection) {
-                String index = object.toString();
-
-                if (containsOpenSearchIndices && (index.startsWith(".opendistro"))) {
-                    seenOpenSearchIndicesBuilder.add(index);
-                } else if (index.startsWith(".ds-")) {
-                    // We do a special treatment for data stream backing indices. We convert these to the normal data streams if expected
-                    // indices contains these.
-                    java.util.regex.Matcher matcher = DS_BACKING_INDEX_PATTERN.matcher(index);
-
-                    if (matcher.matches() && expectedIndices.contains(matcher.group(1))) {
-                        seenIndicesBuilder.add(matcher.group(1));
-                    } else {
-                        seenIndicesBuilder.add(index);
-                    }
-                } else {
-                    seenIndicesBuilder.add(index);
-                }
-            }
-
-            ImmutableSet<String> seenIndices = seenIndicesBuilder.build();
-
-            ImmutableSet<String> unexpectedIndices = Sets.difference(seenIndices, expectedIndices).immutableCopy();
-            ImmutableSet<String> missingIndices = Sets.difference(expectedIndices, seenIndices).immutableCopy();
-
-            if (containsOpenSearchIndices && seenOpenSearchIndicesBuilder.build().size() == 0) {
-                missingIndices = ImmutableSet.<String>builderWithExpectedSize(missingIndices.size() + 1)
-                    .addAll(missingIndices)
-                    .add(".opensearch indices")
-                    .build();
-            }
-
-            if (unexpectedIndices.isEmpty() && missingIndices.isEmpty()) {
-                return true;
-            } else {
-                if (!missingIndices.isEmpty()) {
-                    mismatchDescription.appendText("result does not contain expected indices; found: ")
-                        .appendValue(seenIndices)
-                        .appendText("; missing: ")
-                        .appendValue(missingIndices)
-                        .appendText("\n\n")
-                        .appendText(formatResponse(response));
-                }
-
-                if (!unexpectedIndices.isEmpty()) {
-                    mismatchDescription.appendText("result does contain indices that were not expected: ")
-                        .appendValue(unexpectedIndices)
-                        .appendText("\n\n")
-                        .appendText(formatResponse(response));
-                }
-                return false;
-            }
-        }
-
-        @Override
-        public OnResponseIndexMatcher reducedBy(IndexMatcher other) {
-            if (other instanceof LimitedToMatcher) {
-                return new ContainsExactlyMatcher(
-                    testIndicesIntersection(this.indexNameMap, ((LimitedToMatcher) other).indexNameMap), //
-                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                    this.jsonPath,
-                    this.statusCodeWhenEmpty
-                );
-            } else if (other instanceof ContainsExactlyMatcher) {
-                return new ContainsExactlyMatcher(
-                    testIndicesIntersection(this.indexNameMap, ((ContainsExactlyMatcher) other).indexNameMap), //
-                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                    this.jsonPath,
-                    this.statusCodeWhenEmpty
-                );
-            } else if (other instanceof UnlimitedMatcher) {
-                return new ContainsExactlyMatcher(
-                    this.indexNameMap, //
-                    this.containsOpenSearchIndices && other.containsOpenSearchIndices(), //
-                    this.jsonPath,
-                    this.statusCodeWhenEmpty
-                );
-            } else {
-                throw new RuntimeException("Unexpected argument " + other);
-            }
-        }
-
-        @Override
-        public OnResponseIndexMatcher at(String jsonPath) {
-            return new ContainsExactlyMatcher(indexNameMap, containsOpenSearchIndices, jsonPath, statusCodeWhenEmpty);
-        }
-
-        @Override
-        public OnResponseIndexMatcher whenEmpty(RestMatchers.HttpResponseMatcher statusCode) {
-            return new ContainsExactlyMatcher(indexNameMap, containsOpenSearchIndices, jsonPath, statusCode);
-        }
-
-        @Override
-        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
-            return indexNameMap.containsKey(testIndex.name());
-        }
-
-        @Override
-        public OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode) {
-            if (other instanceof UnlimitedMatcher) {
-                return this;
-            }
-
-            HashMap<String, TestIndexOrAliasOrDatastream> unmatched = new HashMap<>(this.indexNameMap);
-            unmatched.keySet().removeAll(((AbstractIndexMatcher) other).indexNameMap.keySet());
-
-            if (!unmatched.isEmpty()) {
-                return new StatusCodeMatcher(statusCode);
-            } else {
-                return this.reducedBy(other);
-            }
-        }
-    }
-
-    static class StatusCodeMatcher extends DiagnosingMatcher<Object> implements OnResponseIndexMatcher {
-        private RestMatchers.HttpResponseMatcher expectedStatusCode;
-
-        public StatusCodeMatcher(RestMatchers.HttpResponseMatcher expectedStatusCode) {
-            this.expectedStatusCode = expectedStatusCode;
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            this.expectedStatusCode.describeTo(description);
-        }
-
-        @Override
-        protected boolean matches(Object item, Description mismatchDescription) {
-            return this.expectedStatusCode.matches(item, mismatchDescription);
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public boolean containsOpenSearchIndices() {
-            return true;
-        }
-
-        @Override
-        public int size() {
-            return 0;
-        }
-
-        @Override
-        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
-            return false;
-        }
-
-        @Override
-        public OnResponseIndexMatcher at(String jsonPath) {
-            return this;
-        }
-
-        @Override
-        public OnResponseIndexMatcher reducedBy(IndexMatcher other) {
-            return this;
-        }
-
-        @Override
-        public OnResponseIndexMatcher whenEmpty(RestMatchers.HttpResponseMatcher statusCode) {
-            return this;
-        }
-
-        @Override
-        public OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode) {
-            return this;
-        }
-    }
-
-    static class LimitedToMatcher extends AbstractIndexMatcher implements OnUserIndexMatcher {
-
-        LimitedToMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap) {
-            super(indexNameMap, false);
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            if (indexNameMap.isEmpty()) {
-                if (this.statusCodeWhenEmpty.statusCode() == 200) {
-                    description.appendText("a 200 OK response with an empty result set");
-                } else {
-                    this.statusCodeWhenEmpty.describeTo(description);
-                }
-            } else {
-                description.appendText(
-                    "a 200 OK response no indices other than " + indexNameMap.keySet().stream().collect(Collectors.joining(", "))
-                );
-            }
-        }
-
-        @Override
-        protected boolean matchesImpl(Collection<?> collection, Description mismatchDescription, TestRestClient.HttpResponse response) {
-            return matchesByIndices(collection, mismatchDescription, response);
-        }
-
-        @Override
-        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
-            return indexNameMap.containsKey(testIndex.name());
-        }
-
-        protected boolean matchesByIndices(
-            Collection<?> collection,
-            Description mismatchDescription,
-            TestRestClient.HttpResponse response
-        ) {
-            ImmutableSet<String> expectedIndices = this.getExpectedIndices();
-            ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
-
-            for (Object object : collection) {
-                seenIndicesBuilder.add(object.toString());
-            }
-
-            ImmutableSet<String> seenIndices = seenIndicesBuilder.build();
-            ImmutableSet<String> unexpectedIndices = Sets.difference(seenIndices, expectedIndices).immutableCopy();
-
-            if (unexpectedIndices.isEmpty()) {
-                return true;
-            } else {
-                mismatchDescription.appendText("result does contain indices that were not expected: ")
-                    .appendValue(unexpectedIndices)
-                    .appendText("\n\n")
-                    .appendValue(formatResponse(response));
-                return false;
-            }
-        }
-    }
-
-    static class UnlimitedMatcher extends DiagnosingMatcher<Object> implements OnUserIndexMatcher {
-
-        private final boolean containsOpenSearchIndices;
-
-        UnlimitedMatcher() {
-            this.containsOpenSearchIndices = false;
-        }
-
-        UnlimitedMatcher(boolean containsOpenSearchIndices) {
-            this.containsOpenSearchIndices = containsOpenSearchIndices;
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("unlimited indices");
-        }
-
-        @Override
-        protected boolean matches(Object item, Description mismatchDescription) {
-            if (item instanceof TestRestClient.HttpResponse) {
-                TestRestClient.HttpResponse response = (TestRestClient.HttpResponse) item;
-
-                if (response.getStatusCode() != 200) {
-                    mismatchDescription.appendText("Expected status code 200 but status was: ")
-                        .appendValue(response.getStatusCode() + " " + response.getStatusReason());
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return false;
-        }
-
-        @Override
-        public boolean containsOpenSearchIndices() {
-            return containsOpenSearchIndices;
-        }
-
-        @Override
-        public int size() {
-            throw new IllegalStateException("The UnlimitedMatcher cannot specify a size");
-        }
-
-        @Override
-        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
-            return true;
-        }
-    }
-
+    /**
+     * Base implementation for all matchers. The primary working mode of these matchers is to
+     * expect TestRestClient.HttpResponse objects and to extract index names from the response
+     * body via a jsonPath (specified with the at() method). However, the matchers will also
+     * work on any string collection; then, the json path is not necessary.
+     */
     static abstract class AbstractIndexMatcher extends DiagnosingMatcher<Object> implements IndexMatcher {
-        protected final Map<String, TestIndexOrAliasOrDatastream> indexNameMap;
-        protected final String jsonPath;
-        protected final RestMatchers.HttpResponseMatcher statusCodeWhenEmpty;
-        protected final boolean containsOpenSearchIndices;
+        /**
+         * The indices expected by this matcher.
+         */
+        protected final Map<String, TestIndexOrAliasOrDatastream> expectedIndices;
 
-        AbstractIndexMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchIndices) {
-            this.indexNameMap = indexNameMap;
+        /**
+         * The matcher will extract the indices from the REST response body using this JSON path expression.
+         */
+        protected final String jsonPath;
+
+        /**
+         * If the matcher expects an empty set of indices, this can actually mean two things:
+         * <ol>
+         *     <li>The response is expected to be successful (i.e. has a 200 OK status) and returns an empty set of indices</li>
+         *     <li>The response has failed with a non 200 status code</li>
+         * </ol>
+         * The expected status code is specified by this matcher. This matcher will be used to assert the status code when
+         * the expected set of indices is empty.
+         */
+        protected final RestMatchers.HttpResponseMatcher statusCodeWhenEmpty;
+
+        /**
+         * This is true if we also expect the .opendistro_security index. In case we gain further
+         * system indices that are present by default on an int test cluster, this can be expanded to cover also these.
+         */
+        protected final boolean containsOpenSearchSecurityIndex;
+
+        AbstractIndexMatcher(Map<String, TestIndexOrAliasOrDatastream> expectedIndices, boolean containsOpenSearchSecurityIndex) {
+            this.expectedIndices = expectedIndices;
             this.jsonPath = null;
             this.statusCodeWhenEmpty = RestMatchers.isOk();
-            this.containsOpenSearchIndices = containsOpenSearchIndices;
+            this.containsOpenSearchSecurityIndex = containsOpenSearchSecurityIndex;
         }
 
         AbstractIndexMatcher(
-            Map<String, TestIndexOrAliasOrDatastream> indexNameMap,
-            boolean containsOpenSearchIndices,
+            Map<String, TestIndexOrAliasOrDatastream> expectedIndices,
+            boolean containsOpenSearchSecurityIndex,
             String jsonPath,
             RestMatchers.HttpResponseMatcher statusCodeWhenEmpty
         ) {
-            this.indexNameMap = indexNameMap;
+            this.expectedIndices = expectedIndices;
             this.jsonPath = jsonPath;
             this.statusCodeWhenEmpty = statusCodeWhenEmpty;
-            this.containsOpenSearchIndices = containsOpenSearchIndices;
+            this.containsOpenSearchSecurityIndex = containsOpenSearchSecurityIndex;
         }
 
         @Override
@@ -545,7 +253,7 @@ public class IndexApiResponseMatchers {
             if (item instanceof TestRestClient.HttpResponse) {
                 response = (TestRestClient.HttpResponse) item;
 
-                if (indexNameMap.isEmpty()) {
+                if (expectedIndices.isEmpty()) {
                     if (response.getStatusCode() != this.statusCodeWhenEmpty.statusCode()) {
                         mismatchDescription.appendText("Status was: ")
                             .appendValue(response.getStatusCode() + " " + response.getStatusReason())
@@ -597,31 +305,43 @@ public class IndexApiResponseMatchers {
             return matchesImpl((Collection<?>) item, mismatchDescription, response);
         }
 
+        /**
+         * This is called by the main matches() method after the indices have been extracted
+         * from the HTTP response body. The found indices will be passed as the actualItems parameter.
+         *
+         * @param actualItems The found indices. This is expected to be strings.
+         * @param mismatchDescription In case the matcher finds a mismatch, the description should be appended to this object.
+         * @param response The REST response we are asserting against. Optional.
+         * @return true if the assertion was successful, false it it failed.
+         */
         protected abstract boolean matchesImpl(
-            Collection<?> collection,
+            Collection<?> actualItems,
             Description mismatchDescription,
             TestRestClient.HttpResponse response
         );
 
         @Override
         public boolean isEmpty() {
-            return indexNameMap.isEmpty();
+            return expectedIndices.isEmpty();
         }
 
         @Override
         public int size() {
-            if (!containsOpenSearchIndices) {
-                return indexNameMap.size();
+            if (!containsOpenSearchSecurityIndex) {
+                return expectedIndices.size();
             } else {
                 throw new RuntimeException("Size cannot be exactly specified because containsOpenSearchIndices is true");
             }
         }
 
         @Override
-        public boolean containsOpenSearchIndices() {
-            return containsOpenSearchIndices;
+        public boolean containsOpenSearchSecurityIndex() {
+            return containsOpenSearchSecurityIndex;
         }
 
+        /**
+         * Calculates the intersection of the two given Map objects.
+         */
         protected Map<String, TestIndexOrAliasOrDatastream> testIndicesIntersection(
             Map<String, TestIndexOrAliasOrDatastream> map1,
             Map<String, TestIndexOrAliasOrDatastream> map2
@@ -644,22 +364,374 @@ public class IndexApiResponseMatchers {
         }
 
         protected ImmutableSet<String> getExpectedIndices() {
-            return ImmutableSet.copyOf(indexNameMap.keySet());
+            return ImmutableSet.copyOf(expectedIndices.keySet());
         }
 
+        /**
+         * Returns a formatted version of the response. This can be used in the mismatch description.
+         */
+        protected static String formatResponse(TestRestClient.HttpResponse response) {
+            if (response == null) {
+                return "";
+            }
+
+            String start = response.getStatusCode() + " " + response.getStatusReason() + "\n";
+
+            if (response.isJsonContentType()) {
+                return start + response.bodyAsJsonNode().toPrettyString();
+            } else {
+                return start + response.getBody();
+            }
+        }
     }
 
-    private static String formatResponse(TestRestClient.HttpResponse response) {
-        if (response == null) {
-            return "";
+    /**
+     * This asserts that the item we assert on contains a set of indices that exactly corresponds to the expected
+     * indices (i.e., not fewer and not more indices). This is usually used to match against REST responses.
+     */
+    static class ContainsExactlyMatcher extends AbstractIndexMatcher implements OnResponseIndexMatcher {
+        private static final Pattern DS_BACKING_INDEX_PATTERN = Pattern.compile("\\.ds-(.+)-[0-9]+");
+
+        ContainsExactlyMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchIndices) {
+            super(indexNameMap, containsOpenSearchIndices);
         }
 
-        String start = response.getStatusCode() + " " + response.getStatusReason() + "\n";
+        ContainsExactlyMatcher(
+            Map<String, TestIndexOrAliasOrDatastream> indexNameMap,
+            boolean containsOpenSearchIndices,
+            String jsonPath,
+            RestMatchers.HttpResponseMatcher statusCodeWhenEmpty
+        ) {
+            super(indexNameMap, containsOpenSearchIndices, jsonPath, statusCodeWhenEmpty);
+        }
 
-        if (response.isJsonContentType()) {
-            return start + response.bodyAsJsonNode().toPrettyString();
-        } else {
-            return start + response.getBody();
+        @Override
+        public void describeTo(Description description) {
+            if (expectedIndices.isEmpty()) {
+                if (this.statusCodeWhenEmpty.statusCode() == 200) {
+                    description.appendText("a 200 OK response with an empty result set");
+                } else {
+                    this.statusCodeWhenEmpty.describeTo(description);
+                    description.appendText("a response with status code " + this.statusCodeWhenEmpty);
+                }
+            } else {
+                description.appendText(
+                    "a 200 OK response with exactly the indices " + expectedIndices.keySet().stream().collect(Collectors.joining(", "))
+                );
+            }
+        }
+
+        @Override
+        protected boolean matchesImpl(Collection<?> actualItems, Description mismatchDescription, TestRestClient.HttpResponse response) {
+            // Flatten the collection
+            actualItems = actualItems.stream()
+                .flatMap(e -> e instanceof Collection ? ((Collection<?>) e).stream() : Stream.of(e))
+                .collect(Collectors.toSet());
+
+            return matchesByIndices(actualItems, mismatchDescription, response);
+        }
+
+        protected boolean matchesByIndices(
+            Collection<?> collection,
+            Description mismatchDescription,
+            TestRestClient.HttpResponse response
+        ) {
+            ImmutableSet<String> expectedIndices = this.getExpectedIndices();
+            ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
+            ImmutableSet.Builder<String> seenOpenSearchIndicesBuilder = new ImmutableSet.Builder<>();
+
+            for (Object object : collection) {
+                String index = object.toString();
+
+                if (containsOpenSearchSecurityIndex && (index.startsWith(".opendistro"))) {
+                    seenOpenSearchIndicesBuilder.add(index);
+                } else if (index.startsWith(".ds-")) {
+                    // We do a special treatment for data stream backing indices. We convert these to the normal data streams if expected
+                    // indices contains these.
+                    java.util.regex.Matcher matcher = DS_BACKING_INDEX_PATTERN.matcher(index);
+
+                    if (matcher.matches() && expectedIndices.contains(matcher.group(1))) {
+                        seenIndicesBuilder.add(matcher.group(1));
+                    } else {
+                        seenIndicesBuilder.add(index);
+                    }
+                } else {
+                    seenIndicesBuilder.add(index);
+                }
+            }
+
+            ImmutableSet<String> seenIndices = seenIndicesBuilder.build();
+
+            ImmutableSet<String> unexpectedIndices = Sets.difference(seenIndices, expectedIndices).immutableCopy();
+            ImmutableSet<String> missingIndices = Sets.difference(expectedIndices, seenIndices).immutableCopy();
+
+            if (containsOpenSearchSecurityIndex && seenOpenSearchIndicesBuilder.build().size() == 0) {
+                missingIndices = ImmutableSet.<String>builderWithExpectedSize(missingIndices.size() + 1)
+                    .addAll(missingIndices)
+                    .add(".opensearch indices")
+                    .build();
+            }
+
+            if (unexpectedIndices.isEmpty() && missingIndices.isEmpty()) {
+                return true;
+            } else {
+                if (!missingIndices.isEmpty()) {
+                    mismatchDescription.appendText("result does not contain expected indices; found: ")
+                        .appendValue(seenIndices)
+                        .appendText("; missing: ")
+                        .appendValue(missingIndices)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
+                }
+
+                if (!unexpectedIndices.isEmpty()) {
+                    mismatchDescription.appendText("result does contain indices that were not expected: ")
+                        .appendValue(unexpectedIndices)
+                        .appendText("\n\n")
+                        .appendText(formatResponse(response));
+                }
+                return false;
+            }
+        }
+
+        @Override
+        public OnResponseIndexMatcher reducedBy(IndexMatcher other) {
+            if (other instanceof LimitedToMatcher) {
+                return new ContainsExactlyMatcher(
+                    testIndicesIntersection(this.expectedIndices, ((LimitedToMatcher) other).expectedIndices), //
+                    this.containsOpenSearchSecurityIndex && other.containsOpenSearchSecurityIndex(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
+            } else if (other instanceof ContainsExactlyMatcher) {
+                return new ContainsExactlyMatcher(
+                    testIndicesIntersection(this.expectedIndices, ((ContainsExactlyMatcher) other).expectedIndices), //
+                    this.containsOpenSearchSecurityIndex && other.containsOpenSearchSecurityIndex(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
+            } else if (other instanceof UnlimitedMatcher) {
+                return new ContainsExactlyMatcher(
+                    this.expectedIndices, //
+                    this.containsOpenSearchSecurityIndex && other.containsOpenSearchSecurityIndex(), //
+                    this.jsonPath,
+                    this.statusCodeWhenEmpty
+                );
+            } else {
+                throw new RuntimeException("Unexpected argument " + other);
+            }
+        }
+
+        @Override
+        public OnResponseIndexMatcher at(String jsonPath) {
+            return new ContainsExactlyMatcher(expectedIndices, containsOpenSearchSecurityIndex, jsonPath, statusCodeWhenEmpty);
+        }
+
+        @Override
+        public OnResponseIndexMatcher whenEmpty(RestMatchers.HttpResponseMatcher statusCode) {
+            return new ContainsExactlyMatcher(expectedIndices, containsOpenSearchSecurityIndex, jsonPath, statusCode);
+        }
+
+        @Override
+        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
+            return expectedIndices.containsKey(testIndex.name());
+        }
+
+        @Override
+        public OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode) {
+            if (other instanceof UnlimitedMatcher) {
+                return this;
+            }
+
+            HashMap<String, TestIndexOrAliasOrDatastream> unmatched = new HashMap<>(this.expectedIndices);
+            unmatched.keySet().removeAll(((AbstractIndexMatcher) other).expectedIndices.keySet());
+
+            if (!unmatched.isEmpty()) {
+                return new StatusCodeMatcher(statusCode);
+            } else {
+                return this.reducedBy(other);
+            }
+        }
+    }
+
+    /**
+     * Just asserts on the status code of a response. This is usually only used for failure status codes which
+     * are expected when the expected set of indices is empty. In this case, we do not apply any JSON path
+     * extractions, as we expect the response body to be just an error message.
+     */
+    static class StatusCodeMatcher extends DiagnosingMatcher<Object> implements OnResponseIndexMatcher {
+        private RestMatchers.HttpResponseMatcher expectedStatusCode;
+
+        public StatusCodeMatcher(RestMatchers.HttpResponseMatcher expectedStatusCode) {
+            this.expectedStatusCode = expectedStatusCode;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            this.expectedStatusCode.describeTo(description);
+        }
+
+        @Override
+        protected boolean matches(Object item, Description mismatchDescription) {
+            return this.expectedStatusCode.matches(item, mismatchDescription);
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public boolean containsOpenSearchSecurityIndex() {
+            return true;
+        }
+
+        @Override
+        public int size() {
+            return 0;
+        }
+
+        @Override
+        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
+            return false;
+        }
+
+        @Override
+        public OnResponseIndexMatcher at(String jsonPath) {
+            return this;
+        }
+
+        @Override
+        public OnResponseIndexMatcher reducedBy(IndexMatcher other) {
+            return this;
+        }
+
+        @Override
+        public OnResponseIndexMatcher whenEmpty(RestMatchers.HttpResponseMatcher statusCode) {
+            return this;
+        }
+
+        @Override
+        public OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode) {
+            return this;
+        }
+    }
+
+    /**
+     * This asserts that the item we assert on contains not more than the expected indices.
+     * Usually, this is only associated with TestUser objects and used to reduce ContainsExactly matchers
+     * to even more limited ContainsExactly matchers.
+     */
+    static class LimitedToMatcher extends AbstractIndexMatcher implements OnUserIndexMatcher {
+
+        LimitedToMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap) {
+            super(indexNameMap, false);
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            if (expectedIndices.isEmpty()) {
+                if (this.statusCodeWhenEmpty.statusCode() == 200) {
+                    description.appendText("a 200 OK response with an empty result set");
+                } else {
+                    this.statusCodeWhenEmpty.describeTo(description);
+                }
+            } else {
+                description.appendText(
+                    "a 200 OK response no indices other than " + expectedIndices.keySet().stream().collect(Collectors.joining(", "))
+                );
+            }
+        }
+
+        @Override
+        protected boolean matchesImpl(Collection<?> actualItems, Description mismatchDescription, TestRestClient.HttpResponse response) {
+            return matchesByIndices(actualItems, mismatchDescription, response);
+        }
+
+        @Override
+        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
+            return expectedIndices.containsKey(testIndex.name());
+        }
+
+        protected boolean matchesByIndices(
+            Collection<?> collection,
+            Description mismatchDescription,
+            TestRestClient.HttpResponse response
+        ) {
+            ImmutableSet<String> expectedIndices = this.getExpectedIndices();
+            ImmutableSet.Builder<String> seenIndicesBuilder = ImmutableSet.builderWithExpectedSize(expectedIndices.size());
+
+            for (Object object : collection) {
+                seenIndicesBuilder.add(object.toString());
+            }
+
+            ImmutableSet<String> seenIndices = seenIndicesBuilder.build();
+            ImmutableSet<String> unexpectedIndices = Sets.difference(seenIndices, expectedIndices).immutableCopy();
+
+            if (unexpectedIndices.isEmpty()) {
+                return true;
+            } else {
+                mismatchDescription.appendText("result does contain indices that were not expected: ")
+                    .appendValue(unexpectedIndices)
+                    .appendText("\n\n")
+                    .appendValue(formatResponse(response));
+                return false;
+            }
+        }
+    }
+
+    /**
+     * This does no assertion on the expected indices. Usually, this is only associated with TestUser objects and used
+     * to signal that ContainsExactly matchers do not need to be reduced.
+     */
+    static class UnlimitedMatcher extends DiagnosingMatcher<Object> implements OnUserIndexMatcher {
+
+        private final boolean containsOpenSearchIndices;
+
+        UnlimitedMatcher() {
+            this.containsOpenSearchIndices = false;
+        }
+
+        UnlimitedMatcher(boolean containsOpenSearchIndices) {
+            this.containsOpenSearchIndices = containsOpenSearchIndices;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("unlimited indices");
+        }
+
+        @Override
+        protected boolean matches(Object item, Description mismatchDescription) {
+            if (item instanceof TestRestClient.HttpResponse response) {
+                if (response.getStatusCode() != 200) {
+                    mismatchDescription.appendText("Expected status code 200 but status was: ")
+                        .appendValue(response.getStatusCode() + " " + response.getStatusReason());
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public boolean containsOpenSearchSecurityIndex() {
+            return containsOpenSearchIndices;
+        }
+
+        @Override
+        public int size() {
+            throw new IllegalStateException("The UnlimitedMatcher cannot specify a size");
+        }
+
+        @Override
+        public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
+            return true;
         }
     }
 }
