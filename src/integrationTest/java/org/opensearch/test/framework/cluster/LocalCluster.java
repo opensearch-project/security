@@ -44,6 +44,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.ExternalResource;
 
+import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
@@ -106,6 +107,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private final List<TestDataStream> testDataStreams;
     private final List<TestComponentTemplate> testComponentTemplates;
     private final List<TestIndexTemplate> testIndexTemplates;
+    private final List<String> testSnapshotRepositories;
 
     private boolean loadConfigurationIntoIndex;
 
@@ -126,6 +128,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         List<TestDataStream> testDataStreams,
         List<TestComponentTemplate> testComponentTemplates,
         List<TestIndexTemplate> testIndexTemplates,
+        List<String> testSnapshotRepositories,
         boolean loadConfigurationIntoIndex,
         String defaultConfigurationInitDirectory,
         Integer expectedNodeStartupCount
@@ -147,6 +150,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         this.testDataStreams = testDataStreams;
         this.testComponentTemplates = testComponentTemplates;
         this.testIndexTemplates = testIndexTemplates;
+        this.testSnapshotRepositories = testSnapshotRepositories;
         this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
         if (StringUtils.isNoneBlank(defaultConfigurationInitDirectory)) {
             System.setProperty(INIT_CONFIGURATION_DIR, defaultConfigurationInitDirectory);
@@ -297,6 +301,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                 for (TestAlias alias : this.testAliases) {
                     alias.create(client);
                 }
+
+                for (String snapshotRepository : this.testSnapshotRepositories) {
+                    createSnapshotRepository(client, snapshotRepository);
+                }
             }
         } catch (Exception e) {
             log.error("Local ES cluster start failed", e);
@@ -349,6 +357,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
     }
 
+    private void createSnapshotRepository(Client client, String snapshotRepository) {
+        client.admin()
+            .cluster()
+            .putRepository(new PutRepositoryRequest(snapshotRepository).type("fs").settings(Map.of("location", getSnapshotDirPath())))
+            .actionGet();
+    }
+
     public CertificateData getAdminCertificate() {
         return testCertificates.getAdminCertificateData();
     }
@@ -369,6 +384,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private List<TestDataStream> testDataStreams = new ArrayList<>();
         private List<TestIndexTemplate> testIndexTemplates = new ArrayList<>();
         private List<TestComponentTemplate> testComponentTemplates = new ArrayList<>();
+        private List<String> testSnapshotRepositories = new ArrayList<>();
         private ClusterManager clusterManager = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
@@ -528,6 +544,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder snapshotRepositories(String... repositoryNames) {
+            this.testSnapshotRepositories.addAll(Arrays.asList(repositoryNames));
+            return this;
+        }
+
         public Builder users(TestSecurityConfig.User... users) {
             return this.users(Arrays.asList(users));
         }
@@ -670,6 +691,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     testDataStreams,
                     testComponentTemplates,
                     testIndexTemplates,
+                    testSnapshotRepositories,
                     loadConfigurationIntoIndex,
                     defaultConfigurationInitDirectory,
                     expectedNodeStartupCount
