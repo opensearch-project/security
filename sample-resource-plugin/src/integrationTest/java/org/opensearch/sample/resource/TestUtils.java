@@ -75,13 +75,11 @@ public final class TestUtils {
     public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_read_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:data/read*",
         "cluster:admin/sample-resource-plugin/get"
     );
     public static final TestSecurityConfig.ActionGroup sampleAllAG = new TestSecurityConfig.ActionGroup(
         "sample_plugin_index_all_access",
         TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:*",
         "cluster:admin/sample-resource-plugin/*",
         "cluster:admin/security/resource/share"
     );
@@ -161,6 +159,18 @@ public final class TestUtils {
             }
             """.formatted(accessLevel, user);
 
+    }
+
+    public static String shareWithRolePayload(String role, String accessLevel) {
+        return """
+            {
+              "share_with": {
+                "%s" : {
+                    "roles": ["%s"]
+                }
+              }
+            }
+            """.formatted(accessLevel, role);
     }
 
     static String migrationPayload_valid() {
@@ -563,6 +573,22 @@ public final class TestUtils {
             int status
         ) {
             assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
+        }
+
+        public void assertApiShareByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel,
+            int status
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(
+                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                    shareWithRolePayload(targetRole, accessLevel)
+                );
+                response.assertStatusCode(status);
+            }
         }
 
         private void assertRevoke(

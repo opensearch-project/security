@@ -134,4 +134,33 @@ public class MixedAccessTests {
         assertFullAccess(LIMITED_ACCESS_USER);
     }
 
+    private String getActualRoleName(TestSecurityConfig.User user, String baseRoleName) {
+        return "user_" + user.getName() + "__" + baseRoleName;
+    }
+
+    @Test
+    public void multipleRoles_multipleLevels() {
+        assertNoAccessBeforeSharing(FULL_ACCESS_USER);
+        assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
+
+        String fullAccessUserRole = getActualRoleName(FULL_ACCESS_USER, "shared_role");
+        String limitedAccessUserRole = getActualRoleName(LIMITED_ACCESS_USER, "shared_role_limited_perms");
+
+        // 1. share at read-only for shared_role and at full-access for shared_role_limited_perms
+        api.assertApiShareByRole(resourceId, USER_ADMIN, fullAccessUserRole, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+        api.assertApiShareByRole(resourceId, USER_ADMIN, limitedAccessUserRole, sampleAllAG.name(), HttpStatus.SC_OK);
+        api.awaitSharingEntry(resourceId, fullAccessUserRole);
+        api.awaitSharingEntry(resourceId, limitedAccessUserRole);
+
+        // 2. check read-only access for FULL_ACCESS_USER (has shared_role)
+        assertReadOnly(FULL_ACCESS_USER);
+
+        // 3. LIMITED_ACCESS_USER (has shared_role_limited_perms) shares with shared_role at sampleAllAG
+        api.assertApiShareByRole(resourceId, LIMITED_ACCESS_USER, fullAccessUserRole, sampleAllAG.name(), HttpStatus.SC_OK);
+        api.awaitSharingEntry(resourceId, fullAccessUserRole);
+
+        // 4. FULL_ACCESS_USER now has full-access to admin's resource
+        assertFullAccess(FULL_ACCESS_USER);
+    }
+
 }

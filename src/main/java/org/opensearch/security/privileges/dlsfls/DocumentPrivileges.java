@@ -10,6 +10,7 @@
  */
 package org.opensearch.security.privileges.dlsfls;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -211,6 +212,19 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
         public String getRenderedSource() {
             return renderedSource;
         }
+    }
+
+    public static RenderedDlsQuery getRenderedDlsQuery(NamedXContentRegistry xContentRegistry, String query) throws IOException {
+        return new RenderedDlsQuery(parseQuery(xContentRegistry, query), query);
+    }
+
+    static QueryBuilder parseQuery(NamedXContentRegistry xContentRegistry, String queryString) throws IOException {
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            queryString
+        );
+        return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
     }
 
 }
