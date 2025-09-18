@@ -10,8 +10,11 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +30,7 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -38,10 +42,12 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
+import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -56,15 +62,18 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 /**
  * This class handles the creation and management of the resource sharing index.
@@ -79,11 +88,13 @@ public class ResourceSharingIndexHandler {
     private final Client client;
 
     private final ThreadPool threadPool;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
-    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
+    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool, final ResourcePluginInfo resourcePluginInfo) {
         this.client = client;
         this.threadPool = threadPool;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
@@ -304,9 +315,35 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to fetch own and shared documents based on action-group match.
+     * Fetches all resource-sharing records for a given resource-index
+     * @param resourceIndex the index whose resource-sharing records are to be fetched
+     * @param listener to collect and return the sharing records
+     */
+    public void fetchAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        LOGGER.debug("Fetching all resource-sharing records asynchronously from {}", resourceSharingIndex);
+        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
+
+            MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
+
+            executeAllSearchRequest(resourceIndex, scroll, searchRequest, query, ActionListener.wrap(recs -> {
+                ctx.restore();
+                LOGGER.debug("Found {} resource-sharing records in {}", recs.size(), resourceSharingIndex);
+                listener.onResponse(recs);
+            }, exception -> {
+                LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
+                listener.onFailure(exception);
+            }));
+        }
+    }
+
+    /**
+     * Helper method to fetch own and shared document IDs based on action-group match.
      * This method uses scroll API to handle large result sets efficiently.
-     *
      *
      * @param resourceIndex The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
@@ -649,7 +686,7 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceId      The ID of the resource from which to revoke access
      * @param resourceIndex   The name of the system index where the resource exists
-     * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
+     * @param revokeAccess    A map containing entity list (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                        values to be removed from the sharing configuration
      * @param listener        Listener to be notified when the operation completes
      * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
@@ -757,7 +794,15 @@ public class ResourceSharingIndexHandler {
                 updatedShareWith = updatedShareWith.revoke(revoke);
             }
 
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
+            ShareWith cleaned = null;
+            if (updatedShareWith != null) {
+                ShareWith pruned = updatedShareWith.prune();
+                if (!pruned.isPrivate()) {
+                    cleaned = pruned; // store only if something non-empty remains
+                }
+            }
+
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
@@ -891,8 +936,188 @@ public class ResourceSharingIndexHandler {
         searchStep.whenComplete(initialResponse -> {
             Set<String> collectedResourceIds = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResultsAndCollectResourceIds(
+                collectedResourceIds,
+                scroll,
+                scrollId,
+                initialResponse.getHits().getHits(),
+                listener
+            );
         }, listener::onFailure);
+    }
+
+    /**
+     * Executes a search request and returns a set of collected resource-sharing documents using scroll.
+     * @param resourceIndex the index whose records are to be searched
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param query         Query builder for the request
+     * @param listener      Listener to receive the collected resource sharing records
+     */
+    private void executeAllSearchRequest(
+        String resourceIndex,
+        Scroll scroll,
+        SearchRequest searchRequest,
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
+            .size(1000)
+            .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
+
+        searchRequest.source(searchSourceBuilder);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            Set<SharingRecord> recs = new HashSet<>();
+            String scrollId = initialResponse.getScrollId();
+            processScrollResultsAndCollectSharingRecords(
+                null,
+                true,
+                resourceIndex,
+                recs,
+                scroll,
+                scrollId,
+                initialResponse.getHits().getHits(),
+                listener
+            );
+        }, listener::onFailure);
+    }
+
+    /**
+     * Fetches resource-sharing records for this user for a given resource-index.
+     * Executes in 2 steps:
+     * Step-1:
+     *  - Fetch field mappings and create a terms query to match against all action-groups in shared_with block, as well as creator name.
+     * Step-2:
+     *  - Use the terms query to search resource-sharing index to fetch matching records.
+     *
+     * @param resourceIndex the index for which records are to be searched
+     * @param user the user that is requesting the records
+     * @param flatPrincipals user's name, roles, backend_roles to be used for matching.
+     * @param listener to collect and return accessible sharing records
+     */
+    @SuppressWarnings("unchecked")
+    public void fetchAccessibleResourceSharingRecords(
+        String resourceIndex,
+        User user,
+        Set<String> flatPrincipals,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        final String resourceSharingIndex = getSharingIndex(resourceIndex);
+        final ThreadContext.StoredContext stored = this.threadPool.getThreadContext().stashContext();
+
+        // Split principals once
+        final List<String> users = new ArrayList<>(), roles = new ArrayList<>(), backends = new ArrayList<>();
+        for (String p : flatPrincipals) {
+            if (p.startsWith("user:")) users.add(p.substring(5));
+            else if (p.startsWith("role:")) roles.add(p.substring(5));
+            else if (p.startsWith("backend:")) backends.add(p.substring(8));
+        }
+
+        // 1) Discover concrete fields via mappings (works with aliases and multiple backing indices)
+        final GetMappingsRequest req = new GetMappingsRequest().indices(resourceSharingIndex);
+        client.admin().indices().getMappings(req, ActionListener.wrap(resp -> {
+            final Set<String> userFields = new LinkedHashSet<>();
+            final Set<String> roleFields = new LinkedHashSet<>();
+            final Set<String> backendFields = new LinkedHashSet<>();
+
+            // Resolve creator field (keyword-safe)
+            String createdByField = "created_by.user";
+
+            for (String idx : resp.mappings().keySet()) {
+                MappingMetadata m = resp.mappings().get(idx);
+                Map<String, Object> source = m.getSourceAsMap();
+                Map<String, Object> props = (Map<String, Object>) source.get("properties");
+                if (props == null) continue;
+
+                // created_by.user -> prefer keyword; fallback to raw
+                createdByField = resolveKeywordFieldPath(props, List.of("created_by", "user"), "created_by.user", createdByField);
+
+                // share_with.* expansion
+                Map<String, Object> shareWith = (Map<String, Object>) props.get("share_with");
+                if (shareWith == null) continue;
+                Map<String, Object> swProps = (Map<String, Object>) shareWith.get("properties");
+                if (swProps == null) continue;
+
+                for (Map.Entry<String, Object> e : swProps.entrySet()) {
+                    String group = e.getKey();
+                    Map<String, Object> groupObj = (Map<String, Object>) e.getValue();
+                    Map<String, Object> groupProps = (Map<String, Object>) groupObj.get("properties");
+                    if (groupProps == null) continue;
+
+                    String base = "share_with." + group;
+
+                    String usersPath = resolveKeywordFieldPath(groupProps, List.of("users"), base + ".users", null);
+                    String rolesPath = resolveKeywordFieldPath(groupProps, List.of("roles"), base + ".roles", null);
+                    String backendPath = resolveKeywordFieldPath(groupProps, List.of("backend_roles"), base + ".backend_roles", null);
+
+                    if (usersPath != null) userFields.add(usersPath);
+                    if (rolesPath != null) roleFields.add(rolesPath);
+                    if (backendPath != null) backendFields.add(backendPath);
+                }
+            }
+
+            // 2) Build native bool query (filter context → cacheable)
+            BoolQueryBuilder should = QueryBuilders.boolQuery().should(QueryBuilders.termQuery(createdByField, user.getName()));
+
+            if (!users.isEmpty()) for (String f : userFields)
+                should.should(QueryBuilders.termsQuery(f, users));
+            if (!roles.isEmpty()) for (String f : roleFields)
+                should.should(QueryBuilders.termsQuery(f, roles));
+            if (!backends.isEmpty()) for (String f : backendFields)
+                should.should(QueryBuilders.termsQuery(f, backends));
+
+            BoolQueryBuilder accessQuery = QueryBuilders.boolQuery().filter(should.minimumShouldMatch(1));
+
+            // 3) Execute the search (scroll) using the native query
+            final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
+
+            SearchSourceBuilder ssb = new SearchSourceBuilder().query(accessQuery) // already filter-context
+                .size(1000)
+                .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
+            searchRequest.source(ssb);
+
+            StepListener<SearchResponse> searchStep = new StepListener<>();
+            client.search(searchRequest, searchStep);
+
+            searchStep.whenComplete(initialResponse -> {
+                try {
+                    Set<SharingRecord> recs = new HashSet<>();
+                    String scrollId = initialResponse.getScrollId();
+                    processScrollResultsAndCollectSharingRecords(
+                        user,
+                        false,
+                        resourceIndex,
+                        recs,
+                        scroll,
+                        scrollId,
+                        initialResponse.getHits().getHits(),
+                        ActionListener.wrap(records -> {
+                            stored.restore();
+                            listener.onResponse(records);
+                        }, e -> {
+                            stored.restore();
+                            listener.onFailure(e);
+                        })
+                    );
+                } catch (Exception e) {
+                    stored.restore();
+                    listener.onFailure(e);
+                }
+            }, e -> {
+                stored.restore();
+                listener.onFailure(e);
+            });
+
+        }, e -> {
+            stored.restore();
+            listener.onFailure(e);
+        }));
     }
 
     /**
@@ -904,7 +1129,7 @@ public class ResourceSharingIndexHandler {
      * @param hits                 Search hits
      * @param listener             Listener to receive final set of resource IDs
      */
-    private void processScrollResults(
+    private void processScrollResultsAndCollectResourceIds(
         Set<String> collectedResourceIds,
         Scroll scroll,
         String scrollId,
@@ -927,11 +1152,79 @@ public class ResourceSharingIndexHandler {
         client.searchScroll(
             scrollRequest,
             ActionListener.wrap(
-                scrollResponse -> processScrollResults(
+                scrollResponse -> processScrollResultsAndCollectResourceIds(
                     collectedResourceIds,
                     scroll,
                     scrollResponse.getScrollId(),
                     scrollResponse.getHits().getHits(),
+                    listener
+                ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
+    }
+
+    /**
+     * Recursively processes scroll results and collects resource sharing records.
+     *
+     * @param resourceSharingRecords Internal accumulator for resource sharing records
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource sharing records
+     */
+    private void processScrollResultsAndCollectSharingRecords(
+        User user,
+        boolean isAdmin,
+        String resourceIndex,
+        Set<SharingRecord> resourceSharingRecords,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(resourceSharingRecords), listener::onFailure));
+            return;
+        }
+
+        for (SearchHit hit : hits) {
+            try (
+                XContentParser parser = XContentHelper.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    hit.getSourceRef(),
+                    XContentType.JSON
+                )
+            ) {
+                parser.nextToken();
+                ResourceSharing rs = ResourceSharing.fromXContent(parser);
+                boolean canShare = canUserShare(user, isAdmin, rs, resourceIndex);
+                resourceSharingRecords.add(new SharingRecord(rs, canShare));
+            } catch (Exception e) {
+                // TODO: Decide how strict should this failure be:
+                // Option A: fail-fast
+                // listener.onFailure(e); return;
+                // Option B: log & skip bad docs
+                LOGGER.warn("Failed to parse resource-sharing doc id={}", hit.getId(), e);
+            }
+        }
+
+        final SearchScrollRequest scrollReq = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollReq,
+            ActionListener.wrap(
+                sr -> processScrollResultsAndCollectSharingRecords(
+                    user,
+                    isAdmin,
+                    resourceIndex,
+                    resourceSharingRecords,
+                    scroll,
+                    sr.getScrollId(),
+                    sr.getHits().getHits(),
                     listener
                 ),
                 e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
@@ -960,6 +1253,89 @@ public class ResourceSharingIndexHandler {
             LOGGER.warn("Failed to clear scroll context", e);
             listener.onResponse(null);
         }));
+    }
+
+    // **** Check whether user can share this record further
+    /** Resolve access-level for THIS resource type and check required action. */
+    public boolean groupAllows(String resourceIndex, String accessLevel, String requiredAction) {
+        String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
+        if (resourceType == null || accessLevel == null || requiredAction == null) return false;
+        return resourcePluginInfo.flattenedForType(resourceType).resolve(Set.of(accessLevel)).contains(requiredAction);
+    }
+
+    /**
+     * Checks whether current user has sharing permission, i.e {@link ShareAction#NAME}
+     */
+    public boolean canUserShare(User user, boolean isAdmin, ResourceSharing resource, String resourceType) {
+        if (resource == null) return false;
+
+        if (isAdmin || resource.isCreatedBy(user.getName())) return true;
+
+        var sw = resource.getShareWith();
+        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
+
+        Set<String> users = Set.of(user.getName());
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        Set<String> backend = new HashSet<>(user.getRoles());
+
+        for (String level : sw.getSharingInfo().keySet()) {
+            if (!groupAllows(resourceType, level, ShareAction.NAME)) continue;
+
+            var recips = sw.atAccessLevel(level);
+            if (recips == null) continue;
+
+            var u = recips.getRecipients().getOrDefault(Recipient.USERS, Set.of());
+            var r = recips.getRecipients().getOrDefault(Recipient.ROLES, Set.of());
+            var b = recips.getRecipients().getOrDefault(Recipient.BACKEND_ROLES, Set.of());
+
+            boolean matches = u.contains("*")
+                || r.contains("*")
+                || b.contains("*")
+                || !Collections.disjoint(u, users)
+                || !Collections.disjoint(r, roles)
+                || !Collections.disjoint(b, backend);
+
+            if (matches) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resolves a path to a keyword-searchable field:
+     * - If target is "keyword"/"constant_keyword", returns basePath.
+     * - If it's "text" with a "keyword" subfield, returns basePath + ".keyword".
+     * - Otherwise returns fallback (or null).
+     */
+    @SuppressWarnings("unchecked")
+    private String resolveKeywordFieldPath(Map<String, Object> parentProps, List<String> pathSegments, String basePath, String fallback) {
+        Map<String, Object> current = parentProps;
+        Map<String, Object> leaf = null;
+
+        for (int i = 0; i < pathSegments.size(); i++) {
+            Object node = current.get(pathSegments.get(i));
+            if (!(node instanceof Map)) return fallback;
+            Map<String, Object> nodeMap = (Map<String, Object>) node;
+
+            if (i == pathSegments.size() - 1) {
+                leaf = nodeMap;
+            } else {
+                current = (Map<String, Object>) nodeMap.get("properties");
+                if (current == null) return fallback;
+            }
+        }
+        if (leaf == null) return fallback;
+
+        Object type = leaf.get("type");
+        if ("keyword".equals(type) || "constant_keyword".equals(type)) return basePath;
+
+        Map<String, Object> fields = (Map<String, Object>) leaf.get("fields");
+        if (fields != null) {
+            Object kw = fields.get("keyword");
+            if (kw instanceof Map && "keyword".equals(((Map<String, Object>) kw).get("type"))) {
+                return basePath + ".keyword";
+            }
+        }
+        return fallback;
     }
 
 }
