@@ -47,7 +47,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
 
 public class SSLRequestHelper {
 
