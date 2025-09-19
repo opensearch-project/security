@@ -413,7 +413,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                             request,
                             action0,
                             user,
-                            optionallyResolvedIndices,
                             context
                         );
 
@@ -472,7 +471,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 request,
                 action0,
                 user,
-                optionallyResolvedIndices,
                 context
             );
 

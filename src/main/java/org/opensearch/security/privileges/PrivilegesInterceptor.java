@@ -91,7 +91,6 @@ public class PrivilegesInterceptor {
         final ActionRequest request,
         final String action,
         final User user,
-        final OptionallyResolvedIndices requestedResolved,
         final PrivilegesEvaluationContext context
     ) {
         throw new RuntimeException("not implemented");

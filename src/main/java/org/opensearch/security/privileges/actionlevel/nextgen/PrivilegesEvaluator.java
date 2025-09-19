@@ -227,14 +227,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             return result;
         }
 
-        OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
-        if (log.isTraceEnabled()) {
-            if (request instanceof IndicesRequest indicesRequest) {
-                log.trace("IndicesRequest: {} {}", indicesRequest.indices(), indicesRequest.indicesOptions());
-            }
-            log.trace("ResolvedIndices: {}", optionallyResolvedIndices);
-        }
-
         if (isClusterPermission(action)) {
             PrivilegesEvaluatorResponse result = checkClusterPermission(context, action, request);
             logPrivilegeEvaluationResult(context, result, "cluster");
@@ -261,7 +253,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             request,
             action,
             context.getUser(),
-            context.getResolvedRequest(),
             context
         );
 
@@ -288,13 +279,10 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             return PrivilegesEvaluatorResponse.ok();
         }
 
-        OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
-
         PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
             request,
             action,
             context.getUser(),
-            optionallyResolvedIndices,
             context
         );
 
@@ -308,6 +296,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
                 return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
             }
         }
+
+        OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
 
         if (request instanceof GetAliasesRequest getAliasesRequest
             && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {

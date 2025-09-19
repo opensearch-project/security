@@ -106,7 +106,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final ActionRequest request,
         final String action,
         final User user,
-        final OptionallyResolvedIndices optionallyResolvedIndices,
         final PrivilegesEvaluationContext context
     ) {
         DashboardsMultiTenancyConfiguration config = this.multiTenancyConfigurationSupplier.get();
@@ -117,6 +116,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
+        OptionallyResolvedIndices optionallyResolvedIndices = context.getResolvedRequest();
         TenantPrivileges tenantPrivileges = this.tenantPrivilegesSupplier.get();
 
         if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
