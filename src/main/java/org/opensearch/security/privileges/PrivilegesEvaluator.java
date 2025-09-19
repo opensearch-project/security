@@ -73,6 +73,8 @@ public interface PrivilegesEvaluator {
 
     boolean notFailOnForbiddenEnabled();
 
+    boolean isInitialized();
+
     /**
      * A PrivilegesEvaluator implementation that just throws "not initialized" exceptions.
      * Used initially by PrivilegesConfiguration.
@@ -126,6 +128,11 @@ public interface PrivilegesEvaluator {
 
         @Override
         public boolean notFailOnForbiddenEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isInitialized() {
             return false;
         }
 

@@ -127,7 +127,24 @@ public class PrivilegesEvaluatorResponse {
         String result = this.privilegeMatrix;
 
         if (result == null) {
-            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            String topLevelMatrix;
+
+            if (this.indexToActionCheckTable != null) {
+                topLevelMatrix = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            } else {
+                topLevelMatrix = "n/a";
+            }
+
+            if (subResults.isEmpty()) {
+                result = topLevelMatrix;
+            } else {
+                StringBuilder resultBuilder = new StringBuilder(topLevelMatrix);
+                for (PrivilegesEvaluatorResponse subResult : subResults) {
+                    resultBuilder.append("\n");
+                    resultBuilder.append(subResult.getPrivilegeMatrix());
+                }
+                result = resultBuilder.toString();
+            }
             this.privilegeMatrix = result;
         }
         return result;
@@ -141,8 +158,40 @@ public class PrivilegesEvaluatorResponse {
         return createIndexRequestBuilder;
     }
 
-    public PrivilegesEvaluatorResponse markComplete() {
-        this.state = PrivilegesEvaluatorResponseState.COMPLETE;
+    public PrivilegesEvaluatorResponse originalResult() {
+        return this.originalResult;
+    }
+
+    public boolean privilegesAreComplete() {
+        if (originalResult != null && !originalResult.privilegesAreComplete()) {
+            return false;
+        } else if (indexToActionCheckTable != null && !indexToActionCheckTable.isComplete()) {
+            return false;
+        } else if (!subResults.isEmpty() && subResults.stream().anyMatch(subResult -> !subResult.privilegesAreComplete())) {
+            return false;
+        } else {
+            return this.allowed;
+        }
+    }
+
+    public PrivilegesEvaluatorResponse insufficient(List<PrivilegesEvaluatorResponse> subResults) {
+        String reason = this.reason;
+        if (reason == null) {
+            reason = subResults.stream().map(result -> result.reason).filter(Objects::nonNull).findFirst().orElse(null);
+        }
+        PrivilegesEvaluatorResponse result = new PrivilegesEvaluatorResponse();
+        result.allowed = false;
+        result.indexToActionCheckTable = this.indexToActionCheckTable;
+        result.subResults = ImmutableList.copyOf(subResults);
+        result.reason = reason;
+        return result;
+    }
+
+    public PrivilegesEvaluatorResponse originalResult(PrivilegesEvaluatorResponse originalResult) {
+        if (originalResult != null && !originalResult.evaluationExceptions.isEmpty()) {
+            this.originalResult = originalResult;
+            this.evaluationExceptions.addAll(originalResult.evaluationExceptions);
+        }
         return this;
     }
 

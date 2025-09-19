@@ -162,6 +162,11 @@ import static org.hamcrest.Matchers.equalTo;
             public boolean notFailOnForbiddenEnabled() {
                 return false;
             }
+
+            @Override
+            public boolean isInitialized() {
+                return true;
+            }
         };
 
     }

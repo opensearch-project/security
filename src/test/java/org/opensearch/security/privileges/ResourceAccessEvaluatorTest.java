@@ -88,7 +88,6 @@ public class ResourceAccessEvaluatorTest {
 
         PrivilegesEvaluatorResponse out = captor.getValue();
         assertThat(out.allowed, equalTo(expectedAllowed));
-        assertThat(out.isComplete(), equalTo(true));
     }
 
     @Test

@@ -117,10 +117,7 @@ public class PrivilegesConfiguration {
                 PrivilegesEvaluationType privilegesEvaluationType = PrivilegesEvaluationType.getFrom(
                     configurationRepository.getConfiguration(CType.CONFIG)
                 );
-                PrivilegesEvaluationType currentEvaluationType = currentPrivilegesEvaluator == null ? null
-                    : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
-                        ? PrivilegesEvaluationType.LEGACY
-                    : PrivilegesEvaluationType.NEXT_GEN;
+                PrivilegesEvaluationType currentEvaluationType = PrivilegesEvaluationType.typeOf(currentPrivilegesEvaluator);
 
                 if (privilegesEvaluationType != currentEvaluationType) {
                     if (privilegesEvaluationType == PrivilegesEvaluationType.LEGACY) {
@@ -147,23 +144,24 @@ public class PrivilegesConfiguration {
                         }
                     } else {
                         PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                                new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
-                                        clusterService,
-                                        clusterStateSupplier,
-                                        roleMapper,
-                                        threadPool,
-                                        threadPool.getThreadContext(),
-                                        resolver,
-                                        auditLog,
-                                        settings,
-                                        privilegesInterceptor,
-                                        flattenedActionGroups,
-                                        staticActionGroups,
-                                        rolesConfiguration,
-                                        generalConfiguration,
-                                        pluginIdToRolePrivileges,
-                                        new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(this.specialIndices::isUniversallyDeniedIndex, this.specialIndices::isSystemIndex)
+                            new org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator(
+                                clusterStateSupplier,
+                                roleMapper,
+                                threadPool,
+                                threadPool.getThreadContext(),
+                                resolver,
+                                settings,
+                                privilegesInterceptor,
+                                flattenedActionGroups,
+                                staticActionGroups,
+                                rolesConfiguration,
+                                generalConfiguration,
+                                pluginIdToRolePrivileges,
+                                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                                    this.specialIndices::isUniversallyDeniedIndex,
+                                    this.specialIndices::isSystemIndex
                                 )
+                            )
                         );
                         if (oldInstance != null) {
                             oldInstance.shutdown();
@@ -239,6 +237,10 @@ public class PrivilegesConfiguration {
         pluginIdToRolePrivileges.put(pluginIdentifier, pluginPermissions);
     }
 
+    public boolean isInitialized() {
+        return this.privilegesEvaluator().isInitialized();
+    }
+
     /**
      * TODO: Think about better names
      */
@@ -261,6 +263,16 @@ public class PrivilegesConfiguration {
                 return NEXT_GEN;
             } else {
                 return LEGACY;
+            }
+        }
+
+        static PrivilegesEvaluationType typeOf(PrivilegesEvaluator privilegesEvaluator) {
+            if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator) {
+                return PrivilegesEvaluationType.LEGACY;
+            } else if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator) {
+                return PrivilegesEvaluationType.NEXT_GEN;
+            } else {
+                return null;
             }
         }
     }

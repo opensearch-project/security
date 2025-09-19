@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
@@ -414,6 +415,11 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             }
         }
 
+        /**
+         * When we have finished the "normal" privilege evaluation, which is based on index_permissions in roles.yml,
+         * we have to pass the CheckTable with the available privileges through this method in order to have specially
+         * protected indices and actions removed again from the CheckTable.
+         */
         protected PrivilegesEvaluatorResponse finalizeResult(PrivilegesEvaluationContext context, IntermediateResult intermediateResult) {
             CheckTable<String, String> checkTable = intermediateResult.indexToActionCheckTable;
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>(intermediateResult.exceptions);
@@ -421,12 +427,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                 checkTable.uncheckIf(this.universallyDeniedIndices, checkTable.getColumns());
             }
             if (this.indicesNeedingSystemIndexPrivileges != null) {
-                // TODO aliases
-                checkTable.uncheckIf(
-                    index -> this.indicesNeedingSystemIndexPrivileges.test(index)
-                        && !providesExplicitPrivilege(context, index, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions),
-                    checkTable.getColumns()
-                );
+                checkTable.uncheckIf(index -> this.isUnauthorizedSystemIndex(context, index, exceptions), checkTable.getColumns());
             }
 
             if (checkTable.isComplete()) {
@@ -450,6 +451,36 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
             return PrivilegesEvaluatorResponse.insufficient(checkTable).reason(reason).evaluationExceptions(exceptions);
 
+        }
+
+        /**
+         * Returns true if the given indexOrAlias is a system index or an alias containing a system index AND if
+         * the current user does not have the necessary explicit privilege to access this system index.
+         */
+        private boolean isUnauthorizedSystemIndex(
+            PrivilegesEvaluationContext context,
+            String indexOrAlias,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
+                return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+            }
+
+            IndexAbstraction indexAbstraction = context.getIndicesLookup().get(indexOrAlias);
+            if (indexAbstraction instanceof IndexAbstraction.Alias alias) {
+                for (IndexMetadata index : alias.getIndices()) {
+                    if (this.indicesNeedingSystemIndexPrivileges.test(index.getIndex().getName())) {
+                        return !providesExplicitPrivilege(
+                            context,
+                            index.getIndex().getName(),
+                            ConfigConstants.SYSTEM_INDEX_PERMISSION,
+                            exceptions
+                        );
+                    }
+                }
+            }
+
+            return false;
         }
     }
 

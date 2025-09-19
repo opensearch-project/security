@@ -636,7 +636,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         settings,
                         restController,
                         Objects.requireNonNull(backendRegistry),
-                        Objects.requireNonNull(evaluator)
+                        Objects.requireNonNull(privilegesConfiguration)
                     )
                 );
                 handlers.add(

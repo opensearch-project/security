@@ -263,26 +263,25 @@ public class SystemIndexAccessEvaluator {
         // the following section should only be run for index actions
         if (user.isPluginUser() && !isClusterPermissionStatic(action)) {
             if (this.isSystemIndexEnabled) {
-            PluginSystemIndexSelection pluginSystemIndexSelection = areIndicesPluginSystemIndices(
+                PluginSystemIndexSelection pluginSystemIndexSelection = areIndicesPluginSystemIndices(
                     context,
                     user.getName().replace("plugin:", ""),
                     requestedResolved
-            );
-            if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES) {
-                // plugin is authorized to perform any actions on its own registered system indices
-                return PrivilegesEvaluatorResponse.ok();
-            } else if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES) {
-                if (log.isInfoEnabled()) {
-                    log.info(
-                        "Plugin {} can only perform {} on it's own registered System Indices. Resolved indices: {}",
-                        user.getName(),
-                        action,
-                        requestedResolved
-                    );
+                );
+                if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES) {
+                    // plugin is authorized to perform any actions on its own registered system indices
+                    return PrivilegesEvaluatorResponse.ok();
+                } else if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES) {
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                            "Plugin {} can only perform {} on it's own registered System Indices. Resolved indices: {}",
+                            user.getName(),
+                            action,
+                            requestedResolved
+                        );
+                    }
+                    return PrivilegesEvaluatorResponse.insufficient(action);
                 }
-                return PrivilegesEvaluatorResponse.insufficient(action);
-                return;
-            }
             } else {
                 // no system index protection and request originating from plugin, allow
                 return PrivilegesEvaluatorResponse.ok();
