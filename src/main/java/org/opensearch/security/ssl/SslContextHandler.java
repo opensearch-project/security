@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -57,8 +58,17 @@ public class SslContextHandler {
         return sslContext.newEngine(NettyAllocator.getAllocator());
     }
 
-    public SSLEngine createSSLEngine(final String hostname, final int port) {
-        return sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+    /**
+     * Creates a SSL engine for usage as a client. In this case, we can optionally perform hostname verification.
+     */
+    public SSLEngine createClientSSLEngine(final String hostname, final int port) {
+        SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+        if (hostname != null) {
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            sslEngine.setSSLParameters(sslParams);
+        }
+        return sslEngine;
     }
 
     public SslConfiguration sslConfiguration() {
