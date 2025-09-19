@@ -48,7 +48,7 @@ public class ReadOnlyAccessTests {
     @Before
     public void setup() {
         resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(); // wait until sharing entry is created
+        api.awaitSharingEntry(resourceId); // wait until sharing entry is created
     }
 
     @After
@@ -82,7 +82,7 @@ public class ReadOnlyAccessTests {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         // share at sampleReadOnly level
         api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(FULL_ACCESS_USER.getName()); // wait until sharing info is populated
+        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(FULL_ACCESS_USER);
     }
 
@@ -91,7 +91,7 @@ public class ReadOnlyAccessTests {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // share at sampleReadOnly level
         api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
+        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(LIMITED_ACCESS_USER);
     }
 
@@ -100,7 +100,7 @@ public class ReadOnlyAccessTests {
         assertNoAccessBeforeSharing(NO_ACCESS_USER);
         // share at sampleReadOnly level
         api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(NO_ACCESS_USER.getName()); // wait until sharing info is populated
+        api.awaitSharingEntry(resourceId, NO_ACCESS_USER.getName()); // wait until sharing info is populated
         assertReadOnly(NO_ACCESS_USER);
     }
 

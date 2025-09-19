@@ -49,7 +49,7 @@ public class AdminCertificateAccessTests {
     public void adminCertificate_canCRUD() {
         TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
         String resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(); // wait until sharing entry is created
+        api.awaitSharingEntry(resourceId); // wait until sharing entry is created
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
             resp.assertStatusCode(HttpStatus.SC_OK);
