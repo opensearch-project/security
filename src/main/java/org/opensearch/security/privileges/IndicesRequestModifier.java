@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
+import org.opensearch.action.admin.indices.segments.PitSegmentsRequest;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
 /**
@@ -32,7 +33,10 @@ public class IndicesRequestModifier {
             return setLocalIndicesToEmpty(targetRequest, resolvedIndices);
         }
 
-        if (targetRequest instanceof IndicesRequest.Replaceable) {
+        if (targetRequest instanceof PitSegmentsRequest) {
+            // PitSegmentsRequest implements IndicesRequest.Replaceable, but ignores all specified indices
+            return false;
+        } else if (targetRequest instanceof IndicesRequest.Replaceable) {
             ((IndicesRequest.Replaceable) targetRequest).indices(concat(newIndices, resolvedIndices.remote().asRawExpressions()));
             return true;
         } else {
@@ -41,7 +45,10 @@ public class IndicesRequestModifier {
     }
 
     public boolean setLocalIndicesToEmpty(ActionRequest targetRequest, ResolvedIndices resolvedIndices) {
-        if (targetRequest instanceof IndicesRequest.Replaceable replaceable) {
+        if (targetRequest instanceof PitSegmentsRequest) {
+            // PitSegmentsRequest implements IndicesRequest.Replaceable, but ignores all specified indices
+            return false;
+        } else if (targetRequest instanceof IndicesRequest.Replaceable replaceable) {
             if (resolvedIndices.remote().isEmpty()) {
                 if (replaceable.indicesOptions().expandWildcardsOpen() || replaceable.indicesOptions().expandWildcardsClosed()) {
                     // If the request expands wildcards, we use an index expression which resolves to no indices

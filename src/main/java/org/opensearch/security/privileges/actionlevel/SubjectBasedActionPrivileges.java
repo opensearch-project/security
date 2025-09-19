@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -47,6 +48,24 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
  * This class is useful for plugin users and API tokens.
  */
 public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges {
+
+    public static ImmutableMap<String, ActionPrivileges> buildFromMap(
+        Map<String, RoleV7> pluginIdToRolePrivileges,
+        FlattenedActionGroups staticActionGroups,
+        RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
+    ) {
+        Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
+
+        for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
+            result.put(
+                entry.getKey(),
+                new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups, specialIndexProtection, false)
+            );
+        }
+
+        return ImmutableMap.copyOf(result);
+    }
+
     private static final Logger log = LogManager.getLogger(SubjectBasedActionPrivileges.class);
 
     /**
