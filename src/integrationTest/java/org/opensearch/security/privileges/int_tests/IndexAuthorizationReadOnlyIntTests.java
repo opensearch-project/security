@@ -241,10 +241,10 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .indexPermissions("read", "indices_monitor", "indices:admin/analyze")
                 .on("index_c*")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/analyze", "system:admin/system_index")
-                .on(".system_index_plugin")
+                .on(".system_index_plugin", ".alias_with_system_index")
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
-        .indexMatcher("read_nextgen", limitedTo(index_c1, system_index_plugin))//
+        .indexMatcher("read_nextgen", limitedTo(index_c1, system_index_plugin, alias_with_system_index))//
         .indexMatcher("get_alias", limitedToNone());
 
     /**

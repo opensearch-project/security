@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
@@ -511,10 +512,8 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                 checkTable.uncheckIf(this.universallyDeniedIndices, checkTable.getColumns());
             }
             if (this.indicesNeedingSystemIndexPrivileges != null) {
-                // TODO aliases
                 checkTable.uncheckIf(
-                    index -> this.indicesNeedingSystemIndexPrivileges.test(index)
-                        && !providesExplicitPrivilege(context, index, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions),
+                    index -> this.isUnauthorizedSystemIndex(context, index, exceptions),
                     checkTable.getColumns()
                 );
             }
@@ -541,6 +540,24 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             return PrivilegesEvaluatorResponse.insufficient(checkTable).reason(reason).evaluationExceptions(exceptions);
 
         }
+
+        private boolean isUnauthorizedSystemIndex(PrivilegesEvaluationContext context, String indexOrAlias, List<PrivilegesEvaluationException> exceptions) {
+            if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
+                return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+            }
+
+            IndexAbstraction indexAbstraction = context.getIndicesLookup().get(indexOrAlias);
+            if (indexAbstraction instanceof IndexAbstraction.Alias alias) {
+                for (IndexMetadata index : alias.getIndices()) {
+                    if (this.indicesNeedingSystemIndexPrivileges.test(index.getIndex().getName())) {
+                        return !providesExplicitPrivilege(context, index.getIndex().getName(), ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+                    }
+                }
+            }
+
+            return false;
+        }
+
     }
 
     /**
