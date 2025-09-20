@@ -235,7 +235,11 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         } catch (Exception e) {
             log.error("Error while updating ActionPrivileges", e);
         }
+    }
 
+    @Override
+    public boolean isInitialized() {
+        return true;
     }
 
     @Override

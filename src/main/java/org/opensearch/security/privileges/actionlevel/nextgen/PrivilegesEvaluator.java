@@ -157,6 +157,11 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
     }
 
     @Override
+    public boolean isInitialized() {
+        return true;
+    }
+
+    @Override
     public PrivilegesEvaluationContext createContext(User user, String action) {
         return createContext(user, action, null, ActionRequestMetadata.empty(), null);
     }

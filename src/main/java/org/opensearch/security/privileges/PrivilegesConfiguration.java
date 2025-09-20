@@ -243,6 +243,10 @@ public class PrivilegesConfiguration {
         pluginIdToRolePrivileges.put(pluginIdentifier, pluginPermissions);
     }
 
+    public boolean isInitialized() {
+        return this.privilegesEvaluator().isInitialized();
+    }
+
     /**
      * TODO: Think about better names
      */

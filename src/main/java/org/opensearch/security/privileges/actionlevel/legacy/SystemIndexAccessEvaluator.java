@@ -287,7 +287,6 @@ public class SystemIndexAccessEvaluator {
                     );
                 }
                 return PrivilegesEvaluatorResponse.insufficient(action);
-                return;
             }
             } else {
                 // no system index protection and request originating from plugin, allow
