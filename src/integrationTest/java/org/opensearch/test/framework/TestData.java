@@ -11,6 +11,7 @@
 package org.opensearch.test.framework;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -32,8 +34,10 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.rollover.RolloverRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
@@ -106,8 +110,9 @@ public class TestData {
     private Map<String, Map<String, TestDocument>> documentsByDepartment;
     private Set<String> deletedDocuments;
     private long subRandomSeed;
+    private final String timestampColumn;
 
-    public TestData(int seed, int size, int deletedDocumentCount, int refreshAfter) {
+    public TestData(int seed, int size, int deletedDocumentCount, int refreshAfter, String timestampColumnName) {
         Random random = new Random(seed);
         this.ipAddresses = createRandomIpAddresses(random);
         this.threeWordPhrases = createRandomThreeWordPhrases(random);
@@ -116,6 +121,7 @@ public class TestData {
         this.refreshAfter = refreshAfter;
         // this.additionalAttributes = additionalAttributes;
         this.subRandomSeed = random.nextLong();
+        this.timestampColumn = timestampColumnName;
         this.createTestDocuments(random);
     }
 
@@ -129,7 +135,8 @@ public class TestData {
         Map<String, TestDocument> retainedDocuments,
         Map<String, Map<String, TestDocument>> documentsByDepartment,
         Set<String> deletedDocuments,
-        long subRandomSeed
+        long subRandomSeed,
+        String timestampColumnName
     ) {
         super();
         this.ipAddresses = ipAddresses;
@@ -143,6 +150,7 @@ public class TestData {
         // this.additionalAttributes = additionalAttributes;
         this.deletedDocuments = deletedDocuments;
         this.subRandomSeed = subRandomSeed;
+        this.timestampColumn = timestampColumnName;
     }
 
     public void createIndex(Client client, String name, Settings settings) {
@@ -218,6 +226,53 @@ public class TestData {
 
         client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
         log.info("Test index creation finished after " + (System.currentTimeMillis() - start) + " ms");
+    }
+
+    public void putDocuments(Client client, String name, int rolloverAfter) {
+        try {
+            Random random = new Random(subRandomSeed);
+            long start = System.currentTimeMillis();
+
+            int nextRefresh = (int) Math.floor((random.nextGaussian() * 0.5 + 0.5) * refreshAfter);
+            int nextRollover = rolloverAfter != -1 ? rolloverAfter : Integer.MAX_VALUE;
+            int i = 0;
+
+            for (Map.Entry<String, TestDocument> entry : allDocuments.entrySet()) {
+                String id = entry.getKey();
+                TestDocument document = entry.getValue();
+
+                client.index(
+                    new IndexRequest(name).source(document.content, XContentType.JSON).id(id).opType(DocWriteRequest.OpType.CREATE)
+                ).actionGet();
+
+                if (i > nextRefresh) {
+                    client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+                    double g = random.nextGaussian();
+
+                    nextRefresh = (int) Math.floor((g * 0.5 + 1) * refreshAfter) + i + 1;
+                    log.debug("refresh at " + i + " " + g + " " + (g * 0.5 + 1));
+                }
+
+                if (i > nextRollover) {
+                    client.admin().indices().rolloverIndex(new RolloverRequest(name, null));
+
+                    nextRollover += rolloverAfter;
+                }
+
+                i++;
+            }
+
+            client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+
+            for (String id : deletedDocuments) {
+                client.delete(new DeleteRequest(name, id)).actionGet();
+            }
+
+            client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+            log.info("Test index creation finished after " + (System.currentTimeMillis() - start) + " ms");
+        } catch (Exception e) {
+            throw new RuntimeException("Error while wring test documents to index " + name, e);
+        }
     }
 
     private void createTestDocuments(Random random) {
@@ -365,6 +420,9 @@ public class TestData {
                 ImmutableMap.of("obj_obj_attr_text", "value_" + random.nextInt())
             )
         );
+        if (timestampColumn != null) {
+            builder.put(timestampColumn, randomTimestamp(random));
+        }
 
         return new TestDocument(randomId(random), builder.build());
     }
@@ -375,6 +433,11 @@ public class TestData {
 
     private String randomDepartmentName(Random random) {
         return departments[random.nextInt(departments.length)];
+    }
+
+    private String randomTimestamp(Random random) {
+        long epochMillis = random.longs(1, -2857691960709L, 2857691960709L).findFirst().getAsLong();
+        return Instant.ofEpochMilli(epochMillis).toString();
     }
 
     private String randomThreeWordPhrase(Random random) {
@@ -418,6 +481,10 @@ public class TestData {
         return deletedDocumentCount;
     }
 
+    public Map<String, TestDocument> getRetainedDocuments() {
+        return retainedDocuments;
+    }
+
     public TestDocuments documents() {
         return new TestDocuments(this.retainedDocuments);
     }
@@ -442,15 +509,16 @@ public class TestData {
         private final int size;
         private final int deletedDocumentCount;
         private final int refreshAfter;
-        // private final ImmutableMap<String, Object> additionalAttributes;
+        private final String timestampColumnName;
 
-        public Key(int seed, int size, int deletedDocumentCount, int refreshAfter) {
+        public Key(int seed, int size, int deletedDocumentCount, int refreshAfter, String timestampColumnName) {
             super();
             this.seed = seed;
             this.size = size;
             this.deletedDocumentCount = deletedDocumentCount;
             this.refreshAfter = refreshAfter;
             // this.additionalAttributes = additionalAttributes;
+            this.timestampColumnName = timestampColumnName;
         }
 
         @Override
@@ -461,6 +529,7 @@ public class TestData {
             result = prime * result + refreshAfter;
             result = prime * result + seed;
             result = prime * result + size;
+            result = prime * result + Objects.hashCode(timestampColumnName);
             return result;
         }
 
@@ -488,6 +557,9 @@ public class TestData {
             if (size != other.size) {
                 return false;
             }
+            if (!Objects.equals(timestampColumnName, other.timestampColumnName)) {
+                return false;
+            }
             return true;
         }
 
@@ -501,6 +573,7 @@ public class TestData {
         private double deletedDocumentFraction = 0.06;
         private int refreshAfter = -1;
         private int segmentCount = 17;
+        private String timestampColumnName;
 
         public Builder() {
             super();
@@ -536,6 +609,11 @@ public class TestData {
             return this;
         }
 
+        public Builder timestampColumnName(String timestampColumnName) {
+            this.timestampColumnName = timestampColumnName;
+            return this;
+        }
+
         public Key toKey() {
             if (deletedDocumentCount == -1) {
                 this.deletedDocumentCount = (int) (this.size * deletedDocumentFraction);
@@ -545,14 +623,14 @@ public class TestData {
                 this.refreshAfter = this.size / this.segmentCount;
             }
 
-            return new Key(seed, size, deletedDocumentCount, refreshAfter);
+            return new Key(seed, size, deletedDocumentCount, refreshAfter, timestampColumnName);
         }
 
         public TestData get() {
             Key key = toKey();
 
             try {
-                return cache.get(key, () -> new TestData(seed, size, deletedDocumentCount, refreshAfter));
+                return cache.get(key, () -> new TestData(seed, size, deletedDocumentCount, refreshAfter, timestampColumnName));
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
             }
@@ -640,6 +718,14 @@ public class TestData {
 
         public Set<String> allIds() {
             return this.documents.keySet();
+        }
+
+        public Map<String, TestData.TestDocument> allDocs() {
+            ImmutableMap.Builder<String, TestDocument> mapBuilder = ImmutableMap.builder();
+            for (TestDocument testDocument : this.documents.values()) {
+                mapBuilder.put(testDocument.id, testDocument);
+            }
+            return mapBuilder.build();
         }
     }
 
@@ -756,22 +842,6 @@ public class TestData {
             return new TestDocument(this.id, ImmutableMap.copyOf(newContent));
         }
 
-        /*
-        public TestDocument withOnlyAttributes(Set<String> attributes) {
-            Map<String, Object> newContent = new HashMap<>();
-            for (String attri)
-            this.content.forEach((k, v) -> {
-                if (k.contains(".")) {
-                    addAttributesRecursively(this.content, newContent, k.split("\\."), 0);
-                } else {
-                    if (attributes.contains(k)) {
-                        newContent.put(k, v);
-                    }
-                }
-            });
-
-        }
-        */
         public TestDocument applyTransform(DocumentTransformer transformerFunction) {
             return transformerFunction.transform(this);
         }

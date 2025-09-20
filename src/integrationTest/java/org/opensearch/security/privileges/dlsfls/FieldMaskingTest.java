@@ -13,7 +13,6 @@ package org.opensearch.security.privileges.dlsfls;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,13 +21,12 @@ import org.junit.runners.Suite;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
@@ -117,17 +115,7 @@ public class FieldMaskingTest {
         }
 
         static PrivilegesEvaluationContext ctx(String... roles) {
-            return new PrivilegesEvaluationContext(
-                new User("test_user"),
-                ImmutableSet.copyOf(roles),
-                null,
-                null,
-                null,
-                null,
-                null,
-                () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
-            );
+            return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).get();
         }
     }
 

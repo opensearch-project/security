@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -40,17 +41,14 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
 import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-
-import org.greenrobot.eventbus.Subscribe;
 
 public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
@@ -59,8 +57,8 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     protected final Index index;
     protected final String securityIndex;
     private final AdminDNs adminDns;
-    private ConfigModel configModel;
-    private final PrivilegesEvaluator evaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
+    private final RoleMapper roleMapper;
     private final WildcardMatcher protectedIndexMatcher;
     private final WildcardMatcher allowedRolesMatcher;
     private final Boolean protectedIndexEnabled;
@@ -75,7 +73,8 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
         final IndexService indexService,
         final Settings settings,
         final AdminDNs adminDNs,
-        final PrivilegesEvaluator evaluator
+        final PrivilegesConfiguration privilegesConfiguration,
+        final RoleMapper roleMapper
     ) {
         index = indexService.index();
         threadContext = indexService.getThreadPool().getThreadContext();
@@ -83,7 +82,8 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
-        this.evaluator = evaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
+        this.roleMapper = roleMapper;
         this.adminDns = adminDNs;
         this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY));
         this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY));
@@ -102,11 +102,6 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT
         );
-    }
-
-    @Subscribe
-    public void onConfigModelChanged(ConfigModel cm) {
-        this.configModel = cm;
     }
 
     @Override
@@ -169,9 +164,9 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             }
 
             String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
-            PrivilegesEvaluationContext context = evaluator.createContext(user, permission);
+            PrivilegesEvaluationContext context = privilegesConfiguration.privilegesEvaluator().createContext(user, permission);
             PrivilegesEvaluatorResponse result = context.getActionPrivileges()
-                .hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
+                .hasExplicitIndexPrivilege(context, Set.of(permission), ResolvedIndices.of(index.getName()));
 
             return !result.isAllowed();
         }
@@ -192,7 +187,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     protected final boolean isPermittedOnIndex() {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> securityRoles = evaluator.mapRoles(user, caller);
+        final Set<String> securityRoles = roleMapper.map(user, caller);
         if (allowedRolesMatcher.matchAny(securityRoles)) {
             return true;
         }

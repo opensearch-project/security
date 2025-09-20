@@ -48,8 +48,8 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -79,18 +79,18 @@ public class SecurityInfoAction extends BaseRestHandler {
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator evaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
     private final ThreadContext threadContext;
 
     public SecurityInfoAction(
         final Settings settings,
         final RestController controller,
-        final PrivilegesEvaluator evaluator,
+        final PrivilegesConfiguration privilegesConfiguration,
         final ThreadPool threadPool
     ) {
         super();
         this.threadContext = threadPool.getThreadContext();
-        this.evaluator = evaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
     }
 
     @Override
@@ -122,7 +122,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                     final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
-                    PrivilegesEvaluationContext context = evaluator.createContext(user, null);
+                    PrivilegesEvaluationContext context = privilegesConfiguration.privilegesEvaluator().createContext(user, null);
 
                     builder.startObject();
                     builder.field("user", user == null ? null : user.toString());
@@ -132,7 +132,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("backend_roles", user == null ? null : user.getRoles());
                     builder.field("custom_attribute_names", user == null ? null : user.getCustomAttributesMap().keySet());
                     builder.field("roles", context.getMappedRoles());
-                    builder.field("tenants", evaluator.tenantPrivileges().tenantMap(context));
+                    builder.field("tenants", privilegesConfiguration.tenantPrivileges().tenantMap(context));
                     builder.field("principal", (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String) threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));

@@ -44,7 +44,7 @@ public class PrivilegesEvaluatorTest {
     );
 
     protected final static TestSecurityConfig.User NEGATED_REGEX = new TestSecurityConfig.User("negated_regex_user").roles(
-        new Role("negated_regex_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("cluster_composite_ops")
+        new Role("negated_regex_role").indexPermissions("read").on("/^[a-r].*/").clusterPermissions("cluster_composite_ops")
     );
 
     protected final static TestSecurityConfig.User SEARCH_TEMPLATE = new TestSecurityConfig.User("search_template_user").roles(

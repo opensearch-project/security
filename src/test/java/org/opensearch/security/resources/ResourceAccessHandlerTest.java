@@ -23,6 +23,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
@@ -73,7 +74,7 @@ public class ResourceAccessHandlerTest {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator);
+        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, new PrivilegesConfiguration(privilegesEvaluator));
     }
 
     private void injectUser(User user) {
