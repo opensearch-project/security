@@ -87,9 +87,9 @@ public class IndexAuthorizationReadWriteIntTests {
         .documentCount(0)
         .build(); // not initially created
 
-    static final TestAlias alias_ab1r = new TestAlias("alias_ab1r", index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1);
-    static final TestAlias alias_ab1w = new TestAlias("alias_ab1w", index_aw1, index_aw2, index_bw1).writeIndex(index_aw1);
-    static final TestAlias alias_ab1w_nowriteindex = new TestAlias("alias_ab1w_nowriteindex", index_aw1, index_aw2, index_bw1);
+    static final TestAlias alias_ab1r = new TestAlias("alias_ab1r").on(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1);
+    static final TestAlias alias_ab1w = new TestAlias("alias_ab1w").on(index_aw1, index_aw2, index_bw1).writeIndex(index_aw1);
+    static final TestAlias alias_ab1w_nowriteindex = new TestAlias("alias_ab1w_nowriteindex").on(index_aw1, index_aw2, index_bw1);
 
     static final TestAlias alias_c1 = new TestAlias("alias_c1", index_cr1, index_cw1);
 

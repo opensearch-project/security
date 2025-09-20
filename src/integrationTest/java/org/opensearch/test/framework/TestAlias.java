@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.action.admin.indices.AliasesNotFoundException;
 import org.opensearch.transport.client.Client;
 
@@ -29,6 +30,7 @@ public class TestAlias implements TestIndexOrAliasOrDatastream {
     private final String name;
     private final ImmutableSet<TestIndexOrAliasOrDatastream> indices;
     private final TestIndexOrAliasOrDatastream writeIndex;
+    private final boolean hidden;
 
     private Set<String> documentIds;
     private Map<String, TestData.TestDocument> documents;
@@ -37,20 +39,26 @@ public class TestAlias implements TestIndexOrAliasOrDatastream {
         this.name = name;
         this.indices = ImmutableSet.copyOf(indices);
         this.writeIndex = null;
+        this.hidden = false;
     }
 
-    TestAlias(String name, ImmutableSet<TestIndexOrAliasOrDatastream> indices, TestIndexOrAliasOrDatastream writeIndex) {
+    TestAlias(String name, ImmutableSet<TestIndexOrAliasOrDatastream> indices, TestIndexOrAliasOrDatastream writeIndex, boolean hidden) {
         this.name = name;
         this.indices = indices;
         this.writeIndex = writeIndex;
+        this.hidden = hidden;
     }
 
     public TestAlias on(TestIndexOrAliasOrDatastream... indices) {
-        return new TestAlias(this.name, ImmutableSet.copyOf(indices), this.writeIndex);
+        return new TestAlias(this.name, ImmutableSet.copyOf(indices), this.writeIndex, this.hidden);
     }
 
     public TestAlias writeIndex(TestIndexOrAliasOrDatastream writeIndex) {
-        return new TestAlias(this.name, this.indices, writeIndex);
+        return new TestAlias(this.name, this.indices, writeIndex, this.hidden);
+    }
+
+    public TestAlias hidden() {
+        return new TestAlias(this.name, this.indices, this.writeIndex, true);
     }
 
     @Override
@@ -64,7 +72,7 @@ public class TestAlias implements TestIndexOrAliasOrDatastream {
             .indices()
             .aliases(
                 new IndicesAliasesRequest().addAliasAction(
-                    IndicesAliasesRequest.AliasActions.add().indices(getIndexNamesAsArray()).alias(name)
+                    IndicesAliasesRequest.AliasActions.add().indices(getIndexNamesAsArray()).alias(name).isHidden(hidden)
                 )
             )
             .actionGet();
@@ -138,5 +146,9 @@ public class TestAlias implements TestIndexOrAliasOrDatastream {
         }
 
         return result;
+    }
+
+    public static TestIndex.Builder name(String name) {
+        return new TestIndex.Builder().name(name);
     }
 }

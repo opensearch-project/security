@@ -76,8 +76,9 @@ public class IndexAuthorizationReadOnlyIntTests {
     static final TestIndex index_hidden_dot = TestIndex.name(".index_hidden_dot").hidden().documentCount(1).seed(8).build();
     static final TestIndex system_index_plugin = TestIndex.name(".system_index_plugin").hidden().documentCount(1).seed(8).build();
 
-    static final TestAlias alias_ab1 = new TestAlias("alias_ab1", index_a1, index_a2, index_a3, index_b1);
-    static final TestAlias alias_c1 = new TestAlias("alias_c1", index_c1);
+    static final TestAlias alias_ab1 = new TestAlias("alias_ab1").on(index_a1, index_a2, index_a3, index_b1);
+    static final TestAlias alias_c1 = new TestAlias("alias_c1").on(index_c1);
+    static final TestAlias alias_with_system_index = new TestAlias(".alias_with_system_index").hidden().on(system_index_plugin);
 
     static final List<TestIndexOrAliasOrDatastream> ALL_INDICES_EXCEPT_SYSTEM_INDICES = List.of(
         index_a1,
@@ -128,6 +129,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         index_hidden,
         index_hidden_dot,
         system_index_plugin,
+        alias_with_system_index,
         openSearchSecurityConfigIndex()
     );
 
@@ -241,7 +243,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .indexPermissions("read", "indices_monitor", "indices:admin/analyze", "system:admin/system_index")
                 .on(".system_index_plugin")
         )//
-        .indexMatcher("read", limitedTo(index_c1, alias_c1, system_index_plugin))//
+        .indexMatcher("read", limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
         .indexMatcher("read_nextgen", limitedTo(index_c1, system_index_plugin))//
         .indexMatcher("get_alias", limitedToNone());
 
@@ -376,7 +378,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 index_hidden_dot,
                 system_index_plugin
             )//
-            .aliases(alias_ab1, alias_c1)//
+            .aliases(alias_ab1, alias_c1, alias_with_system_index)//
             .plugin(SystemIndexTestPlugin.class);
     }
 
@@ -641,6 +643,51 @@ public class IndexAuthorizationReadOnlyIntTests {
     }
 
     @Test
+    public void search_staticIndices_systemIndex_alias() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get(".alias_with_system_index/_search?size=1000");
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+                assertThat(
+                        httpResponse,
+                        containsExactly(system_index_plugin).at("hits.hits[*]._index"));
+            } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
+                if (user == UNLIMITED_USER || user == LIMITED_USER_C_WITH_SYSTEM_INDICES)  {
+                    // The legacy evaluation grants access in SystemIndexAccessPrivilegesEvaluator for users with * privileges,
+                    // but withholds documents on the DLS level
+                    assertThat(httpResponse, isOk());
+                    assertThat(
+                            httpResponse,
+                            containsExactly().at("hits.hits[*]._index"));
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
+                if (user == UNLIMITED_USER) {
+                    // The legacy evaluation grants access in SystemIndexAccessPrivilegesEvaluator for users with * privileges,
+                    // but withholds documents on the DLS level
+                    assertThat(httpResponse, isOk());
+                    assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
+                } else {
+                    assertThat(
+                            httpResponse,
+                            containsExactly(system_index_plugin).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden()));
+                }
+            } else {
+                if (user.indexMatcher("read").covers(alias_with_system_index)) {
+                    assertThat(httpResponse, isOk());
+                    assertThat(
+                            httpResponse,
+                            containsExactly(system_index_plugin).at("hits.hits[*]._index"));
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        }
+    }
+
+    @Test
     public void search_indexPattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b*/_search?size=1000");
@@ -866,17 +913,63 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_*,-alias_ab1/_search?size=1000");
 
             if (user != LIMITED_USER_NONE) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (clusterConfig.systemIndexPrivilegeEnabled) {
+                    // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the alias)
+                    assertThat(
+                            httpResponse,
+                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                                    .reducedBy(user.indexMatcher("read"))
+                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(
+                            httpResponse,
+                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                                    .reducedBy(user.indexMatcher("read"))
+                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
                 assertThat(httpResponse, isForbidden());
             }
         }
     }
+
+    @Test
+    public void search_alias_pattern_includeHidden() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("*alias*/_search?size=1000&expand_wildcards=all");
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+                assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index"));
+            } else if (user != LIMITED_USER_NONE) {
+                if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
+                    assertThat(
+                            httpResponse,
+                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                                    .reducedBy(user.indexMatcher("read"))
+                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
+                    // For all users without the system index permission, SystemIndexAccessEvaluator shuts the door
+                    // For the user with the system index permission, that happens as well, as SystemIndexAccessEvaluator expects the permission for all requested indices, even if they are not system indices
+                        assertThat(httpResponse, isForbidden());
+                } else {
+                    assertThat(
+                            httpResponse,
+                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index")
+                                    .reducedBy(user.indexMatcher("read"))
+                                    .whenEmpty(isOk()));
+                }
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        }
+    }
+
 
     @Test
     public void search_aliasAndIndex_ignoreUnavailable() throws Exception {
@@ -1286,13 +1379,19 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/aliases?format=json");
 
-            if (!user.indexMatcher("get_alias").isEmpty()) {
+            if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
                 assertThat(
-                    httpResponse,
-                    containsExactly(alias_ab1, alias_c1).at("$[*].alias").reducedBy(user.indexMatcher("get_alias")).whenEmpty(isOk())
-                );
+                        httpResponse,
+                        containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias"));
             } else {
-                assertThat(httpResponse, isForbidden());
+                if (!user.indexMatcher("get_alias").isEmpty()) {
+                    assertThat(
+                            httpResponse,
+                            containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias").reducedBy(user.indexMatcher("get_alias")).whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1364,6 +1463,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void getAlias_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias");
+
             if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
                 // The legacy privilege evaluation also allows regular users access to metadata of the security index
                 // This is not a security issue, as the metadata are not really security relevant
@@ -1372,7 +1472,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 if (!user.indexMatcher("get_alias").isEmpty()) {
                     assertThat(
                         httpResponse,
-                        containsExactly(alias_ab1, alias_c1).at("$.*.aliases.keys()")
+                        containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()")
                             .reducedBy(user.indexMatcher("get_alias"))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
@@ -1451,7 +1551,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             if (user == SUPER_UNLIMITED_USER) {
                 // The super admin sees everything
                 assertThat(httpResponse, isOk());
-                assertThat(httpResponse, containsExactly(alias_ab1, alias_c1).at("$.*.aliases.keys()"));
+                assertThat(httpResponse, containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()"));
                 assertThat(
                     httpResponse,
                     containsExactly(
