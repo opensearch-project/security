@@ -123,37 +123,8 @@ class MockJwksServer implements Closeable {
     protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
         IOException {
         response.setCode(200);
-        // Return a realistic JWKS response like a public endpoint would
-        String jwksResponse = "{\n"
-            + "    \"keys\": [\n"
-            + "        {\n"
-            + "            \"kid\": \"14MuZmRLJtgqpRrcATyTeCUpaU3IHm8kwuCzRJbWnyU\",\n"
-            + "            \"kty\": \"RSA\",\n"
-            + "            \"alg\": \"RSA-OAEP\",\n"
-            + "            \"use\": \"enc\",\n"
-            + "            \"n\": \"hZFq7mB43U_5uW1qa-l7lI4thQJ9SVVWgcmdHCemX65s20Vn5Fv34TERdDxST1ZbOHLtcRG-7ykTjnb36KLWBEWUU4KIeYqLgltx_Yx-e_4hcxGyWP323xFu9kHH3ZWOpx3Yv99lscCxRBZ0b-bIfENaAWm9e63NPIVnDFbpt6WBGPHm1PNpYqw_sjEn5BGovH75KxTSqZdMPnT5f-jRveKmNO7-dBnZxYL2vpNu6iXfD_2sXhoBQ3P41-zbFTNfy4yXPvnMjRaMPhhp5OtwLH_LWKfJf-7tQ9jPsYFsch2EcMX-o-G42IJyN3GYxMr0XImVWWUB7ILsPrYRp2OZaQ\",\n"
-            + "            \"e\": \"AQAB\",\n"
-            + "            \"x5c\": [\n"
-            + "                \"MIICnzCCAYcCBgGBbRMM2zANBgkqhkiG9w0BAQsFADATMREwDwYDVQQDDAhpbnRlcm5hbDAeFw0yMjA2MTYxNTExMTNaFw0zMjA2MTYxNTEyNTNaMBMxETAPBgNVBAMMCGludGVybmFsMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhZFq7mB43U/5uW1qa+l7lI4thQJ9SVVWgcmdHCemX65s20Vn5Fv34TERdDxST1ZbOHLtcRG+7ykTjnb36KLWBEWUU4KIeYqLgltx/Yx+e/4hcxGyWP323xFu9kHH3ZWOpx3Yv99lscCxRBZ0b+bIfENaAWm9e63NPIVnDFbpt6WBGPHm1PNpYqw/sjEn5BGovH75KxTSqZdMPnT5f+jRveKmNO7+dBnZxYL2vpNu6iXfD/2sXhoBQ3P41+zbFTNfy4yXPvnMjRaMPhhp5OtwLH/LWKfJf+7tQ9jPsYFsch2EcMX+o+G42IJyN3GYxMr0XImVWWUB7ILsPrYRp2OZaQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBoDAA4UR4d+C6IxrOu1Hyz0eqg6XELT0ds8E9IsdK9k46xj99bAdJr9yPFaqXx/ZclMfTELHhg4NUevUB2iWMNt3lSjmjZRancNhQG/DhK6mR1/EImWa/4Uz5ss3pE5De1UZaY9UhHD+9hTbFFZwwNR0wILvKK84Ij1It6xbwz/wHwuAzJ76VhizgV5zI6Du6jxP4ifSlT2hnuMIJUdudsSxH1MSDAd7SDUSsbP1OjX2NPBuz+3cIEMJwDTosrUqR2sI9MBUpEmaHE5IcwxRkTGZvfOnDYm+fUj/uyhUwp34JP++BEVlE7bi8SzqwY5inFT8KKjosfTBTS7m4f8dGy\"\n"
-            + "            ],\n"
-            + "            \"x5t\": \"H8orvE9ANCBucfmMLMfY2VFQdS4\",\n"
-            + "            \"x5t#S256\": \"vtuAx3OoWxUUlDxuthIyTLe7gXg9j0KcNOsrBFAREXE\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "            \"kid\": \"UByZvg8-ZmKSjIq5zLiMtmmNXd5ZJSAxb7OyDOcthfM\",\n"
-            + "            \"kty\": \"RSA\",\n"
-            + "            \"alg\": \"RS256\",\n"
-            + "            \"use\": \"sig\",\n"
-            + "            \"n\": \"kGGMwI8s7KH82NaID8sBvz6N5DwzsqgSXofhr6P77LkpCXi2vvOpLzyTY2OFz1f6Ecf0-hCEmGHLEji6gCxUk4URr73n-jprL0dXo29z7uODnfzuB_chvbw-IbjOOj6Z7GV7fgw428jhLboygjklbcymLltHaUMfJjj0KuP5vaCu2dlgiyFKh8Imde8NcCR9zX19_76YNqJbvezB9WPeOcMR2NX-Clm5kq-mGfklf1c57IWAVMSb3bufIU5BARKPdM2pZJYt2F4KRf0hbQVOHFJ6Z6JhJUq83yeBUaH6GTIyvCHqekd9Uz7obBolb4vwZzAu0_CUp3BYBATjuNmO1w\",\n"
-            + "            \"e\": \"AQAB\",\n"
-            + "            \"x5c\": [\n"
-            + "                \"MIICnzCCAYcCBgGBbRMMOzANBgkqhkiG9w0BAQsFADATMREwDwYDVQQDDAhpbnRlcm5hbDAeFw0yMjA2MTYxNTExMTNaFw0zMjA2MTYxNTEyNTNaMBMxETAPBgNVBAMMCGludGVybmFsMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkGGMwI8s7KH82NaID8sBvz6N5DwzsqgSXofhr6P77LkpCXi2vvOpLzyTY2OFz1f6Ecf0+hCEmGHLEji6gCxUk4URr73n+jprL0dXo29z7uODnfzuB/chvbw+IbjOOj6Z7GV7fgw428jhLboygjklbcymLltHaUMfJjj0KuP5vaCu2dlgiyFKh8Imde8NcCR9zX19/76YNqJbvezB9WPeOcMR2NX+Clm5kq+mGfklf1c57IWAVMSb3bufIU5BARKPdM2pZJYt2F4KRf0hbQVOHFJ6Z6JhJUq83yeBUaH6GTIyvCHqekd9Uz7obBolb4vwZzAu0/CUp3BYBATjuNmO1wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQB659gocsQOlPGsY0NXtWRE9U4or37y7LiOdzX2cXPVmW95p58Mt5ehTLWvJe2P1vEtt3wyUBwKWy0WZHsoFSdrOvNI3YZOxkHObgmK9rE8/k1ySZPiFb9KLfmwZxsWvRCNY8gbr705N+HHKiPJEE77IsQfpiyTFzUnRL/BWiDlhU1lHFZnoKFTht6wGDc0F+MtrN6c+i/PRgW4wboDOLMotLhXHfUrOUatx6XONaG+n790FRput+Gf1UsgQnQquGdW2o1dJP6nEsexgeew1nRvzyWoJgQPpT/N5k9smXlUlH7fQmxfaUefrpgL0kkq/YOj0IG6envW+siTpp+8x1yq\"\n"
-            + "            ],\n"
-            + "            \"x5t\": \"DsEcchxw-CtObqxyfClb8wfyxKI\",\n"
-            + "            \"x5t#S256\": \"phCKIqd1tOxxcbSpXvUS8P0Mdw42gu0CLGGWeHlomjs\"\n"
-            + "        }\n"
-            + "    ]\n"
-            + "}";
+        // Return the actual JWKSet that was passed to the constructor
+        String jwksResponse = jwks.toString();
         response.setEntity(new StringEntity(jwksResponse));
     }
 
