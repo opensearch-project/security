@@ -477,7 +477,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
         try {
             Settings settings = Settings.builder()
                 .put("jwks_uri", mockJwksServer.getJwksUri())
-                .put("max_jwks_keys", 10) // Small limit
+                .put("max_jwks_keys", 10)
                 .build();
 
             HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
