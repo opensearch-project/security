@@ -10,20 +10,11 @@
  */
 package org.opensearch.security.privileges.dlsfls;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.user.User;
 
 /**
  * Maps index names to DLS/FLS/FM rules.
@@ -40,7 +31,7 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
 
     private final ImmutableMap<String, Rule> indexMap;
 
-    IndexToRuleMap(ImmutableMap<String, Rule> indexMap) {
+    public IndexToRuleMap(ImmutableMap<String, Rule> indexMap) {
         this.indexMap = indexMap;
     }
 
@@ -69,46 +60,5 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
     @SuppressWarnings("unchecked")
     public static <Rule extends AbstractRuleBasedPrivileges.Rule> IndexToRuleMap<Rule> unrestricted() {
         return (IndexToRuleMap<Rule>) UNRESTRICTED;
-    }
-
-    public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
-        NamedXContentRegistry xContentRegistry,
-        IndexResolverReplacer.Resolved resolved,
-        User user
-    ) {
-
-        List<String> principals = new ArrayList<>();
-        principals.add("user:*"); // Convention for publicly visible
-        principals.add("user:" + user.getName()); // owner
-
-        // Security roles (OpenSearch Security roles)
-        if (user.getSecurityRoles() != null) {
-            user.getSecurityRoles().forEach(r -> principals.add("role:" + r));
-        }
-
-        // Backend roles (LDAP/SAML/etc)
-        if (user.getRoles() != null) {
-            user.getRoles().forEach(br -> principals.add("backend:" + br));
-        }
-
-        XContentBuilder builder = null;
-        DlsRestriction restriction;
-        try {
-            // Build a single `terms` query JSON
-            builder = XContentFactory.jsonBuilder();
-            builder.startObject().startObject("terms").array("all_shared_principals.keyword", principals.toArray()).endObject().endObject();
-
-            String dlsJson = builder.toString();
-            restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));
-        } catch (IOException e) {
-            LOGGER.warn("Received error while applying resource restrictions.", e);
-            restriction = DlsRestriction.FULL;
-        }
-
-        ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
-        for (String index : resolved.getAllIndices()) {
-            mapBuilder.put(index, restriction);
-        }
-        return new IndexToRuleMap<>(mapBuilder.build());
     }
 }

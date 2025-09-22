@@ -79,6 +79,7 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -168,7 +169,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 && request instanceof SearchRequest
                 && resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
 
-                IndexToRuleMap<DlsRestriction> sharedResourceMap = IndexToRuleMap.resourceRestrictions(
+                IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                     namedXContentRegistry,
                     resolved,
                     userSubject.getUser()
