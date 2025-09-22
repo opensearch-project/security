@@ -86,7 +86,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
 
             @Override
             public Optional<SSLEngine> buildSecureClientTransportEngine(Settings settings, String hostname, int port) throws SSLException {
-                return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(c -> c.createSSLEngine(hostname, port));
+                return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(c -> c.createClientSSLEngine(hostname, port));
             }
         });
     }
