@@ -249,10 +249,12 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         }
 
         if (rolesObject == null) {
-            log.warn(
-                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
-                rolesKey
-            );
+            if (!rolesKey.isEmpty()) {
+                log.warn(
+                    "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                    rolesKey
+                );
+            }
             return new String[0];
         }
 
