@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -24,6 +26,8 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
 public class ResourceSharingDlsUtils {
+    private static final Logger LOGGER = LogManager.getLogger(ResourceSharingDlsUtils.class);
+
     public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
         NamedXContentRegistry xContentRegistry,
         IndexResolverReplacer.Resolved resolved,

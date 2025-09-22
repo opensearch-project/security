@@ -13,8 +13,6 @@ package org.opensearch.security.privileges.dlsfls;
 import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Maps index names to DLS/FLS/FM rules.
@@ -26,7 +24,6 @@ import org.apache.logging.log4j.Logger;
  * of the sub-classes of AbstractRuleBasedPrivileges.
  */
 public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
-    private static final Logger LOGGER = LogManager.getLogger(IndexToRuleMap.class);
     private static final IndexToRuleMap<?> UNRESTRICTED = new IndexToRuleMap<AbstractRuleBasedPrivileges.Rule>(ImmutableMap.of());
 
     private final ImmutableMap<String, Rule> indexMap;
