@@ -465,7 +465,7 @@ jobs:
         with:
           name: dependency-analysis
           path: |
-            ./build/reports/
+            ./build/reports/dependency-analysis/
 
   build-artifact-names:
     runs-on: ubuntu-latest
