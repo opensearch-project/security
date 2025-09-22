@@ -472,7 +472,7 @@ configurations {
 
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.34.0"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.200"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
