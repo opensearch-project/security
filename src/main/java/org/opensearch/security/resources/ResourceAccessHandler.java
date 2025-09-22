@@ -432,20 +432,12 @@ public class ResourceAccessHandler {
         users.add(user.getName());
         users.add("*"); // for matching against publicly shared resource
 
-        // for roles:
-        Set<String> roles = new HashSet<>(user.getSecurityRoles());
-        roles.add("*"); // for matching against publicly shared resource
-
-        // for backend_roles:
-        Set<String> backendRoles = new HashSet<>(user.getRoles());
-        backendRoles.add("*"); // for matching against publicly shared resource
-
         // return flattened principals to build the bool query
         return Stream.concat(
             // users
             users.stream().map(u -> "user:" + u),
             // then roles and backend_roles
-            Stream.concat(roles.stream().map(r -> "role:" + r), backendRoles.stream().map(b -> "backend:" + b))
+            Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());
     }
 

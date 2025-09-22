@@ -373,14 +373,14 @@ By default, all `shareableResources` are private — visible only to their **own
 
 ### **Example: Publicly Shared Resource**
 
-To make a resource accessible to everyone, share it with all entities using the wildcard `*`:
+To make a resource accessible to everyone, share it with `users` entity using the wildcard `*`:
 
 ```json
 {
   "share_with": {
     "default": {
-      "backend_roles": ["*"],
-      "roles": ["*"],
+      "backend_roles": ["some_backend_role"],
+      "roles": ["some_role"],
       "users": ["*"]
     }
   }

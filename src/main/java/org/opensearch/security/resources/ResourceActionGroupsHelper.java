@@ -39,7 +39,7 @@ public class ResourceActionGroupsHelper {
      *
      * Sample yml file:
      *   resource_types:
-     *   org.opensearch.sample.SampleResource:
+     *   sample_resource:
      *       sample_read_only:
      *         - "cluster:admin/sample-resource-plugin/get"
      *         - "indices:data/read*"
@@ -70,11 +70,11 @@ public class ResourceActionGroupsHelper {
 
                 // For each type this extension provides, read its OWN map directly as groups (no wrapper)
                 for (var rp : ext.getResourceProviders()) {
-                    String typeFqn = rp.resourceType();
+                    String resType = rp.resourceType();
 
-                    Object typeCfgNode = byType.get(typeFqn);
+                    Object typeCfgNode = byType.get(resType);
                     if (!(typeCfgNode instanceof Map<?, ?> typeMapRaw)) {
-                        log.info("No per-type block for {} in {}", typeFqn, ext.getClass().getName());
+                        log.info("No per-type block for {} in {}", resType, ext.getClass().getName());
                         continue; // no fallback
                     }
 
@@ -99,10 +99,10 @@ public class ResourceActionGroupsHelper {
                     FlattenedActionGroups flattened = new FlattenedActionGroups(cfg);
 
                     // Publish to ResourcePluginInfo → used by UI and authZ
-                    resourcePluginInfo.registerActionGroupNames(typeFqn, cfg.getCEntries().keySet());
-                    resourcePluginInfo.registerFlattened(typeFqn, flattened);
+                    resourcePluginInfo.registerActionGroupNames(resType, cfg.getCEntries().keySet());
+                    resourcePluginInfo.registerFlattened(resType, flattened);
 
-                    log.info("Registered {} action-groups for {}", cfg.getCEntries().size(), typeFqn);
+                    log.info("Registered {} action-groups for {}", cfg.getCEntries().size(), resType);
                 }
 
             } catch (Exception e) {
