@@ -247,13 +247,11 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
     @Test
     public void testKeyExchangeWithDifferentKeys() throws Exception {
-        // Test with RSA_1 key
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.RSA_1);
         Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
         HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
 
         try {
-            // Should work with RSA_1 signed token
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<>())
                     .asSecurityRequest(),
@@ -263,7 +261,6 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
             Assert.assertNotNull(creds);
             assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
 
-            // Should fail with RSA_2 signed token (wrong key)
             creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<>())
                     .asSecurityRequest(),
@@ -278,13 +275,11 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
             } catch (Exception ignored) {}
         }
 
-        // Test with RSA_2 key
         mockJwksServer = new MockJwksServer(TestJwk.Jwks.RSA_2);
         settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
         jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
 
         try {
-            // Should work with RSA_2 signed token
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<>())
                     .asSecurityRequest(),
@@ -400,7 +395,6 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
         }
     }
 
-    // Security Validation Tests
     @Test
     public void testSecurityValidation_ResponseSizeExceeded() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
@@ -417,7 +411,6 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
                 for (int i = 0; i < 1000; i++) {
                     if (i > 0) largeResponse.append(",");
                     largeResponse.append("{\"kty\":\"RSA\",\"kid\":\"key").append(i).append("\",\"n\":\"");
-                    // Add a very long modulus to make the response large
                     for (int j = 0; j < 1000; j++) {
                         largeResponse.append("AQAB");
                     }
@@ -512,7 +505,6 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
         }
     }
 
-    // Error Handling Tests
     @Test
     public void testErrorHandling_HttpErrorResponse() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
@@ -589,37 +581,6 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
                     "Expected authentication to fail due to malformed JWKS",
                     e.getMessage().contains("Authentication backend failed")
                 );
-            }
-        } finally {
-            try {
-                mockJwksServer.close();
-            } catch (Exception ignored) {}
-        }
-    }
-
-    // Edge Case Tests
-    @Test
-    public void testEdgeCase_ZeroResponseSizeLimit() throws Exception {
-        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
-        try {
-            Settings settings = Settings.builder()
-                .put("jwks_uri", mockJwksServer.getJwksUri())
-                .put("max_jwks_response_size_bytes", 0)
-                .build();
-
-            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
-
-            AuthCredentials creds = jwtAuth.extractCredentials(
-                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<>()).asSecurityRequest(),
-                null
-            );
-
-            // With zero size limit, the JWKS response should be rejected and authentication should fail
-            // However, if the implementation doesn't enforce this limit properly, we should document the actual behavior
-            // For now, we'll accept either null (proper enforcement) or valid credentials (lenient enforcement)
-            if (creds != null) {
-                // If authentication succeeds despite zero limit, verify it's still valid
-                assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
             }
         } finally {
             try {
