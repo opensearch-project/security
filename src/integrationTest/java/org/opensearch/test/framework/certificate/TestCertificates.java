@@ -79,9 +79,15 @@ public class TestCertificates {
     }
 
     public TestCertificates(final int numberOfNodes) {
+        this(numberOfNodes, "127.0.0.1");
+    }
+
+    public TestCertificates(final int numberOfNodes, String nodeSanIp) {
         this.caCertificate = createCaCertificate();
         this.numberOfNodes = numberOfNodes;
-        this.nodeCertificates = IntStream.range(0, this.numberOfNodes).mapToObj(this::createNodeCertificate).collect(Collectors.toList());
+        this.nodeCertificates = IntStream.range(0, this.numberOfNodes)
+            .mapToObj(node -> this.createNodeCertificate(node, nodeSanIp))
+            .collect(Collectors.toList());
         this.ldapCertificate = createLdapCertificate();
         this.adminCertificate = createAdminCertificate(ADMIN_DN);
         log.info("Test certificates successfully generated");
@@ -142,12 +148,12 @@ public class TestCertificates {
         }
     }
 
-    private CertificateData createNodeCertificate(Integer node) {
+    private CertificateData createNodeCertificate(Integer node, String nodeSanIp) {
         final var subject = String.format(NODE_SUBJECT_PATTERN, node);
         String domain = String.format("node-%d.example.com", node);
         CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
             .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
-            .withSubjectAlternativeName("1.2.3.4.5.5", List.of(domain, "localhost"), "127.0.0.1");
+            .withSubjectAlternativeName("1.2.3.4.5.5", List.of(domain, "localhost"), nodeSanIp);
         return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
     }
 
