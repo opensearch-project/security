@@ -26,8 +26,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.BoolQueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -96,10 +94,9 @@ public class ResourceAccessHandler {
             return;
         }
         Set<String> flatPrincipals = getFlatPrincipals(user);
-        BoolQueryBuilder query = getAccessibleResourcesBoolQuery(user.getName(), flatPrincipals);
 
         // 3) Fetch all accessible resource IDs
-        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, query, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, listener);
     }
 
     /**
@@ -439,20 +436,5 @@ public class ResourceAccessHandler {
             // then roles and backend_roles
             Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());
-    }
-
-    /**
-     * Returns accessible resources query built on flattened principals.
-     * @param creatorName the name of the owner of the resource which is the requesting user
-     * @param flatPrincipals user's flattened config. i.e. name, roles and backend_roles
-     * @return the query builder with the bool-query.
-     */
-    private BoolQueryBuilder getAccessibleResourcesBoolQuery(String creatorName, Set<String> flatPrincipals) {
-        // 2) build a flattened query (allows us to compute large number of entries in less than a second compared to multi-match query with
-        // BEST_FIELDS)
-        return QueryBuilders.boolQuery()
-            .should(QueryBuilders.termQuery("created_by.user.keyword", creatorName))
-            .should(QueryBuilders.termsQuery("all_shared_principals", flatPrincipals))
-            .minimumShouldMatch(1);
     }
 }

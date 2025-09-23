@@ -248,7 +248,7 @@ public class ResourceAccessHandlerTest {
             ActionListener<Set<String>> l = inv.getArgument(3);
             l.onResponse(Set.of("res1"));
             return null;
-        }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any(), any());
+        }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any());
 
         handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
         verify(listener).onResponse(Set.of("res1"));

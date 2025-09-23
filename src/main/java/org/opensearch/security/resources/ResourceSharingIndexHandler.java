@@ -14,10 +14,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -30,9 +32,11 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -42,7 +46,6 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
-import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -50,6 +53,7 @@ import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
@@ -62,6 +66,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
 import org.opensearch.security.spi.resources.sharing.Recipient;
@@ -347,7 +352,6 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceIndex The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
-     * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
@@ -360,12 +364,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public void fetchAccessibleResourceIds(
-        String resourceIndex,
-        Set<String> entities,
-        BoolQueryBuilder actionGroupQuery,
-        ActionListener<Set<String>> listener
-    ) {
+    public void fetchAccessibleResourceIds(String resourceIndex, Set<String> entities, ActionListener<Set<String>> listener) {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
@@ -990,16 +989,15 @@ public class ResourceSharingIndexHandler {
      * Fetches resource-sharing records for this user for a given resource-index.
      * Executes in 2 steps:
      * Step-1:
-     *  - Fetch field mappings and create a terms query to match against all action-groups in shared_with block, as well as creator name.
+     *  - Fetch resource-ids from the resource index
      * Step-2:
-     *  - Use the terms query to search resource-sharing index to fetch matching records.
+     *  - Use mget in batches of 1000 to get the resource sharing records.
      *
      * @param resourceIndex the index for which records are to be searched
      * @param user the user that is requesting the records
      * @param flatPrincipals user's name, roles, backend_roles to be used for matching.
      * @param listener to collect and return accessible sharing records
      */
-    @SuppressWarnings("unchecked")
     public void fetchAccessibleResourceSharingRecords(
         String resourceIndex,
         User user,
@@ -1009,114 +1007,87 @@ public class ResourceSharingIndexHandler {
         final String resourceSharingIndex = getSharingIndex(resourceIndex);
         final ThreadContext.StoredContext stored = this.threadPool.getThreadContext().stashContext();
 
-        // Split principals once
-        final List<String> users = new ArrayList<>(), roles = new ArrayList<>(), backends = new ArrayList<>();
-        for (String p : flatPrincipals) {
-            if (p.startsWith("user:")) users.add(p.substring(5));
-            else if (p.startsWith("role:")) roles.add(p.substring(5));
-            else if (p.startsWith("backend:")) backends.add(p.substring(8));
-        }
-
-        // 1) Discover concrete fields via mappings (works with aliases and multiple backing indices)
-        final GetMappingsRequest req = new GetMappingsRequest().indices(resourceSharingIndex);
-        client.admin().indices().getMappings(req, ActionListener.wrap(resp -> {
-            final Set<String> userFields = new LinkedHashSet<>();
-            final Set<String> roleFields = new LinkedHashSet<>();
-            final Set<String> backendFields = new LinkedHashSet<>();
-
-            // Resolve creator field (keyword-safe)
-            String createdByField = "created_by.user";
-
-            for (String idx : resp.mappings().keySet()) {
-                MappingMetadata m = resp.mappings().get(idx);
-                Map<String, Object> source = m.getSourceAsMap();
-                Map<String, Object> props = (Map<String, Object>) source.get("properties");
-                if (props == null) continue;
-
-                // created_by.user -> prefer keyword; fallback to raw
-                createdByField = resolveKeywordFieldPath(props, List.of("created_by", "user"), "created_by.user", createdByField);
-
-                // share_with.* expansion
-                Map<String, Object> shareWith = (Map<String, Object>) props.get("share_with");
-                if (shareWith == null) continue;
-                Map<String, Object> swProps = (Map<String, Object>) shareWith.get("properties");
-                if (swProps == null) continue;
-
-                for (Map.Entry<String, Object> e : swProps.entrySet()) {
-                    String group = e.getKey();
-                    Map<String, Object> groupObj = (Map<String, Object>) e.getValue();
-                    Map<String, Object> groupProps = (Map<String, Object>) groupObj.get("properties");
-                    if (groupProps == null) continue;
-
-                    String base = "share_with." + group;
-
-                    String usersPath = resolveKeywordFieldPath(groupProps, List.of("users"), base + ".users", null);
-                    String rolesPath = resolveKeywordFieldPath(groupProps, List.of("roles"), base + ".roles", null);
-                    String backendPath = resolveKeywordFieldPath(groupProps, List.of("backend_roles"), base + ".backend_roles", null);
-
-                    if (usersPath != null) userFields.add(usersPath);
-                    if (rolesPath != null) roleFields.add(rolesPath);
-                    if (backendPath != null) backendFields.add(backendPath);
+        // Phase 1: resolve resource IDs from the RESOURCE index
+        fetchAccessibleResourceIds(resourceIndex, flatPrincipals, ActionListener.wrap(ids -> {
+            if (ids == null || ids.isEmpty()) {
+                try {
+                    listener.onResponse(Collections.emptySet());
+                } finally {
+                    stored.restore();
                 }
+                return;
             }
 
-            // 2) Build native bool query (filter context → cacheable)
-            BoolQueryBuilder should = QueryBuilders.boolQuery().should(QueryBuilders.termQuery(createdByField, user.getName()));
+            final List<String> idList = new ArrayList<>(ids);
+            final int BATCH = 1000; // tune if docs are large
+            final Set<SharingRecord> out = ConcurrentHashMap.newKeySet();
+            final AtomicInteger cursor = new AtomicInteger(0);
+            final String[] includes = { "resource_id", "created_by", "share_with" };
 
-            if (!users.isEmpty()) for (String f : userFields)
-                should.should(QueryBuilders.termsQuery(f, users));
-            if (!roles.isEmpty()) for (String f : roleFields)
-                should.should(QueryBuilders.termsQuery(f, roles));
-            if (!backends.isEmpty()) for (String f : backendFields)
-                should.should(QueryBuilders.termsQuery(f, backends));
+            // self-referencing lambda for batch run
+            final AtomicReference<Runnable> submitNextRef = new AtomicReference<>();
 
-            BoolQueryBuilder accessQuery = QueryBuilders.boolQuery().filter(should.minimumShouldMatch(1));
-
-            // 3) Execute the search (scroll) using the native query
-            final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
-            searchRequest.scroll(scroll);
-
-            SearchSourceBuilder ssb = new SearchSourceBuilder().query(accessQuery) // already filter-context
-                .size(1000)
-                .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
-            searchRequest.source(ssb);
-
-            StepListener<SearchResponse> searchStep = new StepListener<>();
-            client.search(searchRequest, searchStep);
-
-            searchStep.whenComplete(initialResponse -> {
-                try {
-                    Set<SharingRecord> recs = new HashSet<>();
-                    String scrollId = initialResponse.getScrollId();
-                    processScrollResultsAndCollectSharingRecords(
-                        user,
-                        false,
-                        resourceIndex,
-                        recs,
-                        scroll,
-                        scrollId,
-                        initialResponse.getHits().getHits(),
-                        ActionListener.wrap(records -> {
-                            stored.restore();
-                            listener.onResponse(records);
-                        }, e -> {
-                            stored.restore();
-                            listener.onFailure(e);
-                        })
-                    );
-                } catch (Exception e) {
-                    stored.restore();
-                    listener.onFailure(e);
+            // Phase 2: mGet resource sharing records in a batch
+            submitNextRef.set(() -> {
+                int start = cursor.getAndAdd(BATCH); // offset
+                if (start >= idList.size()) {
+                    try {
+                        listener.onResponse(out);
+                    } finally {
+                        stored.restore();
+                    }
+                    return;
                 }
-            }, e -> {
-                stored.restore();
-                listener.onFailure(e);
+                int end = Math.min(start + BATCH, idList.size());
+
+                final MultiGetRequest mget = new MultiGetRequest();
+                final FetchSourceContext fsc = new FetchSourceContext(true, includes, Strings.EMPTY_ARRAY);
+                for (int i = start; i < end; i++) {
+                    mget.add(new MultiGetRequest.Item(resourceSharingIndex, idList.get(i)).fetchSourceContext(fsc));
+                }
+
+                client.multiGet(mget, ActionListener.wrap(mres -> {
+                    for (MultiGetItemResponse item : mres.getResponses()) {
+                        if (item == null || item.isFailed()) continue;
+                        final GetResponse gr = item.getResponse();
+                        if (gr == null || !gr.isExists()) continue;
+
+                        try (
+                            XContentParser p = XContentHelper.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                THROW_UNSUPPORTED_OPERATION,
+                                gr.getSourceAsBytesRef(),
+                                XContentType.JSON
+                            )
+                        ) {
+                            p.nextToken();
+                            ResourceSharing rs = ResourceSharing.fromXContent(p);
+                            boolean canShare = canUserShare(user, /* isAdmin */ false, rs, resourceIndex);
+                            out.add(new SharingRecord(rs, canShare));
+                        } catch (Exception ex) {
+                            LOGGER.warn("Failed to parse resource-sharing doc id={}", gr.getId(), ex);
+                        }
+                    }
+                    // next batch
+                    submitNextRef.get().run();
+                }, e -> {
+                    try {
+                        listener.onFailure(e);
+                    } finally {
+                        stored.restore();
+                    }
+                }));
             });
 
+            // kick off
+            submitNextRef.get().run();
+
         }, e -> {
-            stored.restore();
-            listener.onFailure(e);
+            try {
+                listener.onFailure(e);
+            } finally {
+                stored.restore();
+            }
         }));
     }
 
@@ -1298,44 +1269,6 @@ public class ResourceSharingIndexHandler {
             if (matches) return true;
         }
         return false;
-    }
-
-    /**
-     * Resolves a path to a keyword-searchable field:
-     * - If target is "keyword"/"constant_keyword", returns basePath.
-     * - If it's "text" with a "keyword" subfield, returns basePath + ".keyword".
-     * - Otherwise returns fallback (or null).
-     */
-    @SuppressWarnings("unchecked")
-    private String resolveKeywordFieldPath(Map<String, Object> parentProps, List<String> pathSegments, String basePath, String fallback) {
-        Map<String, Object> current = parentProps;
-        Map<String, Object> leaf = null;
-
-        for (int i = 0; i < pathSegments.size(); i++) {
-            Object node = current.get(pathSegments.get(i));
-            if (!(node instanceof Map)) return fallback;
-            Map<String, Object> nodeMap = (Map<String, Object>) node;
-
-            if (i == pathSegments.size() - 1) {
-                leaf = nodeMap;
-            } else {
-                current = (Map<String, Object>) nodeMap.get("properties");
-                if (current == null) return fallback;
-            }
-        }
-        if (leaf == null) return fallback;
-
-        Object type = leaf.get("type");
-        if ("keyword".equals(type) || "constant_keyword".equals(type)) return basePath;
-
-        Map<String, Object> fields = (Map<String, Object>) leaf.get("fields");
-        if (fields != null) {
-            Object kw = fields.get("keyword");
-            if (kw instanceof Map && "keyword".equals(((Map<String, Object>) kw).get("type"))) {
-                return basePath + ".keyword";
-            }
-        }
-        return fallback;
     }
 
 }
