@@ -78,14 +78,8 @@ public class ResourceActionGroupsHelper {
                         continue; // no fallback
                     }
 
-                    // buildActionGroupsYaml() accepts only lists-of-strings; anything else becomes allowed_actions: []
-                    String perTypeAgYaml = buildActionGroupsYaml(typeMapRaw);
-
-                    // Parse + flatten for THIS type
-                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromYaml(
-                        perTypeAgYaml,
-                        CType.ACTIONGROUPS
-                    );
+                    Map<String, Object> normalized = normalizeToActionGroupsMap(typeMapRaw);
+                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromMap(normalized, CType.ACTIONGROUPS);
 
                     // prune groups that ended up empty after normalization
                     cfg.getCEntries()
@@ -112,48 +106,44 @@ public class ResourceActionGroupsHelper {
     }
 
     /**
-     * Build a minimal action-groups YAML from a per-type "action_groups" map.
-     * Input shape:
+     * Normalize raw per-type map to "action_groups" map.
+     * Input:
      * { actionGroupName -> [ ... ] }
-     * Output YAML:
+     * Output:
      *   actionGroupName:
      *     allowed_actions:
      *       - "..."
      */
-    private static String buildActionGroupsYaml(Map<?, ?> groupsRaw) {
+    private static Map<String, Object> normalizeToActionGroupsMap(Map<?, ?> groupsRaw) {
         Map<String, Object> normalized = new LinkedHashMap<>();
+        if (groupsRaw == null) return normalized;
 
-        if (groupsRaw != null) {
-            for (Map.Entry<?, ?> e : groupsRaw.entrySet()) {
-                String group = String.valueOf(e.getKey());
-                Object v = e.getValue();
+        for (Map.Entry<?, ?> e : groupsRaw.entrySet()) {
+            String group = String.valueOf(e.getKey());
+            Object v = e.getValue();
 
-                // default to empty list
-                List<String> actions = List.of();
-
-                // Accept ONLY shape A: group: [ "action:a", "action:b", ... ]
-                if (v instanceof Collection<?> coll) {
-                    List<String> tmp = new ArrayList<>(coll.size());
-                    boolean allStrings = true;
-                    for (Object item : coll) {
-                        if (!(item instanceof String s)) {
-                            allStrings = false;
-                            break;
-                        }
-                        tmp.add(s);
+            // only accepts shape: [ "action:a", "action:b", ... ]
+            List<String> actions = List.of();
+            if (v instanceof Collection<?> coll) {
+                List<String> tmp = new ArrayList<>(coll.size());
+                boolean allStrings = true;
+                for (Object item : coll) {
+                    if (!(item instanceof String s)) {
+                        allStrings = false;
+                        break;
                     }
-                    if (allStrings) {
-                        actions = tmp;
-                    }
+                    tmp.add(s);
                 }
-
-                Map<String, Object> groupObj = new LinkedHashMap<>();
-                groupObj.put("allowed_actions", actions);
-                normalized.put(group, groupObj);
+                if (allStrings) actions = tmp;
             }
+
+            Map<String, Object> groupObj = new LinkedHashMap<>();
+            groupObj.put("allowed_actions", actions);
+            normalized.put(group, groupObj);
         }
 
-        return new Yaml().dump(normalized);
+        return normalized;
     }
+
 }
 // CS-ENFORCE-SINGLE
