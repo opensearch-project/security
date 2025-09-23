@@ -21,7 +21,7 @@ jobs:
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Load secret
         uses: 1password/load-secrets-action@v3
         with:
