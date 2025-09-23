@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
@@ -99,6 +100,7 @@ public class ResourceAccessEvaluator {
         );
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
+        if (request instanceof GetRequest) return false;
         if (Strings.isNullOrEmpty(docRequest.id())) {
             log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
             return false;

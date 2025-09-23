@@ -15,6 +15,7 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -70,7 +71,11 @@ final public class RolesInjector {
             return null;
         }
         Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
-        User user = new User(strs[0]).withSecurityRoles(roles);
+
+        Map<String, String> customAttributes = threadPool.getThreadContext()
+            .getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES);
+
+        User user = new User(strs[0]).withSecurityRoles(roles).withAttributes(customAttributes);
 
         addUser(user, threadPool);
         return roles;

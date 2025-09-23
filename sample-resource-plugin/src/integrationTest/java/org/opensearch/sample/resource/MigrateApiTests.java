@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.Version;
-import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -64,7 +63,6 @@ public class MigrateApiTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
-        .plugin(PainlessModulePlugin.class)
         .plugin(
             new PluginInfo(
                 SampleResourcePlugin.class.getName(),

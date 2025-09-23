@@ -46,7 +46,6 @@ buildscript {
     repositories {
         mavenLocal()
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -59,7 +58,6 @@ buildscript {
 repositories {
     mavenLocal()
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
 }
@@ -67,7 +65,7 @@ repositories {
 configurations.all {
     resolutionStrategy {
         force "org.hamcrest:hamcrest:2.2"
-        force "org.mockito:mockito-core:5.18.0"
+        force "org.mockito:mockito-core:5.20.0"
     }
 }
 

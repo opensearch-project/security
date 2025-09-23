@@ -29,4 +29,5 @@ jobs:
             opensearch-trigger-bot[bot]
           allowed-files: |
             build.gradle
+            CHANGELOG.md
             .github/workflows/*.yml

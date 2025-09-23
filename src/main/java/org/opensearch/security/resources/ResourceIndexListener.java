@@ -54,7 +54,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
-        if (!result.isCreated() && index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
+        if (!result.isCreated() || !index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
             log.debug("Skipping resource sharing entry creation as this was an update operation for resource {}", resourceId);
             return;
         }
@@ -73,7 +73,14 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceIndex
                 );
             }, e -> { log.debug(e.getMessage()); });
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceId, resourceIndex, new CreatedBy(user.getName()), null, listener);
+            // User.getRequestedTenant() is null if multi-tenancy is disabled
+            this.resourceSharingIndexHandler.indexResourceSharing(
+                resourceId,
+                resourceIndex,
+                new CreatedBy(user.getName(), user.getRequestedTenant()),
+                null,
+                listener
+            );
 
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);

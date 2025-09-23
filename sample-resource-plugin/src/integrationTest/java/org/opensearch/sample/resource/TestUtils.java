@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -22,7 +23,6 @@ import org.opensearch.Version;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -112,7 +112,6 @@ public final class TestUtils {
                     false
                 )
             )
-            .plugin(PainlessModulePlugin.class)
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
@@ -325,10 +324,10 @@ public final class TestUtils {
         }
 
         // Helper to create a sample resource and return its ID
-        public String createSampleResourceAs(TestSecurityConfig.User user) {
+        public String createSampleResourceAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"name\":\"sample\"}";
-                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
@@ -598,20 +597,21 @@ public final class TestUtils {
             }
         }
 
-        public void awaitSharingEntry() {
-            awaitSharingEntry("admin");
+        public void awaitSharingEntry(String resourceId) {
+            awaitSharingEntry(resourceId, "admin");
         }
 
-        public void awaitSharingEntry(String expectedString) {
+        public void awaitSharingEntry(String resourceId, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await("Wait for sharing entry").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
-                    response.assertStatusCode(200);
-                    String hitsJson = response.bodyAsMap().get("hits").toString();
-                    assertThat(hitsJson, containsString(expectedString));
-                    int size = response.bodyAsJsonNode().get("hits").get("hits").size();
-                    assertThat(size, greaterThanOrEqualTo(1));
-                });
+                Awaitility.await("Wait for sharing entry for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        String body = response.getBody();
+                        assertThat(body, containsString(expectedString));
+                        assertThat(body, containsString(resourceId));
+                    });
             }
         }
     }
