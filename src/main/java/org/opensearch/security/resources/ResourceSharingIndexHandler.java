@@ -1010,11 +1010,8 @@ public class ResourceSharingIndexHandler {
         // Phase 1: resolve resource IDs from the RESOURCE index
         fetchAccessibleResourceIds(resourceIndex, flatPrincipals, ActionListener.wrap(ids -> {
             if (ids == null || ids.isEmpty()) {
-                try {
-                    listener.onResponse(Collections.emptySet());
-                } finally {
-                    stored.restore();
-                }
+                stored.restore();
+                listener.onResponse(Collections.emptySet());
                 return;
             }
 
@@ -1031,11 +1028,9 @@ public class ResourceSharingIndexHandler {
             submitNextRef.set(() -> {
                 int start = cursor.getAndAdd(BATCH); // offset
                 if (start >= idList.size()) {
-                    try {
-                        listener.onResponse(out);
-                    } finally {
-                        stored.restore();
-                    }
+                    stored.restore();
+                    listener.onResponse(out);
+
                     return;
                 }
                 int end = Math.min(start + BATCH, idList.size());
@@ -1083,11 +1078,8 @@ public class ResourceSharingIndexHandler {
             submitNextRef.get().run();
 
         }, e -> {
-            try {
-                listener.onFailure(e);
-            } finally {
-                stored.restore();
-            }
+            stored.restore();
+            listener.onFailure(e);
         }));
     }
 
