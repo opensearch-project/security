@@ -11,6 +11,7 @@ package org.opensearch.security.resources.api.list;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -66,21 +67,27 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
 
         final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
+        if (resourceIndex == null) {
+            return channel -> { handleResponse(channel, Set.of()); };
+        }
         return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceIndex, ActionListener.wrap(rows -> {
-
-            try (XContentBuilder b = channel.newBuilder()) {
-                b.startObject();
-                b.startArray("resources");
-                for (SharingRecord row : rows) {
-                    row.toXContent(b, ToXContent.EMPTY_PARAMS);
-                }
-                b.endArray();
-                b.endObject();
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, b));
-            } catch (IOException ioe) {
-                handleError(channel, ioe);
-            }
+            handleResponse(channel, rows);
         }, e -> handleError(channel, e)));
+    }
+
+    private void handleResponse(RestChannel channel, Set<SharingRecord> records) throws IOException {
+        try (XContentBuilder b = channel.newBuilder()) {
+            b.startObject();
+            b.startArray("resources");
+            for (SharingRecord row : records) {
+                row.toXContent(b, ToXContent.EMPTY_PARAMS);
+            }
+            b.endArray();
+            b.endObject();
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, b));
+        } catch (IOException ioe) {
+            handleError(channel, ioe);
+        }
     }
 
     private void handleError(RestChannel channel, Exception e) {
