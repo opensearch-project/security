@@ -85,6 +85,61 @@ public class ShareApiTests {
         }
 
         @Test
+        public void testGibberishPayload() {
+            // test get with gibberish payload
+            try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+                TestRestClient.HttpResponse response = client.get(
+                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + "some-id" + "&resource_type=" + RESOURCE_TYPE
+                );
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN); // since resource-index exists but resource-id doesn't, but user
+                                                                    // shouldn't know that
+
+                response = client.get(SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + "some-type");
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST); // since type doesn't exist, so does the corresponding index
+            }
+
+            // test put with gibberish value
+            try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+                TestRestClient.HttpResponse response = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload("some-id", RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
+                );
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN); // since resource-index exists but resource-id doesn't, but user
+                                                                    // shouldn't know that
+
+                response = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(adminResId, "some_type", SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
+                );
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST); // since type doesn't exist, so does the corresponding index
+            }
+
+            // test patch with gibberish
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
+                Map<Recipient, Set<String>> recs = new HashMap<>();
+                Set<String> users = new HashSet<>();
+                users.add(FULL_ACCESS_USER.getName());
+                recs.put(Recipient.USERS, users);
+                Recipients recipients = new Recipients(recs);
+
+                TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                patchSharingInfoPayloadBuilder.resourceId("some-id")
+                    .resourceType(RESOURCE_TYPE)
+                    .share(recipients, SAMPLE_FULL_ACCESS_RESOURCE_AG);
+                TestRestClient.HttpResponse response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+
+                patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                patchSharingInfoPayloadBuilder.resourceId(adminResId)
+                    .resourceType("some-type")
+                    .share(recipients, SAMPLE_FULL_ACCESS_RESOURCE_AG);
+                response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            }
+
+        }
+
+        @Test
         public void testPutSharingInfo() {
             // non-permission user cannot share resource
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {

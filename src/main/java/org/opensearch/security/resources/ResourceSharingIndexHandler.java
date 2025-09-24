@@ -58,6 +58,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -382,6 +383,11 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} accessible resources in {}", resourceIds.size(), resourceIndex);
                 listener.onResponse(resourceIds);
             }, exception -> {
+                if (exception instanceof IndexNotFoundException) {
+                    LOGGER.debug("Index {} not found, returning empty set", resourceIndex, exception);
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, entities, exception);
                 listener.onFailure(exception);
             }));

@@ -73,6 +73,17 @@ public class AccessibleResourcesApiTests {
         }
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListAccessibleResources_gibberishParams() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + "some-type");
+            response.assertStatusCode(HttpStatus.SC_OK);
+            List<Object> types = (List<Object>) response.bodyAsMap().get("resources");
+            assertThat(types.size(), equalTo(0));
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void assertListApiWithUser(TestSecurityConfig.User user) {
         // Sharing behaviour is tested in ShareApiTests, this class simply tests that the shared resources are visible after sharing through

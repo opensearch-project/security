@@ -202,7 +202,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 
-    public static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
+    public static String putSharingInfoPayload(String resourceId, String resourceType, String accessLevel, String user) {
         return """
             {
               "resource_id": "%s",
@@ -213,7 +213,7 @@ public final class TestUtils {
                 }
               }
             }
-            """.formatted(resourceId, resourceIndex, accessLevel, user);
+            """.formatted(resourceId, resourceType, accessLevel, user);
     }
 
     public static class PatchSharingInfoPayloadBuilder {
