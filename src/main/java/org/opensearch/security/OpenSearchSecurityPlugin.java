@@ -709,9 +709,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
                     OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
                 )) {
-                    handlers.add(new ShareRestAction());
+                    handlers.add(new ShareRestAction(resourcePluginInfo));
                     handlers.add(new ResourceTypesRestAction(resourcePluginInfo));
-                    handlers.add(new AccessibleResourcesRestAction(resourceAccessHandler));
+                    handlers.add(new AccessibleResourcesRestAction(resourceAccessHandler, resourcePluginInfo));
                 }
 
             }

@@ -218,7 +218,7 @@ public final class TestUtils {
 
     public static class PatchSharingInfoPayloadBuilder {
         private String resourceId;
-        private String resourceIndex;
+        private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
 
@@ -227,8 +227,8 @@ public final class TestUtils {
             return this;
         }
 
-        public PatchSharingInfoPayloadBuilder resourceIndex(String resourceIndex) {
-            this.resourceIndex = resourceIndex;
+        public PatchSharingInfoPayloadBuilder resourceType(String resourceType) {
+            this.resourceType = resourceType;
             return this;
         }
 
@@ -282,7 +282,7 @@ public final class TestUtils {
                     %s
                   }
                 }
-                """.formatted(resourceId, resourceIndex, allShares, allRevokes);
+                """.formatted(resourceId, resourceType, allShares, allRevokes);
         }
     }
 

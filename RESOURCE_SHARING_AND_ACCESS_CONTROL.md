@@ -113,7 +113,7 @@ opensearchplugin {
 
       # ...
     ```
-NOTE: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
+**NOTE**: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
 
 #### **Example resource-action-groups yml**
 ```yml
@@ -568,7 +568,7 @@ Creates or replaces sharing settings for a resource.
 ```json
 {
   "resource_id": "resource-123",
-  "resource_type": "my-resource-index",
+  "resource_type": "my-type",
   "share_with": {
     "read_only": {
       "users": ["alice"],
@@ -613,7 +613,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 ```json
 {
   "resource_id": "resource-123",
-  "resource_type": "my-resource-index",
+  "resource_type": "my-type",
   "add": {
     "read_only": {
       "users": ["charlie"]
@@ -658,7 +658,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 - `"revoke"` – Removes recipients
 
 
-### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_type=<index>`
+### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_type=<type>`
 
 **Description:**
 Retrieves the current sharing configuration for a given resource.
@@ -666,7 +666,7 @@ Retrieves the current sharing configuration for a given resource.
 **Example Request:**
 
 ```
-GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_type=my-resource-index
+GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_type=my-type
 ```
 
 **Response:**
@@ -705,8 +705,7 @@ GET /_plugins/_security/api/resource/types
 {
   "types": [
     {
-      "type": "org.opensearch.sample.SampleResource",
-      "index": ".sample_resource",
+      "type": "sample-resource",
       "action_groups": ["sample_read_only", "sample_read_write", "sample_full_access"]
     }
   ]
@@ -714,7 +713,7 @@ GET /_plugins/_security/api/resource/types
 ```
 NOTE: `action_groups` are fetched from `resource-action-groups.yml` supplied by resource plugin.
 
-### 5. `GET /_plugins/_security/api/resource/list?resource_type=<resource-index-name>`
+### 5. `GET /_plugins/_security/api/resource/list?resource_type=<type>`
 
 **Description:**
 Retrieves sharing information for all records accessible to requesting user for the given resource_index.
@@ -722,7 +721,7 @@ Retrieves sharing information for all records accessible to requesting user for 
 **Example Request:**
 as user `darshit`
 ```
-GET /_plugins/_security/api/resource/list?resource_type=.sample_resource
+GET /_plugins/_security/api/resource/list?resource_type=sample-resource
 ```
 
 **Response:**

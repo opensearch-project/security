@@ -57,7 +57,6 @@ public class ShareableResourceTypesInfoApiTests {
             assertThat(types.size(), equalTo(1));
             Map<String, Object> responseBody = (Map<String, Object>) types.getFirst();
             assertThat(responseBody.get("type"), equalTo("sample-resource"));
-            assertThat(responseBody.get("index"), equalTo(".sample_resource"));
             assertThat(responseBody.get("action_groups"), equalTo(List.of("sample_read_only", "sample_read_write", "sample_full_access")));
         }
 

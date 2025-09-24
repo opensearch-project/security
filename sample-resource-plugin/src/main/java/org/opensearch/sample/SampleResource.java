@@ -27,6 +27,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Sample resource declared by this plugin.
@@ -50,23 +51,19 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         this.user = new User(in);
     }
 
-    private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(
-        "sample_resource",
-        true,
-        a -> {
-            SampleResource s;
-            try {
-                s = new SampleResource();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            s.setName((String) a[0]);
-            s.setDescription((String) a[1]);
-            s.setAttributes((Map<String, String>) a[2]);
-            s.setUser((User) a[3]);
-            return s;
+    private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(RESOURCE_TYPE, true, a -> {
+        SampleResource s;
+        try {
+            s = new SampleResource();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-    );
+        s.setName((String) a[0]);
+        s.setDescription((String) a[1]);
+        s.setAttributes((Map<String, String>) a[2]);
+        s.setUser((User) a[3]);
+        return s;
+    });
 
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
@@ -117,6 +114,6 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     @Override
     public String getWriteableName() {
-        return "sample_resource";
+        return RESOURCE_TYPE;
     }
 }

@@ -23,8 +23,9 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -56,7 +57,7 @@ public class ResourceSharingMultiTenancyTests {
     public void testCreateResourceWithMultiTenancyEnabled() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse sharingInfoResponse = client.get(
-                "_plugins/_security/api/resource/share?resource_id=" + resourceId + "&resource_type=" + RESOURCE_INDEX_NAME
+                SECURITY_SHARE_ENDPOINT + "?resource_id=" + resourceId + "&resource_type=" + RESOURCE_TYPE
             );
             assertThat(sharingInfoResponse.getBody(), containsString("\"created_by\":{\"user\":\"admin\",\"tenant\":\"customtenant\"}"));
         }

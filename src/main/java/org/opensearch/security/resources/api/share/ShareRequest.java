@@ -19,6 +19,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import joptsimple.internal.Strings;
@@ -173,7 +174,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             return new ShareRequest(this);
         }
 
-        public void parseContent(XContentParser xContentParser) throws IOException {
+        public void parseContent(XContentParser xContentParser, ResourcePluginInfo resourcePluginInfo) throws IOException {
             try (XContentParser parser = xContentParser) {
                 XContentParser.Token token; // START_OBJECT
                 while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -185,7 +186,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                                 this.resourceId(parser.text());
                                 break;
                             case "resource_type":
-                                this.resourceIndex(parser.text());
+                                this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
                                 break;
                             case "share_with":
                                 this.shareWith(ShareWith.fromXContent(parser));

@@ -43,6 +43,7 @@ import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -89,7 +90,7 @@ public class ShareApiTests {
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.putJson(
                     SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(adminResId, RESOURCE_INDEX_NAME, SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
                 );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -98,7 +99,7 @@ public class ShareApiTests {
             try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
                 TestRestClient.HttpResponse response = client.putJson(
                     SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(adminResId, RESOURCE_INDEX_NAME, SAMPLE_FULL_ACCESS_RESOURCE_AG, LIMITED_ACCESS_USER.getName())
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS_RESOURCE_AG, LIMITED_ACCESS_USER.getName())
                 );
                 response.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(response.getBody(), containsString(LIMITED_ACCESS_USER.getName()));
@@ -109,7 +110,7 @@ public class ShareApiTests {
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.putJson(
                     SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(adminResId, RESOURCE_INDEX_NAME, SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, NO_ACCESS_USER.getName())
                 );
                 response.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(response.getBody(), containsString(NO_ACCESS_USER.getName()));
@@ -121,7 +122,7 @@ public class ShareApiTests {
             // non-permission user cannot list shared resources,
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.get(
-                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_INDEX_NAME
+                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_TYPE
                 );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -130,7 +131,7 @@ public class ShareApiTests {
             try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
                 TestRestClient.HttpResponse response = client.putJson(
                     SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(adminResId, RESOURCE_INDEX_NAME, SAMPLE_FULL_ACCESS_RESOURCE_AG, FULL_ACCESS_USER.getName())
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS_RESOURCE_AG, FULL_ACCESS_USER.getName())
                 );
                 response.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(response.getBody(), containsString(FULL_ACCESS_USER.getName()));
@@ -139,7 +140,7 @@ public class ShareApiTests {
             // non-permission user can now list shared_with resources by calling share API
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
                 TestRestClient.HttpResponse response = client.get(
-                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_INDEX_NAME
+                    SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + RESOURCE_TYPE
                 );
                 response.assertStatusCode(HttpStatus.SC_OK);
                 assertThat(response.bodyAsJsonNode().get("sharing_info").get("resource_id").asText(), equalTo(adminResId));
@@ -156,7 +157,7 @@ public class ShareApiTests {
 
             TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             patchSharingInfoPayloadBuilder.resourceId(adminResId)
-                .resourceIndex(RESOURCE_INDEX_NAME)
+                .resourceType(RESOURCE_TYPE)
                 .share(recipients, SAMPLE_FULL_ACCESS_RESOURCE_AG);
 
             // full-access user cannot share with itself since user doesn't have permission to share

@@ -82,13 +82,12 @@ public class ResourcePluginInfo {
 
     /** Register/merge action-group names for a given resource type. */
 
-    public record ResourceDashboardInfo(String resourceType, String resourceIndexName, Set<String> actionGroups // names only (for UI)
+    public record ResourceDashboardInfo(String resourceType, Set<String> actionGroups // names only (for UI)
     ) implements ToXContentObject {
         @Override
         public XContentBuilder toXContent(XContentBuilder b, Params p) throws IOException {
             b.startObject();
             b.field("type", resourceType);
-            b.field("index", resourceIndexName);
             b.field("action_groups", actionGroups == null ? Collections.emptyList() : actionGroups);
             return b.endObject();
         }
@@ -113,13 +112,16 @@ public class ResourcePluginInfo {
         return indexToType.get(index);
     }
 
+    public String indexByType(String type) {
+        return typeToIndex.get(type);
+    }
+
     public Set<ResourceDashboardInfo> getResourceTypes() {
         return typeToIndex.entrySet()
             .stream()
             .map(
                 e -> new ResourceDashboardInfo(
                     e.getKey(),
-                    e.getValue(),
                     Collections.unmodifiableSet(typeToGroupNames.getOrDefault(e.getKey(), new LinkedHashSet<>()))
                 )
             )

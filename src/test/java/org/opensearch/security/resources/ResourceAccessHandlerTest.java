@@ -245,7 +245,7 @@ public class ResourceAccessHandlerTest {
         ActionListener<Set<String>> listener = mock(ActionListener.class);
 
         doAnswer(inv -> {
-            ActionListener<Set<String>> l = inv.getArgument(3);
+            ActionListener<Set<String>> l = inv.getArgument(2);
             l.onResponse(Set.of("res1"));
             return null;
         }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any());

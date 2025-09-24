@@ -43,6 +43,7 @@ import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -77,7 +78,7 @@ public class AccessibleResourcesApiTests {
         // Sharing behaviour is tested in ShareApiTests, this class simply tests that the shared resources are visible after sharing through
         // list api
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
+            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
             response.assertStatusCode(HttpStatus.SC_OK);
             List<Object> types = (List<Object>) response.bodyAsMap().get("resources");
             assertThat(types.size(), equalTo(0));
@@ -86,13 +87,13 @@ public class AccessibleResourcesApiTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(adminResId, RESOURCE_INDEX_NAME, SAMPLE_READ_ONLY_RESOURCE_AG, user.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, user.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));
         }
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
+            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
             response.assertStatusCode(HttpStatus.SC_OK);
             List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
             assertThat(resources.size(), equalTo(1));
@@ -116,7 +117,7 @@ public class AccessibleResourcesApiTests {
 
             TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             patchSharingInfoPayloadBuilder.resourceId(adminResId)
-                .resourceIndex(RESOURCE_INDEX_NAME)
+                .resourceType(RESOURCE_TYPE)
                 .share(recipients, SAMPLE_FULL_ACCESS_RESOURCE_AG);
 
             TestRestClient.HttpResponse response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
@@ -124,7 +125,7 @@ public class AccessibleResourcesApiTests {
             assertThat(response.getBody(), containsString(user.getName()));
         }
         try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
+            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
             response.assertStatusCode(HttpStatus.SC_OK);
             List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
             assertThat(resources.size(), equalTo(1));
@@ -162,7 +163,7 @@ public class AccessibleResourcesApiTests {
 
     @SuppressWarnings("unchecked")
     private void assertListApiWithOwnerAndSuperAdmin(TestRestClient client) {
-        TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_INDEX_NAME);
+        TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
         response.assertStatusCode(HttpStatus.SC_OK);
         List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
         assertThat(resources.size(), equalTo(1));

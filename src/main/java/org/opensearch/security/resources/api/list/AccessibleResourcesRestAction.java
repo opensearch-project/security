@@ -26,6 +26,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.SharingRecord;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -41,10 +42,12 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(AccessibleResourcesRestAction.class);
 
     private final ResourceAccessHandler resourceAccessHandler;
+    private final ResourcePluginInfo resourcePluginInfo;
 
-    public AccessibleResourcesRestAction(final ResourceAccessHandler resourceAccessHandler) {
+    public AccessibleResourcesRestAction(final ResourceAccessHandler resourceAccessHandler, ResourcePluginInfo resourcePluginInfo) {
         super();
         this.resourceAccessHandler = resourceAccessHandler;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     @Override
@@ -59,7 +62,9 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        final String resourceIndex = Objects.requireNonNull(request.param("resource_type"), "resource_type is required");
+        final String resourceType = Objects.requireNonNull(request.param("resource_type"), "resource_type is required");
+
+        final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceIndex, ActionListener.wrap(rows -> {
 
