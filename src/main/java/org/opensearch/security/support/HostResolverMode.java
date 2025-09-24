@@ -13,7 +13,8 @@ package org.opensearch.security.support;
 
 public enum HostResolverMode {
     IP_HOSTNAME("ip-hostname"),
-    IP_HOSTNAME_LOOKUP("ip-hostname-lookup");
+    IP_HOSTNAME_LOOKUP("ip-hostname-lookup"),
+    DISABLED("disabled");
 
     private final String value;
 
@@ -23,5 +24,15 @@ public enum HostResolverMode {
 
     public String getValue() {
         return value;
+    }
+
+    public static HostResolverMode fromConfig(String hostResolverModeConfig) {
+        if (hostResolverModeConfig == null || hostResolverModeConfig.equalsIgnoreCase(IP_HOSTNAME.value)) {
+            return HostResolverMode.IP_HOSTNAME;
+        } else if (hostResolverModeConfig.equalsIgnoreCase(IP_HOSTNAME_LOOKUP.value)) {
+            return HostResolverMode.IP_HOSTNAME_LOOKUP;
+        } else {
+            return HostResolverMode.DISABLED;
+        }
     }
 }

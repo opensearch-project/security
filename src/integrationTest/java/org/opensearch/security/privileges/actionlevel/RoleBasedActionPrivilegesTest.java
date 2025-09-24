@@ -13,6 +13,7 @@ package org.opensearch.security.privileges.actionlevel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,16 +30,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
+import org.opensearch.action.OriginalIndices;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -80,7 +82,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(subject.hasClusterPrivilege(ctx().roles("test_role").get(), "cluster:monitor/nodes/stats"), isAllowed());
             assertThat(
@@ -99,7 +107,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(
                 subject.hasClusterPrivilege(ctx().roles("test_role").get(), "cluster:monitor/nodes/stats/somethingnotwellknown"),
@@ -121,7 +135,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - '*'", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(subject.hasClusterPrivilege(ctx().roles("test_role").get(), "cluster:whatever"), isAllowed());
             assertThat(
@@ -144,7 +164,13 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(subject.hasExplicitClusterPrivilege(ctx().roles("explicit_role").get(), "cluster:monitor/nodes/stats"), isAllowed());
             assertThat(
@@ -175,7 +201,13 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(
                 subject.hasExplicitClusterPrivilege(ctx().roles("explicit_role").get(), "cluster:monitor/nodes/notwellknown"),
@@ -201,7 +233,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(
                 subject.hasAnyClusterPrivilege(ctx().roles("test_role").get(), ImmutableSet.of("cluster:monitor/nodes/stats")),
@@ -231,7 +269,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/*", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(
                 subject.hasAnyClusterPrivilege(ctx().roles("test_role").get(), ImmutableSet.of("cluster:monitor/nodes/notwellknown")),
@@ -268,7 +312,13 @@ public class RoleBasedActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - '*'", CType.ROLES);
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             assertThat(subject.hasAnyClusterPrivilege(ctx().roles("test_role").get(), ImmutableSet.of("cluster:whatever")), isAllowed());
 
@@ -352,13 +402,13 @@ public class RoleBasedActionPrivilegesTest {
 
             @Test
             public void positive_noLocal() throws Exception {
-                IndexResolverReplacer.Resolved resolved = new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of("remote:a"),
-                    ImmutableSet.of("remote:a"),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+                ResolvedIndices resolved = ResolvedIndices.of(Collections.emptySet())
+                    .withRemoteIndices(
+                        Map.of(
+                            "remote",
+                            new OriginalIndices(new String[] { "a" }, IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED)
+                        )
+                    );
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
                     ctx().roles("test_role").indexMetadata(INDEX_METADATA).get(),
                     requiredActions,
@@ -462,7 +512,13 @@ public class RoleBasedActionPrivilegesTest {
                         .build();
                 }
 
-                this.subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, settings);
+                this.subject = new RoleBasedActionPrivileges(
+                    roles,
+                    FlattenedActionGroups.EMPTY,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    settings,
+                    false
+                );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
@@ -481,14 +537,8 @@ public class RoleBasedActionPrivilegesTest {
                     .of("index_b1", "index_b2")//
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
             }
 
         }
@@ -637,7 +687,13 @@ public class RoleBasedActionPrivilegesTest {
                         .build();
                 }
 
-                this.subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, settings);
+                this.subject = new RoleBasedActionPrivileges(
+                    roles,
+                    FlattenedActionGroups.EMPTY,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    settings,
+                    false
+                );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
@@ -648,28 +704,24 @@ public class RoleBasedActionPrivilegesTest {
                 dataStreams("data_stream_a11", "data_stream_a12", "data_stream_a21", "data_stream_a22", "data_stream_b1", "data_stream_b2")
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
-                ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
+                // TODO check
+                // ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
+                //
+                //
+                // for (String index : indices) {
+                // IndexAbstraction indexAbstraction = INDEX_METADATA.getIndicesLookup().get(index);
+                //
+                // if (indexAbstraction instanceof IndexAbstraction.DataStream) {
+                // allIndices.addAll(
+                // indexAbstraction.getIndices().stream().map(i -> i.getIndex().getName()).collect(Collectors.toList())
+                // );
+                // }
+                //
+                // allIndices.add(index);
+                // }
 
-                for (String index : indices) {
-                    IndexAbstraction indexAbstraction = INDEX_METADATA.getIndicesLookup().get(index);
-
-                    if (indexAbstraction instanceof IndexAbstraction.DataStream) {
-                        allIndices.addAll(
-                            indexAbstraction.getIndices().stream().map(i -> i.getIndex().getName()).collect(Collectors.toList())
-                        );
-                    }
-
-                    allIndices.add(index);
-                }
-
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    allIndices.build(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
             }
         }
 
@@ -808,7 +860,7 @@ public class RoleBasedActionPrivilegesTest {
 
             assertTrue(
                 "relevantOnly() returned identical object",
-                RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata) == metadata
+                RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, i -> false) == metadata
             );
         }
 
@@ -822,7 +874,10 @@ public class RoleBasedActionPrivilegesTest {
             assertNotNull("Original metadata contains index_open_1", metadata.get("index_open_1"));
             assertNotNull("Original metadata contains index_closed", metadata.get("index_closed"));
 
-            Map<String, IndexAbstraction> filteredMetadata = RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
+            Map<String, IndexAbstraction> filteredMetadata = RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(
+                metadata,
+                i -> false
+            );
 
             assertNotNull("Filtered metadata contains index_open_1", filteredMetadata.get("index_open_1"));
             assertNull("Filtered metadata does not contain index_closed", filteredMetadata.get("index_closed"));
@@ -835,7 +890,10 @@ public class RoleBasedActionPrivilegesTest {
             assertNotNull("Original metadata contains backing index", metadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Original metadata contains data stream", metadata.get("data_stream_1"));
 
-            Map<String, IndexAbstraction> filteredMetadata = RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
+            Map<String, IndexAbstraction> filteredMetadata = RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(
+                metadata,
+                i -> false
+            );
 
             assertNull("Filtered metadata does not contain backing index", filteredMetadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Filtered metadata contains data stream", filteredMetadata.get("data_stream_1"));
@@ -866,12 +924,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
                 ctx().roles("role_with_errors").get(),
                 Set.of("indices:some_action", "indices:data/write/index"),
-                IndexResolverReplacer.Resolved.ofIndex("any_index")
+                ResolvedIndices.of("any_index")
             );
             assertThat(result, isForbidden());
             assertTrue(result.hasEvaluationExceptions());
@@ -892,12 +956,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().roles("test_role").get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -912,12 +982,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().roles("test_role").get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -929,12 +1005,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().roles("test_role").get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -949,12 +1031,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().roles("test_role").get(),
                 Set.of("system:admin/system_foo"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -969,12 +1057,18 @@ public class RoleBasedActionPrivilegesTest {
                 CType.ROLES
             );
 
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().roles("role_with_errors").get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("any_index")
+                ResolvedIndices.of("any_index")
             );
             assertThat(result, isForbidden());
             assertTrue(result.hasEvaluationExceptions());
@@ -998,20 +1092,26 @@ public class RoleBasedActionPrivilegesTest {
                     + "    allowed_actions: ['indices:data/write/index']",
                 CType.ROLES
             );
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
             subject.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), 2);
 
             PrivilegesEvaluatorResponse resultForIndexCoveredByAlias = subject.hasIndexPrivilege(
                 ctx().roles("role").indexMetadata(metadata).get(),
                 Set.of("indices:data/write/index"),
-                IndexResolverReplacer.Resolved.ofIndex(".ds-ds_a-000001")
+                ResolvedIndices.of(".ds-ds_a-000001")
             );
             assertThat(resultForIndexCoveredByAlias, isAllowed());
 
             PrivilegesEvaluatorResponse resultForIndexNotCoveredByAlias = subject.hasIndexPrivilege(
                 ctx().roles("role").indexMetadata(metadata).get(),
                 Set.of("indices:data/write/index"),
-                IndexResolverReplacer.Resolved.ofIndex(".ds-ds_a-000002")
+                ResolvedIndices.of(".ds-ds_a-000002")
             );
             assertThat(resultForIndexNotCoveredByAlias, isForbidden());
         }
@@ -1029,7 +1129,9 @@ public class RoleBasedActionPrivilegesTest {
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
                 roles,
                 FlattenedActionGroups.EMPTY,
-                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build()
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build(),
+                false
             );
             subject.updateStatefulIndexPrivileges(metadata, 1);
             assertEquals(0, subject.getEstimatedStatefulIndexByteSize());
@@ -1048,7 +1150,13 @@ public class RoleBasedActionPrivilegesTest {
 
         @Test
         public void estimatedSize() throws Exception {
-            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                false
+            );
 
             subject.updateStatefulIndexPrivileges(indices, 1);
 
