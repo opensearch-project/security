@@ -375,12 +375,12 @@ public class ResourceSharingIndexHandler {
 
             // We match any doc whose "principals" contains at least one of the entities
             // e.g., "user:alice", "role:admin", "backend:ops"
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .filter(QueryBuilders.termsQuery("all_shared_principals.keyword", entities));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("all_shared_principals", entities));
+            LOGGER.debug("Fetching accessible resource ids query {}", boolQuery);
 
             executeIdCollectingSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 ctx.restore();
-                LOGGER.debug("Found {} accessible resources in {}", resourceIds.size(), resourceIndex);
+                LOGGER.debug("Found {} accessible resources in {} for entities {}", resourceIds.size(), resourceIndex, entities);
                 listener.onResponse(resourceIds);
             }, exception -> {
                 if (exception instanceof IndexNotFoundException) {
