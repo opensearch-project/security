@@ -1229,12 +1229,14 @@ public class ResourceSharingIndexHandler {
     /**
      * Checks whether current user has sharing permission, i.e {@link ShareAction#NAME}
      */
-    public boolean canUserShare(User user, boolean isAdmin, ResourceSharing resource, String resourceType) {
-        if (resource == null) return false;
+    public boolean canUserShare(User user, boolean isAdmin, ResourceSharing resourceSharingRecord, String resourceType) {
+        if (resourceSharingRecord == null) return false;
 
-        if (isAdmin || resource.isCreatedBy(user.getName())) return true;
+        if (isAdmin || resourceSharingRecord.isCreatedBy(user.getName())) return true;
 
-        var sw = resource.getShareWith();
+        if (resourceSharingRecord.isSharedWithEveryone()) return true;
+
+        var sw = resourceSharingRecord.getShareWith();
         if (sw == null || sw.getSharingInfo().isEmpty()) return false;
 
         Set<String> users = Set.of(user.getName());
@@ -1242,23 +1244,14 @@ public class ResourceSharingIndexHandler {
         Set<String> backend = new HashSet<>(user.getRoles());
 
         for (String level : sw.getSharingInfo().keySet()) {
+            // first check if this level has share action present
             if (!groupAllows(resourceType, level, ShareAction.NAME)) continue;
 
-            var recips = sw.atAccessLevel(level);
-            if (recips == null) continue;
-
-            var u = recips.getRecipients().getOrDefault(Recipient.USERS, Set.of());
-            var r = recips.getRecipients().getOrDefault(Recipient.ROLES, Set.of());
-            var b = recips.getRecipients().getOrDefault(Recipient.BACKEND_ROLES, Set.of());
-
-            boolean matches = u.contains("*")
-                || r.contains("*")
-                || b.contains("*")
-                || !Collections.disjoint(u, users)
-                || !Collections.disjoint(r, roles)
-                || !Collections.disjoint(b, backend);
-
-            if (matches) return true;
+            // second, if share action is present, then check whether it access-level is shared with the user through the user's name, roles
+            // or backend_roles.
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.USERS, users, level)) return true;
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.ROLES, roles, level)) return true;
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.BACKEND_ROLES, backend, level)) return true;
         }
         return false;
     }

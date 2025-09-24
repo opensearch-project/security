@@ -93,19 +93,23 @@ opensearchplugin {
     resource_types:
       <resource-type-1>:
           <action-group-1>:
-          - <action1>
-          - <action2>
+              allowed_actions:
+                  - <action1>
+                  - <action2>
           <action-group-2>:
-          - <action1>
-          - <action2>
+              allowed_actions:
+                  - <action1>
+                  - <action2>
 
       <resource-type-2>:
           <action-group-1>:
-          - <action1>
-          - <action2>
+              allowed_actions:
+                  - <action1>
+                  - <action2>
           <action-group-2>:
-          - <action1>
-          - <action2>
+              allowed_actions:
+                  - <action1>
+                  - <action2>
 
       # ...
     ```

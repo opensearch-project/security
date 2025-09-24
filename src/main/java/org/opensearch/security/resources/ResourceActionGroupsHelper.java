@@ -10,10 +10,6 @@ package org.opensearch.security.resources;
 
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,12 +34,13 @@ public class ResourceActionGroupsHelper {
      * @param resourcePluginInfo will store the loaded action-groups config
      *
      * Sample yml file:
-     *   resource_types:
-     *   sample_resource:
-     *       sample_read_only:
-     *         - "cluster:admin/sample-resource-plugin/get"
-     *         - "indices:data/read*"
+     *  resource_types:
+     *      sample-resource:
+     *          sample_read_only:
+     *              allowed_actions:
+     *                  - "cluster:admin/sample-resource-plugin/get"
      */
+    @SuppressWarnings("unchecked")
     public static void loadActionGroupsConfig(ResourcePluginInfo resourcePluginInfo) {
         var exts = resourcePluginInfo.getResourceSharingExtensions();
         for (var ext : exts) {
@@ -78,8 +75,10 @@ public class ResourceActionGroupsHelper {
                         continue; // no fallback
                     }
 
-                    Map<String, Object> normalized = normalizeToActionGroupsMap(typeMapRaw);
-                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromMap(normalized, CType.ACTIONGROUPS);
+                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromMap(
+                        (Map<String, Object>) typeMapRaw,
+                        CType.ACTIONGROUPS
+                    );
 
                     // prune groups that ended up empty after normalization
                     cfg.getCEntries()
@@ -104,46 +103,5 @@ public class ResourceActionGroupsHelper {
             }
         }
     }
-
-    /**
-     * Normalize raw per-type map to "action_groups" map.
-     * Input:
-     * { actionGroupName -> [ ... ] }
-     * Output:
-     *   actionGroupName:
-     *     allowed_actions:
-     *       - "..."
-     */
-    private static Map<String, Object> normalizeToActionGroupsMap(Map<?, ?> groupsRaw) {
-        Map<String, Object> normalized = new LinkedHashMap<>();
-        if (groupsRaw == null) return normalized;
-
-        for (Map.Entry<?, ?> e : groupsRaw.entrySet()) {
-            String group = String.valueOf(e.getKey());
-            Object v = e.getValue();
-
-            // only accepts shape: [ "action:a", "action:b", ... ]
-            List<String> actions = List.of();
-            if (v instanceof Collection<?> coll) {
-                List<String> tmp = new ArrayList<>(coll.size());
-                boolean allStrings = true;
-                for (Object item : coll) {
-                    if (!(item instanceof String s)) {
-                        allStrings = false;
-                        break;
-                    }
-                    tmp.add(s);
-                }
-                if (allStrings) actions = tmp;
-            }
-
-            Map<String, Object> groupObj = new LinkedHashMap<>();
-            groupObj.put("allowed_actions", actions);
-            normalized.put(group, groupObj);
-        }
-
-        return normalized;
-    }
-
 }
 // CS-ENFORCE-SINGLE
