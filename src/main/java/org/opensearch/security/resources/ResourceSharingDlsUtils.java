@@ -53,7 +53,7 @@ public class ResourceSharingDlsUtils {
         try {
             // Build a single `terms` query JSON
             builder = XContentFactory.jsonBuilder();
-            builder.startObject().startObject("terms").array("all_shared_principals.keyword", principals.toArray()).endObject().endObject();
+            builder.startObject().startObject("terms").array("all_shared_principals", principals.toArray()).endObject().endObject();
 
             String dlsJson = builder.toString();
             restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));

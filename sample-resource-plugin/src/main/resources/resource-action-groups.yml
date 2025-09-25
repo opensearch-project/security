@@ -1,0 +1,14 @@
+resource_types:
+  sample-resource:
+      sample_read_only:
+        allowed_actions:
+          - "cluster:admin/sample-resource-plugin/get"
+
+      sample_read_write:
+        allowed_actions:
+          - "cluster:admin/sample-resource-plugin/*"
+
+      sample_full_access:
+        allowed_actions:
+          - "cluster:admin/sample-resource-plugin/*"
+          - "cluster:admin/security/resource/share"

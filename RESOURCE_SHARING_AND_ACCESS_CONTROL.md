@@ -44,6 +44,7 @@ This feature introduces **one primary component** for plugin developers:
 ### **Plugin Implementation Requirements:**
 
 - **Resource indices must be declared as system indices** to prevent unauthorized direct access.
+  NOTE: If system-index protection is disabled, requests will be evaluated as normal index requests.
 - **Declare a `compileOnly` dependency** on `opensearch-security-spi` package and opensearch-security plugin zip:
 ```build.gradle
 configurations {
@@ -83,7 +84,51 @@ opensearchplugin {
     ```
     org.opensearch.sample.SampleResourceSharingExtension
     ```
+- **Declare** action-groups **per resource** in `resource-action-groups.yml` file:
+  ```
+  src/main/resources/resource-action-groups.yml
+  ```
+  - This file must be structured in a following way:
+    ```yml
+    resource_types:
+      <resource-type-1>:
+          <action-group-1>:
+              allowed_actions:
+                  - <action1>
+                  - <action2>
+          <action-group-2>:
+              allowed_actions:
+                  - <action1>
+                  - <action2>
 
+      <resource-type-2>:
+          <action-group-1>:
+              allowed_actions:
+                  - <action1>
+                  - <action2>
+          <action-group-2>:
+              allowed_actions:
+                  - <action1>
+                  - <action2>
+
+      # ...
+    ```
+**NOTE**: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
+
+#### **Example resource-action-groups yml**
+```yml
+resource_types:
+  sample-resource:
+      sample_read_only:
+        - "cluster:admin/sample-resource-plugin/get"
+
+      sample_read_write:
+        - "cluster:admin/sample-resource-plugin/*"
+
+      sample_full_access:
+        - "cluster:admin/sample-resource-plugin/*"
+        - "cluster:admin/security/resource/share"
+```
 
 ## **3. Resource Sharing API Design**
 
@@ -104,15 +149,17 @@ NOTE: **action-groups** and **access-levels** are used inter-changeably througho
 
 ### This object contains details about the **creator** of the resource.
 
-|**Field**  |**Type** |Description  |
-|---  |---  |---  |
-| user|String |The username of the creator. |
+| **Field** |**Type** | Description                                                  |
+|-----------|---  |--------------------------------------------------------------|
+| user      |String | The username of the creator.                                 |
+| tenant    |String | The tenant where resource sits. If multi-tenancy is enabled. |
 
 **Example:**
 
 ```
 "created_by": {
-   "user": "darshit"
+   "user": "darshit",
+   "tenant": "some_tenant"
 }
 ```
 
@@ -163,14 +210,14 @@ Each **action-group** entry contains the following access definitions:
 }
 ```
 
-
 ### **Example Resource-Sharing Document**
 
 ```
 {
    "resource_id": "model-group-123",
    "created_by": {
-      "user": "darshit"
+      "user": "darshit",
+      "tenant": "some-tenant"
    },
    "share_with": {
       "action-group1": {
@@ -379,14 +426,14 @@ By default, all `shareableResources` are private — visible only to their **own
 
 ### **Example: Publicly Shared Resource**
 
-To make a resource accessible to everyone, share it with all entities using the wildcard `*`:
+To make a resource accessible to everyone, share it with `users` entity using the wildcard `*`:
 
 ```json
 {
   "share_with": {
     "default": {
-      "backend_roles": ["*"],
-      "roles": ["*"],
+      "backend_roles": ["some_backend_role"],
+      "roles": ["some_role"],
       "users": ["*"]
     }
   }
@@ -570,7 +617,7 @@ Creates or replaces sharing settings for a resource.
 ```json
 {
   "resource_id": "resource-123",
-  "resource_type": "my-resource-index",
+  "resource_type": "my-type",
   "share_with": {
     "read_only": {
       "users": ["alice"],
@@ -615,7 +662,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 ```json
 {
   "resource_id": "resource-123",
-  "resource_type": "my-resource-index",
+  "resource_type": "my-type",
   "add": {
     "read_only": {
       "users": ["charlie"]
@@ -660,7 +707,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 - `"revoke"` – Removes recipients
 
 
-### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_type=<index>`
+### 3. `GET /_plugins/_security/api/resource/share?resource_id=<id>&resource_type=<type>`
 
 **Description:**
 Retrieves the current sharing configuration for a given resource.
@@ -668,7 +715,7 @@ Retrieves the current sharing configuration for a given resource.
 **Example Request:**
 
 ```
-GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_type=my-resource-index
+GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_type=my-type
 ```
 
 **Response:**
@@ -690,25 +737,92 @@ GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_typ
 }
 ```
 
+### 4. `GET /_plugins/_security/api/resource/types`
+
+**Description:**
+Retrieves the current sharing configuration for a given resource.
+
+**Example Request:**
+
+```
+GET /_plugins/_security/api/resource/types
+```
+
+**Response:**
+
+```json
+{
+  "types": [
+    {
+      "type": "sample-resource",
+      "action_groups": ["sample_read_only", "sample_read_write", "sample_full_access"]
+    }
+  ]
+}
+```
+NOTE: `action_groups` are fetched from `resource-action-groups.yml` supplied by resource plugin.
+
+### 5. `GET /_plugins/_security/api/resource/list?resource_type=<type>`
+
+**Description:**
+Retrieves sharing information for all records accessible to requesting user for the given resource_index.
+
+**Example Request:**
+as user `darshit`
+```
+GET /_plugins/_security/api/resource/list?resource_type=sample-resource
+```
+
+**Response:**
+
+```json
+{
+  "resources": [
+    {
+      "resource_id": "1",
+      "created_by":  {
+        "user": "darshit",
+        "tenant": "some-tenant"
+      },
+      "share_with": {
+        "sample_read_only": {
+          "users": ["craig"]
+        }
+      },
+      "can_share": true
+    }
+  ]
+}
+```
+
+NOTE:
+- `share_with` may not be present if resource has not been shared yet
+- if same request is made as user `craig`, `can_share` value for resource_id `1` will be `false` since `craig` does not have share permission.
+
+
 
 ## Who Can Use This?
 
-| API                                            | Permission Required               | Intended User     |
-|------------------------------------------------|-----------------------------------|-------------------|
+| API                                             | Permission Required               | Intended User     |
+|-------------------------------------------------|-----------------------------------|-------------------|
 | `POST /_plugins/_security/api/resources/migrate` | REST admin or Super admin         | Cluster admin     |
-| `PUT /_plugins/_security/api/resource/share`     | Resource Owner                    | Dashboards / REST |
-| `PATCH /_plugins/_security/api/resource/share`    | Resource Owner / share permission | Dashboards / REST |
-| `GET /_plugins/_security/api/resource/share`      | Resource Owner / read permission  | Dashboards / REST |
+| `PUT /_plugins/_security/api/resource/share`    | Resource Owner                    | Dashboards / REST |
+| `PATCH /_plugins/_security/api/resource/share`  | Resource Owner / share permission | Dashboards / REST |
+| `GET /_plugins/_security/api/resource/share`    | Resource Owner / read permission  | Dashboards / REST |
+| `GET /_plugins/_security/api/resource/types`    | Dashboard access                  | Dashboards |
+| `GET /_plugins/_security/api/resource/list`     | Dashboard access                  | Dashboards |
 
 
 ## When to Use
 
-| Use Case                                            | API                        |
-|-----------------------------------------------------|----------------------------|
-| Migrating existing plugin-specific sharing configs  | `POST /_plugins/_security/api/resources/migrate` |
-| Sharing a document with another user or role        | `PUT /_plugins/_security/api/resource/share`   |
-| Granting/revoking access without affecting others   | `PATCH /_plugins/_security/api/resource/share` |
-| Fetching the current sharing status of a resource   | `GET /_plugins/_security/api/resource/share`   |
+| Use Case                                                    | API                                              |
+|-------------------------------------------------------------|--------------------------------------------------|
+| Migrating existing plugin-specific sharing configs          | `POST /_plugins/_security/api/resources/migrate` |
+| Sharing a document with another user or role                | `PUT /_plugins/_security/api/resource/share`     |
+| Granting/revoking access without affecting others           | `PATCH /_plugins/_security/api/resource/share`   |
+| Fetching the current sharing status of a resource           | `GET /_plugins/_security/api/resource/share`     |
+| Listing resource type. Encouraged only for dashboard access | `GET /_plugins/_security/api/resource/types`     |
+| Listing accessible resources in given resource index.       | `GET /_plugins/_security/api/resource/list`      |
 
 
 ## **5. Best Practices For Users & Admins**

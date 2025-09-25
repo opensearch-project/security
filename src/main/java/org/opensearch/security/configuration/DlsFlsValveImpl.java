@@ -141,11 +141,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
-        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+        this.isResourceSharingFeatureEnabled = settings.getAsBoolean(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
-        this.isResourceSharingFeatureEnabled = isResourceSharingFeatureEnabled;
     }
 
     /**
