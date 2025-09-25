@@ -28,11 +28,16 @@
 
 package org.opensearch.test.framework;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.transport.client.Client;
 
-public class TestIndex {
+public class TestIndex implements TestIndexOrAliasOrDatastream {
 
     private final String name;
     private final Settings settings;
@@ -44,6 +49,7 @@ public class TestIndex {
         this.testData = testData;
     }
 
+    @Override
     public void create(Client client) {
         if (testData != null) {
             testData.createIndex(client, name, settings);
@@ -52,8 +58,32 @@ public class TestIndex {
         }
     }
 
+    @Override
+    public void delete(Client client) {
+        try {
+            client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
+        } catch (IndexNotFoundException e) {
+            // It is fine if the object to be deleted does not exist
+        }
+    }
+
+    @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public Set<String> documentIds() {
+        return testData.documents().allIds();
+    }
+
+    @Override
+    public Map<String, TestData.TestDocument> documents() {
+        return testData.documents().allDocs();
+    }
+
+    public TestData.TestDocument anyDocument() {
+        return testData.anyDocument();
     }
 
     public static Builder name(String name) {
@@ -63,6 +93,7 @@ public class TestIndex {
     public static class Builder {
         private String name;
         private Settings.Builder settings = Settings.builder();
+        private TestData.Builder testDataBuilder = new TestData.Builder();
         private TestData testData;
 
         public Builder name(String name) {
@@ -80,15 +111,70 @@ public class TestIndex {
             return this;
         }
 
+        public Builder hidden() {
+            settings.put("index.hidden", true);
+            return this;
+        }
+
         public Builder data(TestData testData) {
             this.testData = testData;
             return this;
         }
 
+        public Builder seed(int seed) {
+            testDataBuilder.seed(seed);
+            return this;
+        }
+
+        public Builder documentCount(int size) {
+            testDataBuilder.documentCount(size);
+            return this;
+        }
+
         public TestIndex build() {
+            if (testData == null) {
+                testData = testDataBuilder.get();
+            }
+
             return new TestIndex(name, settings.build(), testData);
         }
 
     }
+
+    /**
+     * This returns a magic TestIndexLike object symbolizing the internal OpenSearch security
+     * config index. This is supposed to be used with the IndexApiResponseMatchers.
+     */
+    public static TestIndexOrAliasOrDatastream openSearchSecurityConfigIndex() {
+        return OPEN_SEARCH_SECURITY_CONFIG_INDEX;
+    }
+
+    private final static TestIndexOrAliasOrDatastream OPEN_SEARCH_SECURITY_CONFIG_INDEX = new TestIndexOrAliasOrDatastream() {
+
+        @Override
+        public String name() {
+            return ".opendistro_security";
+        }
+
+        @Override
+        public Map<String, TestData.TestDocument> documents() {
+            return null;
+        }
+
+        @Override
+        public void create(Client client) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void delete(Client client) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Set<String> documentIds() {
+            return null;
+        }
+    };
 
 }
