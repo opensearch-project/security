@@ -154,6 +154,18 @@ public final class TestUtils {
 
     }
 
+    public static String shareWithRolePayload(String role, String accessLevel) {
+        return """
+            {
+              "share_with": {
+                "%s" : {
+                    "roles": ["%s"]
+                }
+              }
+            }
+            """.formatted(accessLevel, role);
+    }
+
     public static String migrationPayload_valid() {
         return """
             {
@@ -554,6 +566,22 @@ public final class TestUtils {
             int status
         ) {
             assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
+        }
+
+        public void assertApiShareByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel,
+            int status
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(
+                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                    shareWithRolePayload(targetRole, accessLevel)
+                );
+                response.assertStatusCode(status);
+            }
         }
 
         private void assertRevoke(
