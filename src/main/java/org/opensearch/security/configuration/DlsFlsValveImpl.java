@@ -17,6 +17,7 @@ import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -67,6 +68,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -77,11 +79,13 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -102,6 +106,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
+    private final AdminDNs adminDNs;
+    private boolean isResourceSharingFeatureEnabled = false;
+    private final WildcardMatcher resourceIndicesMatcher;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -110,7 +117,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext
+        DlsFlsBaseContext dlsFlsBaseContext,
+        AdminDNs adminDNs,
+        Set<String> resourceIndices
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -122,6 +131,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
+        this.adminDNs = adminDNs;
+        this.resourceIndicesMatcher = WildcardMatcher.from(resourceIndices);
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -130,6 +141,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
+        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        this.isResourceSharingFeatureEnabled = isResourceSharingFeatureEnabled;
     }
 
     /**
@@ -139,12 +155,41 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)
-            || (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction()))) {
+        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
             return true;
         }
-        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
+            return true;
+        }
         ActionRequest request = context.getRequest();
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+            if (isResourceSharingFeatureEnabled
+                && request instanceof SearchRequest
+                && resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
+
+                IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
+                    namedXContentRegistry,
+                    resolved,
+                    userSubject.getUser()
+                );
+
+                return DlsFilterLevelActionHandler.handle(
+                    context,
+                    sharedResourceMap,
+                    listener,
+                    nodeClient,
+                    clusterService,
+                    OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                    resolver,
+                    threadContext
+                );
+            } else {
+                return true;
+            }
+        }
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
         try {
