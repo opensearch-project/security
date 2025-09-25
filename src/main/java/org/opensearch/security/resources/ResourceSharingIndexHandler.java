@@ -786,8 +786,8 @@ public class ResourceSharingIndexHandler {
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
         // Apply patch and update the document
-        sharingInfoListener.whenComplete(resourceSharing -> {
-            ShareWith updatedShareWith = resourceSharing.getShareWith();
+        sharingInfoListener.whenComplete(sharingInfo -> {
+            ShareWith updatedShareWith = sharingInfo.getShareWith();
             if (updatedShareWith == null) {
                 updatedShareWith = new ShareWith(new HashMap<>());
             }
@@ -806,7 +806,7 @@ public class ResourceSharingIndexHandler {
                 }
             }
 
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, sharingInfo.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
@@ -826,7 +826,19 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
 
-                    listener.onResponse(updatedSharingInfo);
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        updatedSharingInfo.getAllPrincipals(),
+                        ActionListener.wrap((updateResponse) -> {
+                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                            listener.onResponse(updatedSharingInfo);
+                        }, (e) -> {
+                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                            listener.onResponse(updatedSharingInfo);
+                        })
+                    );
+
                 }, (e) -> {
                     LOGGER.error(e.getMessage());
                     listener.onFailure(e);
