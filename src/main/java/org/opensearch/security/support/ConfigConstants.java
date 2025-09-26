@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 
 import com.password4j.types.Hmac;
@@ -425,6 +426,8 @@ public class ConfigConstants {
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
+
+    public static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(30);
 
     public static Set<String> getSettingAsSet(
         final Settings settings,
