@@ -150,6 +150,9 @@ public class ApiAccessTests {
             // can update own resource
             api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
             api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            // resource should be visible even after update
+
+            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
             api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
@@ -197,6 +200,8 @@ public class ApiAccessTests {
             // can update own resource
             api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
             api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            // resource should be visible even after update
+            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
             api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
