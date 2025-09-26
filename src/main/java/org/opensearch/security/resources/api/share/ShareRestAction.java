@@ -78,6 +78,8 @@ public class ShareRestAction extends BaseRestHandler {
             builder.resourceId(resourceId);
         }
 
+        builder.resourceType(resourceType);
+
         if (request.hasContent()) {
             builder.parseContent(request.contentParser(), resourcePluginInfo);
         }

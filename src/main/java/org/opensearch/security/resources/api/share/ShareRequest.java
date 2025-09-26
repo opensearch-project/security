@@ -127,9 +127,9 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     }
 
     /**
-     * Get the index that this request operates on
+     * Get the type
      *
-     * @return the index
+     * @return the resource type
      */
     @Override
     public String type() {
@@ -151,6 +151,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     public static class Builder {
         private String resourceId;
+        private String resourceIndex;
         private String resourceType;
         private ShareWith shareWith;
         private ShareWith add;
@@ -162,7 +163,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         }
 
         public void resourceIndex(String resourceIndex) {
-            this.resourceType = resourceIndex;
+            this.resourceIndex = resourceIndex;
+        }
+
+        public void resourceType(String resourceType) {
+            this.resourceType = resourceType;
         }
 
         public void shareWith(ShareWith shareWith) {
@@ -196,8 +201,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                             case "resource_id":
                                 this.resourceId(parser.text());
                                 break;
-                            case "resource_type":
+                            case "resource_index":
                                 this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
+                                break;
+                            case "resource_type":
+                                this.resourceType(parser.text());
                                 break;
                             case "share_with":
                                 this.shareWith(ShareWith.fromXContent(parser));

@@ -232,14 +232,14 @@ public class ResourceAccessHandler {
      * 3. Share with new entity         - add op
      * A final resource-sharing object will be returned upon successful application of the patch to the index record
      * @param resourceId    id of the resource whose sharing info is to be updated
-     * @param resourceIndex name of the resource index
+     * @param resourceType the resource type
      * @param add  the recipients to be shared with
      * @param revoke  the recipients to be revoked with
      * @param listener      listener to be notified of final resource sharing record
      */
     public void patchSharingInfo(
         @NonNull String resourceId,
-        @NonNull String resourceIndex,
+        @NonNull String resourceType,
         @Nullable ShareWith add,
         @Nullable ShareWith revoke,
         ActionListener<ResourceSharing> listener
@@ -257,6 +257,12 @@ public class ResourceAccessHandler {
                     RestStatus.UNAUTHORIZED
                 )
             );
+            return;
+        }
+
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
             return;
         }
 
@@ -310,7 +316,12 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceType);
 
-        this.resourceSharingIndexHandler.fetchSharingInfo(resourceType, resourceId, ActionListener.wrap(sharingInfo -> {
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
+            return;
+        }
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
             LOGGER.debug("Successfully fetched sharing info for resource {} in index {}", resourceId, resourceType);
             listener.onResponse(sharingInfo);
         }, e -> {
