@@ -14,10 +14,10 @@ package org.opensearch.security.configuration;
 import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -119,7 +119,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
         AdminDNs adminDNs,
-        Set<String> resourceIndices
+        Collection<String> resourceIndices
     ) {
         super();
         this.nodeClient = nodeClient;
