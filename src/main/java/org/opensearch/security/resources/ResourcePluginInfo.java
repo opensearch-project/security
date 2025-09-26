@@ -105,10 +105,6 @@ public class ResourcePluginInfo {
         return typeToFlattened.getOrDefault(resourceType, FlattenedActionGroups.EMPTY);
     }
 
-    public String typeByIndex(String index) {
-        return indexToType.get(index);
-    }
-
     public String indexByType(String type) {
         return typeToIndex.get(type);
     }

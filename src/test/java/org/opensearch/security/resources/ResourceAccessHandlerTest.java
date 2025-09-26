@@ -80,7 +80,6 @@ public class ResourceAccessHandlerTest {
         handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
 
         // For tests that verify permission with action-group
-        when(resourcePluginInfo.typeByIndex(any())).thenReturn(TYPE);
         when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
     }
 
@@ -140,11 +139,10 @@ public class ResourceAccessHandlerTest {
         when(doc.fetchAccessLevels(eq(Recipient.ROLES), any())).thenReturn(Set.of());
         when(doc.fetchAccessLevels(eq(Recipient.BACKEND_ROLES), any())).thenReturn(Set.of());
 
-        final String TYPE_FQN = "org.example.Type";
-        when(resourcePluginInfo.typeByIndex(INDEX)).thenReturn(TYPE_FQN);
+        final String RESOURCE_TYPE = "type";
 
         FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
-        when(resourcePluginInfo.flattenedForType(TYPE_FQN)).thenReturn(ag);
+        when(resourcePluginInfo.flattenedForType(RESOURCE_TYPE)).thenReturn(ag);
         // Resolve the access level "read" to the concrete allowed action "read" (could also be a wildcard)
         when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));
 
