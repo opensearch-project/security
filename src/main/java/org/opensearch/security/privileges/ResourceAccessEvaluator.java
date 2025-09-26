@@ -101,6 +101,21 @@ public class ResourceAccessEvaluator {
         );
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
+        /**
+         * Authorization notes:
+         *
+         * - Treat {@link GetRequest} and all {@link DocWriteRequest} types as standard *index actions*.
+         *   They should NOT be evaluated by {@code ResourceAccessEvaluator}.
+         *
+         * - {@code ResourceAccessEvaluator} is for higher-level transport actions that operate on a
+         *   single shareable resource. Those actions may perform plugin/system-level index operations
+         *   against the system (resource) index that stores resource metadata. Such accesses must be
+         *   evaluated by {@code SystemIndexAccessEvaluator}.
+         *
+         * - {@link DocWriteRequest} is the abstract base for write requests
+         *   ({@link IndexRequest}, {@link UpdateRequest}, {@link DeleteRequest}) and may appear as items
+         *   in a {@code _bulk} request.
+         */
         if (request instanceof GetRequest) return false;
         if (request instanceof DocWriteRequest<?>) return false;
         if (Strings.isNullOrEmpty(docRequest.id())) {
