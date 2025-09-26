@@ -34,6 +34,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private final String resourceId;
     @JsonProperty("resource_type")
     private final String resourceType;
+    @JsonProperty("resource_index")
+    private final String resourceIndex;
     @JsonProperty("share_with")
     private final ShareWith shareWith;
     @JsonProperty("add")
@@ -49,6 +51,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private ShareRequest(Builder builder) {
         this.resourceId = builder.resourceId;
         this.resourceType = builder.resourceType;
+        this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
         this.add = builder.add;
         this.revoke = builder.revoke;
@@ -60,6 +63,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.method = in.readEnum(RestRequest.Method.class);
         this.resourceId = in.readString();
         this.resourceType = in.readString();
+        this.resourceIndex = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
@@ -70,6 +74,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeEnum(method);
         out.writeString(resourceId);
         out.writeString(resourceType);
+        out.writeString(resourceIndex);
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);
@@ -115,7 +120,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return method;
     }
 
-    // TODO what should this return if we don't know the index?
     /**
      * Get the index that this request operates on
      *
@@ -123,7 +127,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     @Override
     public String index() {
-        return resourceType;
+        return resourceIndex;
     }
 
     /**
@@ -150,13 +154,13 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      * Builder for ShareRequest
      */
     public static class Builder {
-        private String resourceId;
-        private String resourceIndex;
-        private String resourceType;
-        private ShareWith shareWith;
-        private ShareWith add;
-        private ShareWith revoke;
-        private RestRequest.Method method;
+        String resourceId;
+        String resourceIndex;
+        String resourceType;
+        ShareWith shareWith;
+        ShareWith add;
+        ShareWith revoke;
+        RestRequest.Method method;
 
         public void resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -201,11 +205,9 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                             case "resource_id":
                                 this.resourceId(parser.text());
                                 break;
-                            case "resource_index":
-                                this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
-                                break;
                             case "resource_type":
                                 this.resourceType(parser.text());
+                                this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
                                 break;
                             case "share_with":
                                 this.shareWith(ShareWith.fromXContent(parser));
