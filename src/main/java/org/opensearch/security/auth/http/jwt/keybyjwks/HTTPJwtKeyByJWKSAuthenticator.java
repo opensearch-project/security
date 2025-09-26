@@ -93,9 +93,9 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
         int refreshRateLimitTimeWindowMs = settings.getAsInt("refresh_rate_limit_time_window_ms", 10000);
         int refreshRateLimitCount = settings.getAsInt("refresh_rate_limit_count", 10);
         boolean cacheJwksEndpoint = settings.getAsBoolean("cache_jwks_endpoint", true);
-        int maxJwksKeys = settings.getAsInt("max_jwks_keys", 10); // Default to 10 keys
+        int maxJwksKeys = settings.getAsInt("max_jwks_keys", -1);
 
-        log.debug("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
+        log.warn("Initializing JWKS key provider with endpoint: {} (max keys: {})", jwksUri, maxJwksKeys);
 
         // Add security configuration parameters
         long maxJwksResponseSizeBytes = settings.getAsLong("max_jwks_response_size_bytes", 1024L * 1024L); // 1MB default
@@ -106,7 +106,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
             cacheJwksEndpoint,
             jwksUri,
             maxJwksResponseSizeBytes,
-            maxJwksKeys  // HARD LIMIT - throws exception if exceeded
+            maxJwksKeys
         );
         keySetRetriever.setRequestTimeoutMs(jwksRequestTimeoutMs);
 

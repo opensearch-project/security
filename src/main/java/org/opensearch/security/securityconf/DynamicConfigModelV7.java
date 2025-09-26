@@ -56,7 +56,6 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
-import org.opensearch.security.auth.http.jwt.keybyjwks.HTTPJwtKeyByJWKSAuthenticator;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -325,18 +324,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                     }
 
                     String httpAuthenticatorType = ad.getValue().http_authenticator.type; // no default
-
-                    // Smart JWT authenticator selection: if jwks_uri is present and type is "jwt",
-                    // use HTTPJwtKeyByJWKSAuthenticator instead of HTTPJwtAuthenticator
-                    if ("jwt".equals(httpAuthenticatorType)) {
-                        Settings tempSettings = Settings.builder()
-                            .loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON)
-                            .build();
-                        if (tempSettings.get("jwks_uri") != null) {
-                            httpAuthenticatorType = HTTPJwtKeyByJWKSAuthenticator.class.getName();
-                        }
-                    }
-
                     HTTPAuthenticator httpAuthenticator = httpAuthenticatorType == null
                         ? null
                         : (HTTPAuthenticator) newInstance(
