@@ -12,6 +12,8 @@
 package org.opensearch.security.auth.http.jwt.keybyjwks;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,12 +61,14 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
     // Fallback to static JWT authenticator if jwks_uri is null
     private final HTTPJwtAuthenticator staticJwtAuthenticator;
     private final boolean useJwks;
+    private final String jwtUrlParameter;
 
     public HTTPJwtKeyByJWKSAuthenticator(Settings settings, Path configPath) {
         super(settings, configPath);
 
         String jwksUri = settings.get("jwks_uri");
         this.useJwks = !Strings.isNullOrEmpty(jwksUri);
+        this.jwtUrlParameter = settings.get("jwt_url_parameter");
 
         // Initialize static JWT authenticator as fallback if jwks_uri is not configured
         if (!useJwks) {
@@ -142,4 +146,13 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
     public String getType() {
         return "jwt";
     }
+
+    @Override
+    public Set<String> getSensitiveUrlParams() {
+        if (jwtUrlParameter != null) {
+            return Set.of(jwtUrlParameter);
+        }
+        return Collections.emptySet();
+    }
+
 }
