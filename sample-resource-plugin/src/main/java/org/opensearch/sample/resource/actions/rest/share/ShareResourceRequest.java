@@ -18,6 +18,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Request object for sharing sample resource transport action
@@ -65,5 +66,10 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
     @Override
     public String id() {
         return resourceId;
+    }
+
+    @Override
+    public String type() {
+        return RESOURCE_TYPE;
     }
 }
