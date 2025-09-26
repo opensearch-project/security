@@ -120,6 +120,11 @@ public class KeySetRetriever implements KeySetProvider {
                 .build();
 
             httpGet.setConfig(requestConfig);
+            
+            // Configure HTTP client to only accept JSON responses for JWKS endpoints
+            if (enableSecurityValidation) {
+                httpGet.setHeader("Accept", "application/json, application/jwk-set+json");
+            }
 
             HttpCacheContext httpContext = null;
             if (cacheStorage != null) {
@@ -158,14 +163,17 @@ public class KeySetRetriever implements KeySetProvider {
                     }
                 }
 
-                // Standard loading for both OIDC and JWKS endpoints
+                // Load JWKS using Nimbus JOSE (handles JSON parsing and validation)
                 JWKSet keySet = JWKSet.load(httpEntity.getContent());
 
-                // Post-load validation for JWKS if enabled - HARD LIMIT
-                if (enableSecurityValidation && maxKeyCount > 0 && keySet.getKeys().size() > maxKeyCount) {
-                    throw new AuthenticatorUnavailableException(
-                        String.format("JWKS from %s contains %d keys, but max allowed is %d", uri, keySet.getKeys().size(), maxKeyCount)
-                    );
+                // Apply minimal additional validation only for direct JWKS endpoints
+                if (enableSecurityValidation) {
+                    // Simple key count validation - HARD LIMIT
+                    if (maxKeyCount > 0 && keySet.getKeys().size() > maxKeyCount) {
+                        throw new AuthenticatorUnavailableException(
+                            String.format("JWKS from %s contains %d keys, but max allowed is %d", uri, keySet.getKeys().size(), maxKeyCount)
+                        );
+                    }
                 }
 
                 return keySet;
@@ -347,4 +355,5 @@ public class KeySetRetriever implements KeySetProvider {
     public int getOidcCacheModuleResponses() {
         return oidcCacheModuleResponses;
     }
+
 }
