@@ -72,19 +72,9 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
-    public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_read_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:data/read*",
-        "cluster:admin/sample-resource-plugin/get"
-    );
-    public static final TestSecurityConfig.ActionGroup sampleAllAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_all_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:*",
-        "cluster:admin/sample-resource-plugin/*",
-        "cluster:admin/security/resource/share"
-    );
+    public static final String SAMPLE_READ_ONLY_RESOURCE_AG = "sample_read_only";
+    public static final String SAMPLE_READ_WRITE_RESOURCE_AG = "sample_read_write";
+    public static final String SAMPLE_FULL_ACCESS_RESOURCE_AG = "sample_full_access";
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
@@ -94,8 +84,10 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
     public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
-    static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
-    static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+    public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String SECURITY_TYPES_ENDPOINT = "_plugins/_security/api/resource/types";
+    public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
@@ -115,7 +107,6 @@ public final class TestUtils {
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
             .nodeSettings(
                 Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, featureEnabled, SECURITY_SYSTEM_INDICES_ENABLED_KEY, systemIndexEnabled)
             )
@@ -163,7 +154,19 @@ public final class TestUtils {
 
     }
 
-    static String migrationPayload_valid() {
+    public static String shareWithRolePayload(String role, String accessLevel) {
+        return """
+            {
+              "share_with": {
+                "%s" : {
+                    "roles": ["%s"]
+                }
+              }
+            }
+            """.formatted(accessLevel, role);
+    }
+
+    public static String migrationPayload_valid() {
         return """
             {
             "source_index": "%s",
@@ -173,7 +176,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
     }
 
-    static String migrationPayload_valid_withSpecifiedAccessLevel() {
+    public static String migrationPayload_valid_withSpecifiedAccessLevel() {
         return """
             {
             "source_index": "%s",
@@ -184,7 +187,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
     }
 
-    static String migrationPayload_missingSourceIndex() {
+    public static String migrationPayload_missingSourceIndex() {
         return """
             {
             "username_path": "%s",
@@ -193,7 +196,7 @@ public final class TestUtils {
             """.formatted("user/name", "user/backend_roles");
     }
 
-    static String migrationPayload_missingUserName() {
+    public static String migrationPayload_missingUserName() {
         return """
             {
             "source_index": "%s",
@@ -202,7 +205,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
     }
 
-    static String migrationPayload_missingBackendRoles() {
+    public static String migrationPayload_missingBackendRoles() {
         return """
             {
             "source_index": "%s",
@@ -211,7 +214,7 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 
-    static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
+    public static String putSharingInfoPayload(String resourceId, String resourceType, String accessLevel, String user) {
         return """
             {
               "resource_id": "%s",
@@ -222,12 +225,12 @@ public final class TestUtils {
                 }
               }
             }
-            """.formatted(resourceId, resourceIndex, accessLevel, user);
+            """.formatted(resourceId, resourceType, accessLevel, user);
     }
 
     public static class PatchSharingInfoPayloadBuilder {
         private String resourceId;
-        private String resourceIndex;
+        private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
 
@@ -236,8 +239,8 @@ public final class TestUtils {
             return this;
         }
 
-        public PatchSharingInfoPayloadBuilder resourceIndex(String resourceIndex) {
-            this.resourceIndex = resourceIndex;
+        public PatchSharingInfoPayloadBuilder resourceType(String resourceType) {
+            this.resourceType = resourceType;
             return this;
         }
 
@@ -291,7 +294,7 @@ public final class TestUtils {
                     %s
                   }
                 }
-                """.formatted(resourceId, resourceIndex, allShares, allRevokes);
+                """.formatted(resourceId, resourceType, allShares, allRevokes);
         }
     }
 
@@ -563,6 +566,22 @@ public final class TestUtils {
             int status
         ) {
             assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
+        }
+
+        public void assertApiShareByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel,
+            int status
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.postJson(
+                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
+                    shareWithRolePayload(targetRole, accessLevel)
+                );
+                response.assertStatusCode(status);
+            }
         }
 
         private void assertRevoke(
