@@ -81,6 +81,7 @@ public class ResourceAccessHandlerTest {
 
         // For tests that verify permission with action-group
         when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
+        when(resourcePluginInfo.indexByType(TYPE)).thenReturn(INDEX);
     }
 
     private void injectUser(User user) {
@@ -139,10 +140,8 @@ public class ResourceAccessHandlerTest {
         when(doc.fetchAccessLevels(eq(Recipient.ROLES), any())).thenReturn(Set.of());
         when(doc.fetchAccessLevels(eq(Recipient.BACKEND_ROLES), any())).thenReturn(Set.of());
 
-        final String RESOURCE_TYPE = "type";
-
         FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
-        when(resourcePluginInfo.flattenedForType(RESOURCE_TYPE)).thenReturn(ag);
+        when(resourcePluginInfo.flattenedForType(TYPE)).thenReturn(ag);
         // Resolve the access level "read" to the concrete allowed action "read" (could also be a wildcard)
         when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));
 
@@ -268,7 +267,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).share(eq(RESOURCE_ID), eq(INDEX), eq(shareWith), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.share(RESOURCE_ID, INDEX, shareWith, listener);
+        handler.share(RESOURCE_ID, TYPE, shareWith, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -298,7 +297,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).revoke(eq(RESOURCE_ID), eq(INDEX), eq(revokeTarget), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
+        handler.revoke(RESOURCE_ID, TYPE, revokeTarget, listener);
 
         verify(listener).onResponse(doc);
     }
