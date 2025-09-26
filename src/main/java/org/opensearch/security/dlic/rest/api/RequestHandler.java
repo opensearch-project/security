@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.TriConsumer;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -136,6 +137,19 @@ public interface RequestHandler {
                 RestRequest.Method.GET,
                 (channel, request, client) -> mapper.apply(request)
                     .valid(securityConfiguration -> ok(channel, securityConfiguration.configuration()))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
+            );
+            return this;
+        }
+
+        public RequestHandlersBuilder onJsonContentGetRequest(
+            final CheckedFunction<RestRequest, ValidationResult<ToXContent>, IOException> mapper
+        ) {
+            Objects.requireNonNull(mapper, "onGetRequest request handler can't be null");
+            add(
+                RestRequest.Method.GET,
+                (channel, request, client) -> mapper.apply(request)
+                    .valid(toXContent -> ok(channel, toXContent))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             );
             return this;
