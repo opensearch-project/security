@@ -33,7 +33,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @JsonProperty("resource_id")
     private final String resourceId;
     @JsonProperty("resource_type")
-    private final String resourceIndex;
+    private final String resourceType;
     @JsonProperty("share_with")
     private final ShareWith shareWith;
     @JsonProperty("add")
@@ -48,7 +48,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     private ShareRequest(Builder builder) {
         this.resourceId = builder.resourceId;
-        this.resourceIndex = builder.resourceIndex;
+        this.resourceType = builder.resourceType;
         this.shareWith = builder.shareWith;
         this.add = builder.add;
         this.revoke = builder.revoke;
@@ -59,7 +59,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         super(in);
         this.method = in.readEnum(RestRequest.Method.class);
         this.resourceId = in.readString();
-        this.resourceIndex = in.readString();
+        this.resourceType = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
@@ -69,7 +69,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(method);
         out.writeString(resourceId);
-        out.writeString(resourceIndex);
+        out.writeString(resourceType);
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);
@@ -78,7 +78,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @Override
     public ActionRequestValidationException validate() {
         var arv = new ActionRequestValidationException();
-        if (Strings.isNullOrEmpty(resourceIndex) || Strings.isNullOrEmpty(resourceId)) {
+        if (Strings.isNullOrEmpty(resourceType) || Strings.isNullOrEmpty(resourceId)) {
             arv.addValidationError("resource_id and resource_type must be present");
             throw arv;
         }
@@ -115,6 +115,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return method;
     }
 
+    // TODO what should this return if we don't know the index?
     /**
      * Get the index that this request operates on
      *
@@ -122,7 +123,17 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     @Override
     public String index() {
-        return resourceIndex;
+        return resourceType;
+    }
+
+    /**
+     * Get the index that this request operates on
+     *
+     * @return the index
+     */
+    @Override
+    public String type() {
+        return resourceType;
     }
 
     /**
@@ -140,7 +151,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     public static class Builder {
         private String resourceId;
-        private String resourceIndex;
+        private String resourceType;
         private ShareWith shareWith;
         private ShareWith add;
         private ShareWith revoke;
@@ -151,7 +162,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         }
 
         public void resourceIndex(String resourceIndex) {
-            this.resourceIndex = resourceIndex;
+            this.resourceType = resourceIndex;
         }
 
         public void shareWith(ShareWith shareWith) {

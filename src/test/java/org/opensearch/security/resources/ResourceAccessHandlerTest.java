@@ -69,6 +69,7 @@ public class ResourceAccessHandlerTest {
     private ResourceAccessHandler handler;
 
     private static final String INDEX = "test-index";
+    private static final String TYPE = "test";
     private static final String RESOURCE_ID = "res-1";
     private static final String ACTION = "read";
 
@@ -79,7 +80,7 @@ public class ResourceAccessHandlerTest {
         handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
 
         // For tests that verify permission with action-group
-        when(resourcePluginInfo.typeByIndex(any())).thenReturn("org.example.Type");
+        when(resourcePluginInfo.typeByIndex(any())).thenReturn(TYPE);
         when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
     }
 
@@ -96,7 +97,7 @@ public class ResourceAccessHandlerTest {
         when(adminDNs.isAdmin(user)).thenReturn(true);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, context, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, context, listener);
 
         verify(listener).onResponse(true);
     }
@@ -119,7 +120,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
 
         verify(listener).onResponse(true);
     }
@@ -155,7 +156,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
 
         verify(listener).onResponse(true);
     }
@@ -179,7 +180,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
 
         verify(listener).onResponse(false);
     }
@@ -199,7 +200,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
 
         verify(listener).onResponse(false);
     }
@@ -213,7 +214,7 @@ public class ResourceAccessHandlerTest {
         when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(subjectContext);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
 
         verify(listener).onResponse(false);
     }

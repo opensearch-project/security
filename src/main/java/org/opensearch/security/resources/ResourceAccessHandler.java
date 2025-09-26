@@ -76,10 +76,10 @@ public class ResourceAccessHandler {
     /**
      * Returns a set of accessible resource IDs for the current user within the specified resource index.
      *
-     * @param resourceIndex The resource index to check for accessible resources.
+     * @param resourceType  The resource type.
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
-    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<String>> listener) {
+    public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceType, ActionListener<Set<String>> listener) {
         UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         User user = userSub == null ? null : userSub.getUser();
 
@@ -90,22 +90,22 @@ public class ResourceAccessHandler {
         }
 
         if (adminDNs.isAdmin(user)) {
-            loadAllResourceIds(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            loadAllResourceIds(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
         Set<String> flatPrincipals = getFlatPrincipals(user);
 
         // 3) Fetch all accessible resource IDs
-        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceType, flatPrincipals, listener);
     }
 
     /**
      * Returns a set of resource sharing records for the current user within the specified resource index.
      *
-     * @param resourceIndex The resource index to check for accessible resources.
+     * @param resourceType  The resource type.
      * @param listener      The listener to be notified with the set of resource sharing records.
      */
-    public void getResourceSharingInfoForCurrentUser(@NonNull String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+    public void getResourceSharingInfoForCurrentUser(@NonNull String resourceType, ActionListener<Set<SharingRecord>> listener) {
         UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         User user = userSub == null ? null : userSub.getUser();
 
@@ -116,28 +116,30 @@ public class ResourceAccessHandler {
         }
 
         if (adminDNs.isAdmin(user)) {
-            loadAllResourceSharingRecords(resourceIndex, ActionListener.wrap(listener::onResponse, listener::onFailure));
+            loadAllResourceSharingRecords(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
 
         Set<String> flatPrincipals = getFlatPrincipals(user);
 
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+
         // 3) Fetch all accessible resource sharing records
-        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, user, flatPrincipals, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, resourceType, user, flatPrincipals, listener);
     }
 
     /**
      * Checks whether current user has permission to access given resource.
      *
      * @param resourceId    The resource ID to check access for.
-     * @param resourceIndex The resource index containing the resource.
+     * @param resourceType  The resource type.
      * @param action        The action to check permission for
      * @param context       The evaluation context to be used. Will be null when used by {@link ResourceAccessControlClient}.
      * @param listener      The listener to be notified with the permission check result.
      */
     public void hasPermission(
         @NonNull String resourceId,
-        @NonNull String resourceIndex,
+        @NonNull String resourceType,
         @NonNull String action,
         PrivilegesEvaluationContext context,
         ActionListener<Boolean> listener
@@ -177,6 +179,13 @@ public class ResourceAccessHandler {
             return;
         }
 
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
+            listener.onResponse(false);
+            return;
+        }
+
         resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
             // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
             // This also means that for non-existing documents, the evaluator will return 403 instead
@@ -205,13 +214,6 @@ public class ResourceAccessHandler {
             }
 
             // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
-            final String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
-            if (resourceType == null) {
-                LOGGER.debug("No resourceType mapping found for index '{}'; denying action {}", resourceIndex, action);
-                listener.onResponse(false);
-                return;
-            }
-
             final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
             final Set<String> allowedActions = agForType.resolve(accessLevels);
             final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
@@ -286,10 +288,10 @@ public class ResourceAccessHandler {
     /**
      * Get sharing info for this record
      * @param resourceId    id of the resource whose sharing info is to be fetched
-     * @param resourceIndex name of the resource index
+     * @param resourceType  the resource type
      * @param listener      listener to be notified of final resource sharing record
      */
-    public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceIndex, ActionListener<ResourceSharing> listener) {
+    public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceType, ActionListener<ResourceSharing> listener) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -306,13 +308,13 @@ public class ResourceAccessHandler {
             return;
         }
 
-        LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceIndex);
+        LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceType);
 
-        this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully fetched sharing info for resource {} in index {}", resourceId, resourceIndex);
+        this.resourceSharingIndexHandler.fetchSharingInfo(resourceType, resourceId, ActionListener.wrap(sharingInfo -> {
+            LOGGER.debug("Successfully fetched sharing info for resource {} in index {}", resourceId, resourceType);
             listener.onResponse(sharingInfo);
         }, e -> {
-            LOGGER.error("Failed to fetched sharing info for resource {} in index {}: {}", resourceId, resourceIndex, e.getMessage());
+            LOGGER.error("Failed to fetched sharing info for resource {} in index {}: {}", resourceId, resourceType, e.getMessage());
             listener.onFailure(e);
         }));
 
@@ -322,13 +324,13 @@ public class ResourceAccessHandler {
      * Shares a resource with the specified users, roles, and backend roles.
      *
      * @param resourceId    The resource ID to share.
-     * @param resourceIndex The index where resource is store
+     * @param resourceType  The resource type
      * @param target     The users, roles, and backend roles as well as the action group to share the resource with.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void share(
         @NonNull String resourceId,
-        @NonNull String resourceIndex,
+        @NonNull String resourceType,
         @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
@@ -350,6 +352,8 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+
         this.resourceSharingIndexHandler.share(resourceId, resourceIndex, target, ActionListener.wrap(sharingInfo -> {
             LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
             listener.onResponse(sharingInfo);
@@ -363,13 +367,13 @@ public class ResourceAccessHandler {
      * Revokes access to a resource for the specified users, roles, and backend roles.
      *
      * @param resourceId    The resource ID to revoke access from.
-     * @param resourceIndex The index where resource is store
+     * @param resourceType  The resource type
      * @param target        The access levels, users, roles, and backend roles to revoke access for.
      * @param listener      The listener to be notified with the updated ResourceSharing document.
      */
     public void revoke(
         @NonNull String resourceId,
-        @NonNull String resourceIndex,
+        @NonNull String resourceType,
         @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
@@ -391,6 +395,8 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+
         this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
             LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
             listener.onFailure(exception);
@@ -400,21 +406,22 @@ public class ResourceAccessHandler {
     /**
      * Loads all resource-ids within the specified resource index.
      *
-     * @param resourceIndex The resource index to load resources from.
+     * @param resourceType  The resource type.
      * @param listener      The listener to be notified with the set of resource IDs.
      */
-    private void loadAllResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
-        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
+    private void loadAllResourceIds(String resourceType, ActionListener<Set<String>> listener) {
+        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceType, listener);
     }
 
     /**
      * Loads all resource-sharing records for the specified resource index.
      *
-     * @param resourceIndex The resource index to load records from.
+     * @param resourceType The resource type.
      * @param listener      The listener to be notified with the set of resource-sharing records.
      */
-    private void loadAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
-        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, listener);
+    private void loadAllResourceSharingRecords(String resourceType, ActionListener<Set<SharingRecord>> listener) {
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, resourceType, listener);
     }
 
     /**

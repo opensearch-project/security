@@ -78,7 +78,7 @@ public class ResourceAccessEvaluator {
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
         DocRequest req = (DocRequest) request;
 
-        resourceAccessHandler.hasPermission(req.id(), req.index(), action, context, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(req.id(), req.type(), action, context, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponse.allowed = true;
                 pResponseListener.onResponse(pResponse.markComplete());

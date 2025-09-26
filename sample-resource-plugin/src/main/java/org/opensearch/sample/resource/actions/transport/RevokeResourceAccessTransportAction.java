@@ -26,7 +26,7 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Transport action for revoking resource access.
@@ -54,7 +54,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
             return;
         }
         ShareWith target = request.getEntitiesToRevoke();
-        resourceSharingClient.revoke(request.getResourceId(), RESOURCE_INDEX_NAME, target, ActionListener.wrap(success -> {
+        resourceSharingClient.revoke(request.getResourceId(), RESOURCE_TYPE, target, ActionListener.wrap(success -> {
             RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());
             log.debug("Revoked resource access: {}", response.toString());
             listener.onResponse(response);

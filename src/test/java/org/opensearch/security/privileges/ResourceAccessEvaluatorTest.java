@@ -66,11 +66,12 @@ public class ResourceAccessEvaluatorTest {
         stubAuthenticatedUser();
         IndexRequest req = new IndexRequest(IDX).id("anyId");
 
+        // TODO check to see if type can be something other than indices
         doAnswer(inv -> {
             ActionListener<Boolean> listener = inv.getArgument(4);
             listener.onResponse(hasPermission);
             return null;
-        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq(IDX), eq("read"), any(), any());
+        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any(), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 

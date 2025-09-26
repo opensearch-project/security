@@ -37,49 +37,49 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * Verifies whether the current user has access to the specified resource.
      *
      * @param resourceId    The ID of the resource to verify.
-     * @param resourceIndex The index in which the resource resides.
+     * @param resourceType  The resource tupe.
      * @param action        The action to be evaluated against
      * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
     @Override
-    public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, action, null, listener);
+    public void verifyAccess(String resourceId, String resourceType, String action, ActionListener<Boolean> listener) {
+        resourceAccessHandler.hasPermission(resourceId, resourceType, action, null, listener);
     }
 
     /**
      * Shares a resource with specified users, roles, or backend roles.
      *
      * @param resourceId    The ID of the resource to share.
-     * @param resourceIndex The index containing the resource.
+     * @param resourceType  The resource type.
      * @param target        The recipients of the resource, including users, roles, and backend roles and respective access levels.
      * @param listener      Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void share(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener) {
-        resourceAccessHandler.share(resourceId, resourceIndex, target, listener);
+    public void share(String resourceId, String resourceType, ShareWith target, ActionListener<ResourceSharing> listener) {
+        resourceAccessHandler.share(resourceId, resourceType, target, listener);
     }
 
     /**
      * Revokes previously granted access to a resource for specific users or roles.
      *
      * @param resourceId        The ID of the resource.
-     * @param resourceIndex     The index containing the resource.
+     * @param resourceType      The resource type.
      * @param target            A map of entities whose access is to be revoked.
      * @param listener          Callback receiving the updated {@link ResourceSharing} document.
      */
     @Override
-    public void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener) {
-        resourceAccessHandler.revoke(resourceId, resourceIndex, target, listener);
+    public void revoke(String resourceId, String resourceType, ShareWith target, ActionListener<ResourceSharing> listener) {
+        resourceAccessHandler.revoke(resourceId, resourceType, target, listener);
     }
 
     /**
      * Lists all resources the current user has access to within the given index.
      *
-     * @param resourceIndex The index to search for accessible resources.
+     * @param resourceType  The resource type.
      * @param listener      Callback receiving a set of resource ids.
      */
     @Override
-    public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
-        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceIndex, listener);
+    public void getAccessibleResourceIds(String resourceType, ActionListener<Set<String>> listener) {
+        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceType, listener);
     }
 }

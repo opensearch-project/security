@@ -40,7 +40,6 @@ public class ResourcePluginInfo {
 
     // type <-> index
     private final Map<String, String> typeToIndex = new HashMap<>();
-    private final Map<String, String> indexToType = new HashMap<>();
 
     // UI: action-group *names* per type
     private final Map<String, LinkedHashSet<String>> typeToGroupNames = new HashMap<>();
@@ -51,7 +50,6 @@ public class ResourcePluginInfo {
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         resourceSharingExtensions.clear();
         typeToIndex.clear();
-        indexToType.clear();
         // Enforce resource-type unique-ness
         Set<String> resourceTypes = new HashSet<>();
         for (ResourceSharingExtension extension : extensions) {
@@ -61,7 +59,6 @@ public class ResourcePluginInfo {
                     resourceTypes.add(rp.resourceType());
                     // also cache type->index and index->type mapping
                     typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                    indexToType.put(rp.resourceIndexName(), rp.resourceType());
                 } else {
                     throw new OpenSearchSecurityException(
                         String.format(
@@ -128,8 +125,8 @@ public class ResourcePluginInfo {
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public Set<String> getResourceIndices() {
-        return indexToType.keySet();
+    public Collection<String> getResourceIndices() {
+        return typeToIndex.values();
     }
 
 }

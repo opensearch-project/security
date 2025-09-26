@@ -26,7 +26,7 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Transport action implementation for sharing a resource.
@@ -58,7 +58,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
             return;
         }
         ShareWith shareWith = request.getShareWith();
-        resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
+        resourceSharingClient.share(request.getResourceId(), RESOURCE_TYPE, shareWith, ActionListener.wrap(sharing -> {
             ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
             ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
             log.debug("Shared resource: {}", response.toString());
