@@ -120,7 +120,7 @@ public class KeySetRetriever implements KeySetProvider {
                 .build();
 
             httpGet.setConfig(requestConfig);
-            
+
             // Configure HTTP client to only accept JSON responses for JWKS endpoints
             if (enableSecurityValidation) {
                 httpGet.setHeader("Accept", "application/json, application/jwk-set+json");

@@ -226,14 +226,23 @@ public class KeySetRetrieverTest {
                 IOException {
                 response.setCode(200);
                 // Create a large response that exceeds our limit
-                StringBuilder largeResponse = new StringBuilder();
-                largeResponse.append("{\"keys\":[");
+                StringBuilder keyEntries = new StringBuilder();
                 for (int i = 0; i < 1000; i++) {
-                    if (i > 0) largeResponse.append(",");
-                    largeResponse.append("{\"kty\":\"oct\",\"k\":\"test\",\"kid\":\"key").append(i).append("\"}");
+                    if (i > 0) keyEntries.append(",");
+                    keyEntries.append("""
+                        {
+                            "kty": "oct",
+                            "k": "test",
+                            "kid": "key%d"
+                        }""".formatted(i));
                 }
-                largeResponse.append("]}");
-                response.setEntity(new StringEntity(largeResponse.toString()));
+
+                String largeResponse = """
+                    {
+                        "keys": [%s]
+                    }""".formatted(keyEntries.toString());
+
+                response.setEntity(new StringEntity(largeResponse));
             }
         }) {
             String jwksUri = largeMockServer.getJwksUri();
@@ -257,24 +266,25 @@ public class KeySetRetrieverTest {
                 IOException {
                 response.setCode(200);
                 // Create a JWKS with many keys
-                StringBuilder manyKeysResponse = new StringBuilder();
-                manyKeysResponse.append("{\"keys\":[");
+                StringBuilder keyEntries = new StringBuilder();
                 for (int i = 0; i < 15; i++) {
-                    if (i > 0) manyKeysResponse.append(",");
-                    manyKeysResponse.append("{")
-                        .append("\"kty\":\"oct\",")
-                        .append("\"k\":\"")
-                        .append(TestJwk.OCT_1_K)
-                        .append("\",")
-                        .append("\"kid\":\"key")
-                        .append(i)
-                        .append("\",")
-                        .append("\"use\":\"sig\",")
-                        .append("\"alg\":\"HS256\"")
-                        .append("}");
+                    if (i > 0) keyEntries.append(",");
+                    keyEntries.append("""
+                        {
+                            "kty": "oct",
+                            "k": "%s",
+                            "kid": "key%d",
+                            "use": "sig",
+                            "alg": "HS256"
+                        }""".formatted(TestJwk.OCT_1_K, i));
                 }
-                manyKeysResponse.append("]}");
-                response.setEntity(new StringEntity(manyKeysResponse.toString()));
+
+                String manyKeysResponse = """
+                    {
+                        "keys": [%s]
+                    }""".formatted(keyEntries.toString());
+
+                response.setEntity(new StringEntity(manyKeysResponse));
             }
         }) {
             String jwksUri = manyKeysMockServer.getJwksUri();
