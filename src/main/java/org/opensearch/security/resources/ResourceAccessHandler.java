@@ -89,6 +89,8 @@ public class ResourceAccessHandler {
             return;
         }
 
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+
         if (adminDNs.isAdmin(user)) {
             loadAllResourceIds(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
@@ -96,7 +98,7 @@ public class ResourceAccessHandler {
         Set<String> flatPrincipals = getFlatPrincipals(user);
 
         // 3) Fetch all accessible resource IDs
-        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceType, flatPrincipals, listener);
+        resourceSharingIndexHandler.fetchAccessibleResourceIds(resourceIndex, flatPrincipals, listener);
     }
 
     /**
@@ -421,7 +423,8 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource IDs.
      */
     private void loadAllResourceIds(String resourceType, ActionListener<Set<String>> listener) {
-        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceType, listener);
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
     /**

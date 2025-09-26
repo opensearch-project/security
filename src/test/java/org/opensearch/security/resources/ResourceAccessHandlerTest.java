@@ -230,7 +230,7 @@ public class ResourceAccessHandlerTest {
             return null;
         }).when(sharingIndexHandler).fetchAllResourceIds(eq(INDEX), any());
 
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
+        handler.getOwnAndSharedResourceIdsForCurrentUser(TYPE, listener);
         verify(listener).onResponse(Set.of("res1", "res2"));
     }
 
@@ -248,7 +248,7 @@ public class ResourceAccessHandlerTest {
             return null;
         }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any());
 
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
+        handler.getOwnAndSharedResourceIdsForCurrentUser(TYPE, listener);
         verify(listener).onResponse(Set.of("res1"));
     }
 
@@ -278,7 +278,7 @@ public class ResourceAccessHandlerTest {
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
 
-        handler.share(RESOURCE_ID, INDEX, shareWith, listener);
+        handler.share(RESOURCE_ID, TYPE, shareWith, listener);
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
 
@@ -308,7 +308,7 @@ public class ResourceAccessHandlerTest {
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
 
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
+        handler.revoke(RESOURCE_ID, TYPE, revokeTarget, listener);
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
 
@@ -325,7 +325,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+        handler.getSharingInfo(RESOURCE_ID, TYPE, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -333,7 +333,7 @@ public class ResourceAccessHandlerTest {
     @Test
     public void testGetSharingInfoFailsIfNoUser() {
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+        handler.getSharingInfo(RESOURCE_ID, TYPE, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
@@ -353,7 +353,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, add, revoke, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -362,7 +362,7 @@ public class ResourceAccessHandlerTest {
     public void testPatchSharingInfoFailsIfNoUser() {
         ShareWith x = new ShareWith(ImmutableMap.of());
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, x, x, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }

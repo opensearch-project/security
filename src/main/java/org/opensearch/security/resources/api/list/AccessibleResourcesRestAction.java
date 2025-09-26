@@ -70,7 +70,7 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
         if (resourceIndex == null) {
             return channel -> { handleResponse(channel, Set.of()); };
         }
-        return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceIndex, ActionListener.wrap(rows -> {
+        return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceType, ActionListener.wrap(rows -> {
             handleResponse(channel, rows);
         }, e -> handleError(channel, e)));
     }
