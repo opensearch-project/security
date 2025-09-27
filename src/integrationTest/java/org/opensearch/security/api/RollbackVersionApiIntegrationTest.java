@@ -17,6 +17,7 @@ import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,6 +32,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
 
     private static final String ENDPOINT_PREFIX = PLUGINS_PREFIX + "/api";
     private static final String ROLLBACK_BASE = ENDPOINT_PREFIX + "/version/rollback";
+    private static final TestSecurityConfig.User USER = new TestSecurityConfig.User("user");
 
     private String RollbackVersion(String versionId) {
         return ROLLBACK_BASE + "/" + versionId;
@@ -46,41 +48,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
     @Before
     public void setupConfigVersionsIndex() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.get("/_cluster/health?wait_for_status=yellow&timeout=30s");
-            client.delete("/.opensearch_security_config_versions");
-            client.put("/.opensearch_security_config_versions");
-            client.post("/_refresh");
-            client.get("/_cluster/health/.opensearch_security_config_versions?wait_for_status=yellow&timeout=5s");
-
-            String bulkPayload =
-                "{ \"index\": { \"_index\": \".opensearch_security_config_versions\", \"_id\": \"opensearch_security_config_versions\" } }\n"
-                    + "{ \"versions\": ["
-                    + "  {"
-                    + "    \"version_id\": \"v1\","
-                    + "    \"timestamp\": \"2025-04-03T00:00:00Z\","
-                    + "    \"modified_by\": \"admin\","
-                    + "    \"security_configs\": {"
-                    + "      \"internalusers\": {"
-                    + "        \"lastUpdated\": \"2025-04-03T00:00:00Z\","
-                    + "        \"configData\": { \"admin\": { \"hash\": \"$2y$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" } }"
-                    + "      }"
-                    + "    }"
-                    + "  },"
-                    + "  {"
-                    + "    \"version_id\": \"v2\","
-                    + "    \"timestamp\": \"2025-04-04T00:00:00Z\","
-                    + "    \"modified_by\": \"admin\","
-                    + "    \"security_configs\": {"
-                    + "      \"internalusers\": {"
-                    + "        \"lastUpdated\": \"2025-04-04T00:00:00Z\","
-                    + "        \"configData\": { \"admin\": { \"hash\": \"$2y$12$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\" } }"
-                    + "      }"
-                    + "    }"
-                    + "  }"
-                    + "] }\n";
-
-            var response = client.postJson("/_bulk?refresh=true", bulkPayload);
-            assertThat("Bulk insert failed", response.getStatusCode(), is(200));
+            client.createUser(USER.getName(), USER).assertStatusCode(201);
         }
     }
 
@@ -125,31 +93,25 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
     @Test
     public void testRollbackWhenOnlyOneVersion_shouldFail() throws Exception {
         withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
-            client.delete("/.opensearch_security_config_versions");
-            client.put("/.opensearch_security_config_versions");
-            client.post("/_refresh");
-            client.get("/_cluster/health/.opensearch_security_config_versions?wait_for_status=yellow&timeout=30s");
+            // To perform below test, delete all entries in .opensearch_security_config_versions index
+            String deleteQuery = """
+                    {
+                        "query": {
+                            "match_all": {}
+                        }
+                    }
+                """;
+            client.postJson("/.opensearch_security_config_versions/_delete_by_query", deleteQuery);
 
-            String bulkPayload = ""
-                + "{ \"index\": { \"_index\": \".opensearch_security_config_versions\", \"_id\": \"opensearch_security_config_versions\" } }\n"
-                + "{ \"versions\": [ {"
-                + "  \"version_id\": \"v1\","
-                + "  \"timestamp\": \"2025-04-03T00:00:00Z\","
-                + "  \"modified_by\": \"admin\","
-                + "  \"security_configs\": {"
-                + "    \"config_type_1\": {"
-                + "      \"lastUpdated\": \"2025-04-03T00:00:00Z\","
-                + "      \"configData\": {"
-                + "        \"key1\": { \"dummy\": \"value1\" }"
-                + "      }"
-                + "    }"
-                + "  }"
-                + "} ] }\n";
+            // Insert 1 record in .opensearch_security_config_versions index
+            String bulkPayload =
+                """
+                       {"index":{"_index":".opensearch_security_config_versions","_id":"opensearch_security_config_versions"}}
+                       {"versions":[{"version_id":"v1","timestamp":"2025-04-03T00:00:00Z","modified_by":"admin","security_configs":{"config_type_1":{"lastUpdated":"2025-04-03T00:00:00Z","configData":{"key1":{"dummy":"value1"}}}}}]}
+                    """;
 
             var bulkResponse = client.postJson("/_bulk?refresh=true", bulkPayload);
             assertThat("Bulk insert failed: " + bulkResponse.getBody(), bulkResponse.getStatusCode(), is(200));
-
-            client.post("/_refresh");
 
             var response = client.post(ROLLBACK_BASE);
             assertThat(response.getStatusCode(), is(404));

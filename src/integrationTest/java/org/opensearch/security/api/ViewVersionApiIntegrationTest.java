@@ -34,6 +34,8 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
         testSecurityConfig.user(new TestSecurityConfig.User("limitedUser").password("limitedPass"));
     }
 
+    private static final TestSecurityConfig.User USER = new TestSecurityConfig.User("user");
+
     private String endpointPrefix() {
         return PLUGINS_PREFIX + "/api";
     }
@@ -56,30 +58,7 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
     @Before
     public void setupIndexAndCerts() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.get("/_cluster/health?wait_for_status=yellow&timeout=30s");
-            client.delete("/.opensearch_security_config_versions");
-            client.put("/.opensearch_security_config_versions");
-            client.post("/_refresh");
-            client.get("/_cluster/health/.opensearch_security_config_versions?wait_for_status=yellow&timeout=5s");
-
-            String bulkPayload = ""
-                + "{ \"index\": { \"_index\": \".opensearch_security_config_versions\", \"_id\": \"opensearch_security_config_versions\" } }\n"
-                + "{ \"versions\": [ {"
-                + "  \"version_id\": \"v1\","
-                + "  \"timestamp\": \"2025-04-03T00:00:00Z\","
-                + "  \"modified_by\": \"admin\","
-                + "  \"security_configs\": {"
-                + "    \"config_type_1\": {"
-                + "      \"lastUpdated\": \"2025-04-03T00:00:00Z\","
-                + "      \"configData\": {"
-                + "        \"key1\": { \"dummy\": \"value1\" }"
-                + "      }"
-                + "    }"
-                + "  }"
-                + "} ] }\n";
-
-            var bulkResponse = client.postJson("/_bulk?refresh=true", bulkPayload);
-            assertThat("Failed to insert config versions doc via bulk: " + bulkResponse.getBody(), bulkResponse.getStatusCode(), is(200));
+            client.createUser(USER.getName(), USER).assertStatusCode(201);
         }
     }
 
