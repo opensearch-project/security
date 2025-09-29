@@ -2272,7 +2272,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED,
                     ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT,
                     Property.NodeScope,
-                    Property.Filtered,
                     Property.Dynamic
                 )
             );
