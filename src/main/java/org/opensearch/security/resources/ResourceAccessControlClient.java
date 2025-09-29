@@ -38,6 +38,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      *
      * @param resourceId    The ID of the resource to verify.
      * @param resourceIndex The index in which the resource resides.
+     * @param action        The action to be evaluated against
      * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
     @Override

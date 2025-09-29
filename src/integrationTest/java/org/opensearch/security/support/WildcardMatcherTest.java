@@ -55,6 +55,28 @@ public class WildcardMatcherTest {
     }
 
     @Test
+    public void all() {
+        WildcardMatcher any = applyCase(WildcardMatcher.ANY);
+        assertTrue(any.matchAll("any_string", "other_string"));
+        assertTrue(any.matchAll(Arrays.asList("any_string", "other_string")));
+        assertTrue(any.matchAll(Stream.of("any_string", "other_string")));
+
+        WildcardMatcher none = applyCase(WildcardMatcher.NONE);
+        assertFalse(none.matchAll("any_string"));
+        assertFalse(none.matchAll(Arrays.asList("any_string")));
+        assertFalse(none.matchAll(Stream.of("any_string")));
+        assertTrue(none.matchAll());
+        assertTrue(none.matchAll(Collections.emptyList()));
+        assertTrue(none.matchAll(Stream.empty()));
+
+        WildcardMatcher prefix = applyCase(WildcardMatcher.from("test*"));
+        assertTrue(prefix.matchAll("test1", "test2", "testing"));
+        assertFalse(prefix.matchAll("test1", "other", "testing"));
+        assertTrue(prefix.matchAll(Arrays.asList("test1", "test2")));
+        assertFalse(prefix.matchAll(Arrays.asList("test1", "other")));
+    }
+
+    @Test
     public void anyFromStar() {
         assertSame(WildcardMatcher.ANY, applyCase(WildcardMatcher.from("*")));
     }

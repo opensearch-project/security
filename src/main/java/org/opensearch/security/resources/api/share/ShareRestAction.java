@@ -22,6 +22,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -40,7 +41,11 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
-    public ShareRestAction() {}
+    private final ResourcePluginInfo resourcePluginInfo;
+
+    public ShareRestAction(ResourcePluginInfo resourcePluginInfo) {
+        this.resourcePluginInfo = resourcePluginInfo;
+    }
 
     @Override
     public List<Route> routes() {
@@ -59,20 +64,22 @@ public class ShareRestAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         // These two params will only be present with GET request
         String resourceId = request.param("resource_id");
-        String resourceIndex = request.param("resource_type");
+        String resourceType = request.param("resource_type");
+
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         ShareRequest.Builder builder = new ShareRequest.Builder();
         builder.method(request.method());
 
-        if (resourceId != null) {
+        if (resourceIndex != null) {
             builder.resourceIndex(resourceIndex);
         }
-        if (resourceIndex != null) {
+        if (resourceId != null) {
             builder.resourceId(resourceId);
         }
 
         if (request.hasContent()) {
-            builder.parseContent(request.contentParser());
+            builder.parseContent(request.contentParser(), resourcePluginInfo);
         }
 
         ShareRequest shareRequest = builder.build();
