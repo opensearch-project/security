@@ -117,12 +117,7 @@ public class PrivilegesConfiguration {
                 PrivilegesEvaluationType privilegesEvaluationType = PrivilegesEvaluationType.getFrom(
                     configurationRepository.getConfiguration(CType.CONFIG)
                 );
-                PrivilegesEvaluationType currentEvaluationType =
-                    currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator
-                        ? PrivilegesEvaluationType.LEGACY
-                        : currentPrivilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator
-                            ? PrivilegesEvaluationType.NEXT_GEN
-                        : null;
+                PrivilegesEvaluationType currentEvaluationType = PrivilegesEvaluationType.typeOf(currentPrivilegesEvaluator);
 
                 if (privilegesEvaluationType != currentEvaluationType) {
                     if (privilegesEvaluationType == PrivilegesEvaluationType.LEGACY) {
@@ -155,7 +150,6 @@ public class PrivilegesConfiguration {
                                 threadPool,
                                 threadPool.getThreadContext(),
                                 resolver,
-                                auditLog,
                                 settings,
                                 privilegesInterceptor,
                                 flattenedActionGroups,
@@ -269,6 +263,16 @@ public class PrivilegesConfiguration {
                 return NEXT_GEN;
             } else {
                 return LEGACY;
+            }
+        }
+
+        static PrivilegesEvaluationType typeOf(PrivilegesEvaluator privilegesEvaluator) {
+            if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator) {
+                return PrivilegesEvaluationType.LEGACY;
+            } else  if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator) {
+                return PrivilegesEvaluationType.NEXT_GEN;
+            } else {
+                return null;
             }
         }
     }

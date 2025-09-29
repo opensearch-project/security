@@ -122,10 +122,8 @@ class ActionConfiguration {
         } else if (this.clusterActions.contains(action)) {
             return true;
         } else {
-            // TODO maybe move to "indices:" prefix
-            return action.startsWith("cluster:")
-                || action.startsWith("indices:admin/template/")
-                || action.startsWith("indices:admin/index_template/");
+            // TODO maybe switch to index:
+            return action.startsWith("cluster:");
         }
     }
 
@@ -135,6 +133,8 @@ class ActionConfiguration {
 
     private static ImmutableMap<String, String> buildActionToActionMap(Settings settings) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+
+        // The following mappings were originally defined at https://github.com/opensearch-project/security/blob/eb7153d772e9e00d49d9cb5ffafb33b5f02399fc/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java#L392
         builder.put(UpgradeSettingsAction.NAME, UpgradeAction.NAME);
         builder.put(AutoCreateAction.NAME, CreateIndexAction.NAME);
         builder.put(AutoPutMappingAction.NAME, PutMappingAction.NAME);
@@ -153,10 +153,23 @@ class ActionConfiguration {
 
     private static ImmutableSet<String> buildClusterActionSet(Settings settings) {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
+        // A couple of "indices:" actions are considered as cluster level privileges for a number of different reasons.
+        // See below for details
         builder.addAll(WellKnownActions.CLUSTER_ACTIONS);
+
+        // The _msearch action triggers under the hood an additional _search action; thus it is sufficient to check index specific privileges on the _search level
         builder.add(MultiSearchTemplateAction.NAME);
+
+        // The _reindex action triggers under the hood _search and _bulk actions; thus, index privileges can be checked on these levels
         builder.add(ReindexAction.NAME);
+
+        // The _render/template action actually does not operate on indices at all
         builder.add(RenderSearchTemplateAction.NAME);
+
+        // The index template and composable template actions do not specify indices, but specify patterns for potentially non-existing indices.
+        // This makes it difficult (or rather impossible) to match these against the privilege definition index patterns.
+        // Thus, we treat these as cluster privileges
         builder.add(PutIndexTemplateAction.NAME);
         builder.add(DeleteIndexTemplateAction.NAME);
         builder.add(GetIndexTemplatesAction.NAME);
@@ -165,6 +178,7 @@ class ActionConfiguration {
         builder.add(GetComposableIndexTemplateAction.NAME);
         builder.add(SimulateIndexTemplateAction.NAME);
         builder.add(SimulateTemplateAction.NAME);
+
         builder.addAll(FORCE_AS_CLUSTER_ACTIONS.get(settings));
         return builder.build();
     }

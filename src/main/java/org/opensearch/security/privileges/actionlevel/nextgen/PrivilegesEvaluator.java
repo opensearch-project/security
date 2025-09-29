@@ -74,17 +74,60 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
+/**
+ * A next generation implementation of PrivilegesEvaluator with the following properties:
+ * <ul>
+ *     <li>By default, it tries to reduce the requested indices in IndicesRequests to the set of allowed indices (formerly known as do_not_fail_on_forbidden).
+ *         This is done for requests with ignore_unavailable=true or requests using wildcards or patterns.</li>
+ *     <li>For complex actions, are more fine-grained permission model is employed by using the sub-actions property of
+ *         the ResolvedIndices class. For example, if an IndicesAliasesRequest contained a single item for
+ *         deleting an index, the old privileges evaluator would require an indices:admin/delete privilege for
+ *         all requested indices. The new implementation only requires privileges for the indices that are
+ *         actually going to be deleted.</li>
+ *     <li>No longer breaks apart search operations on aliases into member indices. Thus, for a search on an alias,
+ *         you always need to have the privileges for all member indices. This preserves certain alias semantics,
+ *         such as filtered aliases. The old implementation would just drop the filter semantics when the
+ *         requested indices were reduced.</li>
+ *     <li>Integrates the former SystemIndexAccessEvaluator and ProtectedIndexAccessEvaluator completely into
+ *         the ActionPrivileges evaluation. This allows us to fully support the reduction of requested indices if such
+ *         indices are requested.</li>
+ *     <li>The direct support of index reduction also makes the former TermsAggregationEvaluator redundant.</li>
+ *     <li>Adding an index to an alias now additionally requires privileges on the name of the alias.</li>
+ *     <li>A number of config options is no longer supported in order to simplify the code and the configuration
+ *         complexity (relevant for both UX and robustness reasons). The discontinued config options are:
+ *         <ul>
+ *             <li>"config.dynamic.filtered_alias_mode": Filtered alias checks are no longer performed because they served no actual purpose. See https://github.com/opensearch-project/security/issues/5599</li>
+ *             <li>"config.dynamic.do_not_fail_on_forbidden": Reduction of indices is always performed when possible</li>
+ *             <li>"config.dynamic.do_not_fail_on_forbidden_empty": Reduction to empty requests is always performed when possible.</li>
+ *             <li>"config.dynamic.respect_request_indices_options": By using the ActionRequestMetadata, this is no longer necessary.</li>
+ *             <li>"plugins.security.check_snapshot_restore_write_privileges": The write privileges are always checked for restoring snapshots.</li>
+ *             <li>"plugins.security.enable_snapshot_restore_privilege": Normal users can use the restore API. If you want to forbid normal users to use this API, you can use "plugins.security.privileges_evaluation.actions.universally_denied_actions" instead.</li>
+ *             <li>"plugins.security.unsupported.restore.securityindex.enabled": This is always disabled for normal users.</li>
+ *             <li>"plugins.security.filter_securityindex_from_all_requests": The filtering of the security index has been integrated in the normal index filtering and is thus always available.</li>
+ *             <li>"plugins.security.system_indices.enabled": System index handling is always enabled.</li>
+ *             <li>"plugins.security.system_indices.permission.enabled": The ability to use the explicit system index permission is always enabled.</li>
+ *         </ul>
+ *     </li>
+ *     <li>A few new config options have been introduced to allow some control over the behavior, mostly for emergency or
+ *         mitigation purposes:
+ *         <ul>
+ *             <li>"plugins.security.privileges_evaluation.actions.force_as_cluster_actions": Allows to treat actions that are usually considered index privileges, explicitly as cluster privileges instead.</li>
+ *             <li>"plugins.security.privileges_evaluation.actions.universally_denied_actions": Denies all requests of normal users for these actions. Only super admins can use these actions.</li>
+ *             <li>"plugins.security.privileges_evaluation.actions.map_action_names": Allows remapping of action names to privilege names.</li>
+ *         </ul>
+ *     </li>
+ * </ul>
+ */
 public class PrivilegesEvaluator implements org.opensearch.security.privileges.PrivilegesEvaluator {
     private static final Logger log = LogManager.getLogger(PrivilegesEvaluator.class);
 
     private final Supplier<ClusterState> clusterStateSupplier;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final PrivilegesInterceptor privilegesInterceptor;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
-    private final ImmutableMap<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges;
+    private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
     private final IndicesRequestResolver indicesRequestResolver;
     private final IndicesRequestModifier indicesRequestModifier = new IndicesRequestModifier();
     private final RoleMapper roleMapper;
@@ -98,7 +141,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         ThreadPool threadPool,
         ThreadContext threadContext,
         IndexNameExpressionResolver indexNameExpressionResolver,
-        AuditLog auditLog,
         Settings settings,
         PrivilegesInterceptor privilegesInterceptor,
         FlattenedActionGroups actionGroups,
@@ -109,7 +151,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
     ) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.auditLog = auditLog;
         this.roleMapper = roleMapper;
         this.threadContext = threadContext;
         this.threadPool = threadPool;
@@ -181,10 +222,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (user.isPluginUser()) {
             mappedRoles = ImmutableSet.of();
-            actionPrivileges = this.pluginIdToActionPrivileges.get(user.getName());
-            if (actionPrivileges == null) {
-                actionPrivileges = ActionPrivileges.EMPTY;
-            }
+            actionPrivileges = this.pluginIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
         } else {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();
@@ -219,7 +257,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
 
-        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
+        if (request instanceof BulkRequest && Strings.isNullOrEmpty(user.getRequestedTenant())) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
             // indices:data/write/bulk[s]).
             // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default
@@ -265,7 +303,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (!replaceResult.continueEvaluation) {
             if (replaceResult.accessDenied) {
-                auditLog.logMissingPrivileges(action, request, context.getTask());
                 return PrivilegesEvaluatorResponse.insufficient(action).reason("Insufficient tenant privileges");
             } else {
                 return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
@@ -295,7 +332,6 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
 
         if (!replaceResult.continueEvaluation) {
             if (replaceResult.accessDenied) {
-                auditLog.logMissingPrivileges(action, request, context.getTask());
                 return PrivilegesEvaluatorResponse.insufficient(action).reason("Insufficient tenant privileges");
             } else {
                 return PrivilegesEvaluatorResponse.ok(replaceResult.createIndexRequestBuilder);
@@ -582,11 +618,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             if (this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, indicesResult.getAvailableIndices())) {
                 return PrivilegesEvaluatorResponse.ok()
                     .originalResult(indicesResult)
-                    .reason(
-                        indicesResult.isPartiallyOk()
-                            ? "Only allowed for a subset of indices"
-                            : "Not allowed for any indices; returning empty result"
-                    );
+                    .reason("Only allowed for a subset of indices");
             }
         }
 
@@ -625,6 +657,18 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         );
     }
 
+    /**
+     * Checks the permissions for the sub-actions given in the ResolvedIndices object. Sub-actions describe complex
+     * action requests, which might do different things with different indices. One example is the IndicesAliasesRequest
+     * which can also just delete indices; in this case, the index to be deleted is contained in the sub-action
+     * with the key "indices:admin/delete".
+     * <p>
+     * This will return the value given as the originalResult parameter if all sub-action privileges are present. If a
+     * privilege is missing, this returns an insufficient PrivilegesEvaluatorResponse.
+     * <p>
+     * Reduction of requested indices is not possible for sub-actions, thus this only return "ok" or "insufficient",
+     * but never "partially sufficient".
+     */
     PrivilegesEvaluatorResponse checkSubActionPermissions(
         PrivilegesEvaluationContext context,
         ResolvedIndices resolvedIndices,
@@ -652,6 +696,11 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         }
     }
 
+    /**
+     * This returns the set of required privileges for a particular action. This is usually just the set containing
+     * exactly the given action name. There are some exceptions where more than one action privilege is required.
+     * See the implementation for these cases.
+     */
     Set<String> requiredIndexPermissions(ActionRequest request, String originalAction) {
         if (request instanceof ClusterSearchShardsRequest) {
             return Set.of(originalAction, SearchAction.NAME);
@@ -678,6 +727,16 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         }
     }
 
+    /**
+     * Returns true if it is possible to reduce the requested indices in the given request to allow its execution
+     * given the user's available privileges.
+     * <p>
+     * This is the case when:
+     * <ul>
+     *     <li>The request implements IndicesRequest.Replaceable</li>
+     *     <li>AND, the ignore_unavailable index option has been specified or the request contains patterns (like "index_a*")</li>
+     * </ul>
+     */
     boolean isIndexReductionForIncompletePrivilegesPossible(ActionRequest request) {
         if (!(request instanceof IndicesRequest.Replaceable indicesRequest)) {
             return false;
@@ -690,6 +749,15 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         return indicesRequest.indicesOptions().expandWildcardsOpen() && containsPattern(indicesRequest);
     }
 
+    /**
+     * Returns true if it is possible to reduce the requested indices in the given request to NONE to allow its
+     * execution. The execution should just return an empty response then.
+     * <p>
+     * This is the case when the conditions for isIndexReductionForIncompletePrivilegesPossible() hold and the index
+     * option allow_no_indices has been specified.
+     * <p>
+     * Additionally, there might be exceptions for actions which just do not support an empty set of indices.
+     */
     boolean isIndexReductionForNoPrivilegesPossible(ActionRequest request) {
         if (!isIndexReductionForIncompletePrivilegesPossible(request)) {
             return false;
@@ -703,6 +771,10 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         return ((IndicesRequest) request).indicesOptions().allowNoIndices();
     }
 
+    /**
+     * Returns if the given IndicesRequest contains a wildcard, index pattern or refers to all indices via "_all" or
+     * an empty index expression.
+     */
     boolean containsPattern(IndicesRequest indicesRequest) {
         String[] indices = indicesRequest.indices();
 

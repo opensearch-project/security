@@ -505,6 +505,11 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             }
         }
 
+        /**
+         * When we have finished the "normal" privilege evaluation, which is based on index_permissions in roles.yml,
+         * we have to pass the CheckTable with the available privileges through this method in order to have specially
+         * protected indices and actions removed again from the CheckTable.
+         */
         protected PrivilegesEvaluatorResponse finalizeResult(PrivilegesEvaluationContext context, IntermediateResult intermediateResult) {
             CheckTable<String, String> checkTable = intermediateResult.indexToActionCheckTable;
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>(intermediateResult.exceptions);
@@ -541,6 +546,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
         }
 
+        /**
+         * Returns true if the given indexOrAlias is a system index or an alias containing a system index AND if
+         * the current user does not have the necessary explicit privilege to access this system index.
+         */
         private boolean isUnauthorizedSystemIndex(PrivilegesEvaluationContext context, String indexOrAlias, List<PrivilegesEvaluationException> exceptions) {
             if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
                 return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
@@ -557,7 +566,6 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
             return false;
         }
-
     }
 
     /**

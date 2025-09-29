@@ -26,6 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -49,7 +50,7 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
  */
 public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges {
 
-    public static ImmutableMap<String, SubjectBasedActionPrivileges> buildFromMap(
+    public static ImmutableMap<String, ActionPrivileges> buildFromMap(
         Map<String, RoleV7> pluginIdToRolePrivileges,
         FlattenedActionGroups staticActionGroups,
         RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
