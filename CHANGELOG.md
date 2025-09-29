@@ -58,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `jakarta.xml.bind:jakarta.xml.bind-api` from 4.0.2 to 4.0.4 ([#5649](https://github.com/opensearch-project/security/pull/5649))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.41.0 to 2.42.0 ([#5648](https://github.com/opensearch-project/security/pull/5648))
 - Bump `com.google.guava:guava` from 33.4.8-jre to 33.5.0-jre ([#5665](https://github.com/opensearch-project/security/pull/5665))
+- Bump `com.typesafe.scala-logging:scala-logging_3` from 3.9.5 to 3.9.6 ([#5663](https://github.com/opensearch-project/security/pull/5663))
 
 ### Documentation
 
