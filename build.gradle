@@ -31,7 +31,7 @@ buildscript {
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.13.0'
-        guava_version = '33.4.8-jre'
+        guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
         spring_version = '6.2.11'
 
@@ -772,7 +772,7 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.16'
-    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
+    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
