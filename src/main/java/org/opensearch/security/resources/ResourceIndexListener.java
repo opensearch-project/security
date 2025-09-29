@@ -54,8 +54,20 @@ public class ResourceIndexListener implements IndexingOperationListener {
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
-        if (!result.isCreated() || !index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
-            log.debug("Skipping resource sharing entry creation as this was an update operation for resource {}", resourceId);
+        if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
+            log.debug("Skipping resource sharing entry creation for {} as this operation was on a replica shard", resourceId);
+            return;
+        }
+
+        if (!result.isCreated()) {
+            ActionListener<Void> listener = ActionListener.wrap(unused -> {
+                log.debug(
+                    "postIndex: Successfully updated the resource visibility for resource {} within index {}",
+                    resourceId,
+                    resourceIndex
+                );
+            }, e -> { log.debug(e.getMessage()); });
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
             return;
         }
 

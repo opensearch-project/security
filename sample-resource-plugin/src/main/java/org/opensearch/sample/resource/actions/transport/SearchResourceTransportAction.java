@@ -39,7 +39,5 @@ public class SearchResourceTransportAction extends HandledTransportAction<Search
     @Override
     protected void doExecute(Task task, SearchRequest request, ActionListener<SearchResponse> listener) {
         pluginClient.search(request, listener);
-
     }
-
 }
