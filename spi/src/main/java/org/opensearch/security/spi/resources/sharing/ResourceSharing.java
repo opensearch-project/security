@@ -11,6 +11,7 @@ package org.opensearch.security.spi.resources.sharing;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +84,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void share(String accessLevel, Recipients target) {
         if (shareWith == null) {
-            shareWith = new ShareWith(Map.of(accessLevel, target));
+            Map<String, Recipients> recs = new HashMap<>();
+            recs.put(accessLevel, target);
+            shareWith = new ShareWith(recs);
             return;
         }
         Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
