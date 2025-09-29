@@ -14,6 +14,7 @@ package org.opensearch.security.privileges.int_tests;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -26,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
+import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.test.framework.TestAlias;
 import org.opensearch.test.framework.TestData;
 import org.opensearch.test.framework.TestIndex;
@@ -35,6 +37,8 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.matcher.IndexApiResponseMatchers;
 
+import static java.util.stream.Collectors.joining;
+import static org.apache.commons.lang3.StringEscapeUtils.escapeJson;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -379,7 +383,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 system_index_plugin
             )//
             .aliases(alias_ab1, alias_c1, alias_with_system_index)//
-            .plugin(SystemIndexTestPlugin.class);
+            .plugin(SystemIndexTestPlugin.class, MustacheModulePlugin.class);
     }
 
     @AfterClass
@@ -1189,6 +1193,45 @@ public class IndexAuthorizationReadOnlyIntTests {
                 assertThat(httpResponse, isBadRequest("/error/root_cause/0/reason", "[indices] cannot be used with point in time"));
 
             }
+        }
+    }
+
+    /**
+     * Moved from https://github.com/opensearch-project/security/blob/eb7153d772e9e00d49d9cb5ffafb33b5f02399fc/src/integrationTest/java/org/opensearch/security/privileges/PrivilegesEvaluatorTest.java#L103
+     * See also https://github.com/opensearch-project/security/issues/1678
+     */
+    @Test
+    public void search_template_staticIndices() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String params = """
+                    {
+                        "department": [%s]
+                    }""".formatted(TestData.DEPARTMENTS.stream().map(s -> '"' + s + '"').collect(joining(",")));
+            String query = """
+                    {
+                      "query": {
+                        "terms": {
+                          "attr_text_1": [
+                            "{{#department}}",
+                            "{{.}}",
+                            "{{/department}}"
+                          ]
+                        }
+                      }
+                    }
+                    """;
+
+            TestRestClient.HttpResponse httpResponse = restClient.getWithJsonBody("index_a1/_search/template?size=1000",
+                    """
+                     {
+                       "params": %s,
+                       "source": "%s"
+                     }""".formatted(params, escapeJson(query)));
+
+            assertThat(
+                    httpResponse,
+                    containsExactly(index_a1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
+            );
         }
     }
 
