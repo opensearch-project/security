@@ -11,10 +11,10 @@ package org.opensearch.sample.resource.actions.transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
@@ -61,12 +61,17 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             String resourceId = request.getResourceId();
             SampleResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
-                UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
+                sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
-                log.debug("Update Request: {}", ur.toString());
+                // because some plugins seem to treat update API calls as index request
+                IndexRequest ir = new IndexRequest(RESOURCE_INDEX_NAME).id(resourceId)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
+                                                                             // execute search right after update
+                    .source(builder);
 
-                pluginClient.update(ur, ActionListener.wrap(updateResponse -> {
+                log.debug("Update Request: {}", ir.toString());
+
+                pluginClient.index(ir, ActionListener.wrap(updateResponse -> {
                     listener.onResponse(
                         new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
                     );
