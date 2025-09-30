@@ -11,81 +11,31 @@
 
 package org.opensearch.security.auditlog.sink;
 
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.Random;
-
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.junit.Assert;
-import org.junit.ClassRule;
+import org.apache.kafka.clients.producer.MockProducer;
+import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.yaml.YamlXContent;
-import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.test.helper.file.FileHelper;
 
-import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
-
-    @ClassRule
-    public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, true, 1, "compliance") {
-        // Prevents test exceptions from randomized runner, see https://bit.ly/3y17IkI
-        private UncaughtExceptionHandler currentHandler;
-
-        @Override
-        public void before() {
-            currentHandler = Thread.getDefaultUncaughtExceptionHandler();
-            super.before();
-        }
-
-        @Override
-        public void after() {
-            super.after();
-            Thread.setDefaultUncaughtExceptionHandler(currentHandler);
-        }
-    };
+public class KafkaSinkTest {
 
     @Test
-    public void testKafka() throws Exception {
-        String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml");
-        configYml = configYml.replace("_RPLC_BOOTSTRAP_SERVERS_", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
-        Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.mediaType());
-        try (KafkaConsumer<Long, String> consumer = createConsumer()) {
-            consumer.subscribe(Arrays.asList("compliance"));
+    public void testKafkaSinkWithMockProducer() {
+        MockProducer<Long, String> mock = new MockProducer<>(true, new LongSerializer(), new StringSerializer());
 
-            Settings settings = settingsBuilder.put("path.home", ".").build();
-            SinkProvider provider = new SinkProvider(settings, null, null, null);
-            AuditLogSink sink = provider.getDefaultSink();
-            try {
-                assertThat(sink.getClass(), is(KafkaSink.class));
-                boolean success = sink.doStore(MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES));
-                Assert.assertTrue(success);
-                ConsumerRecords<Long, String> records = consumer.poll(Duration.ofSeconds(10));
-                assertThat(records.count(), is(1));
-            } finally {
-                sink.close();
-            }
-        }
+        LoggingSink fallback = new LoggingSink("test", Settings.EMPTY, null, null);
+        KafkaSink sink = new KafkaSink("kafka", Settings.EMPTY, "opensearch.audit.config", fallback, () -> mock, "compliance");
 
-    }
-
-    private KafkaConsumer<Long, String> createConsumer() {
-        Properties props = new Properties();
-        props.put("bootstrap.servers", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
-        props.put("auto.offset.reset", "earliest");
-        props.put("group.id", "mygroup" + System.currentTimeMillis() + "_" + new Random().nextDouble());
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.LongDeserializer");
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        return new KafkaConsumer<>(props);
+        sink.store(MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES));
+        assertEquals(1, mock.history().size());
+        assertEquals("compliance", mock.history().get(0).topic());
+        assertTrue(mock.history().get(0).value().contains("MISSING_PRIVILEGES"));
     }
 }
