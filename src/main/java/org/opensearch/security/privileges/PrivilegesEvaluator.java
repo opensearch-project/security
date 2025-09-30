@@ -80,6 +80,7 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -105,6 +106,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -153,6 +155,7 @@ public class PrivilegesEvaluator {
     private PrivilegesInterceptor privilegesInterceptor;
 
     private final boolean checkSnapshotRestoreWritePrivileges;
+    private boolean isUserAttributeSerializationEnabled;
 
     private final ClusterInfoHolder clusterInfoHolder;
     private final ConfigurationRepository configurationRepository;
@@ -204,6 +207,10 @@ public class PrivilegesEvaluator {
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
+        this.isUserAttributeSerializationEnabled = settings.getAsBoolean(
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED,
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT
+        );
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -236,6 +243,8 @@ public class PrivilegesEvaluator {
                     actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
+
+            this.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         }
     }
 
@@ -286,8 +295,17 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
+    public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
+        clusterSettings.addSettingsUpdateConsumer(
+            SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
+            newIsUserAttributeSerializationEnabled -> {
+                isUserAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
+            }
+        );
+    }
+
     private boolean isUserAttributeSerializationEnabled() {
-        return this.settings.getAsBoolean(USER_ATTRIBUTE_SERIALIZATION_ENABLED, USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT);
+        return isUserAttributeSerializationEnabled;
     }
 
     private void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {
