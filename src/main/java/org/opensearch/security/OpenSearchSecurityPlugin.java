@@ -1179,6 +1179,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
