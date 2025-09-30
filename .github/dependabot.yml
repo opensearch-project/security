@@ -12,7 +12,7 @@ updates:
       - "dependabot"
       - "dependencies"
   - package-ecosystem: "gradle"
-    directory: "/libs/opensaml"
+    directory: "/libs/opensaml/"
     schedule:
       interval: "weekly"
     ignore:
