@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
@@ -126,8 +127,10 @@ public class RollbackVersionApiAction extends AbstractApiAction {
     }
 
     private ValidationResult<SecurityConfiguration> handlePostRequest(RestRequest request) throws IOException {
+        final ThreadContext threadContext = threadPool.getThreadContext();
+
         String versionParam = request.param("versionID");
-        try {
+        try (ThreadContext.StoredContext ctx = threadContext.stashContext()) {
             if (versionParam == null) {
                 return rollbackToPreviousVersion();
             } else {
