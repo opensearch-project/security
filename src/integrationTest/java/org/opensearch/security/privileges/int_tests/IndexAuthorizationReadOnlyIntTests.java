@@ -68,6 +68,8 @@ import static org.junit.Assert.assertTrue;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IndexAuthorizationReadOnlyIntTests {
 
+    // TODO pit_segments
+
     static final TestIndex index_a1 = TestIndex.name("index_a1").documentCount(100).seed(1).build();
     static final TestIndex index_a2 = TestIndex.name("index_a2").documentCount(110).seed(2).build();
     static final TestIndex index_a3 = TestIndex.name("index_a3").documentCount(120).seed(3).build();
