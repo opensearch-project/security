@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updates resource visibility when handling PATCH api to update sharing record ([#5654](https://github.com/opensearch-project/security/pull/5654))
 - Handles resource updates which otherwise may wipe out all_shared_principals ([#5658](https://github.com/opensearch-project/security/pull/5658))
 - Makes initial share map mutable to allow multiple shares ([#5666](https://github.com/opensearch-project/security/pull/5666))
+- Add the fallback logic to use 'ssl_engine' if 'ssl_handler' attribute is not available / compatible ([#5667](https://github.com/opensearch-project/security/pull/5667))
 
 ### Refactoring
 
@@ -61,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.errorprone:error_prone_annotations` from 2.41.0 to 2.42.0 ([#5648](https://github.com/opensearch-project/security/pull/5648))
 - Bump `com.google.guava:guava` from 33.4.8-jre to 33.5.0-jre ([#5665](https://github.com/opensearch-project/security/pull/5665))
 - Bump `com.typesafe.scala-logging:scala-logging_3` from 3.9.5 to 3.9.6 ([#5663](https://github.com/opensearch-project/security/pull/5663))
+- Sync `org.opensearch:protobufs` version with core ([#5659](https://github.com/opensearch-project/security/pull/5659))
 
 ### Documentation
 
