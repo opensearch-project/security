@@ -37,6 +37,12 @@ public class KafkaSink extends AuditLogSink {
     private Producer<Long, String> producer;
     private String topicName;
 
+    // allows MockProducer in tests.
+    @FunctionalInterface
+    public interface ProducerFactory {
+        Producer<Long, String> create() throws Exception;
+    }
+
     @SuppressWarnings("removal")
     public KafkaSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
@@ -50,7 +56,6 @@ public class KafkaSink extends AuditLogSink {
         }
 
         final Properties producerProps = new Properties();
-
         for (String key : sinkSettings.names()) {
             if (!key.equals("topic_name")) {
                 producerProps.put(key.replace('_', '.'), sinkSettings.get(key));
@@ -59,31 +64,51 @@ public class KafkaSink extends AuditLogSink {
 
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        topicName = sinkSettings.get("topic_name");
+        this.topicName = sinkSettings.get("topic_name");
+        this.producer = createProducerPrivileged(() -> new KafkaProducer<>(producerProps));
+    }
 
-        // map path of
-        // ssl.keystore.location
-        // ssl.truststore.location
-        // sasl.kerberos.kinit.cmd
+    /**
+     * Useful in tests to pass a MockProducer without needing a broker or Docker.
+     */
+    @SuppressWarnings("removal")
+    public KafkaSink(
+        final String name,
+        final Settings settings,
+        final String settingsPrefix,
+        final AuditLogSink fallbackSink,
+        final ProducerFactory producerFactory,
+        final String topicName
+    ) {
+        super(name, settings, settingsPrefix, fallbackSink);
+        if (topicName == null || topicName.isEmpty()) {
+            log.error("No value for topic_name provided in injected constructor, this endpoint will not work.");
+            this.valid = false;
+            return;
+        }
+        this.topicName = topicName;
+        this.producer = createProducerPrivileged(producerFactory);
+        // valid already false if producer creation failed
+    }
 
+    @SuppressWarnings("removal")
+    private Producer<Long, String> createProducerPrivileged(ProducerFactory factory) {
         final SecurityManager sm = System.getSecurityManager();
-
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-
         try {
-            this.producer = AccessController.doPrivileged(new PrivilegedExceptionAction<KafkaProducer<Long, String>>() {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<Producer<Long, String>>() {
                 @Override
-                public KafkaProducer<Long, String> run() throws Exception {
-                    return new KafkaProducer<Long, String>(producerProps);
+                public Producer<Long, String> run() throws Exception {
+                    return factory.create();
                 }
             });
         } catch (PrivilegedActionException e) {
             log.error("Failed to configure Kafka producer due to ", e);
             this.valid = false;
+            return null;
         }
-
     }
 
     @Override
@@ -91,19 +116,14 @@ public class KafkaSink extends AuditLogSink {
         if (!valid || producer == null) {
             return false;
         }
-
-        ProducerRecord<Long, String> data = new ProducerRecord<Long, String>(topicName, msg.toJson());
+        ProducerRecord<Long, String> data = new ProducerRecord<>(topicName, msg.toJson());
         producer.send(data, new Callback() {
-
             @Override
             public void onCompletion(RecordMetadata metadata, Exception exception) {
-                if (exception == null) {
-                    // log trace?
-                } else {
+                if (exception != null) {
                     log.error("Could not store message on Kafka topic {}", topicName, exception);
                     fallbackSink.store(msg);
                 }
-
             }
         });
         return true;
