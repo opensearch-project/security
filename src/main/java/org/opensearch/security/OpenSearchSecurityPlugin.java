@@ -2282,14 +2282,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED,
-                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
         }
 
         return settings;
@@ -2303,7 +2296,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return settingsFilter;
         }
         settingsFilter.add("opendistro_security.*");
-        settingsFilter.add("plugins.security.*");
+        settingsFilter.add("plugins.security.transport_user_cache.*");
+        settingsFilter.add("plugins.security.nodes_dn.*");
+        settingsFilter.add("plugins.security.restapi.*");
+        settingsFilter.add("plugins.security.ssl.*");
+        settingsFilter.add("plugins.security.config_version.*");
+        settingsFilter.add("plugins.security.nodes_dn_dynamic_config_enabled.*");
+        settingsFilter.add("plugins.security.privileges_evaluation.*");
+        settingsFilter.add("plugins.security.authcz.*");
+        settingsFilter.add("plugins.security.password.*");
+        settingsFilter.add("plugins.security.unsupported.*");
+        settingsFilter.add("plugins.security.audit.*");
+        settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }
 
