@@ -41,6 +41,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @JsonProperty("revoke")
     private final ShareWith revoke;
 
+    private final String resourceType;
+
     private final RestRequest.Method method;
 
     /**
@@ -53,6 +55,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.add = builder.add;
         this.revoke = builder.revoke;
         this.method = builder.method;
+        this.resourceType = builder.resourceType;
     }
 
     public ShareRequest(StreamInput in) throws IOException {
@@ -60,6 +63,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.method = in.readEnum(RestRequest.Method.class);
         this.resourceId = in.readString();
         this.resourceIndex = in.readString();
+        this.resourceType = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
@@ -70,6 +74,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeEnum(method);
         out.writeString(resourceId);
         out.writeString(resourceIndex);
+        out.writeString(resourceType);
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);
@@ -115,6 +120,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return method;
     }
 
+    @Override
+    public String type() {
+        return resourceType;
+    }
+
     /**
      * Get the index that this request operates on
      *
@@ -141,6 +151,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     public static class Builder {
         private String resourceId;
         private String resourceIndex;
+        private String resourceType;
         private ShareWith shareWith;
         private ShareWith add;
         private ShareWith revoke;
@@ -152,6 +163,10 @@ public class ShareRequest extends ActionRequest implements DocRequest {
 
         public void resourceIndex(String resourceIndex) {
             this.resourceIndex = resourceIndex;
+        }
+
+        public void resourceType(String resourceType) {
+            this.resourceType = resourceType;
         }
 
         public void shareWith(ShareWith shareWith) {
@@ -186,6 +201,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                                 this.resourceId(parser.text());
                                 break;
                             case "resource_type":
+                                this.resourceType(parser.text());
                                 this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
                                 break;
                             case "share_with":

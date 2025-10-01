@@ -2236,6 +2236,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // resource marked here will be protected, other resources will not be proected with resource sharing model
+            // Defaults to all current resources as protected
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT,
+                    Function.identity(),
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
@@ -2456,7 +2468,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // discover & register extensions and their types
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-        resourcePluginInfo.setResourceSharingExtensions(exts);
+        resourcePluginInfo.setResourceSharingExtensions(
+            exts,
+            settings.getAsList(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES)
+        );
 
         // load action-groups in memory
         ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
