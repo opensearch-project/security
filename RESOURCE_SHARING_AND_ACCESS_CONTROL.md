@@ -506,7 +506,9 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ## Part 2: Cluster-admin and User guide
 
-## **1. Feature Flag**
+## **1. Setup**
+
+### **Feature Flag**
 This feature is controlled by the following flag:
 
 - **Feature flag:** `plugins.security.experimental.resource_sharing.enabled`
@@ -515,6 +517,17 @@ This feature is controlled by the following flag:
   ```yaml
   plugins.security.experimental.resource_sharing.enabled: true
   ```
+### **List protected types**
+
+The list of protected types are controlled through following opensearch setting
+
+- **Setting:** `plugins.security.experimental.resource_sharing.protected_types`
+- **Default value:** `[]`
+- **How to specify a type?** Add entries of existing types in the list:
+  ```yaml
+  plugins.security.experimental.resource_sharing.protected_types: [sample-resource]
+  ```
+NOTE: These types will be available on documentation website.
 
 ## **2. User Setup**
 
