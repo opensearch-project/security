@@ -185,7 +185,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 .on("index_bw*")//
                 .indexPermissions("manage")
                 .on("index_bw*")//
-                .indexPermissions("manage_aliases")
+                .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
         )//
         .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
@@ -193,6 +193,31 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
         .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
         .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("get_alias", limitedTo(alias_bwx));
+
+    /**
+     * This user differs from LIMITED_USER_B_MANAGE_INDEX_ALIAS the way that it does not give any direct
+     * write privileges to index_bw*; rather, it gives write privileges to alias_bxw. Any index which happens
+     * to be member of that alias then gains these write privileges.
+     */
+    static TestSecurityConfig.User LIMITED_USER_B_READ_ONLY_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User(
+        "limited_user_B_index_read_only_manage_index_alias"
+    )//
+        .description("index_b* r/o, alias_bwx* r/w with manage privs")//
+        .roles(
+            //
+            new Role("r1")//
+                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
+                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .on("index_b*")//
+                .indexPermissions("crud", "manage", "manage_aliases")
+                .on("alias_bwx*")
+        )//
+        .indexMatcher("read", limitedTo(index_br1, index_br2))//
+        .indexMatcher("write", limitedToNone())//
+        .indexMatcher("create_index", limitedToNone())//
+        .indexMatcher("manage_index", limitedTo(alias_bwx))//
+        .indexMatcher("manage_alias", limitedTo(alias_bwx))//
         .indexMatcher("get_alias", limitedTo(alias_bwx));
 
     static TestSecurityConfig.User LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User(
@@ -209,10 +234,25 @@ public class IndexAuthorizationReadWriteIntTests {
                 .on("index_bw*", "index_hidden*")//
                 .indexPermissions("manage")
                 .on("index_bw*", "index_hidden*")//
-                .indexPermissions("manage_aliases")
+                .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
         )//
-        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .indexMatcher(
+            "read",
+            limitedTo(
+                index_ar1,
+                index_ar2,
+                index_aw1,
+                index_aw2,
+                index_br1,
+                index_br2,
+                index_bw1,
+                index_bw2,
+                index_bwx1,
+                index_bwx2,
+                index_hidden
+            )
+        )//
         .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
         .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
         .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
@@ -567,6 +607,7 @@ public class IndexAuthorizationReadWriteIntTests {
         LIMITED_USER_B_CREATE_INDEX,
         LIMITED_USER_B_MANAGE_INDEX,
         LIMITED_USER_B_MANAGE_INDEX_ALIAS,
+        LIMITED_USER_B_READ_ONLY_MANAGE_INDEX_ALIAS,
         LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS,
         LIMITED_USER_B_SYSTEM_INDEX_MANAGE,
         LIMITED_USER_C,
@@ -852,10 +893,10 @@ public class IndexAuthorizationReadWriteIntTests {
             createInitialTestObjects(index_bwx1);
 
             HttpResponse httpResponse = restClient.delete("index_bwx1");
-            if (user.indexMatcher("manage_index").isEmpty()) {
-                assertThat(httpResponse, isForbidden());
-            } else {
+            if (user.indexMatcher("manage_index").covers(index_bwx1)) {
                 assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
             }
         } finally {
             delete(index_bwx1);
@@ -911,7 +952,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.delete("index_bw1/_aliases/alias_bwx");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1) || user.indexMatcher("manage_alias").covers(alias_bwx)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -1000,7 +1041,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1) || user.indexMatcher("manage_alias").covers(alias_bwx)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -1158,44 +1199,32 @@ public class IndexAuthorizationReadWriteIntTests {
     @Test
     public void rollover_explicitTargetIndex() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            createInitialTestObjects(alias_bwx.on(index_bw1, index_bw2));
+            createInitialTestObjects(alias_bwx.on(index_bw1).writeIndex(index_bw1));
 
-            HttpResponse httpResponse = restClient.postJson("_aliases", """
+            HttpResponse httpResponse = restClient.postJson("alias_bwx/_rollover/index_bwx1", """
                 {
-                  "actions": [
-                    { "remove": { "index": "*", "alias": "alias_bwx" } }
-                  ]
+                  "conditions": {
+                    "max_age": "0s"
+                  }
                 }""");
 
+            System.out.println(httpResponse.getBody());
+
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                // This is only allowed if we have privileges for all indices, even if not all indices are member of alias_bwx
-                if (user.indexMatcher("manage_alias")
-                        .coversAll(
-                                index_ar1,
-                                index_ar2,
-                                index_aw1,
-                                index_aw2,
-                                index_br1,
-                                index_br2,
-                                index_bw1,
-                                index_bw1,
-                                index_cr1,
-                                index_cw1
-                        )) {
+                if (user.indexMatcher("manage_alias").covers(index_bw1) && user.indexMatcher("manage_index").covers(index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
             } else {
-                if (user.indexMatcher("manage_alias").coversAll(alias_bwx)) {
+                if (user.indexMatcher("manage_alias").covers(alias_bwx) && user.indexMatcher("manage_index").covers(index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
             }
-
         } finally {
-            delete(alias_bwx);
+            delete(alias_bwx, index_bwx1);
         }
     }
 

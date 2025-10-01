@@ -14,7 +14,6 @@ package org.opensearch.security.privileges.int_tests;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -630,17 +629,13 @@ public class IndexAuthorizationReadOnlyIntTests {
 
             if (user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isOk());
-                assertThat(
-                        httpResponse,
-                        containsExactly(system_index_plugin).at("hits.hits[*]._index"));
+                assertThat(httpResponse, containsExactly(system_index_plugin).at("hits.hits[*]._index"));
             } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
-                if (user == UNLIMITED_USER || user == LIMITED_USER_C_WITH_SYSTEM_INDICES)  {
+                if (user == UNLIMITED_USER || user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
                     // The legacy evaluation grants access in SystemIndexAccessPrivilegesEvaluator for users with * privileges,
                     // but withholds documents on the DLS level
                     assertThat(httpResponse, isOk());
-                    assertThat(
-                            httpResponse,
-                            containsExactly().at("hits.hits[*]._index"));
+                    assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
@@ -652,15 +647,16 @@ public class IndexAuthorizationReadOnlyIntTests {
                     assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
                 } else {
                     assertThat(
-                            httpResponse,
-                            containsExactly(system_index_plugin).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden()));
+                        httpResponse,
+                        containsExactly(system_index_plugin).at("hits.hits[*]._index")
+                            .reducedBy(user.indexMatcher("read"))
+                            .whenEmpty(isForbidden())
+                    );
                 }
             } else {
                 if (user.indexMatcher("read").covers(alias_with_system_index)) {
                     assertThat(httpResponse, isOk());
-                    assertThat(
-                            httpResponse,
-                            containsExactly(system_index_plugin).at("hits.hits[*]._index"));
+                    assertThat(httpResponse, containsExactly(system_index_plugin).at("hits.hits[*]._index"));
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
@@ -852,19 +848,20 @@ public class IndexAuthorizationReadOnlyIntTests {
 /*
             if (user != LIMITED_USER_NONE) {
                 if (clusterConfig.systemIndexPrivilegeEnabled) {
-                    // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the alias)
+                    // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the
+                    // alias)
                     assertThat(
-                            httpResponse,
-                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                                    .reducedBy(user.indexMatcher("read"))
-                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.indexMatcher("read"))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 } else {
                     assertThat(
-                            httpResponse,
-                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                                    .reducedBy(user.indexMatcher("read"))
-                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.indexMatcher("read"))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 }
             } else {
@@ -881,33 +878,35 @@ public class IndexAuthorizationReadOnlyIntTests {
             if (user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isOk());
                 assertThat(
-                        httpResponse,
-                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index"));
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index")
+                );
             } else if (user != LIMITED_USER_NONE) {
                 if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
                     assertThat(
-                            httpResponse,
-                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                                    .reducedBy(user.indexMatcher("read"))
-                                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.indexMatcher("read"))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
                     // For all users without the system index permission, SystemIndexAccessEvaluator shuts the door
-                    // For the user with the system index permission, that happens as well, as SystemIndexAccessEvaluator expects the permission for all requested indices, even if they are not system indices
-                        assertThat(httpResponse, isForbidden());
+                    // For the user with the system index permission, that happens as well, as SystemIndexAccessEvaluator expects the
+                    // permission for all requested indices, even if they are not system indices
+                    assertThat(httpResponse, isForbidden());
                 } else {
                     assertThat(
-                            httpResponse,
-                            containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index")
-                                    .reducedBy(user.indexMatcher("read"))
-                                    .whenEmpty(isOk()));
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1, system_index_plugin).at("hits.hits[*]._index")
+                            .reducedBy(user.indexMatcher("read"))
+                            .whenEmpty(isOk())
+                    );
                 }
             } else {
                 assertThat(httpResponse, isForbidden());
             }
         }
     }
-
 
     @Test
     public void search_aliasAndIndex_ignoreUnavailable() throws Exception {
@@ -1120,33 +1119,32 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_template_staticIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             String params = """
-                    {
-                        "department": [%s]
-                    }""".formatted(TestData.DEPARTMENTS.stream().map(s -> '"' + s + '"').collect(joining(",")));
+                {
+                    "department": [%s]
+                }""".formatted(TestData.DEPARTMENTS.stream().map(s -> '"' + s + '"').collect(joining(",")));
             String query = """
-                    {
-                      "query": {
-                        "terms": {
-                          "attr_text_1": [
-                            "{{#department}}",
-                            "{{.}}",
-                            "{{/department}}"
-                          ]
-                        }
-                      }
+                {
+                  "query": {
+                    "terms": {
+                      "attr_text_1": [
+                        "{{#department}}",
+                        "{{.}}",
+                        "{{/department}}"
+                      ]
                     }
-                    """;
+                  }
+                }
+                """;
 
-            TestRestClient.HttpResponse httpResponse = restClient.getWithJsonBody("index_a1/_search/template?size=1000",
-                    """
-                     {
-                       "params": %s,
-                       "source": "%s"
-                     }""".formatted(params, escapeJson(query)));
+            TestRestClient.HttpResponse httpResponse = restClient.getWithJsonBody("index_a1/_search/template?size=1000", """
+                {
+                  "params": %s,
+                  "source": "%s"
+                }""".formatted(params, escapeJson(query)));
 
             assertThat(
-                    httpResponse,
-                    containsExactly(index_a1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
+                httpResponse,
+                containsExactly(index_a1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
             );
         }
     }
@@ -1336,14 +1334,14 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/aliases?format=json");
 
             if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
-                assertThat(
-                        httpResponse,
-                        containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias"));
+                assertThat(httpResponse, containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias"));
             } else {
                 if (!user.indexMatcher("get_alias").isEmpty()) {
                     assertThat(
-                            httpResponse,
-                            containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias").reducedBy(user.indexMatcher("get_alias")).whenEmpty(isOk())
+                        httpResponse,
+                        containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$[*].alias")
+                            .reducedBy(user.indexMatcher("get_alias"))
+                            .whenEmpty(isOk())
                     );
                 } else {
                     assertThat(httpResponse, isForbidden());

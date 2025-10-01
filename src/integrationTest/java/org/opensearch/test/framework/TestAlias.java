@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.action.admin.indices.AliasesNotFoundException;
 import org.opensearch.transport.client.Client;
 

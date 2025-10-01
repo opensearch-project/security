@@ -93,7 +93,15 @@ public class TestData {
         "attr_object.obj_attr_object.obj_obj_attr_text.keyword"
     );
 
-    public static final ImmutableList<String> DEPARTMENTS = ImmutableList.of("dept_a_1", "dept_a_2", "dept_a_3", "dept_b_1", "dept_b_2", "dept_c", "dept_d");
+    public static final ImmutableList<String> DEPARTMENTS = ImmutableList.of(
+        "dept_a_1",
+        "dept_a_2",
+        "dept_a_3",
+        "dept_b_1",
+        "dept_b_2",
+        "dept_c",
+        "dept_d"
+    );
 
     private static final Cache<Key, TestData> cache;
 
