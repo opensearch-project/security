@@ -162,6 +162,11 @@ public class RestLayerPrivilegesEvaluatorTest {
             public boolean notFailOnForbiddenEnabled() {
                 return false;
             }
+
+            @Override
+            public boolean isInitialized() {
+                return true;
+            }
         };
 
     }

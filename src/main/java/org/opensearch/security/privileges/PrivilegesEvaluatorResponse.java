@@ -152,6 +152,7 @@ public class PrivilegesEvaluatorResponse {
                     resultBuilder.append("\n");
                     resultBuilder.append(subResult.getPrivilegeMatrix());
                 }
+                result = resultBuilder.toString();
             }
             this.privilegeMatrix = result;
         }
@@ -191,6 +192,7 @@ public class PrivilegesEvaluatorResponse {
         result.allowed = false;
         result.indexToActionCheckTable = this.indexToActionCheckTable;
         result.subResults = ImmutableList.copyOf(subResults);
+        result.reason = reason;
         return result;
     }
 
