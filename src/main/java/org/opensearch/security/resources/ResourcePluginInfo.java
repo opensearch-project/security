@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -48,28 +49,35 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
-    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
+    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions, List<String> protectedTypes) {
         resourceSharingExtensions.clear();
         typeToIndex.clear();
         indexToType.clear();
-        // Enforce resource-type unique-ness
-        Set<String> resourceTypes = new HashSet<>();
-        for (ResourceSharingExtension extension : extensions) {
-            for (var rp : extension.getResourceProviders()) {
-                if (!resourceTypes.contains(rp.resourceType())) {
-                    // add name seen so far to the resource-types set
-                    resourceTypes.add(rp.resourceType());
-                    // also cache type->index and index->type mapping
-                    typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                    indexToType.put(rp.resourceIndexName(), rp.resourceType());
-                } else {
-                    throw new OpenSearchSecurityException(
-                        String.format(
-                            "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
-                            rp.resourceType(),
-                            extension.getClass().getName()
-                        )
-                    );
+        // only assign types if the list setting is non-empty
+        if (!protectedTypes.isEmpty()) {
+            // Enforce resource-type unique-ness
+            Set<String> resourceTypes = new HashSet<>();
+            for (ResourceSharingExtension extension : extensions) {
+                for (var rp : extension.getResourceProviders()) {
+                    // exclude resource types not mentioned in the explicit list. defaults to no resource marked as protected resources
+                    if (!protectedTypes.contains(rp.resourceType())) {
+                        continue;
+                    }
+                    if (!resourceTypes.contains(rp.resourceType())) {
+                        // add name seen so far to the resource-types set
+                        resourceTypes.add(rp.resourceType());
+                        // also cache type->index and index->type mapping
+                        typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
+                        indexToType.put(rp.resourceIndexName(), rp.resourceType());
+                    } else {
+                        throw new OpenSearchSecurityException(
+                            String.format(
+                                "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
+                                rp.resourceType(),
+                                extension.getClass().getName()
+                            )
+                        );
+                    }
                 }
             }
         }
@@ -117,14 +125,9 @@ public class ResourcePluginInfo {
     }
 
     public Set<ResourceDashboardInfo> getResourceTypes() {
-        return typeToIndex.entrySet()
+        return typeToIndex.keySet()
             .stream()
-            .map(
-                e -> new ResourceDashboardInfo(
-                    e.getKey(),
-                    Collections.unmodifiableSet(typeToGroupNames.getOrDefault(e.getKey(), new LinkedHashSet<>()))
-                )
-            )
+            .map(s -> new ResourceDashboardInfo(s, Collections.unmodifiableSet(typeToGroupNames.getOrDefault(s, new LinkedHashSet<>()))))
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

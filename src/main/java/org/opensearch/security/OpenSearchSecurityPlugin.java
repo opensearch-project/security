@@ -1226,7 +1226,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             // Assign resource sharing client to each extension
             // Using the non-gated client (i.e. no additional permissions required)
-            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
+            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(
+                resourceAccessHandler,
+                resourcePluginInfo.getResourceIndices()
+            );
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });
@@ -2237,6 +2240,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // resource marked here will be protected, other resources will not be protected with resource sharing model
+            // Defaults to no resources as protected
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT,
+                    Function.identity(),
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
@@ -2469,7 +2484,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // discover & register extensions and their types
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-        resourcePluginInfo.setResourceSharingExtensions(exts);
+        resourcePluginInfo.setResourceSharingExtensions(
+            exts,
+            settings.getAsList(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES)
+        );
 
         // load action-groups in memory
         ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);

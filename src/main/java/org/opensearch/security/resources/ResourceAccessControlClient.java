@@ -10,6 +10,9 @@ package org.opensearch.security.resources;
 
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
@@ -22,15 +25,18 @@ import org.opensearch.security.spi.resources.sharing.ShareWith;
  * @opensearch.experimental
  */
 public final class ResourceAccessControlClient implements ResourceSharingClient {
+    private static final Logger LOGGER = LogManager.getLogger(ResourceAccessControlClient.class);
 
     private final ResourceAccessHandler resourceAccessHandler;
+    private final Set<String> resourceIndices;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler) {
+    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Set<String> resourceIndices) {
         this.resourceAccessHandler = resourceAccessHandler;
+        this.resourceIndices = resourceIndices;
     }
 
     /**
@@ -43,6 +49,16 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
+        // following situation will arise when resource is onboarded to framework but not marked as protected
+        if (!resourceIndices.contains(resourceIndex)) {
+            LOGGER.warn(
+                "Resource '{}' is onboarded to sharing framework but is not marked as protected. Action {} is allowed.",
+                resourceId,
+                action
+            );
+            listener.onResponse(true);
+            return;
+        }
         resourceAccessHandler.hasPermission(resourceId, resourceIndex, action, null, listener);
     }
 

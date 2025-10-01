@@ -18,6 +18,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Request object for revoking access to a sample resource
@@ -54,6 +55,11 @@ public class RevokeResourceAccessRequest extends ActionRequest implements DocReq
 
     public ShareWith getEntitiesToRevoke() {
         return revokeAccess;
+    }
+
+    @Override
+    public String type() {
+        return RESOURCE_TYPE;
     }
 
     @Override

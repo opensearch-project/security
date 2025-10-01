@@ -73,6 +73,7 @@ public class ShareRestAction extends BaseRestHandler {
 
         if (resourceIndex != null) {
             builder.resourceIndex(resourceIndex);
+            builder.resourceType(resourceType);
         }
         if (resourceId != null) {
             builder.resourceId(resourceId);

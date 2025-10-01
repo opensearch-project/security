@@ -39,9 +39,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -90,6 +92,10 @@ public final class TestUtils {
     public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
+        return newCluster(featureEnabled, systemIndexEnabled, List.of(RESOURCE_TYPE));
+    }
+
+    public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled, List<String> protectedResourceTypes) {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
             .plugin(
                 new PluginInfo(
@@ -108,7 +114,14 @@ public final class TestUtils {
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
             .nodeSettings(
-                Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, featureEnabled, SECURITY_SYSTEM_INDICES_ENABLED_KEY, systemIndexEnabled)
+                Map.of(
+                    OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    featureEnabled,
+                    SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+                    systemIndexEnabled,
+                    OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                    protectedResourceTypes
+                )
             )
             .build();
     }
