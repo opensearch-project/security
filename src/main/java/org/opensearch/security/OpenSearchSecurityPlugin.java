@@ -2236,8 +2236,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            // resource marked here will be protected, other resources will not be proected with resource sharing model
-            // Defaults to all current resources as protected
+            // resource marked here will be protected, other resources will not be protected with resource sharing model
+            // Defaults to no resources as protected
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
