@@ -35,6 +35,7 @@ import org.opensearch.action.admin.indices.template.put.PutComposableIndexTempla
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.opensearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.opensearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
+import org.opensearch.action.search.GetAllPitsAction;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.reindex.ReindexAction;
@@ -168,6 +169,9 @@ class ActionConfiguration {
 
         // The _render/template action actually does not operate on indices at all
         builder.add(RenderSearchTemplateAction.NAME);
+
+        // The _search/point_in_time/_all action provides no possibility to specify/reduce indices. Thus, it should be a cluster action
+        builder.add(GetAllPitsAction.NAME);
 
         // The index template and composable template actions do not specify indices, but specify patterns for potentially non-existing
         // indices.

@@ -32,6 +32,7 @@ import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesAction;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.opensearch.action.admin.indices.segments.PitSegmentsRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -244,12 +245,18 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
     @Override
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
         String action = this.actionConfiguration.normalize(context.getAction());
+        User user = context.getUser();
+        ActionRequest request = context.getRequest();
+
+        if (request instanceof PitSegmentsRequest pitSegmentsRequest && isAllPitsRequest(pitSegmentsRequest)) {
+            // We treat this as a separate cluster action. This is because there is no way to reduce the requested
+            // indices in an _all pits request.
+            action = "cluster:monitor/point_in_time/segments/_all";
+        }
+
         if (this.actionConfiguration.isUniversallyDenied(action)) {
             return PrivilegesEvaluatorResponse.insufficient(action).reason("The action is universally denied");
         }
-
-        User user = context.getUser();
-        ActionRequest request = context.getRequest();
 
         ActionPrivileges actionPrivileges = context.getActionPrivileges();
         if (actionPrivileges == null) {
@@ -739,6 +746,11 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             return false;
         }
 
+        if (request instanceof PitSegmentsRequest) {
+            // PitSegmentsRequest implements IndicesRequest.Replaceable, but ignores all specified indices
+            return false;
+        }
+
         if (indicesRequest.indicesOptions().ignoreUnavailable()) {
             return true;
         }
@@ -788,5 +800,9 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         }
 
         return false;
+    }
+
+    private boolean isAllPitsRequest(PitSegmentsRequest request) {
+        return request.getPitIds().size() == 1 && "_all".equals(request.getPitIds().get(0));
     }
 }
