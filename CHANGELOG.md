@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Direct JWKS (JSON Web Key Set) support in the JWT authentication backend ([#5578](https://github.com/opensearch-project/security/pull/5578))
 - Adds a list setting to explicitly specify resources to be protected ([#5671](https://github.com/opensearch-project/security/pull/5671))
 - Make configuration setting for user custom attribute serialization dynamic ([#5657](https://github.com/opensearch-project/security/pull/5657))
+- Makes resource settings dynamic ([#5677](https://github.com/opensearch-project/security/pull/5677))
 
 ### Bug Fixes
 
