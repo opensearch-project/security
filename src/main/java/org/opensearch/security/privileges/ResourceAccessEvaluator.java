@@ -19,11 +19,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -42,13 +41,21 @@ public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
     private final Set<String> resourceIndices;
-    private final Settings settings;
     private final ResourceAccessHandler resourceAccessHandler;
 
-    public ResourceAccessEvaluator(Set<String> resourceIndices, Settings settings, ResourceAccessHandler resourceAccessHandler) {
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
+
+    public ResourceAccessEvaluator(
+        Set<String> resourceIndices,
+        ResourceAccessHandler resourceAccessHandler,
+        final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
+        final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting
+    ) {
         this.resourceIndices = resourceIndices;
-        this.settings = settings;
         this.resourceAccessHandler = resourceAccessHandler;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
+        this.protectedResourceTypesSetting = protectedResourceTypesSetting;
     }
 
     /**
@@ -95,14 +102,9 @@ public class ResourceAccessEvaluator {
      * @return true if request should be evaluated, false otherwise
      */
     public boolean shouldEvaluate(ActionRequest request) {
-        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
-        List<String> protectedTypes = settings.getAsList(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT
-        );
+        boolean isResourceSharingFeatureEnabled = resourceSharingEnabledSetting.getDynamicSettingValue();
+        List<String> protectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
+
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
         if (request instanceof GetRequest) return false;

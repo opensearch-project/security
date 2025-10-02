@@ -83,6 +83,7 @@ import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
@@ -107,7 +108,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
     private final AdminDNs adminDNs;
-    private boolean isResourceSharingFeatureEnabled = false;
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final WildcardMatcher resourceIndicesMatcher;
 
     public DlsFlsValveImpl(
@@ -119,7 +120,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
         AdminDNs adminDNs,
-        Set<String> resourceIndices
+        Set<String> resourceIndices,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -141,10 +143,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
-        this.isResourceSharingFeatureEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
 
     /**
@@ -164,7 +163,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
-            if (isResourceSharingFeatureEnabled
+            if (resourceSharingEnabledSetting.getDynamicSettingValue()
                 && request instanceof SearchRequest
                 && resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
 

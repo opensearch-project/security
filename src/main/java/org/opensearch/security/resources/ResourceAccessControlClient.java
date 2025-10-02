@@ -29,14 +29,16 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
 
     private final ResourceAccessHandler resourceAccessHandler;
     private final Set<String> resourceIndices;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Set<String> resourceIndices) {
+    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, ResourcePluginInfo resourcePluginInfo) {
         this.resourceAccessHandler = resourceAccessHandler;
-        this.resourceIndices = resourceIndices;
+        this.resourceIndices = resourcePluginInfo.getResourceIndices();
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     /**
@@ -97,5 +99,15 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
         resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceIndex, listener);
+    }
+
+    /**
+     * Returns a flag to indicate whether resource-sharing is enabled for resource-type
+     * @param resourceType the type for which resource-sharing status is to be checked
+     * @return true if enabled, false otherwise
+     */
+    @Override
+    public boolean isFeatureEnabledForType(String resourceType) {
+        return resourcePluginInfo.indexByType(resourceType) != null;
     }
 }
