@@ -28,6 +28,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
@@ -36,6 +37,8 @@ import org.opensearch.security.spi.resources.ResourceSharingExtension;
  * @opensearch.experimental
  */
 public class ResourcePluginInfo {
+
+    private ResourceSharingClient resourceAccessControlClient;
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
@@ -84,8 +87,38 @@ public class ResourcePluginInfo {
         resourceSharingExtensions.addAll(extensions);
     }
 
+    public void updateProtectedTypes(List<String> protectedTypes) {
+        // Rebuild mappings based on the current allowlist
+        typeToIndex.clear();
+        indexToType.clear();
+
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            // No protected types -> leave maps empty
+            return;
+        }
+
+        for (ResourceSharingExtension extension : resourceSharingExtensions) {
+            for (var rp : extension.getResourceProviders()) {
+                final String type = rp.resourceType();
+                if (!protectedTypes.contains(type)) continue;
+
+                final String index = rp.resourceIndexName();
+                typeToIndex.put(type, index);
+                indexToType.put(index, type);
+            }
+        }
+    }
+
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
+    }
+
+    public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {
+        this.resourceAccessControlClient = resourceAccessControlClient;
+    }
+
+    public ResourceSharingClient getResourceAccessControlClient() {
+        return resourceAccessControlClient;
     }
 
     /** Register/merge action-group names for a given resource type. */
