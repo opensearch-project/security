@@ -1,11 +1,9 @@
 /*
- * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
  */
 
 package org.opensearch.security.resources.settings;
@@ -22,45 +20,33 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.support.ConfigConstants;
 
 public class ResourceSharingFeatureFlagSetting extends OpensearchDynamicSetting<Boolean> {
+    private static final Logger logger = LogManager.getLogger(ResourceSharingFeatureFlagSetting.class);
 
-    private final Logger logger = LogManager.getLogger(getClass());
-
-    private static final String SETTING = ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+    private static final Setting<Boolean> RESOURCE_SHARING_ENABLED = Setting.boolSetting(
+        ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+        ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
 
     private final ResourcePluginInfo resourcePluginInfo;
 
     public ResourceSharingFeatureFlagSetting(final Settings settings, final ResourcePluginInfo resourcePluginInfo) {
-        super(getSetting(), getSettingInitialValue(settings));
+        super(RESOURCE_SHARING_ENABLED, RESOURCE_SHARING_ENABLED.get(settings));
         this.resourcePluginInfo = resourcePluginInfo;
-    }
-
-    private static Setting<Boolean> getSetting() {
-        return Setting.boolSetting(
-            SETTING,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT,
-            Setting.Property.NodeScope,
-            Setting.Property.Dynamic
-        );
-    }
-
-    private static Boolean getSettingInitialValue(final Settings settings) {
-        return settings.getAsBoolean(SETTING, ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
     }
 
     @Override
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(getSetting(), isEnabled -> {
+        clusterSettings.addSettingsUpdateConsumer(RESOURCE_SHARING_ENABLED, isEnabled -> {
             logger.info(getClusterChangeMessage(isEnabled));
             setDynamicSettingValue(isEnabled);
+
             if (isEnabled) {
-                ResourceSharingClient resourceSharingClient = resourcePluginInfo.getResourceAccessControlClient();
-                resourcePluginInfo.getResourceSharingExtensions().forEach(resourceSharingExtension -> {
-                    resourceSharingExtension.assignResourceSharingClient(resourceSharingClient); // associate the client
-                });
+                ResourceSharingClient client = resourcePluginInfo.getResourceAccessControlClient();
+                resourcePluginInfo.getResourceSharingExtensions().forEach(ext -> ext.assignResourceSharingClient(client));
             } else {
-                resourcePluginInfo.getResourceSharingExtensions().forEach(resourceSharingExtension -> {
-                    resourceSharingExtension.assignResourceSharingClient(null); // dissociate the client
-                });
+                resourcePluginInfo.getResourceSharingExtensions().forEach(ext -> ext.assignResourceSharingClient(null));
             }
         });
     }
