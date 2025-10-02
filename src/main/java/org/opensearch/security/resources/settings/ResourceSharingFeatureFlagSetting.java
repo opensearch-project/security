@@ -22,7 +22,7 @@ import org.opensearch.security.support.ConfigConstants;
 public class ResourceSharingFeatureFlagSetting extends OpensearchDynamicSetting<Boolean> {
     private static final Logger logger = LogManager.getLogger(ResourceSharingFeatureFlagSetting.class);
 
-    private static final Setting<Boolean> RESOURCE_SHARING_ENABLED = Setting.boolSetting(
+    public static final Setting<Boolean> RESOURCE_SHARING_ENABLED = Setting.boolSetting(
         ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
         ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT,
         Setting.Property.NodeScope,

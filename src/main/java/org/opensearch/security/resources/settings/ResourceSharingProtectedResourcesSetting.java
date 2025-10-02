@@ -24,7 +24,7 @@ import org.opensearch.security.support.ConfigConstants;
 public class ResourceSharingProtectedResourcesSetting extends OpensearchDynamicSetting<List<String>> {
     private static final Logger logger = LogManager.getLogger(ResourceSharingProtectedResourcesSetting.class);
 
-    private static final Setting<List<String>> PROTECTED_TYPES = Setting.listSetting(
+    public static final Setting<List<String>> PROTECTED_TYPES = Setting.listSetting(
         ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
         ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT,
         Function.identity(),
