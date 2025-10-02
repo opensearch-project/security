@@ -391,6 +391,7 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+    extendedPlugins = ['workload-management;optional=true', 'rule-framework']
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -564,7 +565,7 @@ allprojects {
         integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
         integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
         integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
-        integrationTestImplementation 'org.apache.commons:commons-collections4:4.5.0'
+        integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
         integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
             exclude(group:'com.fasterxml.jackson.core')
             exclude(group: 'org.apache.commons', module: 'commons-collections4')
@@ -664,6 +665,8 @@ dependencies {
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
+    compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
+    compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -674,7 +677,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
-    implementation 'org.apache.commons:commons-collections4:4.5.0'
+    implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     //Password generation
     implementation 'org.passay:passay:1.6.6'
