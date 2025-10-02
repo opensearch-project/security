@@ -134,7 +134,8 @@ class ActionConfiguration {
     private static ImmutableMap<String, String> buildActionToActionMap(Settings settings) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
-        // The following mappings were originally defined at https://github.com/opensearch-project/security/blob/eb7153d772e9e00d49d9cb5ffafb33b5f02399fc/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java#L392
+        // The following mappings were originally defined at
+        // https://github.com/opensearch-project/security/blob/eb7153d772e9e00d49d9cb5ffafb33b5f02399fc/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java#L392
         builder.put(UpgradeSettingsAction.NAME, UpgradeAction.NAME);
         builder.put(AutoCreateAction.NAME, CreateIndexAction.NAME);
         builder.put(AutoPutMappingAction.NAME, PutMappingAction.NAME);
@@ -158,7 +159,8 @@ class ActionConfiguration {
         // See below for details
         builder.addAll(WellKnownActions.CLUSTER_ACTIONS);
 
-        // The _msearch action triggers under the hood an additional _search action; thus it is sufficient to check index specific privileges on the _search level
+        // The _msearch action triggers under the hood an additional _search action; thus it is sufficient to check index specific
+        // privileges on the _search level
         builder.add(MultiSearchTemplateAction.NAME);
 
         // The _reindex action triggers under the hood _search and _bulk actions; thus, index privileges can be checked on these levels
@@ -167,7 +169,8 @@ class ActionConfiguration {
         // The _render/template action actually does not operate on indices at all
         builder.add(RenderSearchTemplateAction.NAME);
 
-        // The index template and composable template actions do not specify indices, but specify patterns for potentially non-existing indices.
+        // The index template and composable template actions do not specify indices, but specify patterns for potentially non-existing
+        // indices.
         // This makes it difficult (or rather impossible) to match these against the privilege definition index patterns.
         // Thus, we treat these as cluster privileges
         builder.add(PutIndexTemplateAction.NAME);

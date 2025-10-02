@@ -52,7 +52,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.IndicesRequestModifier;
@@ -616,9 +615,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             // If we reached this block, the user has privileges for a sub-set of indices or at least for other indices.
             // Then, we will return either a reduced or empty result
             if (this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, indicesResult.getAvailableIndices())) {
-                return PrivilegesEvaluatorResponse.ok()
-                    .originalResult(indicesResult)
-                    .reason("Only allowed for a subset of indices");
+                return PrivilegesEvaluatorResponse.ok().originalResult(indicesResult).reason("Only allowed for a subset of indices");
             }
         }
 

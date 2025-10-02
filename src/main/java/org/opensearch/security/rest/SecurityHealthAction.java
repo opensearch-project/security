@@ -41,7 +41,6 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;

@@ -517,10 +517,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                 checkTable.uncheckIf(this.universallyDeniedIndices, checkTable.getColumns());
             }
             if (this.indicesNeedingSystemIndexPrivileges != null) {
-                checkTable.uncheckIf(
-                    index -> this.isUnauthorizedSystemIndex(context, index, exceptions),
-                    checkTable.getColumns()
-                );
+                checkTable.uncheckIf(index -> this.isUnauthorizedSystemIndex(context, index, exceptions), checkTable.getColumns());
             }
 
             if (checkTable.isComplete()) {
@@ -550,7 +547,11 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * Returns true if the given indexOrAlias is a system index or an alias containing a system index AND if
          * the current user does not have the necessary explicit privilege to access this system index.
          */
-        private boolean isUnauthorizedSystemIndex(PrivilegesEvaluationContext context, String indexOrAlias, List<PrivilegesEvaluationException> exceptions) {
+        private boolean isUnauthorizedSystemIndex(
+            PrivilegesEvaluationContext context,
+            String indexOrAlias,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
             if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
                 return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
             }
@@ -559,7 +560,12 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             if (indexAbstraction instanceof IndexAbstraction.Alias alias) {
                 for (IndexMetadata index : alias.getIndices()) {
                     if (this.indicesNeedingSystemIndexPrivileges.test(index.getIndex().getName())) {
-                        return !providesExplicitPrivilege(context, index.getIndex().getName(), ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+                        return !providesExplicitPrivilege(
+                            context,
+                            index.getIndex().getName(),
+                            ConfigConstants.SYSTEM_INDEX_PERMISSION,
+                            exceptions
+                        );
                     }
                 }
             }

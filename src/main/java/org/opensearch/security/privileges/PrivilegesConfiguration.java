@@ -269,7 +269,7 @@ public class PrivilegesConfiguration {
         static PrivilegesEvaluationType typeOf(PrivilegesEvaluator privilegesEvaluator) {
             if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator) {
                 return PrivilegesEvaluationType.LEGACY;
-            } else  if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator) {
+            } else if (privilegesEvaluator instanceof org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluator) {
                 return PrivilegesEvaluationType.NEXT_GEN;
             } else {
                 return null;

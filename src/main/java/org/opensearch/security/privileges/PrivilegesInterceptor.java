@@ -29,7 +29,6 @@ package org.opensearch.security.privileges;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.user.User;
