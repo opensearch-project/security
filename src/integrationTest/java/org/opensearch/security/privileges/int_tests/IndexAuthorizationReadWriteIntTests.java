@@ -69,6 +69,13 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 @NotThreadSafe
 public class IndexAuthorizationReadWriteIntTests {
 
+    // -------------------------------------------------------------------------------------------------------
+    // Test indices used by this test suite. We use the following naming scheme:
+    // - index_*r*: This test will not write to this index
+    // - index_*w*: This test can write to this index; the test won't delete and recreate it
+    // - index_*wx*: The index is not initially created; the test can create it on demand and delete it again
+    // -------------------------------------------------------------------------------------------------------
+
     static final TestIndex index_ar1 = TestIndex.name("index_ar1").documentCount(10).build();
     static final TestIndex index_ar2 = TestIndex.name("index_ar2").documentCount(10).build();
     static final TestIndex index_aw1 = TestIndex.name("index_aw1").documentCount(10).build();
@@ -97,10 +104,50 @@ public class IndexAuthorizationReadWriteIntTests {
 
     static final TestAlias alias_bwx = new TestAlias("alias_bwx"); // not initially created
 
+    static final List<TestIndexOrAliasOrDatastream> ALL_NON_HIDDEN_INDICES = List.of(
+        index_ar1,
+        index_ar2,
+        index_aw1,
+        index_aw2,
+        index_br1,
+        index_br2,
+        index_bw1,
+        index_bw2,
+        index_cr1,
+        index_cw1
+    );
+
+    static final List<TestIndexOrAliasOrDatastream> ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES = List.of(
+        index_ar1,
+        index_ar2,
+        index_aw1,
+        index_aw2,
+        index_br1,
+        index_br2,
+        index_bw1,
+        index_bw2,
+        index_cr1,
+        index_cw1,
+        alias_ab1w,
+        alias_ab1r,
+        alias_c1,
+        alias_ab1w_nowriteindex,
+        index_hidden
+    );
+
+    // -------------------------------------------------------------------------------------------------------
+    // Test users with which the tests will be executed; the users need to be added to the list USERS below
+    // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
+    // - The standard role configuration defined with .roles()
+    // - IndexMatchers which act as test oracles, defined with the indexMatcher() methods
+    // -------------------------------------------------------------------------------------------------------
+
+    /**
+     * A simple user that can read from index_a* and write to index_aw*; the user as no privileges to create or manage indices
+     */
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("index_a*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -115,10 +162,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read from index_b* and write to index_bw*; the user as no privileges to create or manage indices
+     */
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("index_b*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -133,10 +182,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read from index_b* and write to index_bw*; additionally, they can create index_bw* indices
+     */
     static TestSecurityConfig.User LIMITED_USER_B_CREATE_INDEX = new TestSecurityConfig.User("limited_user_B_create_index")//
         .description("index_b* with create index privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -153,10 +204,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read from index_b* and write to index_bw*; additionally, they can create and manage index_bw* indices
+     */
     static TestSecurityConfig.User LIMITED_USER_B_MANAGE_INDEX = new TestSecurityConfig.User("limited_user_B_manage_index")//
         .description("index_b* with manage privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -173,10 +226,14 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
         .indexMatcher("get_alias", limitedTo());
 
+    /**
+     * A user that can read from index_b* and write to index_bw*; they can create and manage index_bw* indices and manage alias_bwx* aliases.
+     * For users with such alias permissions, keep in mind that alias permissions are inherited by the member indices.
+     * Thus, indices can gain or lose privileges when they are added/removed from the alias.
+     */
     static TestSecurityConfig.User LIMITED_USER_B_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User("limited_user_B_manage_index_alias")//
         .description("index_b*, alias_bwx* with manage privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -205,7 +262,6 @@ public class IndexAuthorizationReadWriteIntTests {
     )//
         .description("index_b* r/o, alias_bwx* r/w with manage privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -220,12 +276,14 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedTo(alias_bwx))//
         .indexMatcher("get_alias", limitedTo(alias_bwx));
 
+    /**
+     * Same as LIMITED_USER_B_MANAGE_INDEX_ALIAS with the addition of read/write/manage privileges on index_hidden*
+     */
     static TestSecurityConfig.User LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS = new TestSecurityConfig.User(
         "limited_user_B_hidden_manage_index_alias"
     )//
         .description("index_b*, index_hidden*, alias_bwx* with manage privs, index_a* read only")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
@@ -259,10 +317,13 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
         .indexMatcher("get_alias", limitedTo(alias_bwx));
 
+    /**
+     * Same as LIMITED_USER_B with the addition of read/write/manage privileges for ".system_index_plugin", ".system_index_plugin_*"
+     * including the explicit "system:admin/system_index" privilege.
+     */
     static TestSecurityConfig.User LIMITED_USER_B_SYSTEM_INDEX_MANAGE = new TestSecurityConfig.User("limited_user_B_system_index_manage")//
         .description("index_b*, .system_index_plugin with manage privs")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/refresh*", "system:admin/system_index")
@@ -303,28 +364,13 @@ public class IndexAuthorizationReadWriteIntTests {
         )//
         .indexMatcher("get_alias", limitedToNone());
 
-    static TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
-        .description("index_c*")//
-        .roles(
-            //
-            new Role("r1")//
-                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh")
-                .on("index_c*")//
-                .indexPermissions("write")
-                .on("index_cw*")
-        )//
-        .indexMatcher("read", limitedTo(index_cr1, index_cw1))//
-        .indexMatcher("write", limitedTo(index_cw1))//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
-
+    /**
+     * A simple test user that has read privileges on alias_ab1r and write privileges on alias_ab1w*. The user
+     * has no direct privileges on indices; all privileges are gained via the aliases.
+     */
     static TestSecurityConfig.User LIMITED_USER_AB1_ALIAS = new TestSecurityConfig.User("limited_user_alias_AB1")//
         .description("alias_ab1")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get")
@@ -342,10 +388,13 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1, alias_ab1r, alias_ab1w));
 
+    /**
+     * A simple test user that has read/only privileges on alias_ab1r and alias_ab1w*. However, they have write
+     * privileges for the member index index_aw1.
+     */
     static TestSecurityConfig.User LIMITED_USER_AB1_ALIAS_READ_ONLY = new TestSecurityConfig.User("limited_user_alias_AB1_read_only")//
         .description("read/only on alias_ab1w, but with write privs in write index index_aw1")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "write", "indices:admin/refresh")
@@ -359,26 +408,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_index", limitedToNone())//
         .indexMatcher("manage_alias", limitedToNone());
 
-    static TestSecurityConfig.User LIMITED_USER_ALIAS_C1 = new TestSecurityConfig.User("limited_user_alias_C1")//
-        .description("alias_c1")//
-        .roles(
-            //
-            new Role("r1")//
-                .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "write", "indices_monitor")
-                .on("alias_c1")
-        )//
-        .indexMatcher("read", limitedTo(index_cr1, index_cw1, alias_c1))//
-        .indexMatcher("write", limitedTo(index_cr1, index_cw1, alias_c1)) //
-        .indexMatcher("create_index", limitedTo(index_cw1))//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedTo(alias_c1));
-
+    /**
+     * A simple test user which has read/only privileges for "*"
+     */
     static TestSecurityConfig.User LIMITED_READ_ONLY_ALL = new TestSecurityConfig.User("limited_read_only_all")//
         .description("read/only on *")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read")
@@ -391,10 +426,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple test user which has read/only privileges for "index_a*"
+     */
     static TestSecurityConfig.User LIMITED_READ_ONLY_A = new TestSecurityConfig.User("limited_read_only_A")//
         .description("read/only on index_a*")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read")
@@ -407,10 +444,12 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple test user that only has index privileges for indices that are not used by this test.
+     */
     static TestSecurityConfig.User LIMITED_USER_OTHER_PRIVILEGES = new TestSecurityConfig.User("limited_user_other_privileges")//
         .description("no privileges for existing indices")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("crud", "indices_monitor")
@@ -423,6 +462,9 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple test user that has no index privileges at all.
+     */
     static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no index privileges")//
         .roles(
@@ -436,156 +478,26 @@ public class IndexAuthorizationReadWriteIntTests {
         .indexMatcher("manage_alias", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
+     * restrictions and similar things.
+     */
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
-            //
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("*")
                 .on("*")//
                 .indexPermissions("*")
                 .on("*")
-
         )//
-        .indexMatcher(
-            "read",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        )//
-        .indexMatcher(
-            "write",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        )//
-        .indexMatcher(
-            "create_index",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        )//
-        .indexMatcher(
-            "manage_index",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        )//
-        .indexMatcher(
-            "manage_alias",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        )//
-        .indexMatcher(
-            "get_alias",
-            limitedTo(
-                index_ar1,
-                index_ar2,
-                index_aw1,
-                index_aw2,
-                index_br1,
-                index_br2,
-                index_bw1,
-                index_bw2,
-                index_bwx1,
-                index_bwx2,
-                index_cr1,
-                index_cw1,
-                alias_ab1w,
-                alias_ab1r,
-                alias_c1,
-                alias_bwx,
-                alias_ab1w_nowriteindex,
-                index_hidden
-            )
-        );
+        .indexMatcher("read", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("write", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("create_index", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("manage_index", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("manage_alias", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .indexMatcher("get_alias", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx));
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -610,10 +522,8 @@ public class IndexAuthorizationReadWriteIntTests {
         LIMITED_USER_B_READ_ONLY_MANAGE_INDEX_ALIAS,
         LIMITED_USER_B_HIDDEN_MANAGE_INDEX_ALIAS,
         LIMITED_USER_B_SYSTEM_INDEX_MANAGE,
-        LIMITED_USER_C,
         LIMITED_USER_AB1_ALIAS,
         LIMITED_USER_AB1_ALIAS_READ_ONLY,
-        LIMITED_USER_ALIAS_C1,
         LIMITED_READ_ONLY_ALL,
         LIMITED_READ_ONLY_A,
         LIMITED_USER_OTHER_PRIVILEGES,

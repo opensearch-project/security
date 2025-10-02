@@ -129,11 +129,11 @@ public class IndexApiResponseMatchers {
      */
     public interface OnUserIndexMatcher extends IndexMatcher {
 
-        public static IndexMatcher limitedTo(TestIndexOrAliasOrDatastream... testIndices) {
+        static OnUserIndexMatcher limitedTo(TestIndexOrAliasOrDatastream... testIndices) {
             return limitedTo(Arrays.asList(testIndices));
         }
 
-        public static IndexMatcher limitedTo(Collection<TestIndexOrAliasOrDatastream> testIndices) {
+        static OnUserIndexMatcher limitedTo(Collection<TestIndexOrAliasOrDatastream> testIndices) {
             Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>();
 
             for (TestIndexOrAliasOrDatastream testIndex : testIndices) {
@@ -143,17 +143,24 @@ public class IndexApiResponseMatchers {
             return new LimitedToMatcher(indexNameMap);
         }
 
-        public static IndexMatcher unlimited() {
+        static IndexMatcher unlimited() {
             return new UnlimitedMatcher();
         }
 
-        public static IndexMatcher unlimitedIncludingOpenSearchSecurityIndex() {
+        static IndexMatcher unlimitedIncludingOpenSearchSecurityIndex() {
             return new UnlimitedMatcher(true);
         }
 
-        public static IndexMatcher limitedToNone() {
+        static IndexMatcher limitedToNone() {
             return new LimitedToMatcher(Collections.emptyMap());
         }
+
+        /**
+         * Adds the given indices to the set of indices this matcher is limited to.
+         * @param testIndices additional indices for the limitation.
+         * @return a new IndexMatcher instance with the new limit.
+         */
+        OnUserIndexMatcher and(TestIndexOrAliasOrDatastream... testIndices);
     }
 
     /**
@@ -185,6 +192,10 @@ public class IndexApiResponseMatchers {
          */
         default boolean coversAll(TestIndexOrAliasOrDatastream... testIndices) {
             return Stream.of(testIndices).allMatch(this::covers);
+        }
+
+        default boolean coversAll(Collection<TestIndexOrAliasOrDatastream> testIndices) {
+            return testIndices.stream().allMatch(this::covers);
         }
     }
 
@@ -678,6 +689,17 @@ public class IndexApiResponseMatchers {
                 return false;
             }
         }
+
+        @Override
+        public OnUserIndexMatcher and(TestIndexOrAliasOrDatastream... testIndices) {
+            Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>(this.expectedIndices);
+
+            for (TestIndexOrAliasOrDatastream testIndex : testIndices) {
+                indexNameMap.put(testIndex.name(), testIndex);
+            }
+
+            return new LimitedToMatcher(indexNameMap);
+        }
     }
 
     /**
@@ -732,6 +754,11 @@ public class IndexApiResponseMatchers {
         @Override
         public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
             return true;
+        }
+
+        @Override
+        public OnUserIndexMatcher and(TestIndexOrAliasOrDatastream... testIndices) {
+            return this;
         }
     }
 }

@@ -126,6 +126,12 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
     }
 
+    public HttpResponse get(String path, HttpEntity entity, Header... headers) {
+        HttpGet uriRequest = new HttpGet(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
+    }
+
     public HttpResponse getWithoutLeadingSlash(String path, Header... headers) {
         HttpUriRequest req = new HttpGet(getHttpServerUri());
         req.setPath(path);
@@ -198,6 +204,12 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse delete(String path, Header... headers) {
         return executeRequest(new HttpDelete(getHttpServerUri() + "/" + path), headers);
+    }
+
+    public HttpResponse delete(String path, HttpEntity entity, Header... headers) {
+        HttpDelete uriRequest = new HttpDelete(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
     }
 
     public HttpResponse postJson(String path, String body, Header... headers) {

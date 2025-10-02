@@ -11,9 +11,12 @@
 
 package org.opensearch.security.privileges.int_tests;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -41,6 +44,7 @@ import static org.apache.commons.lang3.StringEscapeUtils.escapeJson;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.cluster.TestRestClient.json;
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.IndexMatcher;
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
 import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
@@ -67,7 +71,10 @@ import static org.junit.Assert.assertTrue;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IndexAuthorizationReadOnlyIntTests {
 
-    // TODO pit_segments
+    // -------------------------------------------------------------------------------------------------------
+    // Test indices used by this test suite. Indices are usually initially created; the only exception is
+    // index_ax, which is referred to in tests, but which does not exist on purpose.
+    // -------------------------------------------------------------------------------------------------------
 
     static final TestIndex index_a1 = TestIndex.name("index_a1").documentCount(100).seed(1).build();
     static final TestIndex index_a2 = TestIndex.name("index_a2").documentCount(110).seed(2).build();
@@ -128,6 +135,30 @@ public class IndexAuthorizationReadOnlyIntTests {
         openSearchSecurityConfigIndex()
     );
 
+    static final List<TestIndexOrAliasOrDatastream> ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES = List.of(
+        index_a1,
+        index_a2,
+        index_a3,
+        index_b1,
+        index_b2,
+        index_b3,
+        index_c1,
+        alias_ab1,
+        alias_c1,
+        index_hidden,
+        index_hidden_dot
+    );
+
+    // -------------------------------------------------------------------------------------------------------
+    // Test users with which the tests will be executed; the users need to be added to the list USERS below
+    // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
+    // - The standard role configuration defined with .roles()
+    // - IndexMatchers which act as test oracles, defined with the indexMatcher() methods
+    // -------------------------------------------------------------------------------------------------------
+
+    /**
+     * A simple user that can read from index_a*
+     */
     static final TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("index_a*")//
         .roles(
@@ -139,6 +170,9 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_ax))//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read from index_b*
+     */
     static final TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("index_b*")//
         .roles(
@@ -150,6 +184,9 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_b1, index_b2, index_b3))//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read only from index_b1
+     */
     static final TestSecurityConfig.User LIMITED_USER_B1 = new TestSecurityConfig.User("limited_user_B1")//
         .description("index_b1")//
         .roles(
@@ -161,6 +198,9 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_b1))//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A simple user that can read from index_c*
+     */
     static final TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
         .description("index_c*")//
         .roles(
@@ -172,6 +212,10 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_c1, alias_c1))//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A user that has read privileges for alias_ab1*; these privileges are inherited to the member indices.
+     * The user has no directly defined privileges on indices.
+     */
     static final TestSecurityConfig.User LIMITED_USER_ALIAS_AB1 = new TestSecurityConfig.User("limited_user_alias_AB1")//
         .description("alias_ab1")//
         .roles(
@@ -183,6 +227,10 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
         .indexMatcher("get_alias", limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1));
 
+    /**
+     * A user that has read privileges for alias_c1; these privileges are inherited to the member indices.
+     * The user has no directly defined privileges on indices.
+     */
     static final TestSecurityConfig.User LIMITED_USER_ALIAS_C1 = new TestSecurityConfig.User("limited_user_alias_C1")//
         .description("alias_c1")//
         .roles(
@@ -193,7 +241,9 @@ public class IndexAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher("read", limitedTo(index_c1, alias_c1))//
         .indexMatcher("get_alias", limitedTo(index_c1, alias_c1));
-
+    /**
+     * Same as LIMITED_USER_A with the addition of read privileges for index_hidden* and .index_hidden*
+     */
     static final TestSecurityConfig.User LIMITED_USER_A_HIDDEN = new TestSecurityConfig.User("limited_user_A_hidden")//
         .description("index_a*, index_hidden*")//
         .roles(
@@ -205,6 +255,10 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * Same as LIMITED_USER_C with the addition of read privileges for ".system_index_plugin"; they also have the
+     * explicit privilege "system:admin/system_index" that allows them accessing this index.
+     */
     static final TestSecurityConfig.User LIMITED_USER_C_WITH_SYSTEM_INDICES = new TestSecurityConfig.User(
         "limited_user_C_with_system_indices"
     )//
@@ -243,6 +297,9 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * This user has no index read privileges at all.
+     */
     static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no index privileges")//
         .roles(
@@ -252,49 +309,21 @@ public class IndexAuthorizationReadOnlyIntTests {
         .indexMatcher("read", limitedToNone())//
         .indexMatcher("get_alias", limitedToNone());
 
+    /**
+     * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
+     * restrictions and similar things.
+     */
     static final TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
             new TestSecurityConfig.Role("r1")//
-                .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
+                .clusterPermissions("*")
                 .indexPermissions("*")
                 .on("*")//
 
         )//
-        .indexMatcher(
-            "read",
-            limitedTo(
-                index_a1,
-                index_a2,
-                index_a3,
-                index_b1,
-                index_b2,
-                index_b3,
-                index_c1,
-                alias_ab1,
-                alias_c1,
-                index_hidden,
-                index_hidden_dot,
-                index_ax
-            )
-        )//
-        .indexMatcher(
-            "get_alias",
-            limitedTo(
-                index_a1,
-                index_a2,
-                index_a3,
-                index_b1,
-                index_b2,
-                index_b3,
-                index_c1,
-                alias_ab1,
-                alias_c1,
-                index_hidden,
-                index_hidden_dot,
-                index_ax
-            )
-        );
+        .indexMatcher("read", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
+        .indexMatcher("get_alias", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax));
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -1766,6 +1795,102 @@ public class IndexAuthorizationReadOnlyIntTests {
         }
     }
 
+    @Test
+    public void pit_list_all() throws Exception {
+        String indexA1pitId = createPit(index_a1);
+
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("_search/point_in_time/_all");
+
+            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
+                // Once again, the system index privilege code makes it impossible to use this action without super admin privileges
+                if (user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                // The behavior in legacy privilege evaluation and new privilege evaluation actually differs, even though we do not observe
+                // here a difference:
+                // - Legacy: the user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will
+                // be forbidden.
+                // - New: this is now a cluster privilege, the users below are the users with full cluster privileges
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            deletePit(indexA1pitId);
+        }
+    }
+
+    @Test
+    public void pit_delete() throws Exception {
+        String indexA1pitId = createPit(index_a1);
+
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.delete("_search/point_in_time", json("pit_id", List.of(indexA1pitId)));
+
+            if (user.indexMatcher("read").covers(index_a1)) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            deletePit(indexA1pitId);
+        }
+    }
+
+    @Test
+    public void pit_catSegments() throws Exception {
+        String indexA1pitId = createPit(index_a1);
+
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("_cat/pit_segments", json("pit_id", List.of(indexA1pitId)));
+
+            if (user.indexMatcher("read").covers(index_a1)) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            deletePit(indexA1pitId);
+        }
+    }
+
+    @Test
+    public void pit_catSegments_all() throws Exception {
+        String indexA1pitId = createPit(index_a1);
+
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("_cat/pit_segments/_all");
+
+            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
+                // Once again, the system index privilege code makes it impossible to use this action without super admin privileges
+                if (user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                // The behavior in legacy privilege evaluation and new privilege evaluation actually differs, even though we do not observe
+                // here a difference:
+                // - Legacy: the user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will
+                // be forbidden.
+                // - New: this is now a separate cluster privilege, the users below are the users with full cluster privileges
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
+        } finally {
+            deletePit(indexA1pitId);
+        }
+    }
+
     @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
@@ -1792,6 +1917,23 @@ public class IndexAuthorizationReadOnlyIntTests {
                 new SystemIndexDescriptor(".system_index_plugin", "for testing system index exclusion"),
                 new SystemIndexDescriptor(".system_index_plugin_not_existing", "for testing system index exclusion")
             );
+        }
+    }
+
+    private String createPit(TestIndex... indices) throws IOException {
+        try (TestRestClient client = cluster.getAdminCertRestClient()) {
+            TestRestClient.HttpResponse response = client.post(
+                Stream.of(indices).map(TestIndex::name).collect(joining(",")) + "/_search/point_in_time?keep_alive=1m"
+            );
+            assertThat(response, isOk());
+            return response.getTextFromJsonBody("/pit_id");
+        }
+    }
+
+    private void deletePit(String... pitIds) {
+        try (TestRestClient client = cluster.getAdminCertRestClient()) {
+            TestRestClient.HttpResponse response = client.delete("_search/point_in_time", json("pit_id", Arrays.asList(pitIds)));
+            assertThat(response, isOk());
         }
     }
 }
