@@ -20,10 +20,12 @@ import javax.annotation.concurrent.NotThreadSafe;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.test.framework.TestComponentTemplate;
 import org.opensearch.test.framework.TestDataStream;
 import org.opensearch.test.framework.TestIndex;
@@ -64,6 +66,14 @@ import static org.junit.Assert.assertEquals;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @NotThreadSafe
 public class DataStreamAuthorizationReadWriteIntTests {
+
+    // -------------------------------------------------------------------------------------------------------
+    // Test indices used by this test suite. We use the following naming scheme:
+    // - index_*r*, ds_*r*: This test will not write to this index or data stream
+    // - index_*w*, ds_*w*: This test can write to this index or data stream; the test won't delete and recreate it
+    // - index_*wx*, ds_*wx*: The index is not initially created; the test can create it on demand and delete it again
+    // -------------------------------------------------------------------------------------------------------
+
     static TestDataStream ds_ar1 = TestDataStream.name("ds_ar1").documentCount(22).rolloverAfter(10).build();
     static TestDataStream ds_ar2 = TestDataStream.name("ds_ar2").documentCount(22).rolloverAfter(10).build();
     static TestDataStream ds_aw1 = TestDataStream.name("ds_aw1").documentCount(22).rolloverAfter(10).build();
@@ -79,12 +89,22 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestDataStream ds_bwx1 = TestDataStream.name("ds_bwx1").documentCount(0).build(); // not initially created
     static TestDataStream ds_bwx2 = TestDataStream.name("ds_bwx2").documentCount(0).build(); // not initially created
 
+    // -------------------------------------------------------------------------------------------------------
+    // Test users with which the tests will be executed; the users need to be added to the list USERS below
+    // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
+    // - The standard role configuration defined with .roles()
+    // - IndexMatchers which act as test oracles, defined with the indexMatcher() methods
+    // -------------------------------------------------------------------------------------------------------
+
+    /**
+     * A simple user that can read from ds_a* and write to ds_aw*; the user as no privileges to create or manage data streams
+     */
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("ds_a*")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_a*")//
                 .indexPermissions("write")
                 .on("ds_aw*")
@@ -94,12 +114,15 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read from ds_b* and write to ds_bw*; the user as no privileges to create or manage data streams
+     */
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("ds_b*")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_b*")//
                 .indexPermissions("write")
                 .on("ds_bw*")
@@ -109,12 +132,16 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read from ds_b* and write to ds_bw*; the user as no privileges to create or manage data streams.
+     * Additionally, they can read from ds_a*
+     */
     static TestSecurityConfig.User LIMITED_USER_B_READ_ONLY_A = new TestSecurityConfig.User("limited_user_B_read_only_A")//
         .description("ds_b*; read only on ds_a*")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_a*", "ds_b*")//
                 .indexPermissions("write")
                 .on("ds_bw*")
@@ -135,7 +162,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_b*")//
                 .indexPermissions("write")
                 .on("ds_bw*")//
@@ -147,12 +174,15 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read from ds_b* and write to ds_bw*; they can also create data streams with the name ds_bw*
+     */
     static TestSecurityConfig.User LIMITED_USER_B_CREATE_DS = new TestSecurityConfig.User("limited_user_B_create_ds")//
         .description("ds_b* with create ds privs")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_b*")//
                 .indexPermissions("write")
                 .on("ds_bw*")//
@@ -164,12 +194,15 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read from ds_b* and write to ds_bw*; they can also create and manage data streams with the name ds_bw*
+     */
     static TestSecurityConfig.User LIMITED_USER_B_MANAGE_DS = new TestSecurityConfig.User("limited_user_B_manage_ds")//
         .description("ds_b* with manage privs")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_b*")//
                 .indexPermissions("write")
                 .on("ds_bw*")//
@@ -181,12 +214,15 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
         .indexMatcher("manage_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
 
+    /**
+     * A user that can read from ds_a* and ds_b* and write/create/manage ds_aw*, ds_bw*
+     */
     static TestSecurityConfig.User LIMITED_USER_AB_MANAGE_INDEX = new TestSecurityConfig.User("limited_user_AB_manage_index")//
         .description("ds_a*, ds_b* with manage index privs")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("ds_a*", "ds_b*")//
                 .indexPermissions("write")
                 .on("ds_aw*", "ds_bw*")//
@@ -198,12 +234,15 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
         .indexMatcher("manage_data_stream", limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
 
+    /**
+     * A simple user that can read from index_c*
+     */
     static TestSecurityConfig.User LIMITED_USER_C = new TestSecurityConfig.User("limited_user_C")//
         .description("index_c*")//
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_c*")//
                 .indexPermissions("write")
                 .on("index_cw*")
@@ -213,6 +252,9 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read all indices and data streams, but cannot write anything
+     */
     static TestSecurityConfig.User LIMITED_READ_ONLY_ALL = new TestSecurityConfig.User("limited_read_only_all")//
         .description("read/only on *")//
         .roles(
@@ -226,6 +268,9 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple user that can read from ds_a*, but cannot write anything
+     */
     static TestSecurityConfig.User LIMITED_READ_ONLY_A = new TestSecurityConfig.User("limited_read_only_A")//
         .description("read/only on ds_a*")//
         .roles(
@@ -239,6 +284,9 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple test user that only has index privileges for indices that are not used by this test.
+     */
     static TestSecurityConfig.User LIMITED_USER_OTHER_PRIVILEGES = new TestSecurityConfig.User("limited_user_other_privileges")//
         .description("no privileges for existing indices")//
         .roles(
@@ -252,6 +300,9 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A simple test user that has no index privileges at all.
+     */
     static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no index privileges")//
         .roles(
@@ -263,6 +314,9 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * This user has only privileges on backing indices for data streams, but not on the data streams themselves
+     */
     static TestSecurityConfig.User LIMITED_USER_PERMISSIONS_ON_BACKING_INDICES = new TestSecurityConfig.User(
         "limited_user_permissions_on_backing_indices"
     )//
@@ -270,7 +324,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on(".ds-ds_a*")//
                 .indexPermissions("write")
                 .on(".ds-ds_aw*")
@@ -280,6 +334,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
         .indexMatcher("create_data_stream", limitedToNone())//
         .indexMatcher("manage_data_stream", limitedToNone());
 
+    /**
+     * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
+     * restrictions and similar things.
+     */
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
@@ -381,7 +439,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 assertThat(httpResponse, isCreated());
             }
 
-            HttpResponse httpResponse = restClient.postJson("ds_aw*,ds_bw*/_delete_by_query?refresh=true&wait_for_completion=true", """
+            HttpResponse httpResponse = restClient.postJson("ds_aw*,ds_bw*/_delete_by_query?wait_for_completion=true", """
                 {
                   "query": {
                     "term": {
@@ -415,7 +473,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
     @Test
     public void putDocument_bulk() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            HttpResponse httpResponse = restClient.putJson("_bulk?refresh=true", """
+            HttpResponse httpResponse = restClient.putJson("_bulk", """
                 { "create": { "_index": "ds_aw1", "_id": "d1" } }
                 { "a": 1, "test": "putDocument_bulk", "@timestamp": "2025-09-15T12:00:00Z" }
                 { "create": { "_index": "ds_bw1", "_id": "d1" } }
@@ -494,6 +552,11 @@ public class DataStreamAuthorizationReadWriteIntTests {
         }
     }
 
+    @After
+    public void refresh() {
+        cluster.getInternalNodeClient().admin().indices().refresh(new RefreshRequest("*")).actionGet();
+    }
+
     @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
@@ -523,6 +586,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
 
     private void deleteTestDocs(String testName, String indices) {
         try (TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+            adminRestClient.post(indices + "/_refresh");
             adminRestClient.postJson(indices + "/_delete_by_query?refresh=true&wait_for_completion=true", """
                 {
                   "query": {
