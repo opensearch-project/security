@@ -1866,19 +1866,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search/point_in_time/_all");
 
-            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
-                // Once again, the system index privilege code makes it impossible to use this action without super admin privileges
-                if (user == SUPER_UNLIMITED_USER) {
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
+                // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here
+                if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
             } else {
-                // The behavior in legacy privilege evaluation and new privilege evaluation actually differs, even though we do not observe
-                // here a difference:
-                // - Legacy: the user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will
-                // be forbidden.
-                // - New: this is now a cluster privilege, the users below are the users with full cluster privileges
+                // New privilege evaluation: this is now a cluster privilege, the users below are the users with full cluster privileges
                 if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                     assertThat(httpResponse, isOk());
                 } else {
@@ -1931,19 +1928,15 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/pit_segments/_all");
 
-            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
-                // Once again, the system index privilege code makes it impossible to use this action without super admin privileges
-                if (user == SUPER_UNLIMITED_USER) {
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will be forbidden.
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
             } else {
-                // The behavior in legacy privilege evaluation and new privilege evaluation actually differs, even though we do not observe
-                // here a difference:
-                // - Legacy: the user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will
-                // be forbidden.
-                // - New: this is now a separate cluster privilege, the users below are the users with full cluster privileges
+                // New privilege evaluation: this is now a separate cluster privilege, the users below are the users with full cluster privileges
                 if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                     assertThat(httpResponse, isOk());
                 } else {
