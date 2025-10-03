@@ -151,7 +151,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_a*")//
                 .indexPermissions("write")
                 .on("index_aw*")
@@ -171,7 +171,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_b*")//
                 .indexPermissions("write")
                 .on("index_bw*")
@@ -191,7 +191,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_b*")//
                 .indexPermissions("write")
                 .on("index_bw*")//
@@ -213,7 +213,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_b*")//
                 .indexPermissions("write")
                 .on("index_bw*")//
@@ -237,7 +237,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_b*")//
                 .indexPermissions("write")
                 .on("index_bw*")//
@@ -265,7 +265,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_b*")//
                 .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
@@ -287,7 +287,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor")
                 .on("index_a*", "index_b*", "index_hidden*")//
                 .indexPermissions("write")
                 .on("index_bw*", "index_hidden*")//
@@ -327,7 +327,7 @@ public class IndexAuthorizationReadWriteIntTests {
         .roles(
             new Role("r1")//
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/refresh*", "system:admin/system_index")
+                .indexPermissions("read", "indices_monitor", "system:admin/system_index")
                 .on("index_b*", "index_hidden*", ".system_index_plugin")//
                 .indexPermissions("write", "system:admin/system_index")
                 .on("index_bw*", ".system_index_plugin", ".system_index_plugin_*")//
@@ -376,7 +376,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 .clusterPermissions("cluster_composite_ops", "cluster_monitor")//
                 .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get")
                 .on("alias_ab1r")//
-                .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get", "write", "indices:admin/refresh*")
+                .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get", "write")
                 .on("alias_ab1w*")
         )//
         .indexMatcher(
@@ -641,7 +641,7 @@ public class IndexAuthorizationReadWriteIntTests {
             );
             assertThat(httpResponse, isCreated());
 
-            httpResponse = restClient.postJson("index_aw*,index_bw*/_delete_by_query?refresh=true&wait_for_completion=true", """
+            httpResponse = restClient.postJson("index_aw*,index_bw*/_delete_by_query?wait_for_completion=true", """
                 {
                   "query": {
                     "term": {
@@ -684,7 +684,7 @@ public class IndexAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             IndexApiResponseMatchers.IndexMatcher writePrivileges = user.indexMatcher("write");
 
-            HttpResponse httpResponse = restClient.putJson("_bulk?refresh=true", """
+            HttpResponse httpResponse = restClient.putJson("_bulk", """
                 {"index": {"_index": "index_aw1", "_id": "new_doc_aw1"}}
                 {"a": 1}
                 {"index": {"_index": "index_bw1", "_id": "new_doc_bw1"}}
@@ -745,7 +745,7 @@ public class IndexAuthorizationReadWriteIntTests {
     @Test
     public void putDocument_bulk_alias() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            HttpResponse httpResponse = restClient.putJson("_bulk?refresh=true", """
+            HttpResponse httpResponse = restClient.putJson("_bulk", """
                 {"index": {"_index": "alias_ab1w", "_id": "put_doc_alias_bulk_test_1"}}
                 {"a": 1}
                 """);

@@ -58,6 +58,11 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DataStreamAuthorizationReadOnlyIntTests {
 
+    // -------------------------------------------------------------------------------------------------------
+    // Test data streams and indices used by this test suite. Indices are usually initially created; the only
+    // exception is ds_ax, which is referred to in tests, but which does not exist on purpose.
+    // -------------------------------------------------------------------------------------------------------
+
     static TestDataStream ds_a1 = TestDataStream.name("ds_a1").documentCount(100).rolloverAfter(10).seed(1).build();
     static TestDataStream ds_a2 = TestDataStream.name("ds_a2").documentCount(110).rolloverAfter(10).seed(2).build();
     static TestDataStream ds_a3 = TestDataStream.name("ds_a3").documentCount(120).rolloverAfter(10).seed(3).build();
@@ -78,6 +83,18 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         openSearchSecurityConfigIndex()
     );
 
+    static final List<TestIndexOrAliasOrDatastream> ALL_DATA_STREAMS = List.of(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3);
+
+    // -------------------------------------------------------------------------------------------------------
+    // Test users with which the tests will be executed; the users need to be added to the list USERS below
+    // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
+    // - The standard role configuration defined with .roles()
+    // - IndexMatchers which act as test oracles, defined with the indexMatcher() methods
+    // -------------------------------------------------------------------------------------------------------
+
+    /**
+     * A simple user that can read from ds_a*
+     */
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("ds_a*")//
         .roles(
@@ -94,6 +111,9 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher("read", limitedTo(ds_a1, ds_a2, ds_a3, ds_ax));
 
+    /**
+     * A simple user that can read from ds_b*
+     */
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("ds_b*")//
         .roles(
@@ -110,6 +130,9 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher("read", limitedTo(ds_b1, ds_b2, ds_b3));
 
+    /**
+     * A simple user that can read from ds_b1
+     */
     static TestSecurityConfig.User LIMITED_USER_B1 = new TestSecurityConfig.User("limited_user_B1")//
         .description("ds_b1")//
         .roles(
@@ -126,7 +149,11 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher("read", limitedTo(ds_b1));
 
-    static TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
+    /**
+     * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
+     * This allows them to use actions like _search and receive empty result sets.
+     */
+    static TestSecurityConfig.User LIMITED_USER_OTHER_PRIVILEGES = new TestSecurityConfig.User("limited_user_other_index_privileges")//
         .description("no privileges for existing indices")//
         .roles(
             new TestSecurityConfig.Role("r1")//
@@ -142,6 +169,10 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         )//
         .indexMatcher("read", limitedToNone());
 
+    /**
+     * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
+     * restrictions and similar things.
+     */
     static TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
         .roles(
@@ -165,7 +196,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         LIMITED_USER_A,
         LIMITED_USER_B,
         LIMITED_USER_B1,
-        LIMITED_USER_NONE,
+        LIMITED_USER_OTHER_PRIVILEGES,
         UNLIMITED_USER,
         SUPER_UNLIMITED_USER
     );
@@ -220,10 +251,10 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_noPattern_allowNoIndicesFalse() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&allow_no_indices=false");
-            if (user != LIMITED_USER_NONE) {
+            if (user != LIMITED_USER_OTHER_PRIVILEGES) {
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("hits.hits[*]._index")
+                    containsExactly(ALL_INDICES).at("hits.hits[*]._index")
                         .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
                 );
@@ -240,7 +271,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_all/_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -266,7 +297,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("*/_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -383,7 +414,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get(
                 "ds_a*,ds_b*/_search?size=1000&expand_wildcards=none&ignore_unavailable=true"
             );
-            if (clusterConfig.legacyPrivilegeEvaluation && (user == LIMITED_USER_B1 || user == LIMITED_USER_NONE)) {
+            if (clusterConfig.legacyPrivilegeEvaluation && (user == LIMITED_USER_B1 || user == LIMITED_USER_OTHER_PRIVILEGES)) {
                 assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
             } else {
                 assertThat(httpResponse, isOk());
@@ -433,7 +464,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
 
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("aggregations.indices.buckets[*].key")
+                containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(isOk())
             );
@@ -465,7 +496,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_stats");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("indices.keys()")
+                containsExactly(ALL_INDICES).at("indices.keys()")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -493,15 +524,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 // The legacy mode does not support dnfof for indices:admin/data_stream/get
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].name")
-                        .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.indexMatcher("read"))
                 );
             } else {
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].name")
-                        .reducedBy(user.indexMatcher("read"))
-                        .whenEmpty(isOk())
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").reducedBy(user.indexMatcher("read")).whenEmpty(isOk())
                 );
             }
         }
@@ -515,15 +543,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 // The legacy mode does not support dnfof for indices:admin/data_stream/get
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].name")
-                        .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.indexMatcher("read"))
                 );
             } else {
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].name")
-                        .reducedBy(user.indexMatcher("read"))
-                        .whenEmpty(isOk())
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").reducedBy(user.indexMatcher("read")).whenEmpty(isOk())
                 );
             }
         }
@@ -586,13 +611,13 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].data_stream")
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
                         .butForbiddenIfIncomplete(user.indexMatcher("read"))
                 );
             } else {
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].data_stream")
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
                         .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(isOk())
                 );
@@ -608,13 +633,13 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].data_stream")
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
                         .butForbiddenIfIncomplete(user.indexMatcher("read"))
                 );
             } else {
                 assertThat(
                     httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.data_streams[*].data_stream")
+                    containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
                         .reducedBy(user.indexMatcher("read"))
                         .whenEmpty(isOk())
                 );
@@ -661,7 +686,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/*");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("$.*[*].name")
+                containsExactly(ALL_INDICES).at("$.*[*].name")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -687,7 +712,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("indices")
+                containsExactly(ALL_INDICES).at("indices")
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );

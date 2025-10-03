@@ -1929,14 +1929,16 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/pit_segments/_all");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                // The user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will be forbidden.
+                // The user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will be
+                // forbidden.
                 if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
             } else {
-                // New privilege evaluation: this is now a separate cluster privilege, the users below are the users with full cluster privileges
+                // New privilege evaluation: this is now a separate cluster privilege, the users below are the users with full cluster
+                // privileges
                 if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                     assertThat(httpResponse, isOk());
                 } else {
