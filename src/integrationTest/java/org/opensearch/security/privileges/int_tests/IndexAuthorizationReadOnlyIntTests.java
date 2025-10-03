@@ -867,28 +867,6 @@ public class IndexAuthorizationReadOnlyIntTests {
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
-            /*
-            if (user != LIMITED_USER_NONE) {
-                if (clusterConfig.systemIndexPrivilegeEnabled) {
-                    // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the
-                    // alias)
-                    assertThat(
-                        httpResponse,
-                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                            .reducedBy(user.indexMatcher("read"))
-                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                    );
-                } else {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                            .reducedBy(user.indexMatcher("read"))
-                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                    );
-                }
-            } else {
-                assertThat(httpResponse, isForbidden());
-            }*/
         }
     }
 

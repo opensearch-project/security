@@ -748,7 +748,6 @@ public class IndexAuthorizationReadWriteIntTests {
             } else {
                 assertThat(httpResponse, isForbidden());
             }
-
         } finally {
             delete("index_aw1/_doc/put_doc_alias_bulk_test_1");
         }
@@ -868,7 +867,6 @@ public class IndexAuthorizationReadWriteIntTests {
                     assertThat(httpResponse, isForbidden());
                 }
             }
-
         } finally {
             delete(alias_bwx);
         }
@@ -1118,16 +1116,8 @@ public class IndexAuthorizationReadWriteIntTests {
                   }
                 }""");
 
-            System.out.println(httpResponse.getBody());
-
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 if (user.indexMatcher("manage_alias").covers(index_bw1) && user.indexMatcher("manage_index").covers(index_bw2)) {
-                    assertThat(httpResponse, isOk());
-                } else {
-                    assertThat(httpResponse, isForbidden());
-                }
-            } else {
-                if (user.indexMatcher("manage_alias").covers(alias_bwx) && user.indexMatcher("manage_index").covers(index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
