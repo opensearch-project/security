@@ -669,12 +669,12 @@ public class IndexAuthorizationReadOnlyIntTests {
                     assertThat(httpResponse, isForbidden());
                 }
             } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(system_index_plugin).at("hits.hits[*]._index")
-                            .reducedBy(user.indexMatcher("read"))
-                            .whenEmpty(isForbidden())
-                    );
+                assertThat(
+                    httpResponse,
+                    containsExactly(system_index_plugin).at("hits.hits[*]._index")
+                        .reducedBy(user.indexMatcher("read"))
+                        .whenEmpty(isForbidden())
+                );
             } else {
                 if (user.indexMatcher("read").covers(alias_with_system_index)) {
                     assertThat(httpResponse, isOk());
@@ -867,7 +867,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     .reducedBy(user.indexMatcher("read"))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
-/*
+            /*
             if (user != LIMITED_USER_NONE) {
                 if (clusterConfig.systemIndexPrivilegeEnabled) {
                     // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the
@@ -1448,7 +1448,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             } else {
                 assertThat(
                     httpResponse,
-                    containsExactly(alias_ab1, alias_c1).at("$.*.aliases.keys()")
+                    containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()")
                         .reducedBy(user.indexMatcher("get_alias"))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
@@ -1795,13 +1795,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search/point_in_time/_all");
 
-                // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
-                // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here
-                if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
-                    assertThat(httpResponse, isOk());
-                } else {
-                    assertThat(httpResponse, isForbidden());
-                }
+            // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
+            // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here.
+            // This is caused by the following line which makes PrivilegesEvaluator believe it could reduce the indices
+            // to authorized indices, even though it actually could not:
+            // https://github.com/opensearch-project/security/blob/aee54a8ca2a6cc596cb1e490be1e9fa240286246/src/main/java/org/opensearch/security/resolver/IndexResolverReplacer.java#L824-L825
+            if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         } finally {
             deletePit(indexA1pitId);
         }
@@ -1848,24 +1851,11 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/pit_segments/_all");
 
-            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
-                // Once again, the system index privilege code makes it impossible to use this action without super admin privileges
-                if (user == SUPER_UNLIMITED_USER) {
-                    assertThat(httpResponse, isOk());
-                } else {
-                    assertThat(httpResponse, isForbidden());
-                }
+            // The user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will be forbidden.
+            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
             } else {
-                // The behavior in legacy privilege evaluation and new privilege evaluation actually differs, even though we do not observe
-                // here a difference:
-                // - Legacy: the user needs to have the privilege for all indices. If it is only granted for a subset of indices, this will
-                // be forbidden.
-                // - New: this is now a separate cluster privilege, the users below are the users with full cluster privileges
-                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
-                    assertThat(httpResponse, isOk());
-                } else {
-                    assertThat(httpResponse, isForbidden());
-                }
+                assertThat(httpResponse, isForbidden());
             }
         } finally {
             deletePit(indexA1pitId);
