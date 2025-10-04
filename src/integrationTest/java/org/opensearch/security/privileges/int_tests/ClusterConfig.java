@@ -45,6 +45,11 @@ public enum ClusterConfig {
 
     private LocalCluster cluster;
 
+    /**
+     * Optional: If we need to have a second remote cluster in our tests
+     */
+    private LocalCluster remoteCluster;
+
     ClusterConfig(
         String name,
         Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration,
@@ -67,6 +72,14 @@ public enum ClusterConfig {
         return cluster;
     }
 
+    LocalCluster remoteCluster(Supplier<LocalCluster.Builder> clusterBuilder) {
+        if (remoteCluster == null) {
+            remoteCluster = this.clusterConfiguration.apply(clusterBuilder.get()).build();
+            remoteCluster.before();
+        }
+        return remoteCluster;
+    }
+
     void shutdown() {
         if (cluster != null) {
             try {
@@ -75,6 +88,14 @@ public enum ClusterConfig {
                 e.printStackTrace();
             }
             cluster = null;
+        }
+        if (remoteCluster != null) {
+            try {
+                remoteCluster.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            remoteCluster = null;
         }
     }
 

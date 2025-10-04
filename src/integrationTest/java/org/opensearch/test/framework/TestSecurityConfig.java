@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,11 +168,7 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig user(User user) {
         this.internalUsers.put(user.name, user);
-
-        for (Role role : user.roles) {
-            this.roles.put(role.name, role);
-        }
-
+        // The user's roles will be collected by aggregateRoles() when the configuration is written
         return this;
     }
 
@@ -203,6 +200,7 @@ public class TestSecurityConfig {
             if (this.roles.containsKey(role.name)) {
                 throw new IllegalStateException("Role with name " + role.name + " is already defined");
             }
+            role.addedIndependentlyOfUser = true;
             this.roles.put(role.name, role);
         }
 
@@ -470,6 +468,10 @@ public class TestSecurityConfig {
         private String password;
         List<Role> roles = new ArrayList<>();
         List<String> backendRoles = new ArrayList<>();
+        /**
+         * This will be initialized by aggregateRoles()
+         */
+        Set<String> roleNames;
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
@@ -500,11 +502,7 @@ public class TestSecurityConfig {
         }
 
         public User roles(Role... roles) {
-            // We scope the role names by user to keep tests free of potential side effects
-            String roleNamePrefix = "user_" + this.getName() + "__";
-            this.roles.addAll(
-                Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
-            );
+            this.roles.addAll(Arrays.asList(roles));
             return this;
         }
 
@@ -566,7 +564,7 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
-            return roles.stream().map(Role::getName).collect(Collectors.toSet());
+            return roleNames;
         }
 
         public String getDescription() {
@@ -684,6 +682,12 @@ public class TestSecurityConfig {
         private Boolean reserved;
 
         private String description;
+
+        /**
+         * This will be set to true, if this was added using the roles() method on TestSecurityConfig.
+         * Then, we will consider this a role which is shared between users and we won't scope its name.
+         */
+        private boolean addedIndependentlyOfUser = false;
 
         public Role(String name) {
             this(name, null);
@@ -1123,7 +1127,7 @@ public class TestSecurityConfig {
             if (auditConfiguration != null) {
                 writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
             }
-            writeConfigToIndex(client, CType.ROLES, roles);
+            writeConfigToIndex(client, CType.ROLES, aggregateRoles());
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
             writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
@@ -1135,7 +1139,36 @@ public class TestSecurityConfig {
                 writeConfigToIndex(client, entry.getKey(), entry.getValue());
             }
         }
+    }
 
+    /**
+     * Merges the globally defined roles with the roles defined by user. Roles defined by user will be scoped
+     * so that user definitions cannot interfere with others.
+     */
+    private Map<String, Role> aggregateRoles() {
+        Map<String, Role> result = new HashMap<>(this.roles);
+
+        for (User user : this.internalUsers.values()) {
+            if (user.roleNames == null) {
+                user.roleNames = new HashSet<>();
+            }
+
+            for (Role role : user.roles) {
+                if (role.addedIndependentlyOfUser) {
+                    // This is a globally defined role, we just use this
+                    user.roleNames.add(role.name);
+                } else {
+                    // This is role that is locally defined for the user; let's scope the name
+                    if (!role.name.startsWith("user_" + user.name)) {
+                        role.name = "user_" + user.name + "__" + role.name;
+                    }
+                    user.roleNames.add(role.name);
+                    result.put(role.name, role);
+                }
+            }
+        }
+
+        return result;
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {
