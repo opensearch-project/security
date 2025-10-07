@@ -26,16 +26,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
-import org.opensearch.test.framework.TestComponentTemplate;
-import org.opensearch.test.framework.TestDataStream;
-import org.opensearch.test.framework.TestIndex;
-import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
-import org.opensearch.test.framework.TestIndexTemplate;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.data.TestComponentTemplate;
+import org.opensearch.test.framework.data.TestDataStream;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
+import org.opensearch.test.framework.data.TestIndexTemplate;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;

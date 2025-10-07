@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.test.framework;
+package org.opensearch.test.framework.data;
 
 import java.util.Map;
 import java.util.Set;

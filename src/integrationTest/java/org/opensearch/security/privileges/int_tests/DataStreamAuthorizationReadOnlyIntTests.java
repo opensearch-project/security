@@ -21,20 +21,20 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.test.framework.TestComponentTemplate;
-import org.opensearch.test.framework.TestDataStream;
-import org.opensearch.test.framework.TestIndex;
-import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
-import org.opensearch.test.framework.TestIndexTemplate;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.data.TestComponentTemplate;
+import org.opensearch.test.framework.data.TestDataStream;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
+import org.opensearch.test.framework.data.TestIndexTemplate;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.test.framework.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.data.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
@@ -523,9 +523,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
-                    containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(isOk())
+                    containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
                 );
             } else {
                 // Users without full privileges will not see hidden indices here; thus on a cluster with only data streams, the result is
@@ -587,8 +585,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:admin/data_stream/get
             assertThat(
                 httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name")
-                    .butForbiddenIfIncomplete(user.reference(READ))
+                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -600,8 +597,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:admin/data_stream/get
             assertThat(
                 httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name")
-                    .butForbiddenIfIncomplete(user.reference(READ))
+                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -648,8 +644,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
             assertThat(
                 httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
-                    .butForbiddenIfIncomplete(user.reference(READ))
+                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -661,8 +656,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
             assertThat(
                 httpResponse,
-                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
-                    .butForbiddenIfIncomplete(user.reference(READ))
+                containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }

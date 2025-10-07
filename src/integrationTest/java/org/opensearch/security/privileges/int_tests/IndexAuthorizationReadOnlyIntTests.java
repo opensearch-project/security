@@ -30,21 +30,21 @@ import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.script.mustache.MustacheModulePlugin;
-import org.opensearch.test.framework.TestAlias;
-import org.opensearch.test.framework.TestData;
-import org.opensearch.test.framework.TestIndex;
-import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.data.TestAlias;
+import org.opensearch.test.framework.data.TestData;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeJson;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.opensearch.test.framework.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
+import static org.opensearch.test.framework.data.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.IndexMatcher;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
@@ -697,9 +697,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
                 assertThat(
                     httpResponse,
-                    containsExactly(system_index_plugin).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(isForbidden())
+                    containsExactly(system_index_plugin).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
                 );
             } else {
                 if (user.reference(READ).covers(alias_with_system_index)) {

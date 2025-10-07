@@ -72,6 +72,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 

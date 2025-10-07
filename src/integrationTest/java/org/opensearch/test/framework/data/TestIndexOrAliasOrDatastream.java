@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.test.framework;
+package org.opensearch.test.framework.data;
 
 import java.util.Map;
 import java.util.Set;
@@ -40,18 +40,18 @@ public interface TestIndexOrAliasOrDatastream {
         return this;
     }
 
-    static void createInitialTestObjects(LocalCluster cluster, TestIndexOrAliasOrDatastream... testIndexOrAliasOrDatastreamArray) {
+    static void createInitialTestObjects(LocalCluster cluster, TestIndexOrAliasOrDatastream... testIndexLikeArray) {
         try (Client client = cluster.getInternalNodeClient()) {
-            for (TestIndexOrAliasOrDatastream testIndexOrAliasOrDatastream : testIndexOrAliasOrDatastreamArray) {
-                testIndexOrAliasOrDatastream.create(client);
+            for (TestIndexOrAliasOrDatastream testIndexLike : testIndexLikeArray) {
+                testIndexLike.create(client);
             }
         }
     }
 
-    static void delete(LocalCluster cluster, TestIndexOrAliasOrDatastream... testIndexOrAliasOrDatastreamArray) {
+    static void delete(LocalCluster cluster, TestIndexOrAliasOrDatastream... testIndexLikeArray) {
         try (Client client = cluster.getInternalNodeClient()) {
-            for (TestIndexOrAliasOrDatastream testIndexOrAliasOrDatastream : testIndexOrAliasOrDatastreamArray) {
-                testIndexOrAliasOrDatastream.delete(client);
+            for (TestIndexOrAliasOrDatastream testIndexLike : testIndexLikeArray) {
+                testIndexLike.delete(client);
             }
         }
     }

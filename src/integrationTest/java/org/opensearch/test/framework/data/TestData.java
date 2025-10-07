@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.test.framework;
+package org.opensearch.test.framework.data;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -146,6 +146,8 @@ public class TestData {
                 + refreshAfter
         );
 
+        Random random = new Random(subRandomSeed);
+        long start = System.currentTimeMillis();
         String mapping = """
             {
               "_doc": {
@@ -178,18 +180,35 @@ public class TestData {
             """;
 
         client.admin().indices().create(new CreateIndexRequest(name).settings(settings).mapping(mapping)).actionGet();
+        int nextRefresh = (int) Math.floor((random.nextGaussian() * 0.5 + 0.5) * refreshAfter);
+        int i = 0;
 
-        this.putDocuments(client, name, -1);
+        for (Map.Entry<String, TestDocument> entry : allDocuments.entrySet()) {
+            String id = entry.getKey();
+            TestDocument document = entry.getValue();
+
+            client.index(new IndexRequest(name).source(document.content, XContentType.JSON).id(id)).actionGet();
+
+            if (i > nextRefresh) {
+                client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+                double g = random.nextGaussian();
+
+                nextRefresh = (int) Math.floor((g * 0.5 + 1) * refreshAfter) + i + 1;
+            }
+
+            i++;
+        }
+
+        client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+
+        for (String id : deletedDocuments) {
+            client.delete(new DeleteRequest(name, id)).actionGet();
+        }
+
+        client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
+        log.info("Test index creation finished after " + (System.currentTimeMillis() - start) + " ms");
     }
 
-    /**
-     * Writes the documents from this TestData instance to the given index.
-     *
-     * @param client the client to be used
-     * @param name the name of the target index
-     * @param rolloverAfter if this is not -1, a rollover operation will be executed for every n documents. This is useful
-     *                      for creating several generations of data stream backing indices.
-     */
     public void putDocuments(Client client, String name, int rolloverAfter) {
         try {
             Random random = new Random(subRandomSeed);
@@ -209,12 +228,15 @@ public class TestData {
 
                 if (i > nextRefresh) {
                     client.admin().indices().refresh(new RefreshRequest(name)).actionGet();
-                    nextRefresh = (int) Math.floor((random.nextGaussian() * 0.5 + 1) * refreshAfter) + i + 1;
+                    double g = random.nextGaussian();
+
+                    nextRefresh = (int) Math.floor((g * 0.5 + 1) * refreshAfter) + i + 1;
+                    log.debug("refresh at " + i + " " + g + " " + (g * 0.5 + 1));
                 }
 
                 if (i > nextRollover) {
-                    // By using rollover, we make sure that we get several generations of backing indices
                     client.admin().indices().rolloverIndex(new RolloverRequest(name, null));
+
                     nextRollover += rolloverAfter;
                 }
 

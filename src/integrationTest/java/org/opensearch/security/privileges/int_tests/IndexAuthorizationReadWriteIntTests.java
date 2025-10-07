@@ -28,14 +28,14 @@ import org.opensearch.action.admin.indices.open.OpenIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.test.framework.TestAlias;
-import org.opensearch.test.framework.TestIndex;
-import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.data.TestAlias;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 

@@ -29,9 +29,9 @@ import org.hamcrest.DiagnosingMatcher;
 import org.hamcrest.Matcher;
 
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.test.framework.TestIndex;
-import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
