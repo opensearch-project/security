@@ -711,7 +711,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.16'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
-    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
+    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.4') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
