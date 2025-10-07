@@ -774,7 +774,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-
             // Listening on POST and DELETE operations in resource indices
             ResourceIndexListener resourceIndexListener = new ResourceIndexListener(
                 threadPool,
@@ -2306,14 +2305,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.initOnNodeStart();
         }
 
-        // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be
-        // instantiated
-        // create resource sharing index if absent
-        // TODO check if this should be wrapped in an atomic completable future
-        log.debug("Attempting to create Resource Sharing index");
-        Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();
-        rsIndexHandler.createResourceSharingIndicesIfAbsent(resourceIndices);
-
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2446,15 +2437,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
     public void loadExtensions(ExtensionLoader loader) {
-        // discover & register extensions and their types
-        Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-        resourcePluginInfo.setResourceSharingExtensions(
-            exts,
-            settings.getAsList(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES)
-        );
+        if (settings != null) {
+            // discover & register extensions and their types
+            Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
+            resourcePluginInfo.setResourceSharingExtensions(
+                exts,
+                settings.getAsList(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES)
+            );
 
-        // load action-groups in memory
-        ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
+            // load action-groups in memory
+            ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
+        }
     }
     // CS-ENFORCE-SINGLE
 
