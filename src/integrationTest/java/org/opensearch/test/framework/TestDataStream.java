@@ -95,6 +95,11 @@ public class TestDataStream implements TestIndexOrAliasOrDatastream {
             return this;
         }
 
+        public Builder segmentCount(int segmentCount) {
+            testDataBuilder.segmentCount(segmentCount);
+            return this;
+        }
+
         public TestDataStream build() {
             if (testData == null) {
                 testData = testDataBuilder.get();

@@ -72,7 +72,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
-import org.opensearch.test.framework.matcher.IndexApiResponseMatchers;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -459,7 +459,7 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
-        private Map<String, IndexApiResponseMatchers.IndexMatcher> indexMatchers = new HashMap<>();
+        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
         private boolean adminCertUser = false;
 
         private Boolean hidden = null;
@@ -512,25 +512,6 @@ public class TestSecurityConfig {
         public User attr(String key, String value) {
             this.attributes.put(key, value);
             return this;
-        }
-
-        /**
-         * Associates an IndexMatcher with this test user. The IndexMatcher can be later used as a test oracle.
-         * See IndexAuthorizationReadOnlyIntTests for examples.
-         */
-        public User indexMatcher(String key, IndexApiResponseMatchers.IndexMatcher indexMatcher) {
-            this.indexMatchers.put(key, indexMatcher);
-            return this;
-        }
-
-        public IndexApiResponseMatchers.IndexMatcher indexMatcher(String key) {
-            IndexApiResponseMatchers.IndexMatcher result = this.indexMatchers.get(key);
-
-            if (result != null) {
-                return result;
-            } else {
-                throw new RuntimeException("Unknown index matcher " + key + " in user " + this.name);
-            }
         }
 
         public User hash(String hash) {
@@ -586,7 +567,7 @@ public class TestSecurityConfig {
             if (result != null) {
                 return key.type.cast(result);
             } else {
-                return null;
+                throw new RuntimeException("Unknown reference " + key + " in user " + this.name);
             }
         }
 

@@ -36,17 +36,17 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
-import org.opensearch.test.framework.matcher.IndexApiResponseMatchers;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimited;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimited;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -135,6 +135,41 @@ public class IndexAuthorizationReadWriteIntTests {
         index_hidden
     );
 
+    /**
+     * This key identifies assertion reference data for index search/read permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> READ = new TestSecurityConfig.User.MetadataKey<>(
+        "read",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
+    /**
+     * This key identifies assertion reference data for index write permissions of individual users. This does
+     * not include index creation permissions.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> WRITE = new TestSecurityConfig.User.MetadataKey<>(
+        "write",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
+    /**
+     * This key identifies assertion reference data for create index permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> CREATE_INDEX =
+        new TestSecurityConfig.User.MetadataKey<>("create_index", RestIndexMatchers.IndexMatcher.class);
+
+    /**
+     * This key identifies assertion reference data for manage index permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> MANAGE_INDEX =
+        new TestSecurityConfig.User.MetadataKey<>("manage_index", RestIndexMatchers.IndexMatcher.class);
+
+    /**
+     * This key identifies assertion reference data for alias management permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> MANAGE_ALIAS =
+        new TestSecurityConfig.User.MetadataKey<>("manage_alias", RestIndexMatchers.IndexMatcher.class);
+
     // -------------------------------------------------------------------------------------------------------
     // Test users with which the tests will be executed; the users need to be added to the list USERS below
     // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
@@ -155,12 +190,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("index_aw*")
         )//
-        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
-        .indexMatcher("write", limitedTo(index_aw1, index_aw2))//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
+        .reference(WRITE, limitedTo(index_aw1, index_aw2))//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple user that can read from index_b* and write to index_bw*; the user as no privileges to create or manage indices
@@ -175,12 +209,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("index_bw*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple user that can read from index_b* and write to index_bw*; additionally, they can create index_bw* indices
@@ -197,12 +230,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("create_index")
                 .on("index_bw*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(CREATE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple user that can read from index_b* and write to index_bw*; additionally, they can create and manage index_bw* indices
@@ -219,12 +251,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("manage")
                 .on("index_bw*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("get_alias", limitedTo());
+        .reference(READ, limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(CREATE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(MANAGE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(MANAGE_ALIAS, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2));
 
     /**
      * A user that can read from index_b* and write to index_bw*; they can create and manage index_bw* indices and manage alias_bwx* aliases.
@@ -245,12 +276,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
-        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("get_alias", limitedTo(alias_bwx));
+        .reference(READ, limitedTo(index_br1, index_br2, index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(CREATE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2))//
+        .reference(MANAGE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx))//
+        .reference(MANAGE_ALIAS, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx));
 
     /**
      * This user differs from LIMITED_USER_B_MANAGE_INDEX_ALIAS the way that it does not give any direct
@@ -269,12 +299,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
         )//
-        .indexMatcher("read", limitedTo(index_br1, index_br2))//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedTo(alias_bwx))//
-        .indexMatcher("manage_alias", limitedTo(alias_bwx))//
-        .indexMatcher("get_alias", limitedTo(alias_bwx));
+        .reference(READ, limitedTo(index_br1, index_br2))//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedTo(alias_bwx))//
+        .reference(MANAGE_ALIAS, limitedTo(alias_bwx));
 
     /**
      * Same as LIMITED_USER_B_MANAGE_INDEX_ALIAS with the addition of read/write/manage privileges on index_hidden*
@@ -295,8 +324,8 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("crud", "manage", "manage_aliases")
                 .on("alias_bwx*")
         )//
-        .indexMatcher(
-            "read",
+        .reference(
+            READ,
             limitedTo(
                 index_ar1,
                 index_ar2,
@@ -311,11 +340,10 @@ public class IndexAuthorizationReadWriteIntTests {
                 index_hidden
             )
         )//
-        .indexMatcher("write", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
-        .indexMatcher("create_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
-        .indexMatcher("manage_index", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
-        .indexMatcher("manage_alias", limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
-        .indexMatcher("get_alias", limitedTo(alias_bwx));
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .reference(CREATE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, index_hidden))//
+        .reference(MANAGE_INDEX, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden))//
+        .reference(MANAGE_ALIAS, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, alias_bwx, index_hidden));
 
     /**
      * Same as LIMITED_USER_B with the addition of read/write/manage privileges for ".system_index_plugin", ".system_index_plugin_*"
@@ -333,8 +361,8 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("manage", "system:admin/system_index")
                 .on("index_bw*", ".system_index_plugin", ".system_index_plugin_*")
         )//
-        .indexMatcher(
-            "read",
+        .reference(
+            READ,
             limitedTo(
                 index_br1,
                 index_br2,
@@ -346,23 +374,19 @@ public class IndexAuthorizationReadWriteIntTests {
                 system_index_plugin_not_existing
             )
         )//
-        .indexMatcher(
-            "write",
+        .reference(WRITE, limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing))//
+        .reference(
+            CREATE_INDEX,
             limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
         )//
-        .indexMatcher(
-            "create_index",
+        .reference(
+            MANAGE_INDEX,
             limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
         )//
-        .indexMatcher(
-            "manage_index",
+        .reference(
+            MANAGE_ALIAS,
             limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
-        )//
-        .indexMatcher(
-            "manage_alias",
-            limitedTo(index_bw1, index_bw2, index_bwx1, index_bwx2, system_index_plugin, system_index_plugin_not_existing)
-        )//
-        .indexMatcher("get_alias", limitedToNone());
+        );
 
     /**
      * A simple test user that has read privileges on alias_ab1r and write privileges on alias_ab1w*. The user
@@ -378,16 +402,14 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("read", "indices_monitor", "indices:admin/aliases/get", "write")
                 .on("alias_ab1w*")
         )//
-        .indexMatcher(
-            "read",
+        .reference(
+            READ,
             limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1, alias_ab1r, alias_ab1w, alias_ab1w_nowriteindex)
         )//
-        .indexMatcher("write", limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w, alias_ab1w_nowriteindex))//
-        .indexMatcher("create_index", limitedTo(index_aw1, index_aw2, index_bw1))//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2, index_br1, index_bw1, alias_ab1r, alias_ab1w));
-
+        .reference(WRITE, limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w, alias_ab1w_nowriteindex))//
+        .reference(CREATE_INDEX, limitedTo(index_aw1, index_aw2, index_bw1))//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
     /**
      * A simple test user that has read/only privileges on alias_ab1r and alias_ab1w*. However, they have write
      * privileges for the member index index_aw1.
@@ -402,11 +424,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("read")
                 .on("alias_ab1w")
         )//
-        .indexMatcher("read", limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w))//
-        .indexMatcher("write", limitedTo(index_aw1))//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone());
+        .reference(READ, limitedTo(index_aw1, index_aw2, index_bw1, alias_ab1w))//
+        .reference(WRITE, limitedTo(index_aw1))//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple test user which has read/only privileges for "*"
@@ -419,12 +441,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("read")
                 .on("*")
         )//
-        .indexMatcher("read", unlimited())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, unlimited())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple test user which has read/only privileges for "index_a*"
@@ -437,12 +458,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("read")
                 .on("index_a*")
         )//
-        .indexMatcher("read", limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedTo(index_ar1, index_ar2, index_aw1, index_aw2))//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple test user that only has index privileges for indices that are not used by this test.
@@ -455,12 +475,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("crud", "indices_monitor")
                 .on("index_does_not_exist_*")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedToNone())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A simple test user that has no index privileges at all.
@@ -471,12 +490,11 @@ public class IndexAuthorizationReadWriteIntTests {
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_index", limitedToNone())//
-        .indexMatcher("manage_index", limitedToNone())//
-        .indexMatcher("manage_alias", limitedToNone())//
-        .indexMatcher("get_alias", limitedToNone());
+        .reference(READ, limitedToNone())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_INDEX, limitedToNone())//
+        .reference(MANAGE_INDEX, limitedToNone())//
+        .reference(MANAGE_ALIAS, limitedToNone());
 
     /**
      * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
@@ -492,12 +510,11 @@ public class IndexAuthorizationReadWriteIntTests {
                 .indexPermissions("*")
                 .on("*")
         )//
-        .indexMatcher("read", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("write", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("create_index", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("manage_index", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("manage_alias", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
-        .indexMatcher("get_alias", limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx));
+        .reference(READ, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .reference(WRITE, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .reference(CREATE_INDEX, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .reference(MANAGE_INDEX, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx))//
+        .reference(MANAGE_ALIAS, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_bwx1, index_bwx2, alias_bwx));
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -506,12 +523,11 @@ public class IndexAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
-        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("write", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("create_index", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("manage_index", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("manage_alias", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("get_alias", unlimitedIncludingOpenSearchSecurityIndex());
+        .reference(READ, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(WRITE, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(CREATE_INDEX, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(MANAGE_INDEX, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(MANAGE_ALIAS, unlimitedIncludingOpenSearchSecurityIndex());
 
     static List<TestSecurityConfig.User> USERS = ImmutableList.of(
         LIMITED_USER_A,
@@ -570,10 +586,7 @@ public class IndexAuthorizationReadWriteIntTests {
     public void putDocument() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.put("index_bw1/_doc/put_test_1", json("a", 1));
-            assertThat(
-                httpResponse,
-                containsExactly(index_bw1).at("_index").reducedBy(user.indexMatcher("write")).whenEmpty(isForbidden())
-            );
+            assertThat(httpResponse, containsExactly(index_bw1).at("_index").reducedBy(user.reference(WRITE)).whenEmpty(isForbidden()));
         } finally {
             delete("index_bw1/_doc/put_test_1");
         }
@@ -583,7 +596,7 @@ public class IndexAuthorizationReadWriteIntTests {
     public void putDocument_systemIndex() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.put(".system_index_plugin/_doc/put_test_1", json("a", 1));
-            if (clusterConfig.systemIndexPrivilegeEnabled && user.indexMatcher("write").covers(system_index_plugin)) {
+            if (clusterConfig.systemIndexPrivilegeEnabled && user.reference(WRITE).covers(system_index_plugin)) {
                 assertThat(httpResponse, isCreated());
             } else if (user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isCreated());
@@ -606,10 +619,7 @@ public class IndexAuthorizationReadWriteIntTests {
             }
 
             HttpResponse httpResponse = restClient.delete("index_bw1/_doc/put_delete_test_1");
-            assertThat(
-                httpResponse,
-                containsExactly(index_bw1).at("_index").reducedBy(user.indexMatcher("write")).whenEmpty(isForbidden())
-            );
+            assertThat(httpResponse, containsExactly(index_bw1).at("_index").reducedBy(user.reference(WRITE)).whenEmpty(isForbidden()));
         } finally {
             delete("index_bw1/_doc/put_delete_test_1");
         }
@@ -651,7 +661,7 @@ public class IndexAuthorizationReadWriteIntTests {
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 // dnfof is not applicable to indices:data/write/delete/byquery, so we need privileges for all indices
-                if (user.indexMatcher("write").coversAll(index_aw1, index_aw2, index_bw1, index_bw2)) {
+                if (user.reference(WRITE).coversAll(index_aw1, index_aw2, index_bw1, index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -671,7 +681,7 @@ public class IndexAuthorizationReadWriteIntTests {
     @Test
     public void putDocument_bulk() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            IndexApiResponseMatchers.IndexMatcher writePrivileges = user.indexMatcher("write");
+            RestIndexMatchers.IndexMatcher writePrivileges = user.reference(WRITE);
 
             HttpResponse httpResponse = restClient.putJson("_bulk", """
                 {"index": {"_index": "index_aw1", "_id": "new_doc_aw1"}}
@@ -701,7 +711,7 @@ public class IndexAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.put("alias_ab1w/_doc/put_doc_alias_test_1", json("a, 1"));
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("write").coversAll(index_aw1, index_aw2, index_bw1)) {
+                if (user.reference(WRITE).coversAll(index_aw1, index_aw2, index_bw1)) {
                     assertThat(httpResponse, isCreated());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -717,7 +727,7 @@ public class IndexAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.put("alias_ab1w_nowriteindex/_doc/put_doc_alias_test_1", json("a, 1"));
 
-            if (containsExactly(alias_ab1w_nowriteindex).reducedBy(user.indexMatcher("write")).isEmpty()) {
+            if (containsExactly(alias_ab1w_nowriteindex).reducedBy(user.reference(WRITE)).isEmpty()) {
                 assertThat(httpResponse, isForbidden());
             } else {
                 assertThat(httpResponse, isBadRequest());
@@ -742,7 +752,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(index_aw1).at("items[*].index[?(@.result == 'created')]._index")
-                        .reducedBy(user.indexMatcher("write"))
+                        .reducedBy(user.reference(WRITE))
                         .whenEmpty(isOk())
                 );
             } else {
@@ -759,7 +769,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.put("index_bwx1/_doc/put_doc_non_existing_index_test_1", json("a, 1"));
             assertThat(
                 httpResponse,
-                containsExactly(index_bwx1).at("_index").reducedBy(user.indexMatcher("create_index")).whenEmpty(isForbidden())
+                containsExactly(index_bwx1).at("_index").reducedBy(user.reference(CREATE_INDEX)).whenEmpty(isForbidden())
             );
         } finally {
             delete(index_bwx1);
@@ -772,7 +782,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.putJson("index_bwx1", "{}");
             assertThat(
                 httpResponse,
-                containsExactly(index_bwx1).at("index").reducedBy(user.indexMatcher("create_index")).whenEmpty(isForbidden())
+                containsExactly(index_bwx1).at("index").reducedBy(user.reference(CREATE_INDEX)).whenEmpty(isForbidden())
             );
         } finally {
             delete(index_bwx1);
@@ -784,7 +794,7 @@ public class IndexAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.putJson(".system_index_plugin_not_existing", "{}");
 
-            if (user.indexMatcher("create_index").covers(system_index_plugin_not_existing)) {
+            if (user.reference(CREATE_INDEX).covers(system_index_plugin_not_existing)) {
                 assertThat(httpResponse, isOk());
             } else if (user == SUPER_UNLIMITED_USER || (user == UNLIMITED_USER && !clusterConfig.systemIndexPrivilegeEnabled)) {
                 assertThat(httpResponse, isOk());
@@ -802,7 +812,7 @@ public class IndexAuthorizationReadWriteIntTests {
             createInitialTestObjects(index_bwx1);
 
             HttpResponse httpResponse = restClient.delete("index_bwx1");
-            if (user.indexMatcher("manage_index").covers(index_bwx1)) {
+            if (user.reference(MANAGE_INDEX).covers(index_bwx1)) {
                 assertThat(httpResponse, isOk());
             } else {
                 assertThat(httpResponse, isForbidden());
@@ -819,7 +829,7 @@ public class IndexAuthorizationReadWriteIntTests {
 
             HttpResponse httpResponse = restClient.delete(".system_index_plugin_not_existing");
 
-            if (clusterConfig.systemIndexPrivilegeEnabled && user.indexMatcher("manage_index").covers(system_index_plugin_not_existing)) {
+            if (clusterConfig.systemIndexPrivilegeEnabled && user.reference(MANAGE_INDEX).covers(system_index_plugin_not_existing)) {
                 assertThat(httpResponse, isOk());
             } else if (user == SUPER_UNLIMITED_USER) {
                 assertThat(httpResponse, isOk());
@@ -842,7 +852,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bwx1)) {
+                if (user.reference(MANAGE_ALIAS).covers(index_bwx1)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -861,7 +871,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.delete("index_bw1/_aliases/alias_bwx");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1) || user.indexMatcher("manage_alias").covers(alias_bwx)) {
+                if (user.reference(MANAGE_ALIAS).covers(index_bw1) || user.reference(MANAGE_ALIAS).covers(alias_bwx)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -903,7 +913,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1)) {
+                if (user.reference(MANAGE_ALIAS).covers(index_bw1)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -925,7 +935,7 @@ public class IndexAuthorizationReadWriteIntTests {
                   ]
                 }""");
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").coversAll(index_bw1, index_bw2)) {
+                if (user.reference(MANAGE_ALIAS).coversAll(index_bw1, index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -949,7 +959,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1) || user.indexMatcher("manage_alias").covers(alias_bwx)) {
+                if (user.reference(MANAGE_ALIAS).covers(index_bw1) || user.reference(MANAGE_ALIAS).covers(alias_bwx)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -996,7 +1006,7 @@ public class IndexAuthorizationReadWriteIntTests {
                   ]
                 }""");
 
-            if (user.indexMatcher("manage_index").covers(index_bwx1)) {
+            if (user.reference(MANAGE_INDEX).covers(index_bwx1)) {
                 assertThat(httpResponse, isOk());
             } else {
                 assertThat(httpResponse, isForbidden());
@@ -1014,7 +1024,7 @@ public class IndexAuthorizationReadWriteIntTests {
                   "source": { "index": "index_br1" },
                   "dest": { "index": "index_bwx1" }
                 }""");
-            if (containsExactly(index_bwx1).reducedBy(user.indexMatcher("create_index")).isEmpty()) {
+            if (containsExactly(index_bwx1).reducedBy(user.reference(CREATE_INDEX)).isEmpty()) {
                 assertThat(httpResponse, isForbidden());
                 assertThat(cluster.getAdminCertRestClient().get("index_bwx1/_search"), isNotFound());
             } else {
@@ -1041,7 +1051,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.post(sourceIndex + "/_clone/" + targetIndex);
             assertThat(
                 httpResponse,
-                containsExactly(index_bwx1).at("index").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+                containsExactly(index_bwx1).at("index").reducedBy(user.reference(MANAGE_INDEX)).whenEmpty(isForbidden())
             );
         } finally {
             cluster.getInternalNodeClient()
@@ -1061,7 +1071,7 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.post("index_bw1/_close");
             assertThat(
                 httpResponse,
-                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.reference(MANAGE_INDEX)).whenEmpty(isForbidden())
             );
         } finally {
             cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("index_bw1")).actionGet();
@@ -1090,11 +1100,11 @@ public class IndexAuthorizationReadWriteIntTests {
             HttpResponse httpResponse = restClient.post("index_bw1/_close");
             assertThat(
                 httpResponse,
-                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.indexMatcher("manage_index")).whenEmpty(isForbidden())
+                containsExactly(index_bw1).at("indices.keys()").reducedBy(user.reference(MANAGE_INDEX)).whenEmpty(isForbidden())
             );
             httpResponse = restClient.post("index_bw1/_open");
 
-            if (containsExactly(index_bw1).reducedBy(user.indexMatcher("manage_index")).isEmpty()) {
+            if (containsExactly(index_bw1).reducedBy(user.reference(MANAGE_INDEX)).isEmpty()) {
                 assertThat(httpResponse, isForbidden());
             } else {
                 assertThat(httpResponse, isOk());
@@ -1117,7 +1127,7 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
-                if (user.indexMatcher("manage_alias").covers(index_bw1) && user.indexMatcher("manage_index").covers(index_bw2)) {
+                if (user.reference(MANAGE_ALIAS).covers(index_bw1) && user.reference(MANAGE_INDEX).covers(index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());

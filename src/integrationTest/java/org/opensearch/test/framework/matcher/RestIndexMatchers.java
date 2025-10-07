@@ -50,7 +50,7 @@ import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
  *     <li>The results of REST API calls can be also associated with a maximum space of indices the operation could work on. Combined with the user specific index matcher, one can determine the intersection of the allowed indices and thus the indices that are allowed in the particular case. The matchers support JSON path expressions to extract information on indices from the HTTP response bodies. See IndexAuthorizationReadOnlyIntTests for examples.</li>
  * </ul>
  */
-public class IndexApiResponseMatchers {
+public class RestIndexMatchers {
 
     /**
      * Matchers that are directly used on HTTP responses

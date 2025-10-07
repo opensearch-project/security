@@ -30,14 +30,15 @@ import org.opensearch.test.framework.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
@@ -65,6 +66,23 @@ public class SnapshotAuthorizationIntTests {
     static final TestIndex index_bwx1 = TestIndex.name("index_bwx1").documentCount(10).seed(13).build(); // not initially created
     static final TestIndex index_bwx2 = TestIndex.name("index_bwx2").documentCount(10).seed(14).build(); // not initially created
 
+    /**
+     * This key identifies assertion reference data for index search/read permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> READ = new TestSecurityConfig.User.MetadataKey<>(
+        "read",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
+    /**
+     * This key identifies assertion reference data for index write permissions of individual users. This does
+     * not include index creation permissions.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> WRITE = new TestSecurityConfig.User.MetadataKey<>(
+        "write",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
     static TestSecurityConfig.User LIMITED_USER_A = new TestSecurityConfig.User("limited_user_A")//
         .description("index_a*")//
         .roles(
@@ -75,8 +93,8 @@ public class SnapshotAuthorizationIntTests {
                 .indexPermissions("write", "manage")
                 .on("index_aw*")
         )//
-        .indexMatcher("read", limitedTo(index_a1, index_a2, index_awx1, index_awx2))//
-        .indexMatcher("write", limitedTo(index_awx1, index_awx2));
+        .reference(READ, limitedTo(index_a1, index_a2, index_awx1, index_awx2))//
+        .reference(WRITE, limitedTo(index_awx1, index_awx2));
 
     static TestSecurityConfig.User LIMITED_USER_B = new TestSecurityConfig.User("limited_user_B")//
         .description("index_b*")//
@@ -88,8 +106,8 @@ public class SnapshotAuthorizationIntTests {
                 .indexPermissions("write", "manage")
                 .on("index_bw*")
         )//
-        .indexMatcher("read", limitedTo(index_b1, index_b2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bwx1, index_bwx2));
+        .reference(READ, limitedTo(index_b1, index_b2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bwx1, index_bwx2));
 
     static TestSecurityConfig.User LIMITED_USER_B_SYSTEM_INDEX = new TestSecurityConfig.User("limited_user_B_system_index")//
         .description("index_b*, .system_index_plugin")//
@@ -106,8 +124,8 @@ public class SnapshotAuthorizationIntTests {
                 .on(".system_index_plugin_not_existing")
 
         )//
-        .indexMatcher("read", limitedTo(index_b1, index_b2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_bwx1, index_bwx2, system_index_plugin_not_existing));
+        .reference(READ, limitedTo(index_b1, index_b2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_bwx1, index_bwx2, system_index_plugin_not_existing));
 
     static TestSecurityConfig.User LIMITED_USER_AB = new TestSecurityConfig.User("limited_user_AB")//
         .description("index_a*, index_b*")//
@@ -119,8 +137,8 @@ public class SnapshotAuthorizationIntTests {
                 .indexPermissions("write", "manage")
                 .on("index_aw*", "index_bw*")
         )//
-        .indexMatcher("read", limitedTo(index_a1, index_a2, index_awx1, index_awx2, index_b1, index_b2, index_bwx1, index_bwx2))//
-        .indexMatcher("write", limitedTo(index_awx1, index_awx2, index_bwx1, index_bwx2));
+        .reference(READ, limitedTo(index_a1, index_a2, index_awx1, index_awx2, index_b1, index_b2, index_bwx1, index_bwx2))//
+        .reference(WRITE, limitedTo(index_awx1, index_awx2, index_bwx1, index_bwx2));
 
     static final TestSecurityConfig.User LIMITED_USER_NONE = new TestSecurityConfig.User("limited_user_none")//
         .description("no index privileges")//
@@ -128,8 +146,8 @@ public class SnapshotAuthorizationIntTests {
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("write", limitedToNone());
+        .reference(READ, limitedToNone())//
+        .reference(WRITE, limitedToNone());
 
     static final TestSecurityConfig.User UNLIMITED_USER = new TestSecurityConfig.User("unlimited_user")//
         .description("unlimited")//
@@ -140,12 +158,12 @@ public class SnapshotAuthorizationIntTests {
                 .on("*")//
 
         )//
-        .indexMatcher(
-            "read",
+        .reference(
+            READ,
             limitedTo(index_a1, index_a2, index_a3, index_awx1, index_awx2, index_b1, index_b2, index_b3, index_bwx1, index_bwx2)
         )//
-        .indexMatcher(
-            "write",
+        .reference(
+            WRITE,
             limitedTo(index_a1, index_a2, index_a3, index_awx1, index_awx2, index_b1, index_b2, index_b3, index_bwx1, index_bwx2)
         );
 
@@ -156,8 +174,8 @@ public class SnapshotAuthorizationIntTests {
     static final TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
-        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("write", unlimitedIncludingOpenSearchSecurityIndex());
+        .reference(READ, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(WRITE, unlimitedIncludingOpenSearchSecurityIndex());
 
     static final List<TestSecurityConfig.User> USERS = ImmutableList.of(
         LIMITED_USER_A,
@@ -201,10 +219,7 @@ public class SnapshotAuthorizationIntTests {
                 "_snapshot/test_repository/single_index_snapshot/_restore?wait_for_completion=true"
             );
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.indexMatcher("write"))
-            );
+            assertThat(httpResponse, containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
         } finally {
             delete("_snapshot/test_repository/single_index_snapshot");
@@ -223,10 +238,7 @@ public class SnapshotAuthorizationIntTests {
                 json("rename_pattern", "index_(.+)x1", "rename_replacement", "index_$1x2")
             );
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_awx2).at("snapshot.indices").butForbiddenIfIncomplete(user.indexMatcher("write"))
-            );
+            assertThat(httpResponse, containsExactly(index_awx2).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
         } finally {
             delete("_snapshot/test_repository/single_index_snapshot");
@@ -245,10 +257,7 @@ public class SnapshotAuthorizationIntTests {
                 json("rename_pattern", "index_a(.*)", "rename_replacement", "index_b$1")
             );
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_bwx1).at("snapshot.indices").butForbiddenIfIncomplete(user.indexMatcher("write"))
-            );
+            assertThat(httpResponse, containsExactly(index_bwx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
         } finally {
             delete("_snapshot/test_repository/single_index_snapshot");
@@ -270,8 +279,7 @@ public class SnapshotAuthorizationIntTests {
             if (clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
-                    containsExactly(system_index_plugin_not_existing).at("snapshot.indices")
-                        .butForbiddenIfIncomplete(user.indexMatcher("write"))
+                    containsExactly(system_index_plugin_not_existing).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE))
                 );
             } else {
                 assertThat(httpResponse, isForbidden());
@@ -295,10 +303,7 @@ public class SnapshotAuthorizationIntTests {
                 json("indices", "index_awx1")
             );
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.indexMatcher("write"))
-            );
+            assertThat(httpResponse, containsExactly(index_awx1).at("snapshot.indices").butForbiddenIfIncomplete(user.reference(WRITE)));
 
         } finally {
             delete("_snapshot/test_repository/all_index_snapshot");

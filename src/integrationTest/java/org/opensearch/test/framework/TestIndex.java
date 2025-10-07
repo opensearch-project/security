@@ -107,7 +107,7 @@ public class TestIndex implements TestIndexOrAliasOrDatastream {
         }
 
         public Builder shards(int value) {
-            settings.put("index.number_of_shards", 5);
+            settings.put("index.number_of_shards", value);
             return this;
         }
 

@@ -36,15 +36,16 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimited;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimited;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -89,6 +90,35 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestDataStream ds_bwx1 = TestDataStream.name("ds_bwx1").documentCount(0).build(); // not initially created
     static TestDataStream ds_bwx2 = TestDataStream.name("ds_bwx2").documentCount(0).build(); // not initially created
 
+    /**
+     * This key identifies assertion reference data for index search/read permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> READ = new TestSecurityConfig.User.MetadataKey<>(
+        "read",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
+    /**
+     * This key identifies assertion reference data for index write permissions of individual users. This does
+     * not include index creation permissions.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> WRITE = new TestSecurityConfig.User.MetadataKey<>(
+        "write",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
+    /**
+     * This key identifies assertion reference data for create index permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> CREATE_DATA_STREAM =
+        new TestSecurityConfig.User.MetadataKey<>("create_data_stream", RestIndexMatchers.IndexMatcher.class);
+
+    /**
+     * This key identifies assertion reference data for manage index permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> MANAGE_DATA_STREAM =
+        new TestSecurityConfig.User.MetadataKey<>("manage_data_stream", RestIndexMatchers.IndexMatcher.class);
+
     // -------------------------------------------------------------------------------------------------------
     // Test users with which the tests will be executed; the users need to be added to the list USERS below
     // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
@@ -109,10 +139,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("ds_aw*")
         )//
-        .indexMatcher("read", limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
-        .indexMatcher("write", limitedTo(ds_aw1, ds_aw2))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
+        .reference(WRITE, limitedTo(ds_aw1, ds_aw2))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read from ds_b* and write to ds_bw*; the user as no privileges to create or manage data streams
@@ -127,10 +157,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("ds_bw*")
         )//
-        .indexMatcher("read", limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read from ds_b* and write to ds_bw*; the user as no privileges to create or manage data streams.
@@ -146,10 +176,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("ds_bw*")
         )//
-        .indexMatcher("read", limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2, ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2, ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * This is an artificial user - in the sense that in real life it would likely not exist this way.
@@ -169,10 +199,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("indices:admin/mapping/auto_put")
                 .on("*")
         )//
-        .indexMatcher("read", limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read from ds_b* and write to ds_bw*; they can also create data streams with the name ds_bw*
@@ -189,10 +219,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("indices:admin/data_stream/create")
                 .on("ds_bw*")
         )//
-        .indexMatcher("read", limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read from ds_b* and write to ds_bw*; they can also create and manage data streams with the name ds_bw*
@@ -209,10 +239,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("manage")
                 .on("ds_bw*")
         )//
-        .indexMatcher("read", limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("manage_data_stream", limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
+        .reference(READ, limitedTo(ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(MANAGE_DATA_STREAM, limitedTo(ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
 
     /**
      * A user that can read from ds_a* and ds_b* and write/create/manage ds_aw*, ds_bw*
@@ -229,10 +259,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("manage")
                 .on("ds_aw*", "ds_bw*")
         )//
-        .indexMatcher("read", limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2, ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("write", limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("create_data_stream", limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
-        .indexMatcher("manage_data_stream", limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
+        .reference(READ, limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2, ds_br1, ds_br2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(WRITE, limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(CREATE_DATA_STREAM, limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2))//
+        .reference(MANAGE_DATA_STREAM, limitedTo(ds_aw1, ds_aw2, ds_bw1, ds_bw2, ds_bwx1, ds_bwx2));
 
     /**
      * A simple user that can read from index_c*
@@ -247,10 +277,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on("index_cw*")
         )//
-        .indexMatcher("read", limitedTo(index_cr1, index_cw1))//
-        .indexMatcher("write", limitedTo(index_cw1))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(index_cr1, index_cw1))//
+        .reference(WRITE, limitedTo(index_cw1))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read all indices and data streams, but cannot write anything
@@ -263,10 +293,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("read")
                 .on("*")
         )//
-        .indexMatcher("read", unlimited())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, unlimited())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple user that can read from ds_a*, but cannot write anything
@@ -279,10 +309,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("read")
                 .on("ds_a*")
         )//
-        .indexMatcher("read", limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple test user that only has index privileges for indices that are not used by this test.
@@ -295,10 +325,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("crud", "indices_monitor")
                 .on("ds_does_not_exist_*")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedToNone())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A simple test user that has no index privileges at all.
@@ -309,10 +339,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
             new TestSecurityConfig.Role("r1")//
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
-        .indexMatcher("read", limitedToNone())//
-        .indexMatcher("write", limitedToNone())//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedToNone())//
+        .reference(WRITE, limitedToNone())//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * This user has only privileges on backing indices for data streams, but not on the data streams themselves
@@ -329,10 +359,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("write")
                 .on(".ds-ds_aw*")
         )//
-        .indexMatcher("read", limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
-        .indexMatcher("write", limitedTo(ds_aw1, ds_aw2))//
-        .indexMatcher("create_data_stream", limitedToNone())//
-        .indexMatcher("manage_data_stream", limitedToNone());
+        .reference(READ, limitedTo(ds_ar1, ds_ar2, ds_aw1, ds_aw2))//
+        .reference(WRITE, limitedTo(ds_aw1, ds_aw2))//
+        .reference(CREATE_DATA_STREAM, limitedToNone())//
+        .reference(MANAGE_DATA_STREAM, limitedToNone());
 
     /**
      * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
@@ -346,10 +376,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 .indexPermissions("*")
                 .on("*")
         )//
-        .indexMatcher("read", unlimited())//
-        .indexMatcher("write", unlimited())//
-        .indexMatcher("create_data_stream", unlimited())//
-        .indexMatcher("manage_data_stream", unlimited());
+        .reference(READ, unlimited())//
+        .reference(WRITE, unlimited())//
+        .reference(CREATE_DATA_STREAM, unlimited())//
+        .reference(MANAGE_DATA_STREAM, unlimited());
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -358,10 +388,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
     static TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
-        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("write", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("create_data_stream", unlimitedIncludingOpenSearchSecurityIndex())//
-        .indexMatcher("manage_data_stream", unlimitedIncludingOpenSearchSecurityIndex());
+        .reference(READ, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(WRITE, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(CREATE_DATA_STREAM, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(MANAGE_DATA_STREAM, unlimitedIncludingOpenSearchSecurityIndex());
 
     static List<TestSecurityConfig.User> USERS = ImmutableList.of(
         LIMITED_USER_A,
@@ -406,7 +436,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
     public void createDocument() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.post("ds_bw1/_doc/", json("a", 1, "@timestamp", Instant.now().toString()));
-            assertThat(httpResponse, containsExactly(ds_bw1).at("_index").reducedBy(user.indexMatcher("write")).whenEmpty(isForbidden()));
+            assertThat(httpResponse, containsExactly(ds_bw1).at("_index").reducedBy(user.reference(WRITE)).whenEmpty(isForbidden()));
         }
     }
 
@@ -451,7 +481,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 // dnfof is not applicable to indices:data/write/delete/byquery, so we need privileges for all indices
-                if (user.indexMatcher("write").coversAll(ds_aw1, ds_aw2, ds_bw1, ds_bw2)) {
+                if (user.reference(WRITE).coversAll(ds_aw1, ds_aw2, ds_bw1, ds_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -459,7 +489,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
             } else {
                 if (user != LIMITED_USER_NONE && user != LIMITED_READ_ONLY_ALL && user != LIMITED_READ_ONLY_A) {
                     assertThat(httpResponse, isOk());
-                    int expectedDeleteCount = containsExactly(ds_aw1, ds_bw1).at("_index").reducedBy(user.indexMatcher("write")).size();
+                    int expectedDeleteCount = containsExactly(ds_aw1, ds_bw1).at("_index").reducedBy(user.reference(WRITE)).size();
                     assertEquals(httpResponse.getBody(), expectedDeleteCount, httpResponse.bodyAsMap().get("deleted"));
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -490,7 +520,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_aw1, ds_bw1).at("items[*].create[?(@.result == 'created')]._index")
-                        .reducedBy(user.indexMatcher("write"))
+                        .reducedBy(user.reference(WRITE))
                         .whenEmpty(isOk())
                 );
             } else {
@@ -506,7 +536,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.put("_data_stream/ds_bwx1");
 
-            if (containsExactly(ds_bwx1).reducedBy(user.indexMatcher("create_data_stream")).isEmpty()) {
+            if (containsExactly(ds_bwx1).reducedBy(user.reference(CREATE_DATA_STREAM)).isEmpty()) {
                 assertThat(httpResponse, isForbidden());
             } else {
                 assertThat(httpResponse, isOk());
@@ -542,7 +572,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
 
             HttpResponse httpResponse = restClient.delete("_data_stream/ds_bwx1");
 
-            if (user.indexMatcher("manage_data_stream").isEmpty()) {
+            if (user.reference(MANAGE_DATA_STREAM).isEmpty()) {
                 assertThat(httpResponse, isForbidden());
             } else {
                 assertThat(httpResponse, isOk());

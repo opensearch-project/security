@@ -29,16 +29,17 @@ import org.opensearch.test.framework.TestIndexTemplate;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.test.framework.TestIndex.openSearchSecurityConfigIndex;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnResponseIndexMatcher.containsExactly;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedTo;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.limitedToNone;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimited;
-import static org.opensearch.test.framework.matcher.IndexApiResponseMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimited;
+import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
@@ -85,6 +86,14 @@ public class DataStreamAuthorizationReadOnlyIntTests {
 
     static final List<TestIndexOrAliasOrDatastream> ALL_DATA_STREAMS = List.of(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3);
 
+    /**
+     * This key identifies assertion reference data for index search/read permissions of individual users.
+     */
+    static final TestSecurityConfig.User.MetadataKey<RestIndexMatchers.IndexMatcher> READ = new TestSecurityConfig.User.MetadataKey<>(
+        "read",
+        RestIndexMatchers.IndexMatcher.class
+    );
+
     // -------------------------------------------------------------------------------------------------------
     // Test users with which the tests will be executed; the users need to be added to the list USERS below
     // The users have two redundant versions or privilege configuration, which needs to be kept in sync:
@@ -109,7 +118,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_a*")
         )//
-        .indexMatcher("read", limitedTo(ds_a1, ds_a2, ds_a3, ds_ax));
+        .reference(READ, limitedTo(ds_a1, ds_a2, ds_a3, ds_ax));
 
     /**
      * A simple user that can read from ds_b*
@@ -128,7 +137,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_b*")
         )//
-        .indexMatcher("read", limitedTo(ds_b1, ds_b2, ds_b3));
+        .reference(READ, limitedTo(ds_b1, ds_b2, ds_b3));
 
     /**
      * A simple user that can read from ds_b1
@@ -147,7 +156,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_b1")
         )//
-        .indexMatcher("read", limitedTo(ds_b1));
+        .reference(READ, limitedTo(ds_b1));
 
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
@@ -167,7 +176,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 )
                 .on("ds_does_not_exist_*")
         )//
-        .indexMatcher("read", limitedToNone());
+        .reference(READ, limitedToNone());
 
     /**
      * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
@@ -181,7 +190,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 .indexPermissions("*")
                 .on("*")//
         )//
-        .indexMatcher("read", unlimited());
+        .reference(READ, unlimited());
 
     /**
      * The SUPER_UNLIMITED_USER authenticates with an admin cert, which will cause all access control code to be skipped.
@@ -190,7 +199,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     static TestSecurityConfig.User SUPER_UNLIMITED_USER = new TestSecurityConfig.User("super_unlimited_user")//
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
-        .indexMatcher("read", unlimitedIncludingOpenSearchSecurityIndex());
+        .reference(READ, unlimitedIncludingOpenSearchSecurityIndex());
 
     static List<TestSecurityConfig.User> USERS = List.of(
         LIMITED_USER_A,
@@ -228,7 +237,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -247,7 +256,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -262,7 +271,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
             );
         }
@@ -275,7 +284,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -294,7 +303,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -308,7 +317,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -321,7 +330,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // With dnfof data streams with incomplete privileges will be replaced by their member indices
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
+                containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
             );
         }
     }
@@ -333,7 +342,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -346,7 +355,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -359,7 +368,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -375,7 +384,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -396,7 +405,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                     assertThat(
                         httpResponse,
                         containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                            .reducedBy(user.indexMatcher("read"))
+                            .reducedBy(user.reference(READ))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 }
@@ -412,7 +421,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -421,7 +430,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -444,7 +453,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -465,7 +474,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -515,7 +524,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(isOk())
                 );
             } else {
@@ -540,7 +549,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.postJson("_msearch", msearchBody);
             assertThat(
                 httpResponse,
-                containsExactly(ds_b1, ds_b2).at("responses[*].hits.hits[*]._index").reducedBy(user.indexMatcher("read")).whenEmpty(isOk())
+                containsExactly(ds_b1, ds_b2).at("responses[*].hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
             );
         }
     }
@@ -552,7 +561,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("indices.keys()")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -565,7 +574,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_b1, ds_b2, ds_b3).at("indices.keys()")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -579,7 +588,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name")
-                    .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    .butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -592,7 +601,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].name")
-                    .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    .butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -604,7 +613,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:admin/data_stream/get
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.indexMatcher("read"))
+                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -616,7 +625,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:admin/data_stream/get
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.indexMatcher("read"))
+                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -627,7 +636,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/ds_a1,ds_a2");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.indexMatcher("read"))
+                containsExactly(ds_a1, ds_a2).at("$.data_streams[*].name").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -640,7 +649,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
-                    .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    .butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -653,7 +662,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_DATA_STREAMS).at("$.data_streams[*].data_stream")
-                    .butForbiddenIfIncomplete(user.indexMatcher("read"))
+                    .butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -665,7 +674,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // The legacy mode does not support dnfof for indices:monitor/data_stream/stats
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.indexMatcher("read"))
+                containsExactly(ds_a1, ds_a2, ds_a3).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -676,7 +685,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_data_stream/ds_a1,ds_a2/_stats");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.indexMatcher("read"))
+                containsExactly(ds_a1, ds_a2).at("$.data_streams[*].data_stream").butForbiddenIfIncomplete(user.reference(READ))
             );
         }
     }
@@ -688,7 +697,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("$.*[*].name")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -701,7 +710,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("$.*[*].name")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -714,7 +723,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ALL_INDICES).at("indices")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -727,7 +736,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -739,7 +748,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a1,ds_a2,ds_b1/_field_caps?fields=*");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_b1).at("indices").reducedBy(user.indexMatcher("read")).whenEmpty(isForbidden())
+                containsExactly(ds_a1, ds_a2, ds_b1).at("indices").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
             );
 
         }
@@ -752,7 +761,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_b1).at("indices")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
@@ -790,7 +799,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -801,7 +810,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                     assertThat(
                         httpResponse,
                         containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                            .reducedBy(user.indexMatcher("read"))
+                            .reducedBy(user.reference(READ))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 }
@@ -817,7 +826,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("indices")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
@@ -825,7 +834,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                        .reducedBy(user.indexMatcher("read"))
+                        .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             }
@@ -839,7 +848,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             assertThat(
                 httpResponse,
                 containsExactly(ds_a1, ds_a2, ds_b1).at("indices")
-                    .reducedBy(user.indexMatcher("read"))
+                    .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
