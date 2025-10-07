@@ -31,6 +31,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.3.0
 * Handles resource updates which otherwise may wipe out all_shared_principals ([#5658](https://github.com/opensearch-project/security/pull/5658))
 * Makes initial share map mutable to allow multiple shares ([#5666](https://github.com/opensearch-project/security/pull/5666))
 * Add the fallback logic to use 'ssl_engine' if 'ssl_handler' attribute is not available / compatible ([#5667](https://github.com/opensearch-project/security/pull/5667))
+* Change incorrect licenses in Security Principal files ([#5675](https://github.com/opensearch-project/security/pull/5675))
 
 ### Refactoring
 * [Resource Sharing] Match index settings of .kibana indices for resource sharing indices ([#5605](https://github.com/opensearch-project/security/pull/5605))
