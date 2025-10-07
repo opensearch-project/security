@@ -11,3 +11,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add tenancy access info to serialized user in threadcontext ([#5519](https://github.com/opensearch-project/security/pull/5519))
 - Optimized wildcard matching runtime performance ([#5543](https://github.com/opensearch-project/security/pull/5543))
 - Always install demo certs if configured with demo certs ([#5517](https://github.com/opensearch-project/security/pull/5517))
+- Bump org.apache.zookeeper:zookeeper from 3.9.3 to 3.9.4 ([#5689](https://github.com/opensearch-project/security/pull/5689))
