@@ -8,6 +8,9 @@
 
 package org.opensearch.sample.resource.feature.disabled;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -19,6 +22,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import org.opensearch.sample.resource.TestUtils;
+import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -30,19 +35,19 @@ import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePay
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.PatchSharingInfoPayloadBuilder;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -117,8 +122,8 @@ public class ApiAccessTests {
 
             // feature is disabled, and thus request is treated as normal request.
             // Since user doesn't have permission to the share and revoke endpoints they will receive 403s
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // search returns 403 since user doesn't have access to invoke search
             api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -243,17 +248,27 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can't share or revoke, as handlers don't exist
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(FULL_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(
+                        adminResId,
+                        RESOURCE_TYPE,
+                        SAMPLE_FULL_ACCESS_RESOURCE_AG,
+                        Recipient.USERS,
+                        FULL_ACCESS_USER.getName()
+                    )
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(FULL_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+                patchBuilder.resourceId(adminResId);
+                patchBuilder.resourceType(RESOURCE_TYPE);
+                patchBuilder.revoke(
+                    new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))),
+                    SAMPLE_FULL_ACCESS_RESOURCE_AG
                 );
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
 
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
@@ -339,8 +354,8 @@ public class ApiAccessTests {
             api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
             // feature is disabled, no handler's exist
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
+            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
 
             // search returns 403 since user doesn't have access to invoke search
             api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -468,16 +483,21 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can't share or revoke, as handlers don't exist
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + id,
-                    shareWithPayload(FULL_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(id, RESOURCE_TYPE, SAMPLE_FULL_ACCESS_RESOURCE_AG, Recipient.USERS, FULL_ACCESS_USER.getName())
                 );
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + id,
-                    revokeAccessPayload(FULL_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+                patchBuilder.resourceId(id);
+                patchBuilder.resourceType(RESOURCE_TYPE);
+                patchBuilder.revoke(
+                    new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))),
+                    SAMPLE_FULL_ACCESS_RESOURCE_AG
                 );
+
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
                 resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
                 // can search resources
