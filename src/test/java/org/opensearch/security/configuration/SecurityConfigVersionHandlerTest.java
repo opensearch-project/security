@@ -101,6 +101,7 @@ public class SecurityConfigVersionHandlerTest {
         threadContext = new ThreadContext(Settings.EMPTY);
 
         when(clusterInfoHolder.isLocalNodeElectedClusterManager()).thenReturn(Boolean.TRUE);
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(settings));
 
         handler = new SecurityConfigVersionHandler(configRepo, settings, threadContext, threadPool, client, clusterInfoHolder);
         injectMockConfigLoader(handler, configVersionsLoader);
@@ -134,6 +135,15 @@ public class SecurityConfigVersionHandlerTest {
         when(adminClient.cluster()).thenReturn(clusterAdminClient);
         when(indicesAdminClient.create(any())).thenReturn(createFuture);
         when(clusterAdminClient.health(any())).thenReturn(healthFuture);
+
+        // Mock ExecutorService to execute tasks synchronously for testing
+        ExecutorService executorService = mock(ExecutorService.class);
+        doAnswer(invocation -> {
+            Runnable task = invocation.getArgument(0);
+            task.run(); // Execute synchronously in test
+            return null;
+        }).when(executorService).execute(any(Runnable.class));
+        when(threadPool.generic()).thenReturn(executorService);
 
         when(configVersionsLoader.loadLatestVersion()).thenReturn(null);
 

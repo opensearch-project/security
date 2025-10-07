@@ -11,6 +11,17 @@ updates:
     labels:
       - "dependabot"
       - "dependencies"
+  - package-ecosystem: "gradle"
+    directory: "/libs/opensaml/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # For all packages, ignore all major versions to minimize breaking issues
+      - dependency-name: "*"
+        update-types: [ "version-update:semver-major" ]
+    labels:
+      - "dependabot"
+      - "dependencies"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

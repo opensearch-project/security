@@ -284,7 +284,6 @@ public class DirectIndexAccessTests {
             api.assertDirectShare(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
-            // can only access own resource since
             api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
             api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
             api.assertDirectPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");

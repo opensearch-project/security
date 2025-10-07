@@ -10,6 +10,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -99,6 +100,10 @@ public class ResourceAccessEvaluator {
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
         );
+        List<String> protectedTypes = settings.getAsList(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT
+        );
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
         /**
@@ -127,7 +132,9 @@ public class ResourceAccessEvaluator {
             log.debug("Request index {} is not a protected resource index", docRequest.index());
             return false;
         }
-        return true;
+
+        // if a resource is not included in protected resource list, we do not perform resource-level authorization
+        return protectedTypes.contains(docRequest.type());
     }
 
 }
