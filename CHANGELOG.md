@@ -72,6 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.typesafe.scala-logging:scala-logging_3` from 3.9.5 to 3.9.6 ([#5663](https://github.com/opensearch-project/security/pull/5663))
 - Sync `org.opensearch:protobufs` version with core ([#5659](https://github.com/opensearch-project/security/pull/5659))
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.0 ([#5678](https://github.com/opensearch-project/security/pull/5678))
+- Bump `ch.qos.logback:logback-classic` from 1.5.18 to 1.5.19 ([#5680](https://github.com/opensearch-project/security/pull/5680))
 - Bump `org.scala-lang:scala-library` from 2.13.16 to 2.13.17 ([#5682](https://github.com/opensearch-project/security/pull/5682))
 
 ### Documentation
