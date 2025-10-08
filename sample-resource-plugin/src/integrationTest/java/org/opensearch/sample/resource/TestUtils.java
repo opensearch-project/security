@@ -304,7 +304,6 @@ public final class TestUtils {
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
                 TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-
             }
         }
 
@@ -546,23 +545,12 @@ public final class TestUtils {
             String accessLevel,
             int status
         ) {
-            assertRevoke(SECURITY_SHARE_ENDPOINT, resourceId, user, target, accessLevel, status);
-        }
-
-        private void assertRevoke(
-            String endpoint,
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
             PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
             patchBuilder.resourceType(RESOURCE_TYPE);
             patchBuilder.resourceId(resourceId);
             patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.patch(endpoint, patchBuilder.build());
+                TestRestClient.HttpResponse response = client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
                 response.assertStatusCode(status);
             }
         }
