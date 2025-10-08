@@ -84,6 +84,16 @@ public class DataStreamAuthorizationReadOnlyIntTests {
         openSearchSecurityConfigIndex()
     );
 
+    static final List<TestIndexOrAliasOrDatastream> ALL_INDICES_EXCEPT_SYSTEM_INDICES = List.of(
+        ds_a1,
+        ds_a2,
+        ds_a3,
+        ds_b1,
+        ds_b2,
+        ds_b3,
+        index_c1
+    );
+
     static final List<TestIndexOrAliasOrDatastream> ALL_DATA_STREAMS = List.of(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3);
 
     /**
@@ -236,7 +246,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3, index_c1).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -270,7 +280,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
 
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
             );
@@ -283,7 +293,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_all/_search?size=1000");
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -314,9 +324,10 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_wildcard() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("*/_search?size=1000");
+
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("hits.hits[*]._index")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -523,7 +534,9 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
-                    containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                    containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("aggregations.indices.buckets[*].key")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(isOk())
                 );
             } else {
                 // Users without full privileges will not see hidden indices here; thus on a cluster with only data streams, the result is
@@ -558,7 +571,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_stats");
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("indices.keys()")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("indices.keys()")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -690,7 +703,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/*");
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("$.*[*].name")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("$.*[*].name")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
@@ -716,7 +729,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("indices")
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("indices")
                     .reducedBy(user.reference(READ))
                     .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
