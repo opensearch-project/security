@@ -17,7 +17,6 @@ import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -79,6 +78,7 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -109,7 +109,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final Settings settings;
     private final AdminDNs adminDNs;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
-    private final WildcardMatcher resourceIndicesMatcher;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -120,7 +120,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
         AdminDNs adminDNs,
-        Set<String> resourceIndices,
+        ResourcePluginInfo resourcePluginInfo,
         OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         super();
@@ -134,7 +134,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
         this.adminDNs = adminDNs;
-        this.resourceIndicesMatcher = WildcardMatcher.from(resourceIndices);
+        this.resourcePluginInfo = resourcePluginInfo;
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -163,6 +163,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+            WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(resourcePluginInfo.getResourceIndices());
             if (resourceSharingEnabledSetting.getDynamicSettingValue()
                 && request instanceof SearchRequest
                 && resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {

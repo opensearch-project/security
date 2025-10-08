@@ -52,35 +52,29 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
-    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions, List<String> protectedTypes) {
+    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         resourceSharingExtensions.clear();
         typeToIndex.clear();
         indexToType.clear();
-        // only assign types if the list setting is non-empty
-        if (!protectedTypes.isEmpty()) {
-            // Enforce resource-type unique-ness
-            Set<String> resourceTypes = new HashSet<>();
-            for (ResourceSharingExtension extension : extensions) {
-                for (var rp : extension.getResourceProviders()) {
-                    // exclude resource types not mentioned in the explicit list. defaults to no resource marked as protected resources
-                    if (!protectedTypes.contains(rp.resourceType())) {
-                        continue;
-                    }
-                    if (!resourceTypes.contains(rp.resourceType())) {
-                        // add name seen so far to the resource-types set
-                        resourceTypes.add(rp.resourceType());
-                        // also cache type->index and index->type mapping
-                        typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                        indexToType.put(rp.resourceIndexName(), rp.resourceType());
-                    } else {
-                        throw new OpenSearchSecurityException(
-                            String.format(
-                                "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
-                                rp.resourceType(),
-                                extension.getClass().getName()
-                            )
-                        );
-                    }
+
+        // Enforce resource-type unique-ness
+        Set<String> resourceTypes = new HashSet<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (var rp : extension.getResourceProviders()) {
+                if (!resourceTypes.contains(rp.resourceType())) {
+                    // add name seen so far to the resource-types set
+                    resourceTypes.add(rp.resourceType());
+                    // also cache type->index and index->type mapping
+                    typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
+                    indexToType.put(rp.resourceIndexName(), rp.resourceType());
+                } else {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
+                            rp.resourceType(),
+                            extension.getClass().getName()
+                        )
+                    );
                 }
             }
         }
