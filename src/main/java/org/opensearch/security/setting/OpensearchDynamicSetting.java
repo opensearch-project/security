@@ -45,7 +45,7 @@ public abstract class OpensearchDynamicSetting<T> {
         return String.format("Detected change in settings, updated cluster setting value is %s", dynamicSettingNewValue);
     }
 
-    private void setDynamicSettingValue(final T dynamicSettingValue) {
+    protected void setDynamicSettingValue(final T dynamicSettingValue) {
         this.dynamicSettingValue = dynamicSettingValue;
     }
 

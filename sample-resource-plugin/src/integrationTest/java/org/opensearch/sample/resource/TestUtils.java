@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
@@ -26,6 +27,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.spi.resources.sharing.Recipient;
 import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
@@ -66,8 +68,8 @@ public final class TestUtils {
             "cluster:admin/sample-resource-plugin/get",
             "cluster:admin/sample-resource-plugin/search",
             "cluster:admin/sample-resource-plugin/create",
-            "cluster:admin/sample-resource-plugin/share",
-            "cluster:admin/sample-resource-plugin/revoke"
+            "cluster:admin/security/resource/share",
+            "cluster:admin/security/resource/share"
         ).indexPermissions("indices:data/read*").on(RESOURCE_INDEX_NAME)
     );
 
@@ -83,8 +85,6 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
-    public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
-    public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
     public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
     public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
@@ -126,18 +126,6 @@ public final class TestUtils {
             .build();
     }
 
-    public static String shareWithPayload(String user, String accessLevel) {
-        return """
-            {
-              "share_with": {
-                "%s" : {
-                    "users": ["%s"]
-                }
-              }
-            }
-            """.formatted(accessLevel, user);
-    }
-
     public static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
         return """
             {
@@ -152,31 +140,6 @@ public final class TestUtils {
               }
             }
             """.formatted(resourceId, creator, accessLevel, target);
-    }
-
-    public static String revokeAccessPayload(String user, String accessLevel) {
-        return """
-            {
-              "entities_to_revoke": {
-                "%s" : {
-                    "users": ["%s"]
-                }
-              }
-            }
-            """.formatted(accessLevel, user);
-
-    }
-
-    public static String shareWithRolePayload(String role, String accessLevel) {
-        return """
-            {
-              "share_with": {
-                "%s" : {
-                    "roles": ["%s"]
-                }
-              }
-            }
-            """.formatted(accessLevel, role);
     }
 
     public static String migrationPayload_valid() {
@@ -227,18 +190,24 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name");
     }
 
-    public static String putSharingInfoPayload(String resourceId, String resourceType, String accessLevel, String user) {
+    public static String putSharingInfoPayload(
+        String resourceId,
+        String resourceType,
+        String accessLevel,
+        Recipient recipient,
+        String entity
+    ) {
         return """
             {
               "resource_id": "%s",
               "resource_type": "%s",
               "share_with": {
                 "%s" : {
-                    "users": ["%s"]
+                    "%s": ["%s"]
                 }
               }
             }
-            """.formatted(resourceId, resourceType, accessLevel, user);
+            """.formatted(resourceId, resourceType, accessLevel, recipient.getName(), entity);
     }
 
     public static class PatchSharingInfoPayloadBuilder {
@@ -335,7 +304,6 @@ public final class TestUtils {
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
                 TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-
             }
         }
 
@@ -522,7 +490,7 @@ public final class TestUtils {
             }
         }
 
-        public void assertDirectShare(
+        public void assertDirectUpdateSharingInfo(
             String resourceId,
             TestSecurityConfig.User user,
             TestSecurityConfig.User target,
@@ -545,40 +513,13 @@ public final class TestUtils {
             String accessLevel,
             int status
         ) {
-            assertShare(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
-        }
-
-        private void assertShare(
-            String endpoint,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.postJson(endpoint, shareWithPayload(target.getName(), accessLevel));
+                TestRestClient.HttpResponse response = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.USERS, target.getName())
+                );
                 response.assertStatusCode(status);
             }
-        }
-
-        public void assertDirectRevoke(
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            assertRevoke(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, target, accessLevel, status);
-        }
-
-        public void assertApiRevoke(
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
         }
 
         public void assertApiShareByRole(
@@ -589,23 +530,27 @@ public final class TestUtils {
             int status
         ) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                    shareWithRolePayload(targetRole, accessLevel)
+                TestRestClient.HttpResponse response = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
                 );
                 response.assertStatusCode(status);
             }
         }
 
-        private void assertRevoke(
-            String endpoint,
+        public void assertApiRevoke(
+            String resourceId,
             TestSecurityConfig.User user,
             TestSecurityConfig.User target,
             String accessLevel,
             int status
         ) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.postJson(endpoint, revokeAccessPayload(target.getName(), accessLevel));
+                TestRestClient.HttpResponse response = client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
                 response.assertStatusCode(status);
             }
         }

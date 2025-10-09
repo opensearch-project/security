@@ -15,21 +15,18 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchStatusException;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PATCH;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_RESOURCE_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -42,9 +39,17 @@ public class ShareRestAction extends BaseRestHandler {
     private static final Logger LOGGER = LogManager.getLogger(ShareRestAction.class);
 
     private final ResourcePluginInfo resourcePluginInfo;
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting;
 
-    public ShareRestAction(ResourcePluginInfo resourcePluginInfo) {
+    public ShareRestAction(
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
+        OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting
+    ) {
         this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
+        this.resourceSharingProtectedTypesSetting = resourceSharingProtectedTypesSetting;
     }
 
     @Override
@@ -62,6 +67,10 @@ public class ShareRestAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.NOT_IMPLEMENTED, "Feature disabled.")); };
+        }
+
         // These two params will only be present with GET request
         String resourceId = request.param("resource_id");
         String resourceType = request.param("resource_type");
@@ -85,22 +94,14 @@ public class ShareRestAction extends BaseRestHandler {
 
         ShareRequest shareRequest = builder.build();
 
-        return channel -> {
-            client.executeLocally(
-                ShareAction.INSTANCE,
-                shareRequest,
-                ActionListener.wrap(resp -> ok(channel, resp::toXContent), e -> handleError(channel, e))
-            );
-        };
-    }
-
-    private void handleError(RestChannel channel, Exception e) {
-        LOGGER.error("Error while processing request", e);
-        String message = e.getMessage();
-        if (e instanceof OpenSearchStatusException ex) {
-            response(channel, ex.status(), message);
-        } else {
-            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, message));
+        if (shareRequest.type() != null && !resourceSharingProtectedTypesSetting.getDynamicSettingValue().contains(shareRequest.type())) {
+            return channel -> {
+                channel.sendResponse(
+                    new BytesRestResponse(RestStatus.BAD_REQUEST, "Resource type " + resourceType + " is not marked as protected.")
+                );
+            };
         }
+
+        return channel -> { client.executeLocally(ShareAction.INSTANCE, shareRequest, new RestToXContentListener<>(channel)); };
     }
 }

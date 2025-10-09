@@ -8,6 +8,9 @@
 
 package org.opensearch.sample.resource.feature.enabled;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -19,6 +22,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import org.opensearch.sample.resource.TestUtils;
+import org.opensearch.security.spi.resources.sharing.Recipient;
+import org.opensearch.security.spi.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -36,13 +41,12 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -243,17 +247,27 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can share and revoke admin's resource
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(
+                        adminResId,
+                        RESOURCE_TYPE,
+                        SAMPLE_FULL_ACCESS_RESOURCE_AG,
+                        Recipient.USERS,
+                        NO_ACCESS_USER.getName()
+                    )
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                payloadBuilder.resourceId(adminResId);
+                payloadBuilder.resourceType(RESOURCE_TYPE);
+                payloadBuilder.revoke(
+                    new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))),
+                    SAMPLE_FULL_ACCESS_RESOURCE_AG
                 );
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
@@ -460,17 +474,27 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can share and revoke admin's resource
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(
+                        adminResId,
+                        RESOURCE_TYPE,
+                        SAMPLE_FULL_ACCESS_RESOURCE_AG,
+                        Recipient.USERS,
+                        NO_ACCESS_USER.getName()
+                    )
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                payloadBuilder.resourceId(adminResId);
+                payloadBuilder.resourceType(RESOURCE_TYPE);
+                payloadBuilder.revoke(
+                    new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))),
+                    SAMPLE_FULL_ACCESS_RESOURCE_AG
                 );
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 

@@ -68,18 +68,16 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
         SearchRequest req = new SearchRequest(RESOURCE_INDEX_NAME).source(ssb);
         pluginClient.search(req, ActionListener.wrap(searchResponse -> {
             SearchHit[] hits = searchResponse.getHits().getHits();
-            if (hits.length == 0) {
-                listener.onFailure(new ResourceNotFoundException("No resources found in index: " + RESOURCE_INDEX_NAME));
-            } else {
-                Set<SampleResource> resources = Arrays.stream(hits).map(hit -> {
-                    try {
-                        return parseResource(hit.getSourceAsString());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).collect(Collectors.toSet());
-                listener.onResponse(new GetResourceResponse(resources));
-            }
+
+            Set<SampleResource> resources = Arrays.stream(hits).map(hit -> {
+                try {
+                    return parseResource(hit.getSourceAsString());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).collect(Collectors.toSet());
+            listener.onResponse(new GetResourceResponse(resources));
+
         }, listener::onFailure));
     }
 

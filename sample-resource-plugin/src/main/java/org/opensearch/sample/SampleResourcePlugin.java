@@ -43,18 +43,12 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRestAction;
-import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
-import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRestAction;
 import org.opensearch.sample.resource.actions.rest.search.SearchResourceAction;
 import org.opensearch.sample.resource.actions.rest.search.SearchResourceRestAction;
-import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
-import org.opensearch.sample.resource.actions.rest.share.ShareResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
-import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
 import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
-import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
@@ -112,9 +106,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new DeleteResourceRestAction());
         handlers.add(new SearchResourceRestAction());
 
-        handlers.add(new ShareResourceRestAction());
-        handlers.add(new RevokeResourceAccessRestAction());
-
         handlers.add(new SecurePluginRestAction());
         return handlers;
     }
@@ -127,8 +118,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
         actions.add(new ActionHandler<>(SearchResourceAction.INSTANCE, SearchResourceTransportAction.class));
-        actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
-        actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }

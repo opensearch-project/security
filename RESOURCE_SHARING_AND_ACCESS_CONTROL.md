@@ -499,7 +499,7 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ### **Additional Notes**
 - **Feature Flag:** These APIs are available only when `plugins.security.experimental.resource_sharing.enabled` is set to `true` in the configuration.
-
+- **Protected Types:** These APIs will only come into effect if concerned resources are marked as protected: `plugins.security.experimental.resource_sharing.protected_types: [<type-1>, <type-2>]`.
 
 ---
 
@@ -528,6 +528,58 @@ The list of protected types are controlled through following opensearch setting
   plugins.security.experimental.resource_sharing.protected_types: [sample-resource]
   ```
 NOTE: These types will be available on documentation website.
+
+### **Dynamic Updates**
+
+The settings described above can be dynamically updated at runtime using the OpenSearch `_cluster/settings` API.
+This allows administrators to enable or disable the **Resource Sharing** feature and modify the list of **protected types** without restarting the cluster.
+
+#### **Example 1: Enable Resource Sharing Feature**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.enabled": true
+  }
+}
+```
+
+#### **Example 2: Update Protected Types**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.protected_types": ["sample-resource", "ml-model"]
+  }
+}
+```
+
+#### **Example 3: Clear Protected Types**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.protected_types": []
+  }
+}
+```
+
+#### **Notes**
+
+* Both settings support **dynamic updates**, meaning the changes take effect immediately without requiring a node restart.
+* You can use either **transient** (temporary until restart) or **persistent** (survive restarts) settings.
+* To verify the current values, use:
+
+  ```bash
+  GET _cluster/settings?include_defaults=true
+  ```
+* Feature toggles and protected type lists can also be modified through configuration files before cluster startup if preferred.
+
+
+
 
 ## **2. User Setup**
 

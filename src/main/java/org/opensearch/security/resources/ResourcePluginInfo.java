@@ -28,6 +28,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
@@ -36,6 +37,8 @@ import org.opensearch.security.spi.resources.ResourceSharingExtension;
  * @opensearch.experimental
  */
 public class ResourcePluginInfo {
+
+    private ResourceSharingClient resourceAccessControlClient;
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
@@ -49,43 +52,67 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
-    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions, List<String> protectedTypes) {
+    public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         resourceSharingExtensions.clear();
         typeToIndex.clear();
         indexToType.clear();
-        // only assign types if the list setting is non-empty
-        if (!protectedTypes.isEmpty()) {
-            // Enforce resource-type unique-ness
-            Set<String> resourceTypes = new HashSet<>();
-            for (ResourceSharingExtension extension : extensions) {
-                for (var rp : extension.getResourceProviders()) {
-                    // exclude resource types not mentioned in the explicit list. defaults to no resource marked as protected resources
-                    if (!protectedTypes.contains(rp.resourceType())) {
-                        continue;
-                    }
-                    if (!resourceTypes.contains(rp.resourceType())) {
-                        // add name seen so far to the resource-types set
-                        resourceTypes.add(rp.resourceType());
-                        // also cache type->index and index->type mapping
-                        typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                        indexToType.put(rp.resourceIndexName(), rp.resourceType());
-                    } else {
-                        throw new OpenSearchSecurityException(
-                            String.format(
-                                "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
-                                rp.resourceType(),
-                                extension.getClass().getName()
-                            )
-                        );
-                    }
+
+        // Enforce resource-type unique-ness
+        Set<String> resourceTypes = new HashSet<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (var rp : extension.getResourceProviders()) {
+                if (!resourceTypes.contains(rp.resourceType())) {
+                    // add name seen so far to the resource-types set
+                    resourceTypes.add(rp.resourceType());
+                    // also cache type->index and index->type mapping
+                    typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
+                    indexToType.put(rp.resourceIndexName(), rp.resourceType());
+                } else {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
+                            rp.resourceType(),
+                            extension.getClass().getName()
+                        )
+                    );
                 }
             }
         }
         resourceSharingExtensions.addAll(extensions);
     }
 
+    public void updateProtectedTypes(List<String> protectedTypes) {
+        // Rebuild mappings based on the current allowlist
+        typeToIndex.clear();
+        indexToType.clear();
+
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            // No protected types -> leave maps empty
+            return;
+        }
+
+        for (ResourceSharingExtension extension : resourceSharingExtensions) {
+            for (var rp : extension.getResourceProviders()) {
+                final String type = rp.resourceType();
+                if (!protectedTypes.contains(type)) continue;
+
+                final String index = rp.resourceIndexName();
+                typeToIndex.put(type, index);
+                indexToType.put(index, type);
+            }
+        }
+    }
+
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
+    }
+
+    public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {
+        this.resourceAccessControlClient = resourceAccessControlClient;
+    }
+
+    public ResourceSharingClient getResourceAccessControlClient() {
+        return resourceAccessControlClient;
     }
 
     /** Register/merge action-group names for a given resource type. */
