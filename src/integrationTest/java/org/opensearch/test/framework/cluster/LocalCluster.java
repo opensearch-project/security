@@ -44,6 +44,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.ExternalResource;
 
+import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
@@ -57,13 +58,17 @@ import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
-import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
+import org.opensearch.test.framework.data.TestAlias;
+import org.opensearch.test.framework.data.TestComponentTemplate;
+import org.opensearch.test.framework.data.TestDataStream;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.data.TestIndexTemplate;
 import org.opensearch.transport.client.Client;
 
 /**
@@ -98,6 +103,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private final Map<String, LocalCluster> remotes;
     private volatile LocalOpenSearchCluster localOpenSearchCluster;
     private final List<TestIndex> testIndices;
+    private final List<TestAlias> testAliases;
+    private final List<TestDataStream> testDataStreams;
+    private final List<TestComponentTemplate> testComponentTemplates;
+    private final List<TestIndexTemplate> testIndexTemplates;
+    private final List<String> testSnapshotRepositories;
 
     private boolean loadConfigurationIntoIndex;
 
@@ -114,6 +124,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         List<LocalCluster> clusterDependencies,
         Map<String, LocalCluster> remotes,
         List<TestIndex> testIndices,
+        List<TestAlias> testAliases,
+        List<TestDataStream> testDataStreams,
+        List<TestComponentTemplate> testComponentTemplates,
+        List<TestIndexTemplate> testIndexTemplates,
+        List<String> testSnapshotRepositories,
         boolean loadConfigurationIntoIndex,
         String defaultConfigurationInitDirectory,
         Integer expectedNodeStartupCount
@@ -131,6 +146,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         this.remotes = remotes;
         this.clusterDependencies = clusterDependencies;
         this.testIndices = testIndices;
+        this.testAliases = testAliases;
+        this.testDataStreams = testDataStreams;
+        this.testComponentTemplates = testComponentTemplates;
+        this.testIndexTemplates = testIndexTemplates;
+        this.testSnapshotRepositories = testSnapshotRepositories;
         this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
         if (StringUtils.isNoneBlank(defaultConfigurationInitDirectory)) {
             System.setProperty(INIT_CONFIGURATION_DIR, defaultConfigurationInitDirectory);
@@ -263,11 +283,29 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             }
 
             try (Client client = getInternalNodeClient()) {
+                for (TestComponentTemplate testComponentTemplate : this.testComponentTemplates) {
+                    testComponentTemplate.create(client);
+                }
+                for (TestIndexTemplate indexTemplate : this.testIndexTemplates) {
+                    indexTemplate.create(client);
+                }
+
                 for (TestIndex index : this.testIndices) {
                     index.create(client);
                 }
-            }
 
+                for (TestDataStream dataStream : this.testDataStreams) {
+                    dataStream.create(client);
+                }
+
+                for (TestAlias alias : this.testAliases) {
+                    alias.create(client);
+                }
+
+                for (String snapshotRepository : this.testSnapshotRepositories) {
+                    createSnapshotRepository(client, snapshotRepository);
+                }
+            }
         } catch (Exception e) {
             log.error("Local ES cluster start failed", e);
             throw new RuntimeException(e);
@@ -319,6 +357,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
     }
 
+    private void createSnapshotRepository(Client client, String snapshotRepository) {
+        client.admin()
+            .cluster()
+            .putRepository(new PutRepositoryRequest(snapshotRepository).type("fs").settings(Map.of("location", getSnapshotDirPath())))
+            .actionGet();
+    }
+
     public CertificateData getAdminCertificate() {
         return testCertificates.getAdminCertificateData();
     }
@@ -335,6 +380,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private Map<String, LocalCluster> remoteClusters = new HashMap<>();
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
+        private List<TestAlias> testAliases = new ArrayList<>();
+        private List<TestDataStream> testDataStreams = new ArrayList<>();
+        private List<TestIndexTemplate> testIndexTemplates = new ArrayList<>();
+        private List<TestComponentTemplate> testComponentTemplates = new ArrayList<>();
+        private List<String> testSnapshotRepositories = new ArrayList<>();
         private ClusterManager clusterManager = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
@@ -469,6 +519,33 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
          */
         public Builder indices(Collection<TestIndex> indices) {
             this.testIndices.addAll(indices);
+            return this;
+        }
+
+        public Builder aliases(TestAlias... aliases) {
+            this.testAliases.addAll(Arrays.asList(aliases));
+            return this;
+        }
+
+        public Builder dataStreams(TestDataStream... dataStreams) {
+            this.testDataStreams.addAll(Arrays.asList(dataStreams));
+            return this;
+        }
+
+        public Builder indexTemplates(TestIndexTemplate... indexTemplates) {
+            for (TestIndexTemplate indexTemplate : indexTemplates) {
+                this.testIndexTemplates.add(indexTemplate);
+                for (TestComponentTemplate testComponentTemplate : indexTemplate.getComposedOf()) {
+                    if (!this.testComponentTemplates.contains(testComponentTemplate)) {
+                        this.testComponentTemplates.add(testComponentTemplate);
+                    }
+                }
+            }
+            return this;
+        }
+
+        public Builder snapshotRepositories(String... repositoryNames) {
+            this.testSnapshotRepositories.addAll(Arrays.asList(repositoryNames));
             return this;
         }
 
@@ -610,6 +687,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     clusterDependencies,
                     remoteClusters,
                     testIndices,
+                    testAliases,
+                    testDataStreams,
+                    testComponentTemplates,
+                    testIndexTemplates,
+                    testSnapshotRepositories,
                     loadConfigurationIntoIndex,
                     defaultConfigurationInitDirectory,
                     expectedNodeStartupCount
