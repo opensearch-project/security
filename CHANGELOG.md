@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Makes resource settings dynamic ([#5677](https://github.com/opensearch-project/security/pull/5677))
 
 ### Bug Fixes
+- Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
 
 ### Refactoring
 

@@ -77,6 +77,9 @@ public class UtilTests {
         assertTrue(wc("abc").test("abc"));
         assertFalse(wc("ABC").test("abc"));
         assertFalse(wc(null).test("abc"));
+        assertFalse(wc("").test("abc"));
+        // Creating a WildcardMatcher with blank should create a matcher that matches nothing
+        assertFalse(wc("").test(""));
         assertTrue(WildcardMatcher.from(null, "abc").test("abc"));
     }
 
