@@ -130,11 +130,11 @@ public enum PrincipalAttribute implements Attribute {
         Map<String, Float> scoreMap = new HashMap<>();
 
         for (String value : attributeExtractor.extract()) {
-            Set<String> matches = attributeValueStore.getExactMatch(value);
+            List<MatchLabel<String>> matches = attributeValueStore.getExactMatch(value);
             String subField = parsePrincipalValue(value)[0];
             assert WEIGHTED_SUBFIELDS.containsKey(subField);
-            for (String label : matches) {
-                scoreMap.merge(label, WEIGHTED_SUBFIELDS.get(subField), Float::sum);
+            for (MatchLabel<String> entry : matches) {
+                scoreMap.merge(entry.getFeatureValue(), entry.getMatchScore() * WEIGHTED_SUBFIELDS.get(subField), Float::sum);
             }
         }
 
