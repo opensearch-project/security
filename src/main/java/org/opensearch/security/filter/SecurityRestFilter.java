@@ -26,6 +26,7 @@
 
 package org.opensearch.security.filter;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +50,7 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -156,7 +158,9 @@ public class SecurityRestFilter {
                 }
             });
 
-            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+            RestRequest filteredRequest = maybeFilterRestRequest(request);
+
+            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(filteredRequest, channel);
 
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
@@ -215,6 +219,13 @@ public class SecurityRestFilter {
             builder.endObject();
 
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+        }
+
+        RestRequest maybeFilterRestRequest(RestRequest restRequest) throws IOException {
+            if (delegate instanceof RestRequestFilter) {
+                return ((RestRequestFilter) delegate).getFilteredRequest(restRequest);
+            }
+            return restRequest;
         }
     }
 
