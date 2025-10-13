@@ -1217,7 +1217,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 dlsFlsBaseContext,
                 adminDns,
                 resourcePluginInfo,
-                resourceSharingEnabledSetting
+                resourceSharingEnabledSetting,
+                resourceSharingProtectedResourceTypesSetting
             );
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
@@ -1227,7 +1228,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
         // Assign resource sharing client to each extension
         // Using the non-gated client (i.e. no additional permissions required)
-        ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler, resourcePluginInfo);
+        ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(
+            resourceAccessHandler,
+            resourcePluginInfo,
+            resourceSharingProtectedResourceTypesSetting
+        );
         resourcePluginInfo.setResourceSharingClient(resourceAccessControlClient);
         resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
             extension.assignResourceSharingClient(resourceAccessControlClient);
@@ -1237,7 +1242,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // CS-ENFORCE-SINGLE
 
         resourceAccessEvaluator = new ResourceAccessEvaluator(
-            resourcePluginInfo.getResourceIndices(),
+            resourcePluginInfo,
             resourceAccessHandler,
             resourceSharingEnabledSetting,
             resourceSharingProtectedResourceTypesSetting

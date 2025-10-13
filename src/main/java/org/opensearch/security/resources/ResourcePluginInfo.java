@@ -116,7 +116,6 @@ public class ResourcePluginInfo {
     }
 
     /** Register/merge action-group names for a given resource type. */
-
     public record ResourceDashboardInfo(String resourceType, Set<String> actionGroups // names only (for UI)
     ) implements ToXContentObject {
         @Override
@@ -158,8 +157,21 @@ public class ResourcePluginInfo {
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    // for index
     public Set<String> getResourceIndices() {
         return indexToType.keySet();
+    }
+
+    public Set<String> getResourceIndicesForProtectedTypes(List<String> resourceTypes) {
+        if (resourceTypes == null || resourceTypes.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return indexToType.entrySet()
+            .stream()
+            .filter(e -> resourceTypes.contains(e.getValue()))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
     }
 
 }

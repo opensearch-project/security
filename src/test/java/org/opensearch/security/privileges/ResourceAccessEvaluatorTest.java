@@ -8,8 +8,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Collections;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,6 +18,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -41,6 +40,8 @@ public class ResourceAccessEvaluatorTest {
 
     @Mock
     private ResourceAccessHandler resourceAccessHandler;
+    @Mock
+    private ResourcePluginInfo resourcePluginInfo;
 
     @Mock
     private PrivilegesEvaluationContext context;
@@ -52,10 +53,9 @@ public class ResourceAccessEvaluatorTest {
 
     @Before
     public void setup() {
-        Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
         evaluator = new ResourceAccessEvaluator(
-            Collections.singleton(IDX),
+            resourcePluginInfo,
             resourceAccessHandler,
             mock(OpensearchDynamicSetting.class),
             mock(OpensearchDynamicSetting.class)

@@ -8,12 +8,14 @@
 
 package org.opensearch.security.resources;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -28,17 +30,21 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessControlClient.class);
 
     private final ResourceAccessHandler resourceAccessHandler;
-    private final Set<String> resourceIndices;
     private final ResourcePluginInfo resourcePluginInfo;
+    private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourcesSetting;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, ResourcePluginInfo resourcePluginInfo) {
+    public ResourceAccessControlClient(
+        ResourceAccessHandler resourceAccessHandler,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourcesSetting
+    ) {
         this.resourceAccessHandler = resourceAccessHandler;
-        this.resourceIndices = resourcePluginInfo.getResourceIndices();
         this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingProtectedResourcesSetting = resourceSharingProtectedResourcesSetting;
     }
 
     /**
@@ -52,7 +58,8 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
         // following situation will arise when resource is onboarded to framework but not marked as protected
-        if (!resourceIndices.contains(resourceIndex)) {
+        List<String> protectedResourceTypes = resourceSharingProtectedResourcesSetting.getDynamicSettingValue();
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes(protectedResourceTypes).contains(resourceIndex)) {
             LOGGER.warn(
                 "Resource '{}' is onboarded to sharing framework but is not marked as protected. Action {} is allowed.",
                 resourceId,

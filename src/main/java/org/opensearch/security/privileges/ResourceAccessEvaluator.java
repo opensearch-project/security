@@ -11,7 +11,6 @@
 package org.opensearch.security.privileges;
 
 import java.util.List;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +22,7 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 
 /**
@@ -41,19 +41,19 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
-    private final Set<String> resourceIndices;
+    private final ResourcePluginInfo resourcePluginInfo;
     private final ResourceAccessHandler resourceAccessHandler;
 
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
 
     public ResourceAccessEvaluator(
-        Set<String> resourceIndices,
+        ResourcePluginInfo resourcePluginInfo,
         ResourceAccessHandler resourceAccessHandler,
         final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
         final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting
     ) {
-        this.resourceIndices = resourceIndices;
+        this.resourcePluginInfo = resourcePluginInfo;
         this.resourceAccessHandler = resourceAccessHandler;
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
         this.protectedResourceTypesSetting = protectedResourceTypesSetting;
@@ -130,7 +130,8 @@ public class ResourceAccessEvaluator {
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
-        if (!resourceIndices.contains(docRequest.index())) {
+        List<String> currentProtectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes(currentProtectedTypes).contains(docRequest.index())) {
             log.debug("Request index {} is not a protected resource index", docRequest.index());
             return false;
         }
