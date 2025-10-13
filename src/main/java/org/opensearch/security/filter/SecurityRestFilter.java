@@ -160,7 +160,9 @@ public class SecurityRestFilter {
 
             RestRequest filteredRequest = maybeFilterRestRequest(request);
 
-            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(filteredRequest, channel);
+            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+            // for audit logging
+            final SecurityRequestChannel filteredRequestChannel = SecurityRequestFactory.from(filteredRequest, channel);
 
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
@@ -181,7 +183,7 @@ public class SecurityRestFilter {
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
-                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, filteredRequestChannel);
                 if (performPermissionCheck) {
                     log.debug("Permission check skipped: Super admin has full access");
                     handleSuperAdminPermissionCheck(channel);
@@ -191,7 +193,7 @@ public class SecurityRestFilter {
                 return;
             }
             if (user != null) {
-                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, filteredRequestChannel);
             }
             final Optional<SecurityResponse> deniedResponse = allowlistingSettings.checkRequestIsAllowed(requestChannel);
 
@@ -200,7 +202,7 @@ public class SecurityRestFilter {
                 return;
             }
 
-            authorizeRequest(delegate, requestChannel, user);
+            authorizeRequest(delegate, filteredRequestChannel, user);
             if (requestChannel.getQueuedResponse().isPresent()) {
                 channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;

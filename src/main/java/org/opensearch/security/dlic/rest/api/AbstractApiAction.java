@@ -49,6 +49,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -79,7 +80,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.internalServerErro
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
-public abstract class AbstractApiAction extends BaseRestHandler {
+public abstract class AbstractApiAction extends BaseRestHandler implements RestRequestFilter {
 
     private final static Logger LOGGER = LogManager.getLogger(AbstractApiAction.class);
 
@@ -578,6 +579,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     @Override
     protected final RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
 
+        RestRequest filteredRequest = getFilteredRequest(request);
+
+        RestRequest auditLogRequest = (request.method() != Method.PATCH) ? filteredRequest : request;
+
         // consume all parameters first so we can return a correct HTTP status,
         // not 400
         consumeParameters(request);
@@ -594,12 +599,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
             LOGGER.error("No permission to access REST API: " + authError);
-            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, SecurityRequestFactory.from(request));
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, SecurityRequestFactory.from(auditLogRequest));
             // for rest request
             request.params().clear();
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
-            securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(request));
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(auditLogRequest));
         }
 
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
@@ -649,6 +654,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     @Override
     public boolean canTripCircuitBreaker() {
         return false;
+    }
+
+    @Override
+    public Set<String> getFilteredFields() {
+        return Set.of("password", "current_password");
     }
 
 }
