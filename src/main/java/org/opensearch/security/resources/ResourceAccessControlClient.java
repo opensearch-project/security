@@ -115,6 +115,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      */
     @Override
     public boolean isFeatureEnabledForType(String resourceType) {
-        return resourcePluginInfo.indexByType(resourceType) != null;
+        return resourceSharingProtectedResourcesSetting.getDynamicSettingValue().contains(resourceType);
     }
 }
