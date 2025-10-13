@@ -969,7 +969,7 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
         rh.sendAdminCertificate = false;
         final Header adminHeader = encodeBasicHeader("admin", "admin");
         rh.executePutRequest(
-            "/_plugins/_security/api/account",
+            "/_opendistro/_security/api/account",
             "{\"password\":\"myNewPassword123!\", \"current_password\":\"myCurrentPassword123!\"}",
             adminHeader
         );
@@ -991,7 +991,7 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
         rh.sendAdminCertificate = true;
         TestAuditlogImpl.clear();
         rh.executePatchRequest(
-            "/_plugins/_security/api/internalusers/test1",
+            "/_opendistro/_security/api/internalusers/test1",
             "[{\"op\":\"add\", \"path\":\"/password\", \"value\": \"test-pass\"}]"
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
