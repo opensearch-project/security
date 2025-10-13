@@ -372,6 +372,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         resourceSharingEnabledSetting = new ResourceSharingFeatureFlagSetting(settings, resourcePluginInfo); // not filtered
         resourceSharingProtectedResourceTypesSetting = new ResourceSharingProtectedResourcesSetting(settings, resourcePluginInfo); // not
                                                                                                                                    // filtered
+        resourcePluginInfo.setResourceSharingProtectedTypesSetting(resourceSharingProtectedResourceTypesSetting);
 
         if (disabled) {
             this.sslCertReloadEnabled = false;

@@ -58,8 +58,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
         // following situation will arise when resource is onboarded to framework but not marked as protected
-        List<String> protectedResourceTypes = resourceSharingProtectedResourcesSetting.getDynamicSettingValue();
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes(protectedResourceTypes).contains(resourceIndex)) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
             LOGGER.warn(
                 "Resource '{}' is onboarded to sharing framework but is not marked as protected. Action {} is allowed.",
                 resourceId,

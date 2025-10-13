@@ -169,9 +169,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
             if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
 
-                Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes(
-                    resourceSharingProtectedTypesSetting.getDynamicSettingValue()
-                );
+                Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                 WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
                 if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
 

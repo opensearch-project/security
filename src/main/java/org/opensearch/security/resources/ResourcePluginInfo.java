@@ -28,6 +28,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
@@ -40,6 +41,8 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 public class ResourcePluginInfo {
 
     private ResourceSharingClient resourceAccessControlClient;
+
+    private OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting;
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
@@ -57,6 +60,10 @@ public class ResourcePluginInfo {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
     private Set<String> currentProtectedTypes = Collections.emptySet();          // snapshot of last set
     private Set<String> cachedProtectedTypeIndices = Collections.emptySet();     // precomputed indices
+
+    public void setResourceSharingProtectedTypesSetting(OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting) {
+        this.resourceSharingProtectedTypesSetting = resourceSharingProtectedTypesSetting;
+    }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         lock.writeLock().lock();
@@ -226,7 +233,8 @@ public class ResourcePluginInfo {
         }
     }
 
-    public Set<String> getResourceIndicesForProtectedTypes(List<String> resourceTypes) {
+    public Set<String> getResourceIndicesForProtectedTypes() {
+        List<String> resourceTypes = this.resourceSharingProtectedTypesSetting.getDynamicSettingValue();
         if (resourceTypes == null || resourceTypes.isEmpty()) {
             return Collections.emptySet();
         }

@@ -130,8 +130,7 @@ public class ResourceAccessEvaluator {
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
-        List<String> currentProtectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes(currentProtectedTypes).contains(docRequest.index())) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(docRequest.index())) {
             log.debug("Request index {} is not a protected resource index", docRequest.index());
             return false;
         }
