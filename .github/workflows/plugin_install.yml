@@ -41,7 +41,7 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v8
+        uses: derek-ho/start-opensearch@v9
         if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
@@ -51,7 +51,7 @@ jobs:
           jdk-version: 21
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v8
+        uses: derek-ho/start-opensearch@v9
         if: ${{ runner.os == 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
