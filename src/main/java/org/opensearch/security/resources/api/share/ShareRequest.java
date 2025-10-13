@@ -75,6 +75,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeString(resourceId);
         out.writeString(resourceType);
         out.writeString(resourceIndex);
+        out.writeString(resourceType);
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);

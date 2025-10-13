@@ -46,8 +46,10 @@ import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingU
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_withSpecifiedAccessLevel;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
@@ -79,7 +81,16 @@ public class MigrateApiTests {
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(MIGRATION_USER)
-        .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
+        .nodeSettings(
+            Map.of(
+                SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+                true,
+                OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                true,
+                OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                List.of(RESOURCE_TYPE)
+            )
+        )
         .build();
 
     @After

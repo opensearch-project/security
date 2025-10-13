@@ -57,6 +57,8 @@ public class JwtVerifier {
             String kid = escapedKid;
             if (!Strings.isNullOrEmpty(kid)) {
                 kid = StringEscapeUtils.unescapeJava(escapedKid);
+            } else {
+                log.debug("JWT token is missing 'kid' (Key ID) claim in header. This may cause key selection issues.");
             }
             JWK key = keyProvider.getKey(kid);
 
@@ -65,8 +67,10 @@ public class JwtVerifier {
 
             if (!signatureValid && Strings.isNullOrEmpty(kid)) {
                 key = keyProvider.getKeyAfterRefresh(null);
-                signatureVerifier = getInitializedSignatureVerifier(key, jwt);
-                signatureValid = jwt.verify(signatureVerifier);
+                if (key != null) {
+                    signatureVerifier = getInitializedSignatureVerifier(key, jwt);
+                    signatureValid = jwt.verify(signatureVerifier);
+                }
             }
 
             if (!signatureValid) {

@@ -39,6 +39,7 @@ import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
@@ -251,13 +252,17 @@ public class ShareApiTests {
                 response.assertStatusCode(HttpStatus.SC_OK);
             }
 
-            // limited access user will now be able to call patch endpoint, but full-access won't
+            // limited access user will now be able to call get and patch endpoint, but full-access won't
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
-                TestRestClient.HttpResponse response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
+                TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
+                response.assertStatusCode(HttpStatus.SC_OK);
+                response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
                 response.assertStatusCode(HttpStatus.SC_OK);
             }
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
-                TestRestClient.HttpResponse response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
+                TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+                response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
         }

@@ -193,6 +193,42 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
+     * Resolves 403's on direct document updates, by restoring `all_shared_principals` field that may have been wiped out.
+     *
+     * @param resourceId the id whose sharing info is to be updated
+     * @param resourceIndex the index where the resource exists
+     * @param listener the listener to respond to once async action is complete
+     */
+    public void fetchAndUpdateResourceVisibility(String resourceId, String resourceIndex, ActionListener<Void> listener) {
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
+
+            if (sharingInfo == null) {
+                LOGGER.debug("No sharing info found for resource {} in index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+                return;
+            }
+
+            updateResourceVisibility(resourceId, resourceIndex, sharingInfo.getAllPrincipals(), ActionListener.wrap((updateResponse) -> {
+                LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+            }, (e) -> {
+                LOGGER.error("Failed to update principals field in {} for resource {}", resourceIndex, resourceId, e);
+                listener.onResponse(null);
+            }));
+        }, (failResponse) -> {
+            LOGGER.error(failResponse.getMessage());
+            listener.onFailure(failResponse);
+        });
+
+    }
+
+    /**
      * Creates or updates a resource sharing record in the dedicated resource sharing index.
      * This method handles the persistence of sharing metadata for resources, including
      * the creator information and sharing permissions.
@@ -788,8 +824,8 @@ public class ResourceSharingIndexHandler {
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
         // Apply patch and update the document
-        sharingInfoListener.whenComplete(resourceSharing -> {
-            ShareWith updatedShareWith = resourceSharing.getShareWith();
+        sharingInfoListener.whenComplete(sharingInfo -> {
+            ShareWith updatedShareWith = sharingInfo.getShareWith();
             if (updatedShareWith == null) {
                 updatedShareWith = new ShareWith(new HashMap<>());
             }
@@ -808,7 +844,7 @@ public class ResourceSharingIndexHandler {
                 }
             }
 
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), cleaned);
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, sharingInfo.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
@@ -828,7 +864,19 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
 
-                    listener.onResponse(updatedSharingInfo);
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        updatedSharingInfo.getAllPrincipals(),
+                        ActionListener.wrap((updateResponse) -> {
+                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                            listener.onResponse(updatedSharingInfo);
+                        }, (e) -> {
+                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                            listener.onResponse(updatedSharingInfo);
+                        })
+                    );
+
                 }, (e) -> {
                     LOGGER.error(e.getMessage());
                     listener.onFailure(e);

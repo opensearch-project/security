@@ -68,7 +68,7 @@ public class ShareRestAction extends BaseRestHandler {
 
         ShareRequest.Builder builder = new ShareRequest.Builder();
         builder.method(request.method());
-
+        src/main/java/org/opensearch/security/resources/ResourcePluginInfo.java
         if (resourceId != null) {
             builder.resourceId(resourceId);
         }

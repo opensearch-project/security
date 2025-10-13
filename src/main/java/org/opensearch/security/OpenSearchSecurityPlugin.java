@@ -155,6 +155,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
+import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
@@ -1225,7 +1226,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             // Assign resource sharing client to each extension
             // Using the non-gated client (i.e. no additional permissions required)
-            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(resourceAccessHandler);
+            ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(
+                resourceAccessHandler,
+                resourcePluginInfo.getResourceIndices()
+            );
             resourcePluginInfo.getResourceSharingExtensions().forEach(extension -> {
                 extension.assignResourceSharingClient(resourceAccessControlClient);
             });
@@ -2236,6 +2240,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // resource marked here will be protected, other resources will not be protected with resource sharing model
+            // Defaults to no resources as protected
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT,
+                    Function.identity(),
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
@@ -2267,14 +2283,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED,
-                    ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
         }
 
         return settings;
@@ -2288,7 +2297,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return settingsFilter;
         }
         settingsFilter.add("opendistro_security.*");
-        settingsFilter.add("plugins.security.*");
+        settingsFilter.add("plugins.security.transport_user_cache.*");
+        settingsFilter.add("plugins.security.nodes_dn.*");
+        settingsFilter.add("plugins.security.restapi.*");
+        settingsFilter.add("plugins.security.ssl.*");
+        settingsFilter.add("plugins.security.config_version.*");
+        settingsFilter.add("plugins.security.nodes_dn_dynamic_config_enabled.*");
+        settingsFilter.add("plugins.security.privileges_evaluation.*");
+        settingsFilter.add("plugins.security.authcz.*");
+        settingsFilter.add("plugins.security.password.*");
+        settingsFilter.add("plugins.security.unsupported.*");
+        settingsFilter.add("plugins.security.audit.*");
+        settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }
 
@@ -2379,6 +2399,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
         }
 
+        if (SecurityConfigVersionHandler.isVersionIndexEnabled(settings)) {
+            final String securityVersionsIndexPattern = settings.get(
+                ConfigConstants.SECURITY_CONFIG_VERSIONS_INDEX_NAME,
+                ConfigConstants.OPENSEARCH_SECURITY_DEFAULT_CONFIG_VERSIONS_INDEX
+            );
+            systemIndexDescriptors.add(new SystemIndexDescriptor(securityVersionsIndexPattern, "Security config versions index"));
+        }
+
         return ImmutableList.copyOf(systemIndexDescriptors);
     }
 
@@ -2456,7 +2484,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // discover & register extensions and their types
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
-        resourcePluginInfo.setResourceSharingExtensions(exts);
+        resourcePluginInfo.setResourceSharingExtensions(
+            exts,
+            settings.getAsList(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES)
+        );
 
         // load action-groups in memory
         ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
