@@ -885,6 +885,8 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_alias_pattern_negation() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_*,-alias_ab1/_search?size=1000");
+            // Another interesting effect: The negation on alias names does actually have no effect.
+            // This is this time a bug in core. TODO: File issue
             assertThat(
                 httpResponse,
                 containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")

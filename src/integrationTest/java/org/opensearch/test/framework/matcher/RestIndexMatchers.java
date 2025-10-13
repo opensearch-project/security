@@ -29,6 +29,7 @@ import org.hamcrest.DiagnosingMatcher;
 import org.hamcrest.Matcher;
 
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
@@ -110,17 +111,17 @@ public class RestIndexMatchers {
 
         public static OnResponseIndexMatcher containsExactly(Collection<TestIndexOrAliasOrDatastream> testIndices) {
             Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>();
-            boolean containsOpenSearchIndices = false;
+            boolean containsOpenSearchSecurityIndex = false;
 
             for (TestIndexOrAliasOrDatastream testIndex : testIndices) {
                 if (testIndex == TestIndex.openSearchSecurityConfigIndex()) {
-                    containsOpenSearchIndices = true;
+                    containsOpenSearchSecurityIndex = true;
                 } else {
                     indexNameMap.put(testIndex.name(), testIndex);
                 }
             }
 
-            return new ContainsExactlyMatcher(indexNameMap, containsOpenSearchIndices);
+            return new ContainsExactlyMatcher(indexNameMap, containsOpenSearchSecurityIndex);
         }
     }
 
@@ -341,7 +342,7 @@ public class RestIndexMatchers {
             if (!containsOpenSearchSecurityIndex) {
                 return expectedIndices.size();
             } else {
-                throw new RuntimeException("Size cannot be exactly specified because containsOpenSearchIndices is true");
+                return expectedIndices.size() + 1;
             }
         }
 
@@ -368,7 +369,7 @@ public class RestIndexMatchers {
                     continue;
                 }
 
-                result.put(key, index1.intersection(index2));
+                result.put(key, index1);
             }
 
             return Collections.unmodifiableMap(result);
@@ -403,17 +404,17 @@ public class RestIndexMatchers {
     static class ContainsExactlyMatcher extends AbstractIndexMatcher implements OnResponseIndexMatcher {
         private static final Pattern DS_BACKING_INDEX_PATTERN = Pattern.compile("\\.ds-(.+)-[0-9]+");
 
-        ContainsExactlyMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchIndices) {
-            super(indexNameMap, containsOpenSearchIndices);
+        ContainsExactlyMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchSecurityIndex) {
+            super(indexNameMap, containsOpenSearchSecurityIndex);
         }
 
         ContainsExactlyMatcher(
             Map<String, TestIndexOrAliasOrDatastream> indexNameMap,
-            boolean containsOpenSearchIndices,
+            boolean containsOpenSearchSecurityIndex,
             String jsonPath,
             RestMatchers.HttpResponseMatcher statusCodeWhenEmpty
         ) {
-            super(indexNameMap, containsOpenSearchIndices, jsonPath, statusCodeWhenEmpty);
+            super(indexNameMap, containsOpenSearchSecurityIndex, jsonPath, statusCodeWhenEmpty);
         }
 
         @Override
@@ -454,7 +455,7 @@ public class RestIndexMatchers {
             for (Object object : collection) {
                 String index = object.toString();
 
-                if (containsOpenSearchSecurityIndex && (index.startsWith(".opendistro"))) {
+                if (containsOpenSearchSecurityIndex && (index.equals(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX))) {
                     seenOpenSearchIndicesBuilder.add(index);
                 } else if (index.startsWith(".ds-")) {
                     // We do a special treatment for data stream backing indices. We convert these to the normal data streams if expected
@@ -708,14 +709,14 @@ public class RestIndexMatchers {
      */
     static class UnlimitedMatcher extends DiagnosingMatcher<Object> implements OnUserIndexMatcher {
 
-        private final boolean containsOpenSearchIndices;
+        private final boolean containsOpenSearchSecurityIndex;
 
         UnlimitedMatcher() {
-            this.containsOpenSearchIndices = false;
+            this.containsOpenSearchSecurityIndex = false;
         }
 
-        UnlimitedMatcher(boolean containsOpenSearchIndices) {
-            this.containsOpenSearchIndices = containsOpenSearchIndices;
+        UnlimitedMatcher(boolean containsOpenSearchSecurityIndex) {
+            this.containsOpenSearchSecurityIndex = containsOpenSearchSecurityIndex;
         }
 
         @Override
@@ -743,7 +744,7 @@ public class RestIndexMatchers {
 
         @Override
         public boolean containsOpenSearchSecurityIndex() {
-            return containsOpenSearchIndices;
+            return containsOpenSearchSecurityIndex;
         }
 
         @Override

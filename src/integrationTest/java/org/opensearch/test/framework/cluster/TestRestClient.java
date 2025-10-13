@@ -525,6 +525,11 @@ public class TestRestClient implements AutoCloseable {
         // TODO: Is there anything to clean up here?
     }
 
+    /**
+     * Helper method to create very simple dynamic JSON request bodies.
+     * @param attributes Key-value pairs, keys on even indices, values on odd indices.
+     * @return A request body that can be passed to the get(), post(), etc. methods.
+     */
     public static HttpEntity json(Object... attributes) {
         Map<String, Object> map = new HashMap<>();
 

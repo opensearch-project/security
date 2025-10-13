@@ -28,18 +28,6 @@ public interface TestIndexOrAliasOrDatastream {
 
     void delete(Client client);
 
-    default TestIndexOrAliasOrDatastream intersection(TestIndexOrAliasOrDatastream other) {
-        if (other == this) {
-            return this;
-        }
-
-        if (!this.name().equals(other.name())) {
-            throw new IllegalArgumentException("Cannot intersect different indices: " + this + " vs " + other);
-        }
-
-        return this;
-    }
-
     static void createInitialTestObjects(LocalCluster cluster, TestIndexOrAliasOrDatastream... testIndexLikeArray) {
         try (Client client = cluster.getInternalNodeClient()) {
             for (TestIndexOrAliasOrDatastream testIndexLike : testIndexLikeArray) {
