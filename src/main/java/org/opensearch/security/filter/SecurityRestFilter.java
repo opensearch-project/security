@@ -203,8 +203,8 @@ public class SecurityRestFilter {
             }
 
             authorizeRequest(delegate, filteredRequestChannel, user);
-            if (requestChannel.getQueuedResponse().isPresent()) {
-                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
+            if (filteredRequestChannel.getQueuedResponse().isPresent()) {
+                channel.sendResponse(filteredRequestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
