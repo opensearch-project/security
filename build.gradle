@@ -488,8 +488,8 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.20.0"
-            force "net.bytebuddy:byte-buddy:1.17.7"
-            force "org.ow2.asm:asm:9.8"
+            force "net.bytebuddy:byte-buddy:1.17.8"
+            force "org.ow2.asm:asm:9.9"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
@@ -693,7 +693,7 @@ dependencies {
     compileOnly 'com.google.errorprone:error_prone_annotations:2.42.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
-    runtimeOnly 'org.ow2.asm:asm:9.8'
+    runtimeOnly 'org.ow2.asm:asm:9.9'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
