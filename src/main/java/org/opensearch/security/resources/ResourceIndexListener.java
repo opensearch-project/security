@@ -132,7 +132,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
+        if (!resourcePluginInfo.getResourceIndices().contains(resourceIndex)) {
             // type is marked as not protected
             return;
         }
