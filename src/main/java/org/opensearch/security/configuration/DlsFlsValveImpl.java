@@ -110,7 +110,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final Settings settings;
     private final AdminDNs adminDNs;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
-    private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting;
     private final ResourcePluginInfo resourcePluginInfo;
 
     public DlsFlsValveImpl(
@@ -123,8 +122,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         DlsFlsBaseContext dlsFlsBaseContext,
         AdminDNs adminDNs,
         ResourcePluginInfo resourcePluginInfo,
-        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
-        OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -147,7 +145,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         });
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
-        this.resourceSharingProtectedTypesSetting = resourceSharingProtectedTypesSetting;
     }
 
     /**

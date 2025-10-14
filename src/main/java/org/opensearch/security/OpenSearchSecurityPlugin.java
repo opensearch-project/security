@@ -1218,8 +1218,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 dlsFlsBaseContext,
                 adminDns,
                 resourcePluginInfo,
-                resourceSharingEnabledSetting,
-                resourceSharingProtectedResourceTypesSetting
+                resourceSharingEnabledSetting
             );
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
