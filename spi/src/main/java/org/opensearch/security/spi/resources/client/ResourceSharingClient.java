@@ -54,4 +54,11 @@ public interface ResourceSharingClient {
      * @param listener The listener to be notified with the set of accessible resources.
      */
     void getAccessibleResourceIds(String resourceType, ActionListener<Set<String>> listener);
+
+    /**
+     * Returns a flag to indicate whether resource-sharing is enabled for resource-type
+     * @param resourceType the type for which resource-sharing status is to be checked
+     * @return true if enabled, false otherwise
+     */
+    boolean isFeatureEnabledForType(String resourceType);
 }

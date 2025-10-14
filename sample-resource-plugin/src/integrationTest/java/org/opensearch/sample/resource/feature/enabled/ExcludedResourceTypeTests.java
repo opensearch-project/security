@@ -25,7 +25,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
@@ -58,11 +57,12 @@ public class ExcludedResourceTypeTests {
     }
 
     @Test
-    public void testSampleResourceSharingIndexDoesNotExist() {
+    public void testSampleResourceSharingIndexExists() {
+        // we create resource-sharing index as we need to add index operation listener and we cannot add that dynamically
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse response = client.get("_cat/indices?expand_wildcards=all");
             response.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(response.getBody(), not(containsString(RESOURCE_SHARING_INDEX)));
+            assertThat(response.getBody(), containsString(RESOURCE_SHARING_INDEX));
         }
     }
 

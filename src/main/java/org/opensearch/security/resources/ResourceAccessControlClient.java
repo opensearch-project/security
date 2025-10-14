@@ -8,12 +8,14 @@
 
 package org.opensearch.security.resources;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.spi.resources.sharing.ResourceSharing;
 import org.opensearch.security.spi.resources.sharing.ShareWith;
@@ -28,15 +30,21 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessControlClient.class);
 
     private final ResourceAccessHandler resourceAccessHandler;
-    private final Set<String> resourceIndices;
+    private final ResourcePluginInfo resourcePluginInfo;
+    private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourcesSetting;
 
     /**
      * Constructs a new ResourceAccessControlClient.
      *
      */
-    public ResourceAccessControlClient(ResourceAccessHandler resourceAccessHandler, Set<String> resourceIndices) {
+    public ResourceAccessControlClient(
+        ResourceAccessHandler resourceAccessHandler,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourcesSetting
+    ) {
         this.resourceAccessHandler = resourceAccessHandler;
-        this.resourceIndices = resourceIndices;
+        this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingProtectedResourcesSetting = resourceSharingProtectedResourcesSetting;
     }
 
     /**
@@ -50,8 +58,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void verifyAccess(String resourceId, String resourceType, String action, ActionListener<Boolean> listener) {
         // following situation will arise when resource is onboarded to framework but not marked as protected
-        // TODO update this
-        if (!resourceIndices.contains(resourceType)) {
+        if (!isFeatureEnabledForType(resourceType)) {
             LOGGER.warn(
                 "Resource '{}' is onboarded to sharing framework but is not marked as protected. Action {} is allowed.",
                 resourceId,
@@ -98,5 +105,15 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
     @Override
     public void getAccessibleResourceIds(String resourceType, ActionListener<Set<String>> listener) {
         resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceType, listener);
+    }
+
+    /**
+     * Returns a flag to indicate whether resource-sharing is enabled for resource-type
+     * @param resourceType the type for which resource-sharing status is to be checked
+     * @return true if enabled, false otherwise
+     */
+    @Override
+    public boolean isFeatureEnabledForType(String resourceType) {
+        return resourceSharingProtectedResourcesSetting.getDynamicSettingValue().contains(resourceType);
     }
 }

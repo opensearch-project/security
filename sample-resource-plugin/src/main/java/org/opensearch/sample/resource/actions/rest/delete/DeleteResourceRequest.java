@@ -52,11 +52,6 @@ public class DeleteResourceRequest extends ActionRequest implements DocRequest {
     }
 
     @Override
-    public String type() {
-        return RESOURCE_TYPE;
-    }
-
-    @Override
     public String index() {
         return RESOURCE_INDEX_NAME;
     }
