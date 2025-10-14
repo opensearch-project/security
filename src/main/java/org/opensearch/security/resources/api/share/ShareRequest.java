@@ -62,8 +62,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         super(in);
         this.method = in.readEnum(RestRequest.Method.class);
         this.resourceId = in.readString();
-        this.resourceType = in.readString();
         this.resourceIndex = in.readString();
+        this.resourceType = in.readString();
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
@@ -73,7 +73,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(method);
         out.writeString(resourceId);
-        out.writeString(resourceType);
         out.writeString(resourceIndex);
         out.writeString(resourceType);
         out.writeOptionalWriteable(shareWith);
@@ -121,6 +120,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         return method;
     }
 
+    @Override
+    public String type() {
+        return resourceType;
+    }
+
     /**
      * Get the index that this request operates on
      *
@@ -129,16 +133,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @Override
     public String index() {
         return resourceIndex;
-    }
-
-    /**
-     * Get the type
-     *
-     * @return the resource type
-     */
-    @Override
-    public String type() {
-        return resourceType;
     }
 
     /**

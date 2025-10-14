@@ -51,7 +51,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * Verifies whether the current user has access to the specified resource.
      *
      * @param resourceId    The ID of the resource to verify.
-     * @param resourceType  The resource tupe.
+     * @param resourceType  The resource type.
      * @param action        The action to be evaluated against
      * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
