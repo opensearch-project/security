@@ -61,6 +61,11 @@ public class CreateResourceRequest extends ActionRequest implements DocRequest {
     }
 
     @Override
+    public String type() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
     public String index() {
         return RESOURCE_INDEX_NAME;
     }
@@ -68,10 +73,5 @@ public class CreateResourceRequest extends ActionRequest implements DocRequest {
     @Override
     public String id() {
         return null;
-    }
-
-    @Override
-    public String type() {
-        return RESOURCE_TYPE;
     }
 }
