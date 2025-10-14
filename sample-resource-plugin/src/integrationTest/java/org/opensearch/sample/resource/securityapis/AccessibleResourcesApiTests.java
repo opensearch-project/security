@@ -98,7 +98,7 @@ public class AccessibleResourcesApiTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, user.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, user.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));
