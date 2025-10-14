@@ -424,9 +424,9 @@ publishing {
             name = "Snapshots" //  optional target repository name
             url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
             credentials(AwsCredentials) {
-              accessKey = System.getenv("AWS_ACCESS_KEY_ID")
-              secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
-              sessionToken = System.getenv("AWS_SESSION_TOKEN")
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
             }
         }
     }
