@@ -76,7 +76,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *          source_index: "abc",                                    // name of plugin index
  *          username_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
- *          default_access_level: "<some-default-access-level>"     // default value that should replace the otherwise ResourceAccessLevels.PLACE_HOLDER assigned to the new ResourceSharing object
+ *          default_access_level: "<some-default-access-level>"     // default access-level at which sharing records should be created
  *      }
  *   - Response:
  *      200 OK Migration Complete. Migrate X, skippedNoUser Y, failed Z // migrate -> successful migration count, skippedNoUser -> records with no creator info, failed -> records that failed to migrate
@@ -140,7 +140,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : "default";
+        String defaultAccessLevel = body.get("default_access_level").asText();
 
         List<SourceDoc> results = new ArrayList<>();
 
@@ -307,7 +307,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path");
+                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path", "default_access_level");
                     }
 
                     @Override

@@ -75,6 +75,7 @@ opensearchplugin {
 ```
 - **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
 - **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
+- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](./sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -129,10 +130,28 @@ resource_types:
         - "cluster:admin/sample-resource-plugin/*"
         - "cluster:admin/security/resource/share"
 ```
+- If your plugin enabled testing with security, add the following to you node-setup for `integTest` task:
+```build.gradle
+integTest {
+    ...
+    systemProperty "resource_sharing.enabled", System.getProperty("resource_sharing.enabled")
+    ...
+}
+...
+<test-cluster-setup-task> {
+    ...
+    node.setting("plugins.security.system_indices.enabled", "true")
+    if (System.getProperty("resource_sharing.enabled") == "true") {
+        node.setting("plugins.security.experimental.resource_sharing.enabled", "true")
+        node.setting("plugins.security.experimental.resource_sharing.protected_types", "[\"anomaly-detector\", \"forecaster\"]")
+    }
+    ...
+}
+```
 
 ## **3. Resource Sharing API Design**
 
-### **Resource Sharing Index **
+### **Resource Sharing Index**
 
 Each plugin receives its own sharing index, centrally managed by security plugin, which stores **resource access metadata**, mapping **resources to their access control policies**.
 
@@ -323,44 +342,21 @@ void revoke(String resourceId, String resourceIndex, ShareWith target, ActionLis
 void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
-Example usage:
-```java
-@Inject
-public ShareResourceTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters,
-        SampleResourceExtension sampleResourceExtension
-) {
-    super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-    this.resourceSharingClient = sampleResourceExtension == null ? null : sampleResourceExtension.getResourceSharingClient();
-}
+### **5. `isFeatureEnabledForType`**
 
-@Override
-protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
-    if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
-        listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
-        return;
-    }
+**Add as code-control to execute resource-sharing code only if the feature is enabled for the given type.**
 
-    if (resourceSharingClient == null) {
-        listener.onFailure(
-                new OpenSearchStatusException(
-                        "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
-                        RestStatus.NOT_IMPLEMENTED
-                )
-        );
-        return;
-    }
-    ShareWith shareWith = request.getShareWith();
-    resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
-        ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
-        ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
-        log.debug("Shared resource: {}", response.toString());
-        listener.onResponse(response);
-    }, listener::onFailure));
-}
+```
+boolean isFeatureEnabledForType(String resourceType);
 ```
 
+Example usage `isFeatureEnabledForType()`:
+```java
+public static boolean shouldUseResourceAuthz(String resourceType) {
+    var client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+    return client != null && client.isFeatureEnabledForType(resourceType);
+}
+```
 
 > For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
 
@@ -396,15 +392,18 @@ sequenceDiagram
       Plugin ->> SPI: getAccessibleResourceIds (noop)
       SPI -->> Plugin: Error 501 Not Implemented
 
+      Plugin ->> SPI: isFeatureEnabledForType (noop)
+      SPI -->> Plugin: Disabled
+
     else Security Plugin Enabled
     %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
-      Plugin ->> SPI: Calls Java API (`verifyAccess`, `share`, `revoke`, `getAccessibleResourceIds`)
+      Plugin ->> SPI: Calls Java API (`verifyAccess`, `share`, `revoke`, `getAccessibleResourceIds`, `isFeatureEnabledForType`)
 
     %% Step 4: Request is sent to Security Plugin
       SPI ->> Security: Sends request to Security Plugin for processing
 
     %% Step 5: Security Plugin handles request and returns response
-      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs )
+      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs / Feature Enabled or Disabled for Resource Type)
 
     %% Step 6: Security SPI sends response back to Plugin
       SPI -->> Plugin: Passes processed response back to Plugin
@@ -628,19 +627,19 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 
 **Request Body**
 
-| Parameter              | Type    | Required | Description                                                                 |
-|------------------------|---------|----|-----------------------------------------------------------------------------|
-| `source_index`         | string  | yes | Name of the plugin index containing the existing resource documents        |
-| `username_path`        | string  | yes | JSON Pointer to the username field inside each document (e.g., `/owner`)   |
-| `backend_roles_path`   | string  | yes | JSON Pointer to the backend_roles field (must point to a JSON array)       |
-| `default_access_level` | string  | no | Default access level to assign migrated backend_roles (default: `"default"`) |
+| Parameter              | Type    | Required | Description                                                             |
+|------------------------|---------|----------|-------------------------------------------------------------------------|
+| `source_index`         | string  | yes      | Name of the plugin index containing the existing resource documents     |
+| `username_path`        | string  | yes      | JSON Pointer to the username field inside each document                 |
+| `backend_roles_path`   | string  | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)    |
+| `default_access_level` | string  | yes      | Default access level to assign migrated backend_roles                   |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`
 **Request Body:**
 ```json
 {
-  "source_index": "sample_plugin_index",
+  "source_index": ".sample_resource",
   "username_path": "/owner",
   "backend_roles_path": "/access/backend_roles",
   "default_access_level": "read_only"
