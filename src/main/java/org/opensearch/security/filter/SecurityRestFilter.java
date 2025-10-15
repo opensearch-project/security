@@ -223,11 +223,12 @@ public class SecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
         }
 
-        RestRequest maybeFilterRestRequest(RestRequest restRequest) throws IOException {
-            if (delegate instanceof RestRequestFilter) {
-                return ((RestRequestFilter) delegate).getFilteredRequest(restRequest);
+        RestRequest maybeFilterRestRequest(RestRequest request) throws IOException {
+            // Skip PATCH because filtering only supports JSON object bodies, not arrays.
+            if (delegate instanceof RestRequestFilter && (request.method() != RestRequest.Method.PATCH)) {
+                return ((RestRequestFilter) delegate).getFilteredRequest(request);
             }
-            return restRequest;
+            return request;
         }
     }
 

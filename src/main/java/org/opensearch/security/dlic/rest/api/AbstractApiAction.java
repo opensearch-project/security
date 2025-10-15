@@ -581,6 +581,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
 
         RestRequest filteredRequest = getFilteredRequest(request);
 
+        // Skip PATCH because filtering only supports JSON object bodies, not arrays.
         RestRequest auditLogRequest = (request.method() != Method.PATCH) ? filteredRequest : request;
 
         // consume all parameters first so we can return a correct HTTP status,
