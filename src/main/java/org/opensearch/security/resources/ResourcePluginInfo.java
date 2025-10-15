@@ -213,7 +213,7 @@ public class ResourcePluginInfo {
     public Collection<String> getResourceIndices() {
         lock.readLock().lock();
         try {
-            return typeToIndex.values();
+            return new HashSet<>(typeToIndex.values());
         } finally {
             lock.readLock().unlock();
         }
