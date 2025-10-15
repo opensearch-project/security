@@ -147,7 +147,7 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
-            "backend_roles_path": "%s"
+            "backend_roles_path": "%s",
             "default_access_level": "%s"
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
