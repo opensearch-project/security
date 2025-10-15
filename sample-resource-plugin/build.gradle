@@ -44,7 +44,7 @@ ext {
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 configurations.all {
