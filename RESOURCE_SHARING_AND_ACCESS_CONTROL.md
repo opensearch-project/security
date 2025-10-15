@@ -627,12 +627,12 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 
 **Request Body**
 
-| Parameter              | Type    | Required | Description                                                             |
-|------------------------|---------|----------|-------------------------------------------------------------------------|
-| `source_index`         | string  | yes      | Name of the plugin index containing the existing resource documents     |
-| `username_path`        | string  | yes      | JSON Pointer to the username field inside each document                 |
-| `backend_roles_path`   | string  | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)    |
-| `default_access_level` | string  | yes      | Default access level to assign migrated backend_roles                   |
+| Parameter              | Type    | Required | Description                                                                                                                                          |
+|------------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `source_index`         | string  | yes      | Name of the plugin index containing the existing resource documents                                                                                  |
+| `username_path`        | string  | yes      | JSON Pointer to the username field inside each document                                                                                              |
+| `backend_roles_path`   | string  | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                 |
+| `default_access_level` | string  | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`

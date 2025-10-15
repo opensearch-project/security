@@ -127,8 +127,9 @@ public class MigrateApiTests {
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_only"))); // with
-            // default
-            // access-level
+                                                                                                                                         // default
+                                                                                                                                         // access
+                                                                                                                                         // level
         }
     }
 
@@ -151,8 +152,9 @@ public class MigrateApiTests {
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_write"))); // with
-            // custom
-            // access-level
+                                                                                                                                          // custom
+                                                                                                                                          // access
+                                                                                                                                          // level
         }
     }
 
@@ -205,6 +207,22 @@ public class MigrateApiTests {
                 migrationPayload_missingDefaultAccessLevel()
             );
             assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "default_access_level"));
+        }
+    }
+
+    @Test
+    public void testMigrateAPIWithRestAdmin_invalidDefaultAccessLevel() {
+        createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_valid_withSpecifiedAccessLevel("blah")
+            );
+            assertThat(
+                migrateResponse,
+                RestMatchers.isBadRequest("/message", "Invalid access level blah for resource sharing for source index [.sample_resource]")
+            );
         }
     }
 
