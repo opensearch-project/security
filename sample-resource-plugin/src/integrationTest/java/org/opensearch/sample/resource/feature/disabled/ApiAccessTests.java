@@ -30,6 +30,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.assertSearchResponse;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
@@ -158,7 +159,8 @@ public class ApiAccessTests {
             // can see admin's resource
             TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, LIMITED_ACCESS_USER));
             assertThat(response.getBody(), containsString("sample"));
-            api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(LIMITED_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sample"));
             // get non-existent resource returns 404
             notFound(() -> api.getResource("randomId", LIMITED_ACCESS_USER));
 
@@ -203,7 +205,8 @@ public class ApiAccessTests {
             // can see admin's resource since feature is disabled and user has * permissions
             TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, FULL_ACCESS_USER));
             assertThat(response.getBody(), containsString("sample"));
-            api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sample"));
             // get non-existent resource returns 404
             notFound(() -> api.getResource("randomId", FULL_ACCESS_USER));
 
@@ -385,7 +388,8 @@ public class ApiAccessTests {
             // can see admin's resource
             TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, LIMITED_ACCESS_USER));
             assertThat(response.getBody(), containsString("sample"));
-            api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(LIMITED_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sample"));
             // get non-existent resource returns 404
             notFound(() -> api.getResource("randomId", LIMITED_ACCESS_USER));
 
@@ -432,7 +436,8 @@ public class ApiAccessTests {
             // can see admin's resource
             TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, FULL_ACCESS_USER));
             assertThat(response.getBody(), containsString("sample"));
-            api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sample"));
             // get non-existent resource returns 404
             notFound(() -> api.getResource("randomId", LIMITED_ACCESS_USER));
 
@@ -450,11 +455,15 @@ public class ApiAccessTests {
             notImplemented(() -> api.revokeResource(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // should be able to search for admin's resource, 2 total results
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
-            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateAdmin");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sampleUpdateAdmin");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sampleUpdateAdmin");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateAdmin");
             // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete a resource
             ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));

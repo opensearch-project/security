@@ -393,6 +393,13 @@ public final class TestUtils {
             }
         }
 
+        public static void assertSearchResponse(TestRestClient.HttpResponse response, int expectedHits, String expectedResourceName) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
+            assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
+            assertThat(response.getBody(), containsString(expectedResourceName));
+        }
+
         public static String searchAllPayload() {
             return """
                 {
@@ -473,6 +480,12 @@ public final class TestUtils {
 
         public void assertDirectGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
             assertGetAll(RESOURCE_INDEX_NAME + "/_search", user, status, expectedResourceName);
+        }
+
+        public TestRestClient.HttpResponse listResources(TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
+            }
         }
 
         public void assertApiGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
