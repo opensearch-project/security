@@ -26,6 +26,7 @@
 
 package org.opensearch.security.filter;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +48,7 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -155,7 +157,11 @@ public class SecurityRestFilter {
                 }
             });
 
+            RestRequest filteredRequest = maybeFilterRestRequest(request);
+
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+            // for audit logging
+            final SecurityRequestChannel filteredRequestChannel = SecurityRequestFactory.from(filteredRequest, channel);
 
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
@@ -172,12 +178,12 @@ public class SecurityRestFilter {
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
-                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, filteredRequestChannel);
                 delegate.handleRequest(request, channel, client);
                 return;
             }
             if (user != null) {
-                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, filteredRequestChannel);
             }
             final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
@@ -187,14 +193,22 @@ public class SecurityRestFilter {
                 return;
             }
 
-            authorizeRequest(delegate, requestChannel, user);
-            if (requestChannel.getQueuedResponse().isPresent()) {
-                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
+            authorizeRequest(delegate, filteredRequestChannel, user);
+            if (filteredRequestChannel.getQueuedResponse().isPresent()) {
+                channel.sendResponse(filteredRequestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
             // Caller was authorized, forward the request to the handler
             delegate.handleRequest(request, channel, client);
+        }
+
+        RestRequest maybeFilterRestRequest(RestRequest request) throws IOException {
+            // Skip PATCH because filtering only supports JSON object bodies, not arrays.
+            if (delegate instanceof RestRequestFilter && (request.method() != RestRequest.Method.PATCH)) {
+                return ((RestRequestFilter) delegate).getFilteredRequest(request);
+            }
+            return request;
         }
     }
 
