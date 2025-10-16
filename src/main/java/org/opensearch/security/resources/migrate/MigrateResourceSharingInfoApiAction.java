@@ -34,6 +34,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -51,6 +52,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.spi.resources.sharing.CreatedBy;
@@ -62,6 +64,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -76,7 +79,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *          source_index: "abc",                                    // name of plugin index
  *          username_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
- *          default_access_level: "<some-default-access-level>"     // default value that should replace the otherwise ResourceAccessLevels.PLACE_HOLDER assigned to the new ResourceSharing object
+ *          default_access_level: "<some-default-access-level>"     // default access-level at which sharing records should be created
  *      }
  *   - Response:
  *      200 OK Migration Complete. Migrate X, skippedNoUser Y, failed Z // migrate -> successful migration count, skippedNoUser -> records with no creator info, failed -> records that failed to migrate
@@ -88,16 +91,19 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(POST, "/resources/migrate")));
 
     private final ResourceSharingIndexHandler sharingIndexHandler;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     public MigrateResourceSharingInfoApiAction(
         ClusterService clusterService,
         ThreadPool threadPool,
         SecurityApiDependencies securityApiDependencies,
-        ResourceSharingIndexHandler sharingIndexHandler
+        ResourceSharingIndexHandler sharingIndexHandler,
+        ResourcePluginInfo resourcePluginInfo
     ) {
         super(Endpoint.RESOURCE_SHARING, clusterService, threadPool, securityApiDependencies);
         this.sharingIndexHandler = sharingIndexHandler;
         this.requestHandlersBuilder.configureRequestHandlers(this::migrateApiRequestHandlers);
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
     @Override
@@ -140,7 +146,27 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultAccessLevel = body.has("default_access_level") ? body.get("default_access_level").asText() : "default";
+        String defaultAccessLevel = body.get("default_access_level").asText();
+
+        // check that access level exists for given resource-index
+        String type = resourcePluginInfo.typeByIndex(sourceIndex);
+        var availableAGs = resourcePluginInfo.flattenedForType(type).actionGroups();
+        if (!availableAGs.contains(defaultAccessLevel)) {
+            LOGGER.error(
+                "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
+                defaultAccessLevel,
+                sourceIndex,
+                availableAGs
+            );
+            String badRequestMessage = "Invalid access level "
+                + defaultAccessLevel
+                + " for resource sharing for resource type ["
+                + type
+                + "]. Available access-levels are ["
+                + availableAGs
+                + "]";
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+        }
 
         List<SourceDoc> results = new ArrayList<>();
 
@@ -307,7 +333,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path");
+                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path", "default_access_level");
                     }
 
                     @Override
