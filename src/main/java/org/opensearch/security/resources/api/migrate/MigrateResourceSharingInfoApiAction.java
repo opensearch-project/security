@@ -151,17 +151,21 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         // TODO: once we support multiple resource types within an index, this needs to be revisited
         // Default access level as part of the resource-action-groups.yml file
         Set<String> types = resourcePluginInfo.typesByIndex(sourceIndex);
-        if (types.size() != 1) {
-            LOGGER.error(
-                "Invalid resource index [{}]. Either no resource type or multiple resource types are associated with this index",
-                sourceIndex
-            );
+        if (types.isEmpty()) {
+            LOGGER.error("Invalid resource index [{}]. No resource types are associated with this index", sourceIndex);
             String badRequestMessage = "Invalid resource index ["
                 + sourceIndex
                 + "]. Either no resource type or multiple resource types are associated with this index";
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
         }
         String type = types.iterator().next();
+        if (types.size() > 1) {
+            LOGGER.warn(
+                "Invalid resource index [{}]. Multiple resource types are associated with this index, choosing {}.",
+                sourceIndex,
+                type
+            );
+        }
         // check that access level exists for given resource-index
         var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
         if (!accessLevels.contains(defaultAccessLevel)) {
