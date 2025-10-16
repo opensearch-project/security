@@ -153,15 +153,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         var availableAGs = resourcePluginInfo.flattenedForType(type).actionGroups();
         if (!availableAGs.contains(defaultAccessLevel)) {
             LOGGER.error(
-                "Invalid access level {} for resource sharing for source index [{}]. Available access-levels are [{}]",
+                "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
                 defaultAccessLevel,
                 sourceIndex,
                 availableAGs
             );
             String badRequestMessage = "Invalid access level "
                 + defaultAccessLevel
-                + " for resource sharing for source index ["
-                + sourceIndex
+                + " for resource sharing for resource type ["
+                + type
                 + "]. Available access-levels are ["
                 + availableAGs
                 + "]";

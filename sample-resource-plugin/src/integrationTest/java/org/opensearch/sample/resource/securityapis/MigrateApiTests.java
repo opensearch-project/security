@@ -221,7 +221,10 @@ public class MigrateApiTests {
             );
             assertThat(
                 migrateResponse,
-                RestMatchers.isBadRequest("/message", "Invalid access level blah for resource sharing for source index [.sample_resource]")
+                RestMatchers.isBadRequest(
+                    "/message",
+                    "Invalid access level blah for resource sharing for resource type [" + RESOURCE_TYPE + "]"
+                )
             );
         }
     }
