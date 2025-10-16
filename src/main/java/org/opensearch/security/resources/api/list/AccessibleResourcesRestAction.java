@@ -29,6 +29,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.SharingRecord;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -44,11 +45,17 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
 
     private final ResourceAccessHandler resourceAccessHandler;
     private final ResourcePluginInfo resourcePluginInfo;
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
 
-    public AccessibleResourcesRestAction(final ResourceAccessHandler resourceAccessHandler, ResourcePluginInfo resourcePluginInfo) {
+    public AccessibleResourcesRestAction(
+        final ResourceAccessHandler resourceAccessHandler,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
+    ) {
         super();
         this.resourceAccessHandler = resourceAccessHandler;
         this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
 
     @Override
@@ -63,6 +70,9 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.NOT_IMPLEMENTED, "Feature disabled.")); };
+        }
         final String resourceType = Objects.requireNonNull(request.param("resource_type"), "resource_type is required");
 
         final String resourceIndex = resourcePluginInfo.indexByType(resourceType);

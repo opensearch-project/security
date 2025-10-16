@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.spi.resources.sharing;
+package org.opensearch.security.resources.sharing;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,8 +39,8 @@ import org.opensearch.core.xcontent.XContentParser;
  * </ul>
  *
  * @opensearch.experimental
- * @see org.opensearch.security.spi.resources.sharing.CreatedBy
- * @see org.opensearch.security.spi.resources.sharing.ShareWith
+ * @see CreatedBy
+ * @see ShareWith
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private final Logger log = LogManager.getLogger(this.getClass());

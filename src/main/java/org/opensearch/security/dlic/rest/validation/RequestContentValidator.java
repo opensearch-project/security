@@ -238,7 +238,7 @@ public class RequestContentValidator implements ToXContent {
         for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
             JsonNode value = jsonContent.get(allowedKey.getKey());
             if (value != null) {
-                if (hasNullArrayElement(value)) {
+                if (hasNullOrBlankArrayElement(value)) {
                     this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
                     return ValidationResult.error(RestStatus.BAD_REQUEST, this);
                 }
@@ -247,14 +247,14 @@ public class RequestContentValidator implements ToXContent {
         return ValidationResult.success(jsonContent);
     }
 
-    private boolean hasNullArrayElement(final JsonNode node) {
+    private boolean hasNullOrBlankArrayElement(final JsonNode node) {
         for (final JsonNode element : node) {
-            if (element.isNull()) {
+            if (element.isNull() || (element.isTextual() && Strings.isNullOrEmpty(element.asText().trim()))) {
                 if (node.isArray()) {
                     return true;
                 }
             } else if (element.isContainerNode()) {
-                if (hasNullArrayElement(element)) {
+                if (hasNullOrBlankArrayElement(element)) {
                     return true;
                 }
             }
@@ -380,7 +380,7 @@ public class RequestContentValidator implements ToXContent {
         PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."),
         SECURITY_NOT_INITIALIZED("Security index not initialized"),
-        NULL_ARRAY_ELEMENT("`null` is not allowed as json array element");
+        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements");
 
         private final String message;
 
