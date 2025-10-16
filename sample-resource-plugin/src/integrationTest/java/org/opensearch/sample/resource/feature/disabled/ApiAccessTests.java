@@ -359,9 +359,9 @@ public class ApiAccessTests {
             notImplemented(() -> api.revokeResource(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // search returns 403 since user doesn't have access to invoke search
-            api.assertApiGetSearchForbidden(NO_ACCESS_USER);
-            api.assertApiPostSearchForbidden(searchAllPayload(), NO_ACCESS_USER);
-            api.assertApiPostSearchForbidden(searchByNamePayload("sample"), NO_ACCESS_USER);
+            forbidden(() -> api.searchResources(NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchAllPayload(), NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchByNamePayload("sample"), NO_ACCESS_USER));
 
             // cannot delete admin's resource
             forbidden(() -> api.deleteResource(adminResId, NO_ACCESS_USER));
@@ -405,10 +405,15 @@ public class ApiAccessTests {
             notImplemented(() -> api.revokeResource(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // should be able to search for admin's resource
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
-            api.assertApiPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sample");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sample");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sample");
+
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUser");
 
             // cannot delete resource since feature is disabled and user doesn't have delete permission
             forbidden(() -> api.deleteResource(userResId, LIMITED_ACCESS_USER));
