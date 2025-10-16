@@ -13,7 +13,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

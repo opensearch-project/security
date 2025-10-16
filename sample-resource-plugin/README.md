@@ -17,7 +17,7 @@ plugins.security.system_indices.enabled: true
 
 ## Features
 
-- Create, update, get, delete SampleResource, as well as share and revoke access to a resource.
+- Create, update, get, search, delete SampleResource, as well as share and revoke access to a resource via security plugin.
 
 ## Installation
 
@@ -139,55 +139,7 @@ The plugin exposes the following six API endpoints:
   }
   ```
 
-### 5. Share Resource
-- **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
-- **Description:** Shares a resource with the intended entities.
-- **Request Body:**
-  ```json
-  {
-    "share_with": {
-      "read_only": {
-        "users": [ "sample_user" ]
-      }
-    }
-  }
-  ```
-- **Response:**
-  ```json
-    {
-      "share_with": {
-        "read_only": {
-          "users": [ "sample_user" ]
-        }
-      }
-    }
-  ```
-
-### 6. Revoke Resource Access
-- **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities.
-- **Request Body:**
-  ```json
-    {
-      "entities_to_revoke": {
-        "read_only": {
-          "users": [ "sample_user" ]
-        }
-      }
-    }
-  ```
-- **Response:**
-  ```json
-    {
-      "share_with" : {
-        "read_only": {
-          "users" : [ ]
-        }
-      }
-    }
-  ```
-
-### 7. Search Resource
+### 5. Search Resource
 - **Endpoint:** `POST /_plugins/sample_resource_sharing/search`, `GET /_plugins/sample_resource_sharing/search`
 - **Description:** Search for one ore more resources.
 - **Request Body:**

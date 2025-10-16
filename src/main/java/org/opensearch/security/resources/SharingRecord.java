@@ -12,7 +12,7 @@ import java.io.IOException;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 
 /**
  * Record class that is used as response to dashboards api {@code `/resource/list`} request

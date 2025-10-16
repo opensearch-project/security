@@ -31,10 +31,10 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -373,46 +373,6 @@ public class ResourceAccessHandler {
         }, e -> {
             LOGGER.error("Failed to share resource {} with {}: {}", resourceId, target.toString(), e.getMessage());
             listener.onFailure(e);
-        }));
-    }
-
-    /**
-     * Revokes access to a resource for the specified users, roles, and backend roles.
-     *
-     * @param resourceId    The resource ID to revoke access from.
-     * @param resourceType  The resource type
-     * @param target        The access levels, users, roles, and backend roles to revoke access for.
-     * @param listener      The listener to be notified with the updated ResourceSharing document.
-     */
-    public void revoke(
-        @NonNull String resourceId,
-        @NonNull String resourceType,
-        @NonNull ShareWith target,
-        ActionListener<ResourceSharing> listener
-    ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
-
-        if (user == null) {
-            LOGGER.warn("No authenticated user found. Failed to revoke access to resource {}", resourceId);
-            listener.onFailure(
-                new OpenSearchStatusException(
-                    "No authenticated user found. Failed to revoke access to resource {}" + resourceId,
-                    RestStatus.UNAUTHORIZED
-                )
-            );
-            return;
-        }
-
-        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
-
-        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
-
-        this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
-            LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
-            listener.onFailure(exception);
         }));
     }
 

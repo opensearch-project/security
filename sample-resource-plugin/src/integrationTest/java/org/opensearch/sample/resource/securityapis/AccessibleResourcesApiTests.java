@@ -23,8 +23,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.resource.TestUtils;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;

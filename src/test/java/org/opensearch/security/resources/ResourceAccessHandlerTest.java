@@ -27,10 +27,10 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -279,36 +279,6 @@ public class ResourceAccessHandlerTest {
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
 
         handler.share(RESOURCE_ID, TYPE, shareWith, listener);
-        verify(listener).onFailure(any(OpenSearchStatusException.class));
-    }
-
-    @Test
-    public void testRevokeSuccess() {
-        User user = new User("user3", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(user);
-
-        ShareWith revokeTarget = mock(ShareWith.class);
-        ResourceSharing doc = mock(ResourceSharing.class);
-
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(3);
-            l.onResponse(doc);
-            return null;
-        }).when(sharingIndexHandler).revoke(eq(RESOURCE_ID), eq(INDEX), eq(revokeTarget), any());
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.revoke(RESOURCE_ID, TYPE, revokeTarget, listener);
-
-        verify(listener).onResponse(doc);
-    }
-
-    @Test
-    public void testRevokeFailsIfNoUser() {
-        ShareWith revokeTarget = mock(ShareWith.class);
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-
-        handler.revoke(RESOURCE_ID, TYPE, revokeTarget, listener);
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
 

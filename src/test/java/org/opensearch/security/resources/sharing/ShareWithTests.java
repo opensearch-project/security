@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.spi.resources;
+package org.opensearch.security.resources.sharing;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -24,9 +24,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import org.mockito.Mockito;
 

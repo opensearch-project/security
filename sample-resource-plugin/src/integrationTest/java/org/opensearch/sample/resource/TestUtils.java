@@ -27,8 +27,8 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -158,12 +158,13 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
-            "backend_roles_path": "%s"
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
 
-    public static String migrationPayload_valid_withSpecifiedAccessLevel() {
+    public static String migrationPayload_valid_withSpecifiedAccessLevel(String accessLevel) {
         return """
             {
             "source_index": "%s",
@@ -171,34 +172,47 @@ public final class TestUtils {
             "backend_roles_path": "%s",
             "default_access_level": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
     }
 
     public static String migrationPayload_missingSourceIndex() {
         return """
             {
             "username_path": "%s",
-            "backend_roles_path": "%s"
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
             }
-            """.formatted("user/name", "user/backend_roles");
+            """.formatted("user/name", "user/backend_roles", "sample_read_only");
     }
 
     public static String migrationPayload_missingUserName() {
         return """
             {
             "source_index": "%s",
-            "backend_roles_path": "%s"
+            "backend_roles_path": "%s",
+            "default_access_level": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "sample_read_only");
     }
 
     public static String migrationPayload_missingBackendRoles() {
         return """
             {
             "source_index": "%s",
-            "username_path": "%s"
+            "username_path": "%s",
+            "default_access_level": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "sample_read_only");
+    }
+
+    public static String migrationPayload_missingDefaultAccessLevel() {
+        return """
+            {
+            "source_index": "%s",
+            "username_path": "%s",
+            "backend_roles_path": "%s"
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
     }
 
     public static String putSharingInfoPayload(

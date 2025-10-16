@@ -708,7 +708,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         Objects.requireNonNull(userService),
                         sslCertReloadEnabled,
                         passwordHasher,
-                        rsIndexHandler
+                        rsIndexHandler,
+                        resourcePluginInfo
                     )
                 );
 
