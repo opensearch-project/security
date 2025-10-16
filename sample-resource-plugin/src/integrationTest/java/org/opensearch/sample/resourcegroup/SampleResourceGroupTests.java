@@ -22,13 +22,17 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -56,52 +60,42 @@ public class SampleResourceGroupTests {
         api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
-        api.getResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.updateResourceGroupAndAssert(resourceGroupId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.deleteResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
+        forbidden(() -> api.getResourceGroup(resourceGroupId, user));
+        forbidden(() -> api.updateResourceGroup(resourceGroupId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResourceGroup(resourceGroupId, user));
 
-        api.shareResourceGroupAndAssert(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.revokeResourceGroupAndAssert(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
+        forbidden(() -> api.revokeResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
     }
 
-    private void assertReadOnly(TestSecurityConfig.User user) {
-        api.getResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_OK, "sample");
-        api.updateResourceGroupAndAssert(resourceGroupId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.deleteResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertReadOnly(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResourceGroup(resourceGroupId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        forbidden(() -> api.updateResourceGroup(resourceGroupId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResourceGroup(resourceGroupId, user));
 
-        api.shareResourceGroupAndAssert(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.revokeResourceGroupAndAssert(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
+        forbidden(() -> api.revokeResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
     }
 
-    private void assertFullAccess(TestSecurityConfig.User user) {
-        api.getResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_OK, "sample");
-        api.updateResourceGroupAndAssert(resourceGroupId, user, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.shareResourceGroupAndAssert(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.revokeResourceGroupAndAssert(resourceGroupId, user, USER_ADMIN, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
+    private void assertFullAccess(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResourceGroup(resourceGroupId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.updateResourceGroup(resourceGroupId, user, "sampleUpdateAdmin"));
+        ok(() -> api.shareResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
+        ok(() -> api.revokeResourceGroup(resourceGroupId, user, USER_ADMIN, SAMPLE_GROUP_FULL_ACCESS));
         api.awaitSharingEntry(resourceGroupId);
-        api.deleteResourceGroupAndAssert(resourceGroupId, user, HttpStatus.SC_OK);
+        ok(() -> api.deleteResourceGroup(resourceGroupId, user));
     }
 
     @Test
-    public void multipleUsers_multipleLevels() {
+    public void multipleUsers_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited-perms user
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            FULL_ACCESS_USER,
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            LIMITED_ACCESS_USER,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
         api.awaitSharingEntry(resourceGroupId, FULL_ACCESS_USER.getName());
         api.awaitSharingEntry(resourceGroupId, LIMITED_ACCESS_USER.getName());
 
@@ -109,13 +103,7 @@ public class SampleResourceGroupTests {
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. limited access user shares with full-access user at sampleAllAG
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            LIMITED_ACCESS_USER,
-            FULL_ACCESS_USER,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
+        ok(() -> api.shareResourceGroup(resourceGroupId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
         api.awaitSharingEntry(resourceGroupId, FULL_ACCESS_USER.getName());
 
         // 4. full-access user now has full-access to admin's resource
@@ -123,57 +111,33 @@ public class SampleResourceGroupTests {
     }
 
     @Test
-    public void multipleUsers_sameLevel() {
+    public void multipleUsers_sameLevel() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
         // 1. share with both users at read-only level
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            FULL_ACCESS_USER,
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            LIMITED_ACCESS_USER,
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_READ_ONLY_RESOURCE_AG);
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_READ_ONLY);
 
         // 2. assert both now have read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
     }
 
     @Test
-    public void sameUser_multipleLevels() {
+    public void sameUser_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
         // 1. share with user at read-only level
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            LIMITED_ACCESS_USER,
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
         api.awaitSharingEntry(resourceGroupId, LIMITED_ACCESS_USER.getName());
 
         // 2. assert user now has read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
 
         // 3. share with user at full-access level
-        api.shareResourceGroupAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            LIMITED_ACCESS_USER,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG);
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
+        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_FULL_ACCESS);
 
         // 4. assert user now has full access
         assertFullAccess(LIMITED_ACCESS_USER);
@@ -184,7 +148,7 @@ public class SampleResourceGroupTests {
     }
 
     @Test
-    public void multipleRoles_multipleLevels() {
+    public void multipleRoles_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
@@ -192,20 +156,8 @@ public class SampleResourceGroupTests {
         String limitedAccessUserRole = getActualRoleName(LIMITED_ACCESS_USER, "shared_role_limited_perms");
 
         // 1. share at read-only for shared_role and at full-access for shared_role_limited_perms
-        api.shareResourceGroupByRoleAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            fullAccessUserRole,
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.shareResourceGroupByRoleAndAssert(
-            resourceGroupId,
-            USER_ADMIN,
-            limitedAccessUserRole,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
+        ok(() -> api.shareResourceGroupByRole(resourceGroupId, USER_ADMIN, fullAccessUserRole, SAMPLE_GROUP_READ_ONLY));
+        ok(() -> api.shareResourceGroupByRole(resourceGroupId, USER_ADMIN, limitedAccessUserRole, SAMPLE_GROUP_FULL_ACCESS));
         api.awaitSharingEntry(resourceGroupId, fullAccessUserRole);
         api.awaitSharingEntry(resourceGroupId, limitedAccessUserRole);
 
@@ -213,13 +165,7 @@ public class SampleResourceGroupTests {
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. LIMITED_ACCESS_USER (has shared_role_limited_perms) shares with shared_role at sampleAllAG
-        api.shareResourceGroupByRoleAndAssert(
-            resourceGroupId,
-            LIMITED_ACCESS_USER,
-            fullAccessUserRole,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
+        ok(() -> api.shareResourceGroupByRole(resourceGroupId, LIMITED_ACCESS_USER, fullAccessUserRole, SAMPLE_GROUP_FULL_ACCESS));
         api.awaitSharingEntry(resourceGroupId, fullAccessUserRole);
 
         // 4. FULL_ACCESS_USER now has full-access to admin's resource
@@ -227,7 +173,7 @@ public class SampleResourceGroupTests {
     }
 
     @Test
-    public void initialShare_multipleLevels() {
+    public void initialShare_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
@@ -247,9 +193,9 @@ public class SampleResourceGroupTests {
             """.formatted(
             resourceGroupId,
             RESOURCE_GROUP_TYPE,
-            SAMPLE_GROUP_FULL_ACCESS_RESOURCE_AG,
+            SAMPLE_GROUP_FULL_ACCESS,
             LIMITED_ACCESS_USER.getName(),
-            SAMPLE_GROUP_READ_ONLY_RESOURCE_AG,
+            SAMPLE_GROUP_READ_ONLY,
             FULL_ACCESS_USER.getName()
         );
 
