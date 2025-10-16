@@ -783,11 +783,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 threadPool,
                 localClient,
                 resourcePluginInfo,
-                resourceSharingEnabledSetting,
-                resourceSharingProtectedResourceTypesSetting
+                resourceSharingEnabledSetting
             );
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
-            Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();
+            Collection<String> resourceIndices = resourcePluginInfo.getResourceIndices();
             // CS-ENFORCE-SINGLE
             if (resourceIndices.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceIndexListener);
@@ -2319,7 +2318,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // create resource sharing index if absent
             // TODO check if this should be wrapped in an atomic completable future
             log.debug("Attempting to create Resource Sharing index");
-            Set<String> resourceIndices = new HashSet<>();
+            Collection<String> resourceIndices = new HashSet<>();
             if (resourcePluginInfo != null) {
                 resourceIndices = resourcePluginInfo.getResourceIndices();
             }

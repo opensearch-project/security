@@ -75,22 +75,33 @@ public class ShareRestAction extends BaseRestHandler {
         String resourceId = request.param("resource_id");
         String resourceType = request.param("resource_type");
 
-        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
-
         ShareRequest.Builder builder = new ShareRequest.Builder();
         builder.method(request.method());
-
-        if (resourceIndex != null) {
-            builder.resourceIndex(resourceIndex);
-            builder.resourceType(resourceType);
-        }
         if (resourceId != null) {
             builder.resourceId(resourceId);
         }
 
+        builder.resourceType(resourceType);
+
         if (request.hasContent()) {
             builder.parseContent(request.contentParser(), resourcePluginInfo);
         }
+
+        if (builder.resourceId == null || builder.resourceType == null) {
+            return channel -> {
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "Resource type and id are both required."));
+            };
+        }
+
+        String resourceIndex = resourcePluginInfo.indexByType(builder.resourceType);
+
+        if (resourceIndex == null) {
+            return channel -> {
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "Invalid resource type: " + resourceType));
+            };
+        }
+
+        builder.resourceIndex(resourceIndex);
 
         ShareRequest shareRequest = builder.build();
 

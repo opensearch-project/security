@@ -11,6 +11,7 @@ package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -124,7 +125,7 @@ public class ResourceSharingIndexHandler {
      *                          or communicating with the cluster
      */
 
-    public void createResourceSharingIndicesIfAbsent(Set<String> resourceIndices) {
+    public void createResourceSharingIndicesIfAbsent(Collection<String> resourceIndices) {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             for (String resourceIndex : resourceIndices) {
@@ -359,9 +360,10 @@ public class ResourceSharingIndexHandler {
     /**
      * Fetches all resource-sharing records for a given resource-index
      * @param resourceIndex the index whose resource-sharing records are to be fetched
+     * @param resourceType the resource type
      * @param listener to collect and return the sharing records
      */
-    public void fetchAllResourceSharingRecords(String resourceIndex, ActionListener<Set<SharingRecord>> listener) {
+    public void fetchAllResourceSharingRecords(String resourceIndex, String resourceType, ActionListener<Set<SharingRecord>> listener) {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         LOGGER.debug("Fetching all resource-sharing records asynchronously from {}", resourceSharingIndex);
         Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -372,7 +374,7 @@ public class ResourceSharingIndexHandler {
 
             MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
 
-            executeAllSearchRequest(resourceIndex, scroll, searchRequest, query, ActionListener.wrap(recs -> {
+            executeAllSearchRequest(resourceIndex, resourceType, scroll, searchRequest, query, ActionListener.wrap(recs -> {
                 ctx.restore();
                 LOGGER.debug("Found {} resource-sharing records in {}", recs.size(), resourceSharingIndex);
                 listener.onResponse(recs);
@@ -901,6 +903,7 @@ public class ResourceSharingIndexHandler {
     /**
      * Executes a search request and returns a set of collected resource-sharing documents using scroll.
      * @param resourceIndex the index whose records are to be searched
+     * @param resourceType  the resource type
      * @param scroll        Search scroll context
      * @param searchRequest Initial search request
      * @param query         Query builder for the request
@@ -908,6 +911,7 @@ public class ResourceSharingIndexHandler {
      */
     private void executeAllSearchRequest(
         String resourceIndex,
+        String resourceType,
         Scroll scroll,
         SearchRequest searchRequest,
         AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
@@ -929,6 +933,7 @@ public class ResourceSharingIndexHandler {
                 null,
                 true,
                 resourceIndex,
+                resourceType,
                 recs,
                 scroll,
                 scrollId,
@@ -947,12 +952,14 @@ public class ResourceSharingIndexHandler {
      *  - Use mget in batches of 1000 to get the resource sharing records.
      *
      * @param resourceIndex the index for which records are to be searched
+     * @param resourceIndex the resource type
      * @param user the user that is requesting the records
      * @param flatPrincipals user's name, roles, backend_roles to be used for matching.
      * @param listener to collect and return accessible sharing records
      */
     public void fetchAccessibleResourceSharingRecords(
         String resourceIndex,
+        String resourceType,
         User user,
         Set<String> flatPrincipals,
         ActionListener<Set<SharingRecord>> listener
@@ -1010,7 +1017,7 @@ public class ResourceSharingIndexHandler {
                         ) {
                             p.nextToken();
                             ResourceSharing rs = ResourceSharing.fromXContent(p);
-                            boolean canShare = canUserShare(user, /* isAdmin */ false, rs, resourceIndex);
+                            boolean canShare = canUserShare(user, /* isAdmin */ false, rs, resourceType);
                             out.add(new SharingRecord(rs, canShare));
                         } catch (Exception ex) {
                             LOGGER.warn("Failed to parse resource-sharing doc id={}", gr.getId(), ex);
@@ -1096,6 +1103,7 @@ public class ResourceSharingIndexHandler {
         User user,
         boolean isAdmin,
         String resourceIndex,
+        String resourceType,
         Set<SharingRecord> resourceSharingRecords,
         Scroll scroll,
         String scrollId,
@@ -1118,7 +1126,7 @@ public class ResourceSharingIndexHandler {
             ) {
                 parser.nextToken();
                 ResourceSharing rs = ResourceSharing.fromXContent(parser);
-                boolean canShare = canUserShare(user, isAdmin, rs, resourceIndex);
+                boolean canShare = canUserShare(user, isAdmin, rs, resourceType);
                 resourceSharingRecords.add(new SharingRecord(rs, canShare));
             } catch (Exception e) {
                 // TODO: Decide how strict should this failure be:
@@ -1137,6 +1145,7 @@ public class ResourceSharingIndexHandler {
                     user,
                     isAdmin,
                     resourceIndex,
+                    resourceType,
                     resourceSharingRecords,
                     scroll,
                     sr.getScrollId(),
@@ -1173,9 +1182,7 @@ public class ResourceSharingIndexHandler {
 
     // **** Check whether user can share this record further
     /** Resolve access-level for THIS resource type and check required action. */
-    public boolean groupAllows(String resourceIndex, String accessLevel, String requiredAction) {
-        String resourceType = resourcePluginInfo.typeByIndex(resourceIndex);
-        if (resourceType == null || accessLevel == null || requiredAction == null) return false;
+    public boolean groupAllows(String resourceType, String accessLevel, String requiredAction) {
         return resourcePluginInfo.flattenedForType(resourceType).resolve(Set.of(accessLevel)).contains(requiredAction);
     }
 

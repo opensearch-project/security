@@ -22,6 +22,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
@@ -54,10 +55,19 @@ public class ShareableResourceTypesInfoApiTests {
             TestRestClient.HttpResponse response = client.get(SECURITY_TYPES_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             List<Object> types = (List<Object>) response.bodyAsMap().get("types");
-            assertThat(types.size(), equalTo(1));
-            Map<String, Object> responseBody = (Map<String, Object>) types.getFirst();
-            assertThat(responseBody.get("type"), equalTo("sample-resource"));
-            assertThat(responseBody.get("action_groups"), equalTo(List.of("sample_read_only", "sample_read_write", "sample_full_access")));
+            assertThat(types.size(), equalTo(2));
+            Map<String, Object> firstType = (Map<String, Object>) types.get(0);
+            assertThat(firstType.get("type"), equalTo("sample-resource"));
+            assertThat(
+                (List<String>) firstType.get("action_groups"),
+                containsInAnyOrder("sample_read_only", "sample_read_write", "sample_full_access")
+            );
+            Map<String, Object> secondType = (Map<String, Object>) types.get(1);
+            assertThat(secondType.get("type"), equalTo("sample-resource-group"));
+            assertThat(
+                (List<String>) secondType.get("action_groups"),
+                containsInAnyOrder("sample_group_read_only", "sample_group_read_write", "sample_group_full_access")
+            );
         }
 
     }

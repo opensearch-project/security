@@ -50,6 +50,20 @@ import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportA
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.delete.DeleteResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.delete.DeleteResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.transport.CreateResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.DeleteResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.GetResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.SearchResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.UpdateResourceGroupTransportAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
 import org.opensearch.sample.secure.actions.transport.SecurePluginTransportAction;
@@ -105,6 +119,10 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new GetResourceRestAction());
         handlers.add(new DeleteResourceRestAction());
         handlers.add(new SearchResourceRestAction());
+        handlers.add(new CreateResourceGroupRestAction());
+        handlers.add(new GetResourceGroupRestAction());
+        handlers.add(new DeleteResourceGroupRestAction());
+        handlers.add(new SearchResourceGroupRestAction());
 
         handlers.add(new SecurePluginRestAction());
         return handlers;
@@ -118,6 +136,11 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
         actions.add(new ActionHandler<>(SearchResourceAction.INSTANCE, SearchResourceTransportAction.class));
+        actions.add(new ActionHandler<>(CreateResourceGroupAction.INSTANCE, CreateResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(GetResourceGroupAction.INSTANCE, GetResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(UpdateResourceGroupAction.INSTANCE, UpdateResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(DeleteResourceGroupAction.INSTANCE, DeleteResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(SearchResourceGroupAction.INSTANCE, SearchResourceGroupTransportAction.class));
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }
