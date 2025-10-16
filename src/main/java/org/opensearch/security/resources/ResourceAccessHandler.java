@@ -89,14 +89,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         if (adminDNs.isAdmin(user)) {
             loadAllResourceIds(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
@@ -131,14 +124,7 @@ public class ResourceAccessHandler {
 
         Set<String> flatPrincipals = getFlatPrincipals(user);
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         // 3) Fetch all accessible resource sharing records
         resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, resourceType, user, flatPrincipals, listener);
@@ -195,14 +181,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
             LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
             listener.onResponse(false);
@@ -283,14 +262,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
             LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
             return;
@@ -346,14 +318,7 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} is fetching sharing info for resource {} in index {}", user.getName(), resourceId, resourceType);
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
             LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
             return;
@@ -400,14 +365,7 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("Sharing resource {} created by {} with {}", resourceId, user.getName(), target.toString());
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         this.resourceSharingIndexHandler.share(resourceId, resourceIndex, target, ActionListener.wrap(sharingInfo -> {
             LOGGER.debug("Successfully shared resource {} with {}", resourceId, target.toString());
@@ -450,14 +408,7 @@ public class ResourceAccessHandler {
 
         LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
 
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
             LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
@@ -472,14 +423,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource IDs.
      */
     private void loadAllResourceIds(String resourceType, ActionListener<Set<String>> listener) {
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         this.resourceSharingIndexHandler.fetchAllResourceIds(resourceIndex, listener);
     }
 
@@ -490,14 +434,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource-sharing records.
      */
     private void loadAllResourceSharingRecords(String resourceType, ActionListener<Set<SharingRecord>> listener) {
-        // ResourceAccessHandler will be removed when hierarchy is supported.
-        // This support passing resourceType as either the index name or the type to handle existing instances.
-        String resourceIndex;
-        if (resourceType.startsWith(".")) {
-            resourceIndex = resourceType;
-        } else {
-            resourceIndex = resourcePluginInfo.indexByType(resourceType);
-        }
+        String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         this.resourceSharingIndexHandler.fetchAllResourceSharingRecords(resourceIndex, resourceType, listener);
     }
 
