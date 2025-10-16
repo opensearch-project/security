@@ -318,23 +318,7 @@ NOTE: Security plugin offers an evaluator to evaluate resource access requests t
 void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
 ```
 
-### **2. `share`**
-
-**Grants access to a resource for specified users, roles, and backend roles.**
-
-```
-void share(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
-```
-
-### **3. `revoke`**
-
-**Removes access permissions for specified users, roles, and backend roles.**
-
-```
-void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
-```
-
-### **4. `getAccessibleResourceIds`**
+### **2. `getAccessibleResourceIds`**
 
 **Retrieves ids of all resources the current user has access to, regardless of the access-level.**
 
@@ -342,7 +326,7 @@ void revoke(String resourceId, String resourceIndex, ShareWith target, ActionLis
 void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
-### **5. `isFeatureEnabledForType`**
+### **3. `isFeatureEnabledForType`**
 
 **Add as code-control to execute resource-sharing code only if the feature is enabled for the given type.**
 
@@ -373,7 +357,7 @@ sequenceDiagram
     Plugin ->> Security: Registers as Resource Plugin via SPI (`ResourceSharingExtension`)
     Security -->> Plugin: Confirmation of registration
 
-    %% Step 2: User interacts with Plugin API
+    %% Step 2: User interacts with Plugin + Security APIs
     User ->> Plugin: Request to share / revoke access / list accessible resources
 
     %% Alternative flow based on Security Plugin status
@@ -382,28 +366,22 @@ sequenceDiagram
     %% For verify: return allowed
       Plugin ->> SPI: verifyAccess (noop)
       SPI -->> Plugin: Allowed
-    %% For share, revoke, and list: return 501 Not Implemented
-      Plugin ->> SPI: share (noop)
-      SPI -->> Plugin: Error 501 Not Implemented
-
-      Plugin ->> SPI: revoke (noop)
-      SPI -->> Plugin: Error 501 Not Implemented
-
+    %% For list: return 501 Not Implemented
       Plugin ->> SPI: getAccessibleResourceIds (noop)
       SPI -->> Plugin: Error 501 Not Implemented
-
+    %% For feature enabled check: return Disabled since security is disabled
       Plugin ->> SPI: isFeatureEnabledForType (noop)
       SPI -->> Plugin: Disabled
 
     else Security Plugin Enabled
     %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
-      Plugin ->> SPI: Calls Java API (`verifyAccess`, `share`, `revoke`, `getAccessibleResourceIds`, `isFeatureEnabledForType`)
+      Plugin ->> SPI: Calls Java API (`verifyAccess`, `getAccessibleResourceIds`, `isFeatureEnabledForType`)
 
     %% Step 4: Request is sent to Security Plugin
       SPI ->> Security: Sends request to Security Plugin for processing
 
     %% Step 5: Security Plugin handles request and returns response
-      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs / Feature Enabled or Disabled for Resource Type)
+      Security -->> SPI: Response (Access Granted or Denied / List Resource IDs / Feature Enabled or Disabled for Resource Type)
 
     %% Step 6: Security SPI sends response back to Plugin
       SPI -->> Plugin: Passes processed response back to Plugin

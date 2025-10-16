@@ -126,10 +126,8 @@ public class MigrateApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_only"))); // with
-                                                                                                                                         // default
-                                                                                                                                         // access
-                                                                                                                                         // level
+            // with default access level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_only")));
         }
     }
 
@@ -151,10 +149,8 @@ public class MigrateApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_write"))); // with
-                                                                                                                                          // custom
-                                                                                                                                          // access
-                                                                                                                                          // level
+            // with custom access level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_write")));
         }
     }
 

@@ -15,7 +15,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 
 /**
  * This class is used to represent the response of a {@link ShareRequest}.

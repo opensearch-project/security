@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.migrate;
+package org.opensearch.security.resources.api.migrate;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,12 +54,12 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.sharing.CreatedBy;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
