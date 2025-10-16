@@ -11,8 +11,6 @@ package org.opensearch.security.spi.resources.client;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 /**
  * Interface for resource sharing client operations.
@@ -29,24 +27,6 @@ public interface ResourceSharingClient {
      * @param listener       The listener to be notified with the access verification result.
      */
     void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
-
-    /**
-     * Shares a resource with the specified users, roles, and backend roles.
-     * @param resourceId     The ID of the resource to share.
-     * @param resourceIndex  The index containing the resource.
-     * @param target         The users, roles, and backend roles to share the resource with and respective access levels.
-     * @param listener       The listener to be notified with the updated ResourceSharing document.
-     */
-    void share(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
-
-    /**
-     * Revokes access to a resource for the specified entities.
-     * @param resourceId     The ID of the resource to revoke access for.
-     * @param resourceIndex  The index containing the resource.
-     * @param target         The entities to revoke access for.
-     * @param listener       The listener to be notified with the updated ResourceSharing document.
-     */
-    void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
 
     /**
      * Lists resourceIds of all shareable resources accessible by the current user.

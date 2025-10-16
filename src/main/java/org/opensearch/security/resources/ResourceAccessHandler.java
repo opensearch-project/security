@@ -360,44 +360,6 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Revokes access to a resource for the specified users, roles, and backend roles.
-     *
-     * @param resourceId    The resource ID to revoke access from.
-     * @param resourceIndex The index where resource is store
-     * @param target        The access levels, users, roles, and backend roles to revoke access for.
-     * @param listener      The listener to be notified with the updated ResourceSharing document.
-     */
-    public void revoke(
-        @NonNull String resourceId,
-        @NonNull String resourceIndex,
-        @NonNull ShareWith target,
-        ActionListener<ResourceSharing> listener
-    ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
-
-        if (user == null) {
-            LOGGER.warn("No authenticated user found. Failed to revoke access to resource {}", resourceId);
-            listener.onFailure(
-                new OpenSearchStatusException(
-                    "No authenticated user found. Failed to revoke access to resource {}" + resourceId,
-                    RestStatus.UNAUTHORIZED
-                )
-            );
-            return;
-        }
-
-        LOGGER.debug("User {} revoking access to resource {} for {}.", user.getName(), resourceId, target);
-
-        this.resourceSharingIndexHandler.revoke(resourceId, resourceIndex, target, ActionListener.wrap(listener::onResponse, exception -> {
-            LOGGER.error("Failed to revoke access to resource {} in index {}: {}", resourceId, resourceIndex, exception.getMessage());
-            listener.onFailure(exception);
-        }));
-    }
-
-    /**
      * Loads all resource-ids within the specified resource index.
      *
      * @param resourceIndex The resource index to load resources from.

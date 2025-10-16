@@ -285,36 +285,6 @@ public class ResourceAccessHandlerTest {
     }
 
     @Test
-    public void testRevokeSuccess() {
-        User user = new User("user3", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(user);
-
-        ShareWith revokeTarget = mock(ShareWith.class);
-        ResourceSharing doc = mock(ResourceSharing.class);
-
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(3);
-            l.onResponse(doc);
-            return null;
-        }).when(sharingIndexHandler).revoke(eq(RESOURCE_ID), eq(INDEX), eq(revokeTarget), any());
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
-
-        verify(listener).onResponse(doc);
-    }
-
-    @Test
-    public void testRevokeFailsIfNoUser() {
-        ShareWith revokeTarget = mock(ShareWith.class);
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
-        verify(listener).onFailure(any(OpenSearchStatusException.class));
-    }
-
-    @Test
     public void testGetSharingInfoSuccess() {
         User user = new User("user1", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(user);

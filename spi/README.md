@@ -194,45 +194,13 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 
 ---
 
-#### **8. Using the Client in a Transport Action**
-The following example demonstrates how to use the **Resource Sharing Client** inside a `TransportAction` to verify **delete permissions** before deleting a resource.
+#### **8. Using the Client **
+The following example demonstrates how to use the **Resource Sharing Client** to verify whether **feature is enabled** for given resource-type.
 
 ```java
-public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
-  private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
-  private final ResourceSharingClient resourceSharingClient;
-
-  @Inject
-  public ShareResourceTransportAction(TransportService transportService, ActionFilters actionFilters) {
-    super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-    this.resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-  }
-
-  @Override
-  protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
-    if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
-      listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
-      return;
-    }
-
-    if (resourceSharingClient == null) {
-      listener.onFailure(
-              new OpenSearchStatusException(
-                      "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
-                      RestStatus.NOT_IMPLEMENTED
-              )
-      );
-      return;
-    }
-    ShareWith shareWith = request.getShareWith();
-    resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
-      ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
-      ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
-      log.debug("Shared resource: {}", response.toString());
-      listener.onResponse(response);
-    }, listener::onFailure));
-  }
-
+public static boolean shouldUseResourceAuthz(String resourceType) {
+    var client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+    return client != null && client.isFeatureEnabledForType(resourceType);
 }
 ```
 
@@ -283,56 +251,7 @@ resourceSharingClient.verifyAccess(
 
 ---
 
-#### **2. `share`**
-**Grants access to a resource** for specific users, roles, or backend roles.
-
-##### **Method Signature:**
-```java
-void shareResource(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients recipients, ActionListener<ResourceSharing> listener);
-```
-
-##### **Example Usage:**
-```java
-
-resourceSharingClient.share(
-    request.getResourceId(),
-    RESOURCE_INDEX_NAME,
-    request.getShareWith(),
-    ActionListener.wrap(sharing -> {
-        ShareResourceResponse response = new ShareResourceResponse(sharing.getShareWith());
-        listener.onResponse(response);
-    }, listener::onFailure)
-);
-```
-> **Use Case:** Used when an **owner/admin wants to share a resource** with specific users or groups.
-
----
-
-#### **3. `revoke`**
-**Removes access permissions** for specified users, roles, or backend roles.
-
-##### **Method Signature:**
-```java
-void revoke(String resourceId, String resourceIndex, SharedWithActionGroup.ActionGroupRecipients entitiesToRevoke, ActionListener<ResourceSharing> listener);
-```
-
-##### **Example Usage:**
-```java
-resourceSharingClient.revokeResourceAccess(
-    request.getResourceId(),
-    RESOURCE_INDEX_NAME,
-    request.getEntitiesToRevoke(),
-    ActionListener.wrap(success -> {
-        RevokeResourceAccessResponse response = new RevokeResourceAccessResponse(success.getShareWith());
-            listener.onResponse(response);
-        }, listener::onFailure)
-);
-```
-> **Use Case:** When a user no longer needs access to a **resource**, their permissions can be revoked.
-
----
-
-#### **4. `getAccessibleResourceIds`**
+#### **2. `getAccessibleResourceIds`**
 **Retrieves ids of all shareableResources the current user has access to.**
 
 ##### **Method Signature:**
@@ -363,29 +282,13 @@ participant Security as Security Plugin (Resource Sharing)
     Security -->> Plugin: Confirmation
 
     %% Step 2: User calls Plugin API
-    User ->> Plugin: create / share / revoke / get / delete resource request
+    User ->> Plugin: create / update / get / delete resource request
 
     alt Security Plugin Disabled
-      Plugin ->> SPI: share(...)
-      SPI -->> Plugin: Error 501 Not Implemented
-
-      Plugin ->> SPI: revoke(...)
-      SPI -->> Plugin: Error 501 Not Implemented
-
       Plugin ->> SPI: getAccessibleResourceIds(...)
       SPI -->> Plugin: Error 501 Not Implemented
     else Security Plugin Enabled
       %% Automatic access verification happens within Security Plugin before handling
-      Plugin ->> SPI: share(resourceId, actionGroup, targetUser/role)
-      SPI ->> Security: share request
-      Security -->> SPI: share success/error
-      SPI -->> Plugin: share response
-
-      Plugin ->> SPI: revoke(resourceId, actionGroup, targetUser/role)
-      SPI ->> Security: revoke request
-      Security -->> SPI: revoke success/error
-      SPI -->> Plugin: revoke response
-
       Plugin ->> SPI: getAccessibleResourceIds(requestingUser, actionGroup)
       SPI ->> Security: list request
       Security -->> SPI: list of resource IDs
