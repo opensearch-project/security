@@ -411,7 +411,9 @@ public final class TestUtils {
             @SuppressWarnings("unchecked")
             Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
             assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
-            assertThat(response.getBody(), containsString(expectedResourceName));
+            if (expectedHits > 0) {
+                assertThat(response.getBody(), containsString(expectedResourceName));
+            }
         }
 
         public static String searchAllPayload() {
