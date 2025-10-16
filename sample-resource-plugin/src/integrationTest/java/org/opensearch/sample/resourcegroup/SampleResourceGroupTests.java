@@ -85,7 +85,6 @@ public class SampleResourceGroupTests {
         ok(() -> api.updateResourceGroup(resourceGroupId, user, "sampleUpdateAdmin"));
         ok(() -> api.shareResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
         ok(() -> api.revokeResourceGroup(resourceGroupId, user, USER_ADMIN, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId);
         ok(() -> api.deleteResourceGroup(resourceGroupId, user));
     }
 
@@ -96,15 +95,12 @@ public class SampleResourceGroupTests {
         // 1. share at read-only for full-access user and at full-access for limited-perms user
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId, FULL_ACCESS_USER.getName());
-        api.awaitSharingEntry(resourceGroupId, LIMITED_ACCESS_USER.getName());
 
         // 2. check read-only access for full-access user
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. limited access user shares with full-access user at sampleAllAG
         ok(() -> api.shareResourceGroup(resourceGroupId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId, FULL_ACCESS_USER.getName());
 
         // 4. full-access user now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
@@ -118,7 +114,6 @@ public class SampleResourceGroupTests {
         // 1. share with both users at read-only level
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
-        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_READ_ONLY);
 
         // 2. assert both now have read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
@@ -130,14 +125,12 @@ public class SampleResourceGroupTests {
 
         // 1. share with user at read-only level
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
-        api.awaitSharingEntry(resourceGroupId, LIMITED_ACCESS_USER.getName());
 
         // 2. assert user now has read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
 
         // 3. share with user at full-access level
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId, SAMPLE_GROUP_FULL_ACCESS);
 
         // 4. assert user now has full access
         assertFullAccess(LIMITED_ACCESS_USER);
@@ -158,15 +151,12 @@ public class SampleResourceGroupTests {
         // 1. share at read-only for shared_role and at full-access for shared_role_limited_perms
         ok(() -> api.shareResourceGroupByRole(resourceGroupId, USER_ADMIN, fullAccessUserRole, SAMPLE_GROUP_READ_ONLY));
         ok(() -> api.shareResourceGroupByRole(resourceGroupId, USER_ADMIN, limitedAccessUserRole, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId, fullAccessUserRole);
-        api.awaitSharingEntry(resourceGroupId, limitedAccessUserRole);
 
         // 2. check read-only access for FULL_ACCESS_USER (has shared_role)
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. LIMITED_ACCESS_USER (has shared_role_limited_perms) shares with shared_role at sampleAllAG
         ok(() -> api.shareResourceGroupByRole(resourceGroupId, LIMITED_ACCESS_USER, fullAccessUserRole, SAMPLE_GROUP_FULL_ACCESS));
-        api.awaitSharingEntry(resourceGroupId, fullAccessUserRole);
 
         // 4. FULL_ACCESS_USER now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
@@ -202,8 +192,6 @@ public class SampleResourceGroupTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(SECURITY_SHARE_ENDPOINT, shareWithPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
-            // wait for one of the users to be populated
-            api.awaitSharingEntry(resourceGroupId, FULL_ACCESS_USER.getName());
         }
 
         // full-access user has read-only perm
