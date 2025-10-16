@@ -268,6 +268,25 @@ resourceSharingClient.getAccessibleResourceIds(RESOURCE_INDEX_NAME, ActionListen
 ```
 > **Use Case:** Helps a user identify **which shareableResources they can interact with**.
 
+---
+
+#### **5. `isFeatureEnabledForType`**
+**Add as code-control to execute resource-sharing code only if the feature is enabled for the given type.**
+
+##### **Method Signature:**
+```java
+void isFeatureEnabledForType(String resourceIndex, ActionListener<Set<String>> listener);
+```
+
+##### **Example Usage:**
+```java
+public static boolean shouldUseResourceAuthz(String resourceType) {
+    var client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+    return client != null && client.isFeatureEnabledForType(resourceType);
+}
+```
+> **Use Case:** Helps control code-path for cases where global feature flag is enabled but given resource-type is (not) marked as protected**.
+
 ##### **Sample Request Flow:**
 
 ```mermaid

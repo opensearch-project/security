@@ -75,6 +75,7 @@ opensearchplugin {
 ```
 - **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
 - **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
+- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](./sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -129,10 +130,28 @@ resource_types:
         - "cluster:admin/sample-resource-plugin/*"
         - "cluster:admin/security/resource/share"
 ```
+- If your plugin enabled testing with security, add the following to you node-setup for `integTest` task:
+```build.gradle
+integTest {
+    ...
+    systemProperty "resource_sharing.enabled", System.getProperty("resource_sharing.enabled")
+    ...
+}
+...
+<test-cluster-setup-task> {
+    ...
+    node.setting("plugins.security.system_indices.enabled", "true")
+    if (System.getProperty("resource_sharing.enabled") == "true") {
+        node.setting("plugins.security.experimental.resource_sharing.enabled", "true")
+        node.setting("plugins.security.experimental.resource_sharing.protected_types", "[\"anomaly-detector\", \"forecaster\"]")
+    }
+    ...
+}
+```
 
 ## **3. Resource Sharing API Design**
 
-### **Resource Sharing Index **
+### **Resource Sharing Index**
 
 Each plugin receives its own sharing index, centrally managed by security plugin, which stores **resource access metadata**, mapping **resources to their access control policies**.
 
@@ -322,7 +341,6 @@ public static boolean shouldUseResourceAuthz(String resourceType) {
     return client != null && client.isFeatureEnabledForType(resourceType);
 }
 ```
-
 
 > For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
 
@@ -587,19 +605,19 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 
 **Request Body**
 
-| Parameter              | Type    | Required | Description                                                                 |
-|------------------------|---------|----|-----------------------------------------------------------------------------|
-| `source_index`         | string  | yes | Name of the plugin index containing the existing resource documents        |
-| `username_path`        | string  | yes | JSON Pointer to the username field inside each document (e.g., `/owner`)   |
-| `backend_roles_path`   | string  | yes | JSON Pointer to the backend_roles field (must point to a JSON array)       |
-| `default_access_level` | string  | no | Default access level to assign migrated backend_roles (default: `"default"`) |
+| Parameter              | Type    | Required | Description                                                                                                                                          |
+|------------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `source_index`         | string  | yes      | Name of the plugin index containing the existing resource documents                                                                                  |
+| `username_path`        | string  | yes      | JSON Pointer to the username field inside each document                                                                                              |
+| `backend_roles_path`   | string  | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                 |
+| `default_access_level` | string  | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`
 **Request Body:**
 ```json
 {
-  "source_index": "sample_plugin_index",
+  "source_index": ".sample_resource",
   "username_path": "/owner",
   "backend_roles_path": "/access/backend_roles",
   "default_access_level": "read_only"
