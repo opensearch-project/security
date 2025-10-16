@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.spi.resources;
+package org.opensearch.security.resources.sharing;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,12 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
-
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link org.opensearch.security.spi.resources.sharing.ResourceSharing}.
+ * Unit tests for {@link org.opensearch.security.resources.sharing.ResourceSharing}.
  */
 public class ResourceSharingTests {
 

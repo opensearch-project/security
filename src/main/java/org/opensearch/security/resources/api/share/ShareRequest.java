@@ -20,7 +20,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.resources.ResourcePluginInfo;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.resources.sharing.ShareWith;
 
 import joptsimple.internal.Strings;
 
