@@ -326,13 +326,16 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    void forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
-        throws Exception {
+    public static void forbidden(
+        final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
+        final String expectedMessage
+    ) throws Exception {
         final var response = forbidden(endpointCallback);
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         assertResponseBody(response.getBody());
@@ -347,7 +350,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_NOT_IMPLEMENTED));
@@ -355,7 +358,8 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
         assertResponseBody(response.getBody());
@@ -368,14 +372,15 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse ok(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse ok(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertResponseBody(response.getBody());
         return response;
     }
 
-    TestRestClient.HttpResponse ok(
+    public static TestRestClient.HttpResponse ok(
         final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
         final String expectedMessage
     ) throws Exception {
@@ -393,12 +398,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    void assertResponseBody(final String responseBody) {
+    public static void assertResponseBody(final String responseBody) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
     }
 
-    void assertResponseBody(final String responseBody, final String expectedMessage) {
+    public static void assertResponseBody(final String responseBody, final String expectedMessage) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
         assertThat(responseBody, containsString(expectedMessage));

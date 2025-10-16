@@ -76,9 +76,9 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
-    public static final String SAMPLE_READ_ONLY_RESOURCE_AG = "sample_read_only";
-    public static final String SAMPLE_READ_WRITE_RESOURCE_AG = "sample_read_write";
-    public static final String SAMPLE_FULL_ACCESS_RESOURCE_AG = "sample_full_access";
+    public static final String SAMPLE_READ_ONLY = "sample_read_only";
+    public static final String SAMPLE_READ_WRITE = "sample_read_write";
+    public static final String SAMPLE_FULL_ACCESS = "sample_full_access";
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
@@ -334,6 +334,12 @@ public final class TestUtils {
             assertGet(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status, user.getName());
         }
 
+        public TestRestClient.HttpResponse getResource(String resourceId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            }
+        }
+
         public void assertApiGet(String resourceId, TestSecurityConfig.User user, int status, String expectedResourceName) {
             assertGet(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId, user, status, expectedResourceName);
         }
@@ -343,6 +349,12 @@ public final class TestUtils {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
                 if (status == HttpStatus.SC_OK) assertThat(response.getBody(), containsString(expectedString));
+            }
+        }
+
+        public TestRestClient.HttpResponse searchResources(TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
             }
         }
 
@@ -403,6 +415,12 @@ public final class TestUtils {
                             }
                         }
                 """.formatted(name);
+        }
+
+        public TestRestClient.HttpResponse searchResources(String searchPayload, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload);
+            }
         }
 
         public void assertApiPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
@@ -474,6 +492,13 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse updateResource(String resourceId, TestSecurityConfig.User user, String newName) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
+                return client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, updatePayload);
+            }
+        }
+
         public void assertApiUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
             assertUpdate(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, newName, user, status);
         }
@@ -506,6 +531,20 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse shareResource(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.USERS, target.getName())
+                );
+            }
+        }
+
         public void assertApiShare(
             String resourceId,
             TestSecurityConfig.User user,
@@ -522,6 +561,20 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse shareResourceByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
+                );
+            }
+        }
+
         public void assertApiShareByRole(
             String resourceId,
             TestSecurityConfig.User user,
@@ -535,6 +588,21 @@ public final class TestUtils {
                     putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
                 );
                 response.assertStatusCode(status);
+            }
+        }
+
+        public TestRestClient.HttpResponse revokeResource(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
             }
         }
 
@@ -561,6 +629,12 @@ public final class TestUtils {
 
         public void assertDirectDeleteResourceSharingRecord(String resourceId, TestSecurityConfig.User user, int status) {
             assertDelete(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status);
+        }
+
+        public TestRestClient.HttpResponse deleteResource(String resourceId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            }
         }
 
         public void assertApiDelete(String resourceId, TestSecurityConfig.User user, int status) {

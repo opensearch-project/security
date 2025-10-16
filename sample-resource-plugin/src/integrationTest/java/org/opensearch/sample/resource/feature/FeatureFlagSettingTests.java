@@ -39,8 +39,8 @@ import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -137,8 +137,8 @@ public class FeatureFlagSettingTests {
         api.assertApiUpdate(adminResId, NO_ACCESS_USER, "x", HttpStatus.SC_FORBIDDEN);
         api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         // share/revoke endpoints exist? -> when disabled we expect 403 (no perm) or 501 (no handler).
-        api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
-        api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
 
         // search forbidden
         api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -161,14 +161,8 @@ public class FeatureFlagSettingTests {
         api.assertApiDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
         // share/revoke should be NOT IMPLEMENTED when disabled (your “last 4 tests”)
-        api.assertApiShare(
-            adminResId,
-            LIMITED_ACCESS_USER,
-            LIMITED_ACCESS_USER,
-            SAMPLE_READ_ONLY_RESOURCE_AG,
-            HttpStatus.SC_NOT_IMPLEMENTED
-        );
-        api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
 
         // can search both resources
         api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
@@ -186,8 +180,8 @@ public class FeatureFlagSettingTests {
         api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
 
         // share/revoke not implemented
-        api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
-        api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
+        api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_NOT_IMPLEMENTED);
 
         // search sees both
         api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 3, "sampleUpdateAdmin"); // admin + full user + limited user created
@@ -214,23 +208,14 @@ public class FeatureFlagSettingTests {
             // share/revoke not implemented
             resp = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(
-                    adminResId,
-                    RESOURCE_TYPE,
-                    SAMPLE_FULL_ACCESS_RESOURCE_AG,
-                    Recipient.USERS,
-                    FULL_ACCESS_USER.getName()
-                )
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, FULL_ACCESS_USER.getName())
             );
             resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
             TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             payloadBuilder.resourceId(adminResId);
             payloadBuilder.resourceType(RESOURCE_TYPE);
-            payloadBuilder.revoke(
-                new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))),
-                SAMPLE_FULL_ACCESS_RESOURCE_AG
-            );
+            payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
             resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
             resp.assertStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
 
@@ -312,8 +297,8 @@ public class FeatureFlagSettingTests {
         api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
 
         // share/revoke forbidden (handlers now exist → 403 vs 501)
-        api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
 
         // search forbidden
         api.assertApiGetSearchForbidden(NO_ACCESS_USER);
@@ -335,13 +320,13 @@ public class FeatureFlagSettingTests {
         api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
         // cannot share/revoke others, can share own
-        api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiShare(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
+        api.assertApiShare(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
         api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdateUser");
-        api.assertApiRevoke(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
+        api.assertApiRevoke(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
         api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
 
         // searches aligned with ownership
@@ -370,14 +355,14 @@ public class FeatureFlagSettingTests {
         api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
 
         // cannot share/revoke others’ resources; can share own
-        api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
+        api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_FORBIDDEN);
 
         api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiShare(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
+        api.assertApiShare(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
         api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
         api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-        api.assertApiRevoke(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
+        api.assertApiRevoke(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
         api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
 
         // search visibility matches sharing state
@@ -404,17 +389,14 @@ public class FeatureFlagSettingTests {
             // share/revoke handlers exist → expect 200 for admin path
             resp = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS_RESOURCE_AG, Recipient.USERS, NO_ACCESS_USER.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, NO_ACCESS_USER.getName())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
 
             TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             payloadBuilder.resourceId(adminResId);
             payloadBuilder.resourceType(RESOURCE_TYPE);
-            payloadBuilder.revoke(
-                new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))),
-                SAMPLE_FULL_ACCESS_RESOURCE_AG
-            );
+            payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
             resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
             resp.assertStatusCode(HttpStatus.SC_OK);
 

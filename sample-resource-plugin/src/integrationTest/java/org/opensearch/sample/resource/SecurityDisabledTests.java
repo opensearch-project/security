@@ -32,7 +32,7 @@ import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -113,14 +113,14 @@ public class SecurityDisabledTests {
 
             response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, USER_ADMIN.getName())
+                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, USER_ADMIN.getName())
             );
             assertBadRequest(response, "no handler found for uri [/_plugins/_security/api/resource/share] and method [PUT]");
 
             TestUtils.PatchSharingInfoPayloadBuilder patchBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
             patchBuilder.resourceType(RESOURCE_TYPE);
             patchBuilder.resourceId(resourceId);
-            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(USER_ADMIN.getName()))), SAMPLE_READ_ONLY_RESOURCE_AG);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(USER_ADMIN.getName()))), SAMPLE_READ_ONLY);
             response = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
             assertBadRequest(response, "no handler found for uri [/_plugins/_security/api/resource/share] and method [PATCH]");
 
