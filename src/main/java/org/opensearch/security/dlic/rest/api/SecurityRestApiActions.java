@@ -29,7 +29,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
-import org.opensearch.security.resources.migrate.MigrateResourceSharingInfoApiAction;
+import org.opensearch.security.resources.api.migrate.MigrateResourceSharingInfoApiAction;
 import org.opensearch.security.ssl.SslSettingsManager;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;

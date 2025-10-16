@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.resources.migrate;
+package org.opensearch.security.resources.api.migrate;
 
 import java.io.IOException;
 import java.util.ArrayList;
