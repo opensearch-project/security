@@ -148,22 +148,35 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String backendRolesPath = body.get("backend_roles_path").asText();
         String defaultAccessLevel = body.get("default_access_level").asText();
 
+        // TODO: once we support multiple resource types within an index, this needs to be revisited
+        // Default access level as part of the resource-action-groups.yml file
+        Set<String> types = resourcePluginInfo.typesByIndex(sourceIndex);
+        if (types.size() != 1) {
+            LOGGER.error(
+                "Invalid resource index [{}]. Either no resource type or multiple resource types are associated with this index",
+                sourceIndex
+            );
+            String badRequestMessage = "Invalid resource index ["
+                + sourceIndex
+                + "]. Either no resource type or multiple resource types are associated with this index";
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+        }
+        String type = types.iterator().next();
         // check that access level exists for given resource-index
-        String type = resourcePluginInfo.typeByIndex(sourceIndex);
-        var availableAGs = resourcePluginInfo.flattenedForType(type).actionGroups();
-        if (!availableAGs.contains(defaultAccessLevel)) {
+        var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
+        if (!accessLevels.contains(defaultAccessLevel)) {
             LOGGER.error(
                 "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
                 defaultAccessLevel,
                 sourceIndex,
-                availableAGs
+                accessLevels
             );
             String badRequestMessage = "Invalid access level "
                 + defaultAccessLevel
                 + " for resource sharing for resource type ["
                 + type
                 + "]. Available access-levels are ["
-                + availableAGs
+                + accessLevels
                 + "]";
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
         }

@@ -196,6 +196,19 @@ public class ResourcePluginInfo {
         }
     }
 
+    public Set<String> typesByIndex(String index) {
+        lock.readLock().lock();
+        try {
+            return typeToIndex.entrySet()
+                .stream()
+                .filter(entry -> Objects.equals(entry.getValue(), index))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public Set<ResourceDashboardInfo> getResourceTypes() {
         lock.readLock().lock();
         try {
