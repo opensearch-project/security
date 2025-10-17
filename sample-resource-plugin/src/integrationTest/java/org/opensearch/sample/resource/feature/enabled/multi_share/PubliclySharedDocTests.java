@@ -10,7 +10,6 @@ package org.opensearch.sample.resource.feature.enabled.multi_share;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -20,12 +19,17 @@ import org.junit.runner.RunWith;
 import org.opensearch.sample.resource.TestUtils;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -53,62 +57,49 @@ public class PubliclySharedDocTests {
         api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
+        forbidden(() -> api.getResource(resourceId, user));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
 
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertReadOnly() {
-        api.assertApiGet(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+    private void assertReadOnly() throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+        assertThat(response.getBody(), containsString("sample"));
+        forbidden(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, FULL_ACCESS_USER));
 
-        api.assertApiShare(
-            resourceId,
-            FULL_ACCESS_USER,
-            TestUtils.FULL_ACCESS_USER,
-            SAMPLE_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_FORBIDDEN
-        );
-        api.assertApiRevoke(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResource(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertFullAccess() {
-        api.assertApiGet(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.assertApiShare(
-            resourceId,
-            LIMITED_ACCESS_USER,
-            TestUtils.LIMITED_ACCESS_USER,
-            SAMPLE_FULL_ACCESS_RESOURCE_AG,
-            HttpStatus.SC_OK
-        );
-        api.assertApiRevoke(resourceId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId);
-        api.assertApiDelete(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK);
+    private void assertFullAccess() throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, LIMITED_ACCESS_USER));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
+        ok(() -> api.shareResource(resourceId, LIMITED_ACCESS_USER, TestUtils.LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS));
+        ok(() -> api.revokeResource(resourceId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_FULL_ACCESS));
+        ok(() -> api.deleteResource(resourceId, LIMITED_ACCESS_USER));
     }
 
     @Test
-    public void readOnly() {
+    public void readOnly() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
-        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, "*");
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_READ_ONLY));
 
         // 2. check read-only access for full-access user
         assertReadOnly();
     }
 
     @Test
-    public void fullAccess() {
+    public void fullAccess() throws Exception {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited perms user
-        api.assertApiShare(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, "*");
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, new TestSecurityConfig.User("*"), SAMPLE_FULL_ACCESS));
 
         // 2. check read-only access for full-access user
         assertFullAccess();

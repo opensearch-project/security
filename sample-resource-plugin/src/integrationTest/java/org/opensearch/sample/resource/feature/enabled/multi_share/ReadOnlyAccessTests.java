@@ -10,7 +10,6 @@ package org.opensearch.sample.resource.feature.enabled.multi_share;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -22,14 +21,16 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -53,54 +54,49 @@ public class ReadOnlyAccessTests {
 
     @After
     public void cleanup() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            client.delete(RESOURCE_INDEX_NAME);
-            client.delete(RESOURCE_SHARING_INDEX);
-        }
+        api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
+        forbidden(() -> api.getResource(resourceId, user));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
 
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertReadOnly(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertReadOnly(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
 
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
     @Test
-    public void fullAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
+    public void fullAccessUser_canRead_cannotUpdateDeleteShareRevoke() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
-        // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName()); // wait until sharing info is populated
+        // share at sample_read_only level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
         assertReadOnly(FULL_ACCESS_USER);
     }
 
     @Test
-    public void limitedAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
+    public void limitedAccessUser_canRead_cannotUpdateDeleteShareRevoke() throws Exception {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
-        // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
+        // share at sample_read_only level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
         assertReadOnly(LIMITED_ACCESS_USER);
     }
 
     @Test
-    public void noAccessUser_canRead_cannotUpdateDeleteShareRevoke() {
+    public void noAccessUser_canRead_cannotUpdateDeleteShareRevoke() throws Exception {
         assertNoAccessBeforeSharing(NO_ACCESS_USER);
-        // share at sampleReadOnly level
-        api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, NO_ACCESS_USER.getName()); // wait until sharing info is populated
+        // share at sample_read_only level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
         assertReadOnly(NO_ACCESS_USER);
     }
 

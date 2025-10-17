@@ -36,8 +36,8 @@ import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SECURITY_LIST_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
@@ -98,7 +98,7 @@ public class AccessibleResourcesApiTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, user.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, user.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));
@@ -113,7 +113,7 @@ public class AccessibleResourcesApiTests {
             assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
             assertThat(
                 resource.get("share_with"),
-                equalTo(Map.of(SAMPLE_READ_ONLY_RESOURCE_AG, Map.of(Recipient.USERS.getName(), List.of(user.getName()))))
+                equalTo(Map.of(SAMPLE_READ_ONLY, Map.of(Recipient.USERS.getName(), List.of(user.getName()))))
             );
             assertThat(resource.get("can_share"), equalTo(Boolean.FALSE));
         }
@@ -127,9 +127,7 @@ public class AccessibleResourcesApiTests {
             Recipients recipients = new Recipients(recs);
 
             TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
-            patchSharingInfoPayloadBuilder.resourceId(adminResId)
-                .resourceType(RESOURCE_TYPE)
-                .share(recipients, SAMPLE_FULL_ACCESS_RESOURCE_AG);
+            patchSharingInfoPayloadBuilder.resourceId(adminResId).resourceType(RESOURCE_TYPE).share(recipients, SAMPLE_FULL_ACCESS);
 
             TestRestClient.HttpResponse response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -144,9 +142,9 @@ public class AccessibleResourcesApiTests {
             assertThat(resource.get("resource_id"), equalTo(adminResId));
             assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
             Map<String, Object> shareWith = Map.of(
-                SAMPLE_READ_ONLY_RESOURCE_AG,
+                SAMPLE_READ_ONLY,
                 Map.of(Recipient.USERS.getName(), List.of(user.getName())),
-                SAMPLE_FULL_ACCESS_RESOURCE_AG,
+                SAMPLE_FULL_ACCESS,
                 Map.of(Recipient.USERS.getName(), List.of(user.getName()))
             );
             assertThat(resource.get("share_with"), equalTo(shareWith));

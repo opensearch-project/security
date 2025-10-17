@@ -29,7 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.PatchSharingInfoPayloadBuilder;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
@@ -73,7 +73,7 @@ public class AdminCertificateAccessTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS_RESOURCE_AG, Recipient.USERS, NO_ACCESS_USER.getName())
+                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, NO_ACCESS_USER.getName())
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -81,7 +81,7 @@ public class AdminCertificateAccessTests {
             PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
             patchBuilder.resourceType(RESOURCE_TYPE);
             patchBuilder.resourceId(resourceId);
-            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS_RESOURCE_AG);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
             response = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
 
             response.assertStatusCode(HttpStatus.SC_OK);
