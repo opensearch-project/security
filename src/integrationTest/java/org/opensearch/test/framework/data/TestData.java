@@ -235,6 +235,7 @@ public class TestData {
                 }
 
                 if (i > nextRollover) {
+                    // This creates several generations of backing indices for data streams
                     client.admin().indices().rolloverIndex(new RolloverRequest(name, null));
 
                     nextRollover += rolloverAfter;
