@@ -27,8 +27,8 @@ import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
 import org.opensearch.common.geo.GeoPoint;
-import org.opensearch.test.framework.TestData;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.data.TestData;
 
 /**
  * Matchers that can operate on responses of the OpenSearch REST APIs _search and _get; using various options like aggregations.

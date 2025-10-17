@@ -28,12 +28,12 @@ import org.junit.runner.RunWith;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.plugin.mapper.MapperSizePlugin;
-import org.opensearch.test.framework.TestData;
-import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.data.TestData;
+import org.opensearch.test.framework.data.TestIndex;
 
 import com.rfksystems.blake2b.Blake2b;
 

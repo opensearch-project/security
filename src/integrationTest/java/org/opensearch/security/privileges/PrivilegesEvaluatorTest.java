@@ -19,12 +19,12 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
-import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.data.TestIndex;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
