@@ -166,7 +166,8 @@ public class ApiAccessTests {
             assertThat(response.getBody(), containsString("sampleUpdateUser"));
             // resource should be visible even after update
 
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
             forbidden(() -> api.shareResource(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
@@ -181,7 +182,7 @@ public class ApiAccessTests {
             forbidden(() -> api.getResource(userResId, USER_ADMIN));
 
             // should not be able to search for admin's resource, can only see self-resource
-            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
             searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
@@ -222,7 +223,8 @@ public class ApiAccessTests {
             TestRestClient.HttpResponse response = ok(() -> api.getResource(userResId, FULL_ACCESS_USER));
             assertThat(response.getBody(), containsString("sampleUpdateUser"));
             // resource should be visible even after update
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
             forbidden(() -> api.shareResource(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
@@ -233,12 +235,13 @@ public class ApiAccessTests {
             ok(() -> api.shareResource(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
             response = ok(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
             assertThat(response.getBody(), containsString("sampleUpdateUser"));
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
             ok(() -> api.revokeResource(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
             forbidden(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
 
             // should not be able to search for admin's resource, 1 total result
-            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
             searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sampleUpdateUser");

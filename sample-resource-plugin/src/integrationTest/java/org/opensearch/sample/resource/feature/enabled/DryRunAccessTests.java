@@ -45,6 +45,7 @@ import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -90,7 +91,7 @@ public class DryRunAccessTests {
     }
 
     @Test
-    public void testDryRunAccess() {
+    public void testDryRunAccess() throws Exception {
         // user has no permission
 
         // cannot create own resource
@@ -108,7 +109,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at readonly level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
+        ok(() -> api.shareResource(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
 
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             // recheck read access
@@ -151,7 +152,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at full-access level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_FULL_ACCESS, HttpStatus.SC_OK);
+        ok(() -> api.shareResource(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // user will now also be able to update, share, revoke and delete resource
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {

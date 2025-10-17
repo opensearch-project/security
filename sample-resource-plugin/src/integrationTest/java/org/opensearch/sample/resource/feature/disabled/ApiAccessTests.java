@@ -176,10 +176,14 @@ public class ApiAccessTests {
             notImplemented(() -> api.revokeResource(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // should be able to search for admin's resource
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
-            api.assertApiPostSearch(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sample");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sample");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sample");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUser");
 
             // cannot delete own resource since user doesn't have delete permission
             forbidden(() -> api.deleteResource(userResId, LIMITED_ACCESS_USER));
@@ -224,11 +228,15 @@ public class ApiAccessTests {
             notImplemented(() -> api.revokeResource(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // should be able to search for admin's resource, 2 total results
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
-            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sampleUpdateAdmin");
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateAdmin");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sampleUpdateAdmin");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 2, "sampleUpdateAdmin");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateAdmin");
             // can search for own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete own resource since user has * permissions
             ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));
@@ -411,7 +419,6 @@ public class ApiAccessTests {
             assertSearchResponse(searchResponse, 2, "sample");
             searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sample");
-
             searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUser"), LIMITED_ACCESS_USER));
             assertSearchResponse(searchResponse, 1, "sampleUser");
 

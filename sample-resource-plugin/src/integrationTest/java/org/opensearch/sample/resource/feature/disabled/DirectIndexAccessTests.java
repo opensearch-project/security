@@ -31,6 +31,7 @@ import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -59,7 +60,7 @@ public class DirectIndexAccessTests {
         }
 
         @Test
-        public void testRawAccess_noAccessUser() {
+        public void testRawAccess_noAccessUser() throws Exception {
             String id = api.createRawResourceAs(cluster.getAdminCertificate());
             // user has no permissions
 
@@ -70,13 +71,12 @@ public class DirectIndexAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
             api.assertDirectGet(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectGetAll(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
             api.assertDirectUpdate(id, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             // search returns 403 since user doesn't have access to invoke search
-            api.assertDirectGetSearchForbidden(NO_ACCESS_USER);
-            api.assertDirectPostSearchForbidden(searchAllPayload(), NO_ACCESS_USER);
-            api.assertDirectPostSearchForbidden(searchByNamePayload("sample"), NO_ACCESS_USER);
+            forbidden(() -> api.searchResourceIndex(NO_ACCESS_USER));
+            forbidden(() -> api.searchResourceIndex(searchAllPayload(), NO_ACCESS_USER));
+            forbidden(() -> api.searchResourceIndex(searchByNamePayload("sample"), NO_ACCESS_USER));
 
             api.assertDirectDelete(id, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }

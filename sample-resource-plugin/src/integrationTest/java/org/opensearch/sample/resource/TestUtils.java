@@ -38,7 +38,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
@@ -354,10 +353,6 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiGet(String resourceId, TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGet(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId, user, status, expectedResourceName);
-        }
-
         private void assertGet(String endpoint, TestSecurityConfig.User user, int status, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.get(endpoint);
@@ -370,18 +365,6 @@ public final class TestUtils {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
             }
-        }
-
-        public void assertApiGetSearchForbidden(TestSecurityConfig.User user) {
-            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, HttpStatus.SC_FORBIDDEN, 0, null);
-        }
-
-        public void assertDirectGetSearchForbidden(TestSecurityConfig.User user) {
-            assertGetSearch(RESOURCE_INDEX_NAME + "/_search", user, HttpStatus.SC_FORBIDDEN, 0, null);
-        }
-
-        public void assertApiGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
-            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, status, expectedHits, expectedResourceName);
         }
 
         public void assertDirectGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
@@ -446,22 +429,16 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
-            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        public TestRestClient.HttpResponse searchResourceIndex(String searchPayload, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.postJson(RESOURCE_INDEX_NAME + "/_search", searchPayload);
+            }
         }
 
-        public void assertDirectPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
-            assertPostSearch(RESOURCE_INDEX_NAME + "/_search", searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
-        }
-
-        public void assertApiPostSearch(
-            String searchPayload,
-            TestSecurityConfig.User user,
-            int status,
-            int expectedHits,
-            String expectedResourceName
-        ) {
-            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, status, expectedHits, expectedResourceName);
+        public TestRestClient.HttpResponse searchResourceIndex(TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(RESOURCE_INDEX_NAME + "/_search");
+            }
         }
 
         public void assertDirectPostSearch(
@@ -494,30 +471,9 @@ public final class TestUtils {
             }
         }
 
-        public void assertDirectGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGetAll(RESOURCE_INDEX_NAME + "/_search", user, status, expectedResourceName);
-        }
-
         public TestRestClient.HttpResponse listResources(TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
-            }
-        }
-
-        public void assertApiGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGetAll(SAMPLE_RESOURCE_GET_ENDPOINT, user, status, expectedResourceName);
-        }
-
-        private void assertGetAll(String endpoint, TestSecurityConfig.User user, int status, String expectedResourceName) {
-            try (TestRestClient client = cluster.getRestClient(user)) {
-                Awaitility.await("Wait until index is refreshed").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(endpoint);
-                    response.assertStatusCode(status);
-                    if (status == HttpStatus.SC_OK) {
-                        assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThanOrEqualTo(1));
-                        assertThat(response.getBody(), containsString(expectedResourceName));
-                    }
-                });
             }
         }
 
@@ -526,10 +482,6 @@ public final class TestUtils {
                 String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
                 return client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, updatePayload);
             }
-        }
-
-        public void assertApiUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
-            assertUpdate(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, newName, user, status);
         }
 
         public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
@@ -574,22 +526,6 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiShare(
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.putJson(
-                    SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.USERS, target.getName())
-                );
-                response.assertStatusCode(status);
-            }
-        }
-
         public TestRestClient.HttpResponse shareResourceByRole(
             String resourceId,
             TestSecurityConfig.User user,
@@ -601,22 +537,6 @@ public final class TestUtils {
                     SECURITY_SHARE_ENDPOINT,
                     putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
                 );
-            }
-        }
-
-        public void assertApiShareByRole(
-            String resourceId,
-            TestSecurityConfig.User user,
-            String targetRole,
-            String accessLevel,
-            int status
-        ) {
-            try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.putJson(
-                    SECURITY_SHARE_ENDPOINT,
-                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
-                );
-                response.assertStatusCode(status);
             }
         }
 
@@ -635,23 +555,6 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiRevoke(
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
-            patchBuilder.resourceType(RESOURCE_TYPE);
-            patchBuilder.resourceId(resourceId);
-            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
-            try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
-                response.assertStatusCode(status);
-            }
-        }
-
         public void assertDirectDelete(String resourceId, TestSecurityConfig.User user, int status) {
             assertDelete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, user, status);
         }
@@ -664,10 +567,6 @@ public final class TestUtils {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             }
-        }
-
-        public void assertApiDelete(String resourceId, TestSecurityConfig.User user, int status) {
-            assertDelete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId, user, status);
         }
 
         private void assertDelete(String endpoint, TestSecurityConfig.User user, int status) {

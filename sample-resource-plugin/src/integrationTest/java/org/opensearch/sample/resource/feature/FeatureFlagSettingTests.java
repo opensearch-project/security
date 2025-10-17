@@ -171,9 +171,12 @@ public class FeatureFlagSettingTests {
         notImplemented(() -> api.revokeResource(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
         // can search both resources
-        api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-        api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
-        api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+        assertSearchResponse(searchResponse, 2, "sample");
+        searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
+        assertSearchResponse(searchResponse, 2, "sample");
+        searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
+        assertSearchResponse(searchResponse, 2, "sample");
     }
 
     private void assertFullUser_Disabled() throws Exception {
@@ -192,11 +195,15 @@ public class FeatureFlagSettingTests {
         notImplemented(() -> api.revokeResource(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
         // search sees both
-        api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 3, "sampleUpdateAdmin"); // admin + full user + limited user created
-                                                                                            // above
-        api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 3, "sampleUpdateAdmin");
-        api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateAdmin");
-        api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER)); // admin + full user + limited user
+                                                                                                      // created above
+        assertSearchResponse(searchResponse, 3, "sampleUpdateAdmin");
+        searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 3, "sampleUpdateAdmin");
+        searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateAdmin"), FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sampleUpdateAdmin");
+        searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
         // can delete both
         ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));

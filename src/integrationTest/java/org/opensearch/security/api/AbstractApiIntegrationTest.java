@@ -310,7 +310,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
