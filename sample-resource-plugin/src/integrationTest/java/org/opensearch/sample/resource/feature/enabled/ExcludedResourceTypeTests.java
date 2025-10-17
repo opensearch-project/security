@@ -70,6 +70,9 @@ public class ExcludedResourceTypeTests {
     public void fullAccessUser_canCRUD() {
         api.assertApiGet(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
         api.assertApiUpdate(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+        api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
+        api.createSampleResourceAs(FULL_ACCESS_USER);
+        api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
         api.assertApiDelete(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK);
     }
 
@@ -77,6 +80,7 @@ public class ExcludedResourceTypeTests {
     public void limitedAccessUser_canCRUD() {
         api.assertApiGet(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
         api.assertApiUpdate(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+        api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
         api.assertApiDelete(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
     }
 
@@ -84,6 +88,7 @@ public class ExcludedResourceTypeTests {
     public void noAccessUser_canCRUD() {
         api.assertApiGet(resourceId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
         api.assertApiUpdate(resourceId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+        api.assertApiGetSearchForbidden(NO_ACCESS_USER);
         api.assertApiDelete(resourceId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
     }
 }
