@@ -259,7 +259,7 @@ public class SecuritySettingsConfigurerTests {
         assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
-        assertThat(actual.get("plugins.security.ssl.transport.enforce_hostname_verification"), equalTo(false));
+        assertThat(actual.get("transport.ssl.enforce_hostname_verification"), equalTo(false));
         assertThat(actual.get("plugins.security.ssl.http.enabled"), equalTo(true));
         assertThat(actual.get("plugins.security.ssl.http.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
