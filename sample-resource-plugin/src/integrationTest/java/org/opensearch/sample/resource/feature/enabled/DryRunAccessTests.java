@@ -35,8 +35,8 @@ import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.PatchSharingInfoPayloadBuilder;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -45,6 +45,7 @@ import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -90,7 +91,7 @@ public class DryRunAccessTests {
     }
 
     @Test
-    public void testDryRunAccess() {
+    public void testDryRunAccess() throws Exception {
         // user has no permission
 
         // cannot create own resource
@@ -108,7 +109,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at readonly level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
+        ok(() -> api.shareResource(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
 
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
             // recheck read access
@@ -127,7 +128,7 @@ public class DryRunAccessTests {
             // cannot share resource
             resp = client.putJson(
                 SECURITY_SHARE_ENDPOINT + "?perform_permission_check=true",
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, FULL_ACCESS_USER.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, FULL_ACCESS_USER.getName())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
@@ -137,10 +138,7 @@ public class DryRunAccessTests {
             PatchSharingInfoPayloadBuilder payloadBuilder = new PatchSharingInfoPayloadBuilder();
             payloadBuilder.resourceId(adminResId);
             payloadBuilder.resourceType(RESOURCE_TYPE);
-            payloadBuilder.revoke(
-                new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))),
-                SAMPLE_READ_ONLY_RESOURCE_AG
-            );
+            payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))), SAMPLE_READ_ONLY);
             resp = client.patch(SECURITY_SHARE_ENDPOINT + "?perform_permission_check=true", payloadBuilder.build());
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
@@ -154,7 +152,7 @@ public class DryRunAccessTests {
         }
 
         // share resource at full-access level with no_access_user
-        api.assertApiShare(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
+        ok(() -> api.shareResource(adminResId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // user will now also be able to update, share, revoke and delete resource
         try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
@@ -174,7 +172,7 @@ public class DryRunAccessTests {
             // can share resource
             resp = client.putJson(
                 SECURITY_SHARE_ENDPOINT + "?perform_permission_check=true",
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, FULL_ACCESS_USER.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, FULL_ACCESS_USER.getName())
             );
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));
@@ -184,10 +182,7 @@ public class DryRunAccessTests {
             PatchSharingInfoPayloadBuilder payloadBuilder = new PatchSharingInfoPayloadBuilder();
             payloadBuilder.resourceId(adminResId);
             payloadBuilder.resourceType(RESOURCE_TYPE);
-            payloadBuilder.revoke(
-                new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))),
-                SAMPLE_READ_ONLY_RESOURCE_AG
-            );
+            payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(FULL_ACCESS_USER.getName()))), SAMPLE_READ_ONLY);
             resp = client.patch(SECURITY_SHARE_ENDPOINT + "?perform_permission_check=true", payloadBuilder.build());
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(true));

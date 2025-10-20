@@ -15,14 +15,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.DocRequest;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.sharing.ShareWith;
-
-import joptsimple.internal.Strings;
 
 /**
  * This class represents a request to share access to a resource.

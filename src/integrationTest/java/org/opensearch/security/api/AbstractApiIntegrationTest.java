@@ -310,7 +310,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
@@ -350,7 +350,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_NOT_IMPLEMENTED));
@@ -358,7 +358,8 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
         assertResponseBody(response.getBody());

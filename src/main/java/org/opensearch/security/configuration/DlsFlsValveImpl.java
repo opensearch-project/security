@@ -163,12 +163,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
         ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
             if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
+                IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
                 Collection<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                 WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
                 if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
-
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                         namedXContentRegistry,
                         resolved,
@@ -186,9 +185,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         threadContext
                     );
                 }
-            } else {
-                return true;
             }
+            return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
