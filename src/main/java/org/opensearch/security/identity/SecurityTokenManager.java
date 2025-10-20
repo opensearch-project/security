@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
@@ -38,7 +39,6 @@ import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
-import joptsimple.internal.Strings;
 import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
