@@ -25,6 +25,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.assertSearchResponse;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
@@ -73,6 +74,11 @@ public class ExcludedResourceTypeTests {
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
         assertThat(response.getBody(), containsString("sample"));
         ok(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sample");
+        api.createSampleResourceAs(FULL_ACCESS_USER);
+        searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 2, "sample");
         ok(() -> api.deleteResource(resourceId, FULL_ACCESS_USER));
     }
 
@@ -81,6 +87,8 @@ public class ExcludedResourceTypeTests {
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, LIMITED_ACCESS_USER));
         assertThat(response.getBody(), containsString("sample"));
         forbidden(() -> api.updateResource(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin"));
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sample");
         forbidden(() -> api.deleteResource(resourceId, LIMITED_ACCESS_USER));
     }
 
@@ -88,6 +96,7 @@ public class ExcludedResourceTypeTests {
     public void noAccessUser_canCRUD() throws Exception {
         forbidden(() -> api.getResource(resourceId, NO_ACCESS_USER));
         forbidden(() -> api.updateResource(resourceId, NO_ACCESS_USER, "sampleUpdateAdmin"));
+        forbidden(() -> api.searchResources(NO_ACCESS_USER));
         forbidden(() -> api.deleteResource(resourceId, NO_ACCESS_USER));
     }
 }

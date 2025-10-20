@@ -67,7 +67,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.2"
+    id "com.github.spotbugs" version "6.4.4"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -573,6 +573,10 @@ allprojects {
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.9.0') {
+            exclude(group: 'net.minidev', module: 'json-smart')
+        }
     }
 }
 
