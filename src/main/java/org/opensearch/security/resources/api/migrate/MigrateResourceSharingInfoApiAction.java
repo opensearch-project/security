@@ -160,7 +160,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
             }
         }
-        if (!resourcePluginInfo.getResourceIndices().contains(sourceIndex)) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
             String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
         }
@@ -225,14 +225,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     }
                 }
 
-                String type = null;
-
+                String type;
                 if (typePath != null) {
                     type = rec.at(typePath.startsWith("/") ? typePath : ("/" + typePath)).asText(null);
-                    if (type == null) {
-                        LOGGER.debug("Record without associated type, skipping entirely: {}", hit.getId());
-                        continue;
-                    }
                 } else {
                     type = typeToDefaultAccessLevel.keySet().iterator().next();
                 }
@@ -279,10 +274,19 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            // 2) skip if no username node
+            // 2a) skip if no username node
             String username = doc.username;
             if (username == null || username.isEmpty()) {
                 LOGGER.debug("Record without associated user, skipping entirely: {}", doc.resourceId);
+                skippedNoUser.get().add(doc.resourceId);
+                migrationStatsLatch.countDown();
+                continue;
+            }
+
+            // 2b) skip if no type
+            String type = doc.type;
+            if (type == null || type.isEmpty()) {
+                LOGGER.debug("Record without associated type, skipping entirely: {}", doc.resourceId);
                 skippedNoUser.get().add(doc.resourceId);
                 migrationStatsLatch.countDown();
                 continue;

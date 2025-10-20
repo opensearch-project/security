@@ -23,9 +23,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -56,10 +54,6 @@ public class ResourceAccessHandlerTest {
     private AdminDNs adminDNs;
     @Mock
     private PrivilegesEvaluator privilegesEvaluator;
-    @Mock
-    private PrivilegesEvaluationContext context;
-    @Mock
-    private RoleBasedActionPrivileges roleBasedPrivileges;
 
     @Mock
     private ResourcePluginInfo resourcePluginInfo;
@@ -106,8 +100,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("alice", ImmutableSet.of("r1"), ImmutableSet.of("b1"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.isCreatedBy("alice")).thenReturn(true);
@@ -129,8 +121,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("bob", ImmutableSet.of("role1"), ImmutableSet.of("backend1"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         // Document setup: shared with the user at access-level "read"
         ResourceSharing doc = mock(ResourceSharing.class);
@@ -162,8 +152,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("charlie", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.isCreatedBy("charlie")).thenReturn(false);
@@ -186,8 +174,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("dave", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
