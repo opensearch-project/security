@@ -19,7 +19,7 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 /**
- * Rest action to get a sample resource
+ * Rest action to get a sample resource group
  */
 public class GetResourceGroupRestAction extends BaseRestHandler {
 

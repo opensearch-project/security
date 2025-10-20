@@ -97,7 +97,7 @@ public class ResourceAccessHandlerTest {
         when(adminDNs.isAdmin(user)).thenReturn(true);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, context, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -120,7 +120,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -153,7 +153,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -177,7 +177,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
     }
@@ -197,7 +197,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
     }
@@ -211,7 +211,7 @@ public class ResourceAccessHandlerTest {
         when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(subjectContext);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
     }

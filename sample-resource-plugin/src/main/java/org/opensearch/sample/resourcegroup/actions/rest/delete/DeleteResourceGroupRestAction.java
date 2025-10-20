@@ -21,7 +21,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 /**
- * Rest Action to delete a Sample Resource.
+ * Rest Action to delete a Sample Resource Group.
  */
 public class DeleteResourceGroupRestAction extends BaseRestHandler {
 

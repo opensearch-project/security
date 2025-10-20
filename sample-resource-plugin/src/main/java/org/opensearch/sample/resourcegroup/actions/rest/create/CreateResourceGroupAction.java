@@ -11,15 +11,15 @@ package org.opensearch.sample.resourcegroup.actions.rest.create;
 import org.opensearch.action.ActionType;
 
 /**
- * Action to create a sample resource
+ * Action to create a sample resource group
  */
 public class CreateResourceGroupAction extends ActionType<CreateResourceGroupResponse> {
     /**
-     * Create sample resource action instance
+     * Create sample resource group action instance
      */
     public static final CreateResourceGroupAction INSTANCE = new CreateResourceGroupAction();
     /**
-     * Create sample resource action name
+     * Create sample resource group action name
      */
     public static final String NAME = "cluster:admin/sample-resource-plugin/group/create";
 

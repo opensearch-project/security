@@ -11,15 +11,15 @@ package org.opensearch.sample.resourcegroup.actions.rest.get;
 import org.opensearch.action.ActionType;
 
 /**
- * Action to get a sample resource
+ * Action to get a sample resource group
  */
 public class GetResourceGroupAction extends ActionType<GetResourceGroupResponse> {
     /**
-     * Get sample resource action instance
+     * Get sample resource group action instance
      */
     public static final GetResourceGroupAction INSTANCE = new GetResourceGroupAction();
     /**
-     * Get sample resource action name
+     * Get sample resource group action name
      */
     public static final String NAME = "cluster:admin/sample-resource-plugin/group/get";
 

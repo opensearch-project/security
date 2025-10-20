@@ -65,7 +65,7 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
             listener.onResponse(true);
             return;
         }
-        resourceAccessHandler.hasPermission(resourceId, resourceType, action, null, listener);
+        resourceAccessHandler.hasPermission(resourceId, resourceType, action, listener);
     }
 
     /**

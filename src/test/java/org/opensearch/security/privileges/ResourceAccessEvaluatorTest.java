@@ -77,11 +77,11 @@ public class ResourceAccessEvaluatorTest {
             ActionListener<Boolean> listener = inv.getArgument(4);
             listener.onResponse(hasPermission);
             return null;
-        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any(), any());
+        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 
-        evaluator.evaluateAsync(req, "read", context, callback);
+        evaluator.evaluateAsync(req, "read", callback);
 
         ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
         verify(callback).onResponse(captor.capture());

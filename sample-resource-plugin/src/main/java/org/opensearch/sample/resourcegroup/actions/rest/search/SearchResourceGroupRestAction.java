@@ -26,7 +26,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 /**
- * Rest action to search sample resource(s)
+ * Rest action to search sample resource group(s)
  */
 public class SearchResourceGroupRestAction extends BaseRestHandler {
 

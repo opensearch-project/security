@@ -33,7 +33,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private final String resourceId;
     @JsonProperty("resource_type")
     private final String resourceType;
-    @JsonProperty("resource_index")
     private final String resourceIndex;
     @JsonProperty("share_with")
     private final ShareWith shareWith;

@@ -17,7 +17,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
- * Response to a DeleteSampleResourceRequest
+ * Response to a DeleteSampleResourceGroupRequest
  */
 public class DeleteResourceGroupResponse extends ActionResponse implements ToXContentObject {
     private final String message;

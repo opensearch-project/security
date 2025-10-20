@@ -20,7 +20,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
- * Request object for DeleteSampleResource transport action
+ * Request object for DeleteSampleResourceGroup transport action
  */
 public class DeleteResourceGroupRequest extends ActionRequest implements DocRequest {
 

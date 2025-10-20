@@ -11,15 +11,15 @@ package org.opensearch.sample.resourcegroup.actions.rest.delete;
 import org.opensearch.action.ActionType;
 
 /**
- * Action to delete a sample resource
+ * Action to delete a sample resource group
  */
 public class DeleteResourceGroupAction extends ActionType<DeleteResourceGroupResponse> {
     /**
-     * Delete sample resource action instance
+     * Delete sample resource group action instance
      */
     public static final DeleteResourceGroupAction INSTANCE = new DeleteResourceGroupAction();
     /**
-     * Delete sample resource action name
+     * Delete sample resource group action name
      */
     public static final String NAME = "cluster:admin/sample-resource-plugin/group/delete";
 

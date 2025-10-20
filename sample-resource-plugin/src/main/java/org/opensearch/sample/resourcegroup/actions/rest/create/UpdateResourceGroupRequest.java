@@ -21,7 +21,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
- * Request object for UpdateResource transport action
+ * Request object for UpdateResourceGroup transport action
  */
 public class UpdateResourceGroupRequest extends ActionRequest implements DocRequest {
 

@@ -24,7 +24,7 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_API_PREFIX;
 
 /**
- * Rest Action to create a Sample Resource. Registers Create and Update REST APIs.
+ * Rest Action to create a Sample Resource Group. Registers Create and Update REST APIs.
  */
 public class CreateResourceGroupRestAction extends BaseRestHandler {
 

@@ -12,7 +12,7 @@ import org.opensearch.action.ActionType;
 import org.opensearch.action.search.SearchResponse;
 
 /**
- * Action to search sample resources
+ * Action to search sample resource groups
  */
 public class SearchResourceGroupAction extends ActionType<SearchResponse> {
 

@@ -28,9 +28,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -136,14 +134,12 @@ public class ResourceAccessHandler {
      * @param resourceId    The resource ID to check access for.
      * @param resourceType  The resource type.
      * @param action        The action to check permission for
-     * @param context       The evaluation context to be used. Will be null when used by {@link ResourceAccessControlClient}.
      * @param listener      The listener to be notified with the permission check result.
      */
     public void hasPermission(
         @NonNull String resourceId,
         @NonNull String resourceType,
         @NonNull String action,
-        PrivilegesEvaluationContext context,
         ActionListener<Boolean> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -164,22 +160,8 @@ public class ResourceAccessHandler {
             listener.onResponse(true);
             return;
         }
-
-        PrivilegesEvaluationContext effectiveContext = context != null ? context : privilegesEvaluator.createContext(user, action);
-
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
         Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        // At present, plugins and tokens are not supported for access to resources
-        if (!(effectiveContext.getActionPrivileges() instanceof RoleBasedActionPrivileges)) {
-            LOGGER.debug(
-                "Plugin/Token access to resources is currently not supported. {} is not authorized to access resource {}.",
-                user.getName(),
-                resourceId
-            );
-            listener.onResponse(false);
-            return;
-        }
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
@@ -265,6 +247,9 @@ public class ResourceAccessHandler {
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
             LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
+            listener.onFailure(
+                new OpenSearchStatusException("No resourceIndex mapping found for type '{}';" + resourceType, RestStatus.UNAUTHORIZED)
+            );
             return;
         }
 
@@ -321,6 +306,9 @@ public class ResourceAccessHandler {
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
             LOGGER.debug("No resourceIndex mapping found for type '{}';", resourceType);
+            listener.onFailure(
+                new OpenSearchStatusException("No resourceIndex mapping found for type '{}';" + resourceType, RestStatus.UNAUTHORIZED)
+            );
             return;
         }
         this.resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
