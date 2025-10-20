@@ -14,10 +14,10 @@ package org.opensearch.security.configuration;
 import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -165,7 +165,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
                 IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
-                Collection<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
+                Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                 WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
                 if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
