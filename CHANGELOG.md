@@ -4,63 +4,37 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to the [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
 ## [Unreleased 3.x]
+### Added
 
 ### Features
 
 ### Enhancements
-
-- [Resource Sharing] Use DLS to automatically filter sharable resources for authenticated user based on `all_shared_principals` ([#5600](https://github.com/opensearch-project/security/pull/5600))
-- [Resource Sharing] Keep track of list of principals for which sharable resource is visible for searching ([#5596](https://github.com/opensearch-project/security/pull/5596))
-- [Resource Sharing] Keep track of tenant for sharable resources by persisting user requested tenant with sharing info ([#5588](https://github.com/opensearch-project/security/pull/5588))
-- [SecurityPlugin Health Check] Add AuthZ initialization completion check in health check API [(#5626)](https://github.com/opensearch-project/security/pull/5626)
 - Moved configuration reloading to dedicated thread to improve node stability  ([#5479](https://github.com/opensearch-project/security/pull/5479))
-- [Resource Sharing] Adds API to provide dashboards support for resource access management ([#5597](https://github.com/opensearch-project/security/pull/5597))
-- Direct JWKS (JSON Web Key Set) support in the JWT authentication backend ([#5578](https://github.com/opensearch-project/security/pull/5578))
+- Makes resource settings dynamic ([#5677](https://github.com/opensearch-project/security/pull/5677))
 
 ### Bug Fixes
+- Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
+- Improve array validator to also check for blank string in addition to null ([#5714](https://github.com/opensearch-project/security/pull/5714))
+- Use RestRequestFilter.getFilteredRequest to declare sensitive API params ([#5710](https://github.com/opensearch-project/security/pull/5710))
 
-- Added new option skip_users to client cert authenticator  (clientcert_auth_domain.http_authenticator.config.skip_users in config.yml)([#4378](https://github.com/opensearch-project/security/pull/5525))
-- [Resource Sharing] Fixes accessible resource ids search by marking created_by.user field as keyword search instead of text ([#5574](https://github.com/opensearch-project/security/pull/5574))
-- [Resource Sharing] Reverts @Inject pattern usage for ResourceSharingExtension to client accessor pattern. ([#5576](https://github.com/opensearch-project/security/pull/5576))
-- Inject user custom attributes when injecting user and role information to the thread context ([#5560](https://github.com/opensearch-project/security/pull/5560))
-- Allow any plugin system request when `plugins.security.system_indices.enabled` is set to `false` ([#5579](https://github.com/opensearch-project/security/pull/5579))
-- [Resource Sharing] Always treat GET _doc request as indices request even when performed on sharable resource index ([#5631](https://github.com/opensearch-project/security/pull/5631))
-- Fix JWT log spam when JWT authenticator is configured with an empty list for roles_key ([#5640](https://github.com/opensearch-project/security/pull/5640))
-- Updates resource visibility when handling PATCH api to update sharing record ([#5654](https://github.com/opensearch-project/security/pull/5654))
 
 ### Refactoring
-
-- [Resource Sharing] Match index settings of .kibana indices for resource sharing indices ([#5605](https://github.com/opensearch-project/security/pull/5605))
+- [Resource Sharing] Make migrate api require default access level to be supplied and updates documentations + tests ([#5717](https://github.com/opensearch-project/security/pull/5717))
+- [Resource Sharing] Removes share and revoke java APIs ([#5718](https://github.com/opensearch-project/security/pull/5718))
 
 ### Maintenance
-- Update delete_backport_branch workflow to include release-chores branches ([#5548](https://github.com/opensearch-project/security/pull/5548))
-- Bump `1password/load-secrets-action` from 2 to 3 ([#5573](https://github.com/opensearch-project/security/pull/5573))
-- Bump `actions/checkout` from 4 to 5 ([#5572](https://github.com/opensearch-project/security/pull/5572), [#5660](https://github.com/opensearch-project/security/pull/5660))
-- Bump `jjwt_version` from 0.12.6 to 0.13.0 ([#5568](https://github.com/opensearch-project/security/pull/5568), [#5581](https://github.com/opensearch-project/security/pull/5581))
-- Bump `org.mockito:mockito-core` from 5.18.0 to 5.20.0 ([#5566](https://github.com/opensearch-project/security/pull/5566), [#5650](https://github.com/opensearch-project/security/pull/5650))
-- Bump `open_saml_version` from 5.1.4 to 5.1.6 ([#5567](https://github.com/opensearch-project/security/pull/5567), [#5614](https://github.com/opensearch-project/security/pull/5614))
-- Bump `com.google.j2objc:j2objc-annotations` from 3.0.0 to 3.1 ([#5570](https://github.com/opensearch-project/security/pull/5570))
-- Bump `spring_version` from 6.2.9 to 6.2.11 ([#5569](https://github.com/opensearch-project/security/pull/5569), [#5636](https://github.com/opensearch-project/security/pull/5636))
-- Bump `com.github.spotbugs` from 6.2.4 to 6.4.1 ([#5584](https://github.com/opensearch-project/security/pull/5584), [#5611](https://github.com/opensearch-project/security/pull/5611), [#5637](https://github.com/opensearch-project/security/pull/5637))
-- Bump `open_saml_shib_version` from 9.1.4 to 9.1.6 ([#5585](https://github.com/opensearch-project/security/pull/5585), [#5612](https://github.com/opensearch-project/security/pull/5612))
-- Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M3 to 4.0.0-M4 ([#5583](https://github.com/opensearch-project/security/pull/5583))
-- Bump `net.bytebuddy:byte-buddy` from 1.17.6 to 1.17.7 ([#5586](https://github.com/opensearch-project/security/pull/5586))
-- Bump `io.dropwizard.metrics:metrics-core` from 4.2.33 to 4.2.37 ([#5589](https://github.com/opensearch-project/security/pull/5589), [#5638](https://github.com/opensearch-project/security/pull/5638))
-- Bump `com.nimbusds:nimbus-jose-jwt:9.48` from 9.48 to 10.4.2 ([#5595](https://github.com/opensearch-project/security/pull/5595))
-- Bump `actions/github-script` from 7 to 8 ([#5610](https://github.com/opensearch-project/security/pull/5610))
-- Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.33.100 to 3.34.0 ([#5628](https://github.com/opensearch-project/security/pull/5628))
-- Bump `org.opensearch:protobufs` from 0.6.0 to 0.13.0 ([#5553](https://github.com/opensearch-project/security/pull/5553))
-- Bump `org.checkerframework:checker-qual` from 3.49.5 to 3.51.0 ([#5627](https://github.com/opensearch-project/security/pull/5627))
-- Bump `com.nimbusds:nimbus-jose-jwt` from 10.4.2 to 10.5 ([#5629](https://github.com/opensearch-project/security/pull/5629))
-- Bump `derek-ho/start-opensearch` from 7 to 8 ([#5630](https://github.com/opensearch-project/security/pull/5630))
-- Bump `actions/setup-java` from 4 to 5 ([#5582](https://github.com/opensearch-project/security/pull/5582))
-- Bump `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.100 to 3.20.200 ([#5651](https://github.com/opensearch-project/security/pull/5651))
-- Bump `jakarta.xml.bind:jakarta.xml.bind-api` from 4.0.2 to 4.0.4 ([#5649](https://github.com/opensearch-project/security/pull/5649))
-- Bump `com.google.errorprone:error_prone_annotations` from 2.41.0 to 2.42.0 ([#5648](https://github.com/opensearch-project/security/pull/5648))
-- Bump `com.google.guava:guava` from 33.4.8-jre to 33.5.0-jre ([#5665](https://github.com/opensearch-project/security/pull/5665))
+- Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.0 ([#5678](https://github.com/opensearch-project/security/pull/5678))
+- Bump `ch.qos.logback:logback-classic` from 1.5.18 to 1.5.19 ([#5680](https://github.com/opensearch-project/security/pull/5680))
+- Bump `org.scala-lang:scala-library` from 2.13.16 to 2.13.17 ([#5682](https://github.com/opensearch-project/security/pull/5682))
+- Bump `org.gradle.test-retry` from 1.6.2 to 1.6.4 ([#5706](https://github.com/opensearch-project/security/pull/5706))
+- Bump `org.checkerframework:checker-qual` from 3.51.0 to 3.51.1 ([#5705](https://github.com/opensearch-project/security/pull/5705))
+- Bump `org.ow2.asm:asm` from 9.8 to 9.9 ([#5707](https://github.com/opensearch-project/security/pull/5707))
+- Bump `stefanzweifel/git-auto-commit-action` from 6 to 7 ([#5704](https://github.com/opensearch-project/security/pull/5704))
+- Bump `net.bytebuddy:byte-buddy` from 1.17.7 to 1.17.8 ([#5703](https://github.com/opensearch-project/security/pull/5703))
+- Bump `derek-ho/start-opensearch` from 7 to 9 ([#5630](https://github.com/opensearch-project/security/pull/5630), [#5679](https://github.com/opensearch-project/security/pull/5679))
+- Bump `github/codeql-action` from 3 to 4 ([#5702](https://github.com/opensearch-project/security/pull/5702))
+- Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
 
 ### Documentation
 
-- [Resource Sharing] Adds comprehensive documentation for Resource Access Control feature ([#5540](https://github.com/opensearch-project/security/pull/5540))
-
-[Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.2...main
+[Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.3...main

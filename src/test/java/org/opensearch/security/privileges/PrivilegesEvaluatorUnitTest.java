@@ -9,6 +9,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -20,6 +21,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -36,6 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.support.SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -159,6 +162,10 @@ public class PrivilegesEvaluatorUnitTest {
         settings = Settings.builder().build();
         clusterStateSupplier = () -> clusterState;
         threadContext = new ThreadContext(Settings.EMPTY);
+
+        when(clusterService.getClusterSettings()).thenReturn(
+            new ClusterSettings(Settings.EMPTY, Set.of(USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING))
+        );
 
         privilegesEvaluator = new PrivilegesEvaluator(
             clusterService,

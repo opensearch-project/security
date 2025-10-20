@@ -75,6 +75,7 @@ opensearchplugin {
 ```
 - **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
 - **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
+- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](./sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -129,10 +130,28 @@ resource_types:
         - "cluster:admin/sample-resource-plugin/*"
         - "cluster:admin/security/resource/share"
 ```
+- If your plugin enabled testing with security, add the following to you node-setup for `integTest` task:
+```build.gradle
+integTest {
+    ...
+    systemProperty "resource_sharing.enabled", System.getProperty("resource_sharing.enabled")
+    ...
+}
+...
+<test-cluster-setup-task> {
+    ...
+    node.setting("plugins.security.system_indices.enabled", "true")
+    if (System.getProperty("resource_sharing.enabled") == "true") {
+        node.setting("plugins.security.experimental.resource_sharing.enabled", "true")
+        node.setting("plugins.security.experimental.resource_sharing.protected_types", "[\"anomaly-detector\", \"forecaster\"]")
+    }
+    ...
+}
+```
 
 ## **3. Resource Sharing API Design**
 
-### **Resource Sharing Index **
+### **Resource Sharing Index**
 
 Each plugin receives its own sharing index, centrally managed by security plugin, which stores **resource access metadata**, mapping **resources to their access control policies**.
 
@@ -299,23 +318,7 @@ NOTE: Security plugin offers an evaluator to evaluate resource access requests t
 void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
 ```
 
-### **2. `share`**
-
-**Grants access to a resource for specified users, roles, and backend roles.**
-
-```
-void share(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
-```
-
-### **3. `revoke`**
-
-**Removes access permissions for specified users, roles, and backend roles.**
-
-```
-void revoke(String resourceId, String resourceIndex, ShareWith target, ActionListener<ResourceSharing> listener);
-```
-
-### **4. `getAccessibleResourceIds`**
+### **2. `getAccessibleResourceIds`**
 
 **Retrieves ids of all resources the current user has access to, regardless of the access-level.**
 
@@ -323,44 +326,21 @@ void revoke(String resourceId, String resourceIndex, ShareWith target, ActionLis
 void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
 ```
 
-Example usage:
-```java
-@Inject
-public ShareResourceTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters,
-        SampleResourceExtension sampleResourceExtension
-) {
-    super(ShareResourceAction.NAME, transportService, actionFilters, ShareResourceRequest::new);
-    this.resourceSharingClient = sampleResourceExtension == null ? null : sampleResourceExtension.getResourceSharingClient();
-}
+### **3. `isFeatureEnabledForType`**
 
-@Override
-protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
-    if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
-        listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
-        return;
-    }
+**Add as code-control to execute resource-sharing code only if the feature is enabled for the given type.**
 
-    if (resourceSharingClient == null) {
-        listener.onFailure(
-                new OpenSearchStatusException(
-                        "Resource sharing is not enabled. Cannot share resource " + request.getResourceId(),
-                        RestStatus.NOT_IMPLEMENTED
-                )
-        );
-        return;
-    }
-    ShareWith shareWith = request.getShareWith();
-    resourceSharingClient.share(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith, ActionListener.wrap(sharing -> {
-        ShareWith finalShareWith = sharing == null ? null : sharing.getShareWith();
-        ShareResourceResponse response = new ShareResourceResponse(finalShareWith);
-        log.debug("Shared resource: {}", response.toString());
-        listener.onResponse(response);
-    }, listener::onFailure));
-}
+```
+boolean isFeatureEnabledForType(String resourceType);
 ```
 
+Example usage `isFeatureEnabledForType()`:
+```java
+public static boolean shouldUseResourceAuthz(String resourceType) {
+    var client = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
+    return client != null && client.isFeatureEnabledForType(resourceType);
+}
+```
 
 > For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
 
@@ -377,7 +357,7 @@ sequenceDiagram
     Plugin ->> Security: Registers as Resource Plugin via SPI (`ResourceSharingExtension`)
     Security -->> Plugin: Confirmation of registration
 
-    %% Step 2: User interacts with Plugin API
+    %% Step 2: User interacts with Plugin + Security APIs
     User ->> Plugin: Request to share / revoke access / list accessible resources
 
     %% Alternative flow based on Security Plugin status
@@ -386,25 +366,22 @@ sequenceDiagram
     %% For verify: return allowed
       Plugin ->> SPI: verifyAccess (noop)
       SPI -->> Plugin: Allowed
-    %% For share, revoke, and list: return 501 Not Implemented
-      Plugin ->> SPI: share (noop)
-      SPI -->> Plugin: Error 501 Not Implemented
-
-      Plugin ->> SPI: revoke (noop)
-      SPI -->> Plugin: Error 501 Not Implemented
-
+    %% For list: return 501 Not Implemented
       Plugin ->> SPI: getAccessibleResourceIds (noop)
       SPI -->> Plugin: Error 501 Not Implemented
+    %% For feature enabled check: return Disabled since security is disabled
+      Plugin ->> SPI: isFeatureEnabledForType (noop)
+      SPI -->> Plugin: Disabled
 
     else Security Plugin Enabled
     %% Step 3: Plugin calls Java APIs declared by ResourceSharingClient
-      Plugin ->> SPI: Calls Java API (`verifyAccess`, `share`, `revoke`, `getAccessibleResourceIds`)
+      Plugin ->> SPI: Calls Java API (`verifyAccess`, `getAccessibleResourceIds`, `isFeatureEnabledForType`)
 
     %% Step 4: Request is sent to Security Plugin
       SPI ->> Security: Sends request to Security Plugin for processing
 
     %% Step 5: Security Plugin handles request and returns response
-      Security -->> SPI: Response (Access Granted or Denied / Resource Shared or Revoked / List Resource IDs )
+      Security -->> SPI: Response (Access Granted or Denied / List Resource IDs / Feature Enabled or Disabled for Resource Type)
 
     %% Step 6: Security SPI sends response back to Plugin
       SPI -->> Plugin: Passes processed response back to Plugin
@@ -499,14 +476,16 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ### **Additional Notes**
 - **Feature Flag:** These APIs are available only when `plugins.security.experimental.resource_sharing.enabled` is set to `true` in the configuration.
-
+- **Protected Types:** These APIs will only come into effect if concerned resources are marked as protected: `plugins.security.experimental.resource_sharing.protected_types: [<type-1>, <type-2>]`.
 
 ---
 
 
 ## Part 2: Cluster-admin and User guide
 
-## **1. Feature Flag**
+## **1. Setup**
+
+### **Feature Flag**
 This feature is controlled by the following flag:
 
 - **Feature flag:** `plugins.security.experimental.resource_sharing.enabled`
@@ -515,6 +494,69 @@ This feature is controlled by the following flag:
   ```yaml
   plugins.security.experimental.resource_sharing.enabled: true
   ```
+### **List protected types**
+
+The list of protected types are controlled through following opensearch setting
+
+- **Setting:** `plugins.security.experimental.resource_sharing.protected_types`
+- **Default value:** `[]`
+- **How to specify a type?** Add entries of existing types in the list:
+  ```yaml
+  plugins.security.experimental.resource_sharing.protected_types: [sample-resource]
+  ```
+NOTE: These types will be available on documentation website.
+
+### **Dynamic Updates**
+
+The settings described above can be dynamically updated at runtime using the OpenSearch `_cluster/settings` API.
+This allows administrators to enable or disable the **Resource Sharing** feature and modify the list of **protected types** without restarting the cluster.
+
+#### **Example 1: Enable Resource Sharing Feature**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.enabled": true
+  }
+}
+```
+
+#### **Example 2: Update Protected Types**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.protected_types": ["sample-resource", "ml-model"]
+  }
+}
+```
+
+#### **Example 3: Clear Protected Types**
+
+```bash
+PUT _cluster/settings
+{
+  "transient": {
+    "plugins.security.experimental.resource_sharing.protected_types": []
+  }
+}
+```
+
+#### **Notes**
+
+* Both settings support **dynamic updates**, meaning the changes take effect immediately without requiring a node restart.
+* You can use either **transient** (temporary until restart) or **persistent** (survive restarts) settings.
+* To verify the current values, use:
+
+  ```bash
+  GET _cluster/settings?include_defaults=true
+  ```
+* Feature toggles and protected type lists can also be modified through configuration files before cluster startup if preferred.
+
+
+
 
 ## **2. User Setup**
 
@@ -563,19 +605,19 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 
 **Request Body**
 
-| Parameter              | Type    | Required | Description                                                                 |
-|------------------------|---------|----|-----------------------------------------------------------------------------|
-| `source_index`         | string  | yes | Name of the plugin index containing the existing resource documents        |
-| `username_path`        | string  | yes | JSON Pointer to the username field inside each document (e.g., `/owner`)   |
-| `backend_roles_path`   | string  | yes | JSON Pointer to the backend_roles field (must point to a JSON array)       |
-| `default_access_level` | string  | no | Default access level to assign migrated backend_roles (default: `"default"`) |
+| Parameter              | Type    | Required | Description                                                                                                                                          |
+|------------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `source_index`         | string  | yes      | Name of the plugin index containing the existing resource documents                                                                                  |
+| `username_path`        | string  | yes      | JSON Pointer to the username field inside each document                                                                                              |
+| `backend_roles_path`   | string  | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                 |
+| `default_access_level` | string  | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`
 **Request Body:**
 ```json
 {
-  "source_index": "sample_plugin_index",
+  "source_index": ".sample_resource",
   "username_path": "/owner",
   "backend_roles_path": "/access/backend_roles",
   "default_access_level": "read_only"

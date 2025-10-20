@@ -101,25 +101,29 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
 
         if (!isVersionIndexEnabled(settings)) return;
 
-        try {
-            log.debug("Initializing version index ({})", securityConfigVersionsIndex);
+        threadPool.generic().execute(() -> {
+            final ThreadContext threadContext = threadPool.getThreadContext();
 
-            if (!createOpendistroSecurityConfigVersionsIndexIfAbsent()) {
-                log.debug("Version index already exists, skipping initialization.");
+            try (ThreadContext.StoredContext ctx = threadContext.stashContext()) {
+                log.debug("Initializing version index ({})", securityConfigVersionsIndex);
+
+                if (!createOpendistroSecurityConfigVersionsIndexIfAbsent()) {
+                    log.debug("Version index already exists, skipping initialization.");
+                }
+
+                waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow();
+
+                String nextVersionId = fetchNextVersionId();
+                User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                String userinfo = (user != null) ? user.getName() : "system";
+
+                Version<?> version = buildVersionFromSecurityIndex(nextVersionId, userinfo);
+                saveCurrentVersionToSystemIndex(version);
+
+            } catch (Exception e) {
+                log.error("Failed to initialize config version index", e);
             }
-
-            waitForOpendistroSecurityConfigVersionsIndexToBeAtLeastYellow();
-
-            String nextVersionId = fetchNextVersionId();
-            User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            String userinfo = (user != null) ? user.getName() : "system";
-
-            Version<?> version = buildVersionFromSecurityIndex(nextVersionId, userinfo);
-            saveCurrentVersionToSystemIndex(version);
-
-        } catch (Exception e) {
-            log.error("Failed to initialize config version index", e);
-        }
+        });
     }
 
     boolean createOpendistroSecurityConfigVersionsIndexIfAbsent() {

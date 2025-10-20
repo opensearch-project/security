@@ -10,19 +10,20 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Set;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -40,14 +41,22 @@ import org.opensearch.security.support.ConfigConstants;
 public class ResourceAccessEvaluator {
     private static final Logger log = LogManager.getLogger(ResourceAccessEvaluator.class);
 
-    private final Set<String> resourceIndices;
-    private final Settings settings;
+    private final ResourcePluginInfo resourcePluginInfo;
     private final ResourceAccessHandler resourceAccessHandler;
 
-    public ResourceAccessEvaluator(Set<String> resourceIndices, Settings settings, ResourceAccessHandler resourceAccessHandler) {
-        this.resourceIndices = resourceIndices;
-        this.settings = settings;
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
+
+    public ResourceAccessEvaluator(
+        ResourcePluginInfo resourcePluginInfo,
+        ResourceAccessHandler resourceAccessHandler,
+        final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
+        final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting
+    ) {
+        this.resourcePluginInfo = resourcePluginInfo;
         this.resourceAccessHandler = resourceAccessHandler;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
+        this.protectedResourceTypesSetting = protectedResourceTypesSetting;
     }
 
     /**
@@ -94,23 +103,40 @@ public class ResourceAccessEvaluator {
      * @return true if request should be evaluated, false otherwise
      */
     public boolean shouldEvaluate(ActionRequest request) {
-        boolean isResourceSharingFeatureEnabled = settings.getAsBoolean(
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
-            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
-        );
+        boolean isResourceSharingFeatureEnabled = resourceSharingEnabledSetting.getDynamicSettingValue();
+        List<String> protectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
+
         if (!isResourceSharingFeatureEnabled) return false;
         if (!(request instanceof DocRequest docRequest)) return false;
+        /**
+         * Authorization notes:
+         *
+         * - Treat {@link GetRequest} and all {@link DocWriteRequest} types as standard *index actions*.
+         *   They should NOT be evaluated by {@code ResourceAccessEvaluator}.
+         *
+         * - {@code ResourceAccessEvaluator} is for higher-level transport actions that operate on a
+         *   single shareable resource. Those actions may perform plugin/system-level index operations
+         *   against the system (resource) index that stores resource metadata. Such accesses must be
+         *   evaluated by {@code SystemIndexAccessEvaluator}.
+         *
+         * - {@link DocWriteRequest} is the abstract base for write requests
+         *   ({@link IndexRequest}, {@link UpdateRequest}, {@link DeleteRequest}) and may appear as items
+         *   in a {@code _bulk} request.
+         */
         if (request instanceof GetRequest) return false;
+        if (request instanceof DocWriteRequest<?>) return false;
         if (Strings.isNullOrEmpty(docRequest.id())) {
             log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
-        if (!resourceIndices.contains(docRequest.index())) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(docRequest.index())) {
             log.debug("Request index {} is not a protected resource index", docRequest.index());
             return false;
         }
-        return true;
+
+        // if a resource is not included in protected resource list, we do not perform resource-level authorization
+        return protectedTypes.contains(docRequest.type());
     }
 
 }

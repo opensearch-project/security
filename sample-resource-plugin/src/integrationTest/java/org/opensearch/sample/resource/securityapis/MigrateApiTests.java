@@ -41,13 +41,16 @@ import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATIO
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingBackendRoles;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingDefaultAccessLevel;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingSourceIndex;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingUserName;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_withSpecifiedAccessLevel;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
@@ -79,7 +82,16 @@ public class MigrateApiTests {
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(MIGRATION_USER)
-        .nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_ENABLED_KEY, true, OPENSEARCH_RESOURCE_SHARING_ENABLED, true))
+        .nodeSettings(
+            Map.of(
+                SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+                true,
+                OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                true,
+                OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                List.of(RESOURCE_TYPE)
+            )
+        )
         .build();
 
     @After
@@ -114,9 +126,8 @@ public class MigrateApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "default"))); // with
-                                                                                                                                // default
-                                                                                                                                // access-level
+            // with default access level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_only")));
         }
     }
 
@@ -129,7 +140,7 @@ public class MigrateApiTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(
                 RESOURCE_SHARING_MIGRATION_ENDPOINT,
-                migrationPayload_valid_withSpecifiedAccessLevel()
+                migrationPayload_valid_withSpecifiedAccessLevel("sample_read_write")
             );
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 1; skippedNoUser 1; failed 0"));
@@ -138,9 +149,8 @@ public class MigrateApiTests {
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits").size(), equalTo(1)); // 1 of 2 entries was skipped
-            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "read_only"))); // with
-                                                                                                                                  // custom
-                                                                                                                                  // access-level
+            // with custom access level
+            assertThat(sharingResponse.bodyAsJsonNode().get("hits").get("hits"), equalTo(expectedHits(resourceId, "sample_read_write")));
         }
     }
 
@@ -180,6 +190,38 @@ public class MigrateApiTests {
                 migrationPayload_missingSourceIndex()
             );
             assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "source_index"));
+        }
+    }
+
+    @Test
+    public void testMigrateAPIWithRestAdmin_noDefaultAccessLevel() {
+        createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_missingDefaultAccessLevel()
+            );
+            assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "default_access_level"));
+        }
+    }
+
+    @Test
+    public void testMigrateAPIWithRestAdmin_invalidDefaultAccessLevel() {
+        createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_valid_withSpecifiedAccessLevel("blah")
+            );
+            assertThat(
+                migrateResponse,
+                RestMatchers.isBadRequest(
+                    "/message",
+                    "Invalid access level blah for resource sharing for resource type [" + RESOURCE_TYPE + "]"
+                )
+            );
         }
     }
 

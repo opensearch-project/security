@@ -20,12 +20,15 @@ import org.junit.runner.RunWith;
 import org.opensearch.sample.resource.TestUtils;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -161,6 +164,48 @@ public class MixedAccessTests {
 
         // 4. FULL_ACCESS_USER now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
+    }
+
+    @Test
+    public void initialShare_multipleLevels() {
+        assertNoAccessBeforeSharing(FULL_ACCESS_USER);
+        assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
+
+        String shareWithPayload = """
+            {
+              "resource_id": "%s",
+              "resource_type": "%s",
+              "share_with": {
+                "%s" : {
+                    "users": ["%s"]
+                },
+                "%s" : {
+                    "users": ["%s"]
+                }
+              }
+            }
+            """.formatted(
+            resourceId,
+            RESOURCE_TYPE,
+            SAMPLE_FULL_ACCESS_RESOURCE_AG,
+            LIMITED_ACCESS_USER.getName(),
+            SAMPLE_READ_ONLY_RESOURCE_AG,
+            FULL_ACCESS_USER.getName()
+        );
+
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            TestRestClient.HttpResponse response = client.putJson(SECURITY_SHARE_ENDPOINT, shareWithPayload);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            // wait for one of the users to be populated
+            api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
+        }
+
+        // full-access user has read-only perm
+        assertReadOnly(FULL_ACCESS_USER);
+
+        // limited access user has full-access
+        assertFullAccess(LIMITED_ACCESS_USER);
+
     }
 
 }

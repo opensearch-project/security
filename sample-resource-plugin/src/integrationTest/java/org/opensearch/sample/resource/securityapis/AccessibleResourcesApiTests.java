@@ -23,8 +23,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.resource.TestUtils;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -98,7 +98,7 @@ public class AccessibleResourcesApiTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(
                 SECURITY_SHARE_ENDPOINT,
-                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, user.getName())
+                putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY_RESOURCE_AG, Recipient.USERS, user.getName())
             );
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));

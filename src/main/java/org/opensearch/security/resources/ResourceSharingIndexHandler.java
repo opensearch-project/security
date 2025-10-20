@@ -69,11 +69,11 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.security.resources.api.share.ShareAction;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.security.resources.sharing.CreatedBy;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -189,6 +189,42 @@ public class ResourceSharingIndexHandler {
             });
             client.update(ur, urListener);
         }
+    }
+
+    /**
+     * Resolves 403's on direct document updates, by restoring `all_shared_principals` field that may have been wiped out.
+     *
+     * @param resourceId the id whose sharing info is to be updated
+     * @param resourceIndex the index where the resource exists
+     * @param listener the listener to respond to once async action is complete
+     */
+    public void fetchAndUpdateResourceVisibility(String resourceId, String resourceIndex, ActionListener<Void> listener) {
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
+
+            if (sharingInfo == null) {
+                LOGGER.debug("No sharing info found for resource {} in index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+                return;
+            }
+
+            updateResourceVisibility(resourceId, resourceIndex, sharingInfo.getAllPrincipals(), ActionListener.wrap((updateResponse) -> {
+                LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+            }, (e) -> {
+                LOGGER.error("Failed to update principals field in {} for resource {}", resourceIndex, resourceId, e);
+                listener.onResponse(null);
+            }));
+        }, (failResponse) -> {
+            LOGGER.error(failResponse.getMessage());
+            listener.onFailure(failResponse);
+        });
+
     }
 
     /**
@@ -586,7 +622,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, ActionListener)}
+     * NOTE: This method only grants new access. To update/remove access use {@link #patchSharingInfo(String, String, ShareWith, ShareWith, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -639,106 +675,6 @@ public class ResourceSharingIndexHandler {
                         resourceId,
                         resourceIndex
                     );
-                    updateResourceVisibility(
-                        resourceId,
-                        resourceIndex,
-                        sharingInfo.getAllPrincipals(),
-                        ActionListener.wrap((updateResponse) -> {
-                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
-                            listener.onResponse(sharingInfo);
-                        }, (e) -> {
-                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                            listener.onResponse(sharingInfo);
-                        })
-                    );
-                }, (failResponse) -> {
-                    LOGGER.error(failResponse.getMessage());
-                    listener.onFailure(failResponse);
-                });
-                client.index(ir, irListener);
-            }
-        }, listener::onFailure);
-    }
-
-    /**
-     * Revokes access for specified entities from a resource sharing document. This method removes the specified
-     * entities (users, roles, or backend roles) from the existing sharing configuration while preserving other
-     * sharing settings.
-     *
-     * <p>The method performs the following steps:
-     * <ol>
-     *   <li>Fetches the existing document</li>
-     *   <li>Removes specified entities from their respective lists in all sharing groups</li>
-     *   <li>Updates the document if modifications were made</li>
-     *   <li>Returns the updated resource sharing configuration</li>
-     * </ol>
-     *
-     * <p>Example document structure:
-     * <pre>
-     * {
-     *   "source_idx": "resource_index_name",
-     *   "resource_id": "resource_id",
-     *   "share_with": {
-     *     "action-group": {
-     *       "users": ["user1", "user2"],
-     *       "roles": ["role1", "role2"],
-     *       "backend_roles": ["backend_role1"]
-     *     }
-     *   }
-     * }
-     * </pre>
-     *
-     * @param resourceId      The ID of the resource from which to revoke access
-     * @param resourceIndex   The name of the system index where the resource exists
-     * @param revokeAccess    A map containing entity list (USER, ROLE, BACKEND_ROLE) and their corresponding
-     *                        values to be removed from the sharing configuration
-     * @param listener        Listener to be notified when the operation completes
-     * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
-     * @throws RuntimeException         if the update operation fails or encounters an error
-     * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
-     * entities don't exist in the current configuration), the original document is returned unchanged.
-     * @see Recipient
-     * @see ResourceSharing
-     */
-    public void revoke(String resourceId, String resourceIndex, ShareWith revokeAccess, ActionListener<ResourceSharing> listener) {
-        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
-            listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
-            return;
-        }
-        String resourceSharingIndex = getSharingIndex(resourceIndex);
-
-        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
-
-        // Fetch the current ResourceSharing document
-        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
-
-        // build revoke script
-        sharingInfoListener.whenComplete(sharingInfo -> {
-
-            assert sharingInfo != null;
-            for (String accessLevel : revokeAccess.accessLevels()) {
-                Recipients target = revokeAccess.atAccessLevel(accessLevel);
-                LOGGER.debug(
-                    "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                    resourceId,
-                    resourceIndex,
-                    target,
-                    accessLevel
-                );
-
-                sharingInfo.revoke(accessLevel, target);
-            }
-            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .setOpType(DocWriteRequest.OpType.INDEX)
-                    .request();
-
-                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    ctx.restore();
-                    LOGGER.info("Successfully revoked access of {} to resource {} in index {}.", revokeAccess, resourceId, resourceIndex);
                     updateResourceVisibility(
                         resourceId,
                         resourceIndex,

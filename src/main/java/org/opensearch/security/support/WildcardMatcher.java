@@ -162,7 +162,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
     };
 
     public static WildcardMatcher from(String pattern) {
-        if (pattern == null) {
+        if (pattern == null || pattern.isBlank()) {
             return NONE;
         } else if (pattern.equals("*")) {
             return ANY;

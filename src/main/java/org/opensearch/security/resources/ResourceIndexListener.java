@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -19,8 +20,9 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.auth.UserSubjectImpl;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.CreatedBy;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -37,10 +39,24 @@ public class ResourceIndexListener implements IndexingOperationListener {
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
 
     private final ThreadPool threadPool;
+    private final ResourcePluginInfo resourcePluginInfo;
 
-    public ResourceIndexListener(ThreadPool threadPool, Client client, ResourcePluginInfo resourcePluginInfo) {
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+
+    private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
+
+    public ResourceIndexListener(
+        ThreadPool threadPool,
+        Client client,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
+        OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourceTypesSetting
+    ) {
         this.threadPool = threadPool;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(client, threadPool, resourcePluginInfo);
+        this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
+        this.protectedResourceTypesSetting = resourceSharingProtectedResourceTypesSetting;
     }
 
     /**
@@ -48,14 +64,38 @@ public class ResourceIndexListener implements IndexingOperationListener {
      */
     @Override
     public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
+
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            // feature is disabled
+            return;
+        }
         String resourceIndex = shardId.getIndexName();
+
+        List<String> protectedResourceTypes = protectedResourceTypesSetting.getDynamicSettingValue();
+        if (!protectedResourceTypes.contains(resourcePluginInfo.typeByIndex(resourceIndex))) {
+            // type is marked as not protected
+            return;
+        }
+
         log.debug("postIndex called on {}", resourceIndex);
 
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
-        if (!result.isCreated() || !index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
-            log.debug("Skipping resource sharing entry creation as this was an update operation for resource {}", resourceId);
+        if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
+            log.debug("Skipping resource sharing entry creation for {} as this operation was on a replica shard", resourceId);
+            return;
+        }
+
+        if (!result.isCreated()) {
+            ActionListener<Void> listener = ActionListener.wrap(unused -> {
+                log.debug(
+                    "postIndex: Successfully updated the resource visibility for resource {} within index {}",
+                    resourceId,
+                    resourceIndex
+                );
+            }, e -> { log.debug(e.getMessage()); });
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
             return;
         }
 
@@ -92,7 +132,18 @@ public class ResourceIndexListener implements IndexingOperationListener {
      */
     @Override
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            // feature is disabled
+            return;
+        }
         String resourceIndex = shardId.getIndexName();
+
+        List<String> protectedResourceTypes = protectedResourceTypesSetting.getDynamicSettingValue();
+        if (!protectedResourceTypes.contains(resourcePluginInfo.typeByIndex(resourceIndex))) {
+            // type is marked as not protected
+            return;
+        }
+
         log.debug("postDelete called on {}", resourceIndex);
 
         String resourceId = delete.id();
