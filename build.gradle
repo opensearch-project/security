@@ -484,7 +484,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.42.0"
             force "org.checkerframework:checker-qual:3.51.1"
-            force "ch.qos.logback:logback-classic:1.5.19"
+            force "ch.qos.logback:logback-classic:1.5.20"
             force "commons-io:commons-io:2.20.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
