@@ -127,6 +127,11 @@ public class Utils {
         return DefaultObjectMapper.readTree(content);
     }
 
+    public static Map<String, String> toMapOfStrings(final JsonNode jsonNode) {
+        return internalMapper.convertValue(jsonNode, new TypeReference<Map<String, String>>() {
+        });
+    }
+
     public static Object toConfigObject(final JsonNode content, final Class<?> clazz) throws IOException {
         return DefaultObjectMapper.readTree(content, clazz);
     }

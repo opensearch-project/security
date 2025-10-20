@@ -155,10 +155,12 @@ public final class TestUtils {
     public static String migrationPayload_valid() {
         return """
             {
-            "source_index": "%s",
-            "username_path": "%s",
-            "backend_roles_path": "%s",
-            "default_access_level": "%s"
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
@@ -166,12 +168,14 @@ public final class TestUtils {
     public static String migrationPayload_valid_withSpecifiedAccessLevel(String accessLevel) {
         return """
             {
-            "source_index": "%s",
-            "username_path": "%s",
-            "backend_roles_path": "%s",
-            "default_access_level": "%s"
+             "source_index": "%s",
+             "username_path": "%s",
+             "backend_roles_path": "%s",
+             "default_access_level": {
+                 "sample-resource": "%s"
+              }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
+             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
     }
 
     public static String migrationPayload_missingSourceIndex() {
@@ -179,7 +183,9 @@ public final class TestUtils {
             {
             "username_path": "%s",
             "backend_roles_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted("user/name", "user/backend_roles", "sample_read_only");
     }
@@ -189,7 +195,9 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "backend_roles_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "sample_read_only");
     }
@@ -199,7 +207,9 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "sample_read_only");
     }
