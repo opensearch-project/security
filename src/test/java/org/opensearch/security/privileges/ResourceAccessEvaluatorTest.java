@@ -74,7 +74,7 @@ public class ResourceAccessEvaluatorTest {
 
         // TODO check to see if type can be something other than indices
         doAnswer(inv -> {
-            ActionListener<Boolean> listener = inv.getArgument(4);
+            ActionListener<Boolean> listener = inv.getArgument(3);
             listener.onResponse(hasPermission);
             return null;
         }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any());

@@ -26,7 +26,6 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -195,20 +194,6 @@ public class ResourceAccessHandlerTest {
             l.onResponse(null);
             return null;
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
-
-        ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
-
-        verify(listener).onResponse(false);
-    }
-
-    @Test
-    public void testHasPermission_pluginUserDenied() {
-        User user = new User("plugin_user", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(user);
-        PrivilegesEvaluationContext subjectContext = mock(PrivilegesEvaluationContext.class);
-        when(subjectContext.getActionPrivileges()).thenReturn(mock(SubjectBasedActionPrivileges.class));
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(subjectContext);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
