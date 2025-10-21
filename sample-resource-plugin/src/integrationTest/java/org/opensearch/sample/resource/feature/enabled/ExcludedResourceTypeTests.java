@@ -25,11 +25,14 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.assertSearchResponse;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -67,23 +70,33 @@ public class ExcludedResourceTypeTests {
     }
 
     @Test
-    public void fullAccessUser_canCRUD() {
-        api.assertApiGet(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.assertApiDelete(resourceId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+    public void fullAccessUser_canCRUD() throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sample");
+        api.createSampleResourceAs(FULL_ACCESS_USER);
+        searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertSearchResponse(searchResponse, 2, "sample");
+        ok(() -> api.deleteResource(resourceId, FULL_ACCESS_USER));
     }
 
     @Test
-    public void limitedAccessUser_canCRUD() {
-        api.assertApiGet(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+    public void limitedAccessUser_canCRUD() throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, LIMITED_ACCESS_USER));
+        assertThat(response.getBody(), containsString("sample"));
+        forbidden(() -> api.updateResource(resourceId, LIMITED_ACCESS_USER, "sampleUpdateAdmin"));
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+        assertSearchResponse(searchResponse, 1, "sample");
+        forbidden(() -> api.deleteResource(resourceId, LIMITED_ACCESS_USER));
     }
 
     @Test
-    public void noAccessUser_canCRUD() {
-        api.assertApiGet(resourceId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+    public void noAccessUser_canCRUD() throws Exception {
+        forbidden(() -> api.getResource(resourceId, NO_ACCESS_USER));
+        forbidden(() -> api.updateResource(resourceId, NO_ACCESS_USER, "sampleUpdateAdmin"));
+        forbidden(() -> api.searchResources(NO_ACCESS_USER));
+        forbidden(() -> api.deleteResource(resourceId, NO_ACCESS_USER));
     }
 }

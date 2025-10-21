@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.11'
+        spring_version = '6.2.12'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -67,7 +67,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.2"
+    id "com.github.spotbugs" version "6.4.4"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -484,7 +484,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.42.0"
             force "org.checkerframework:checker-qual:3.51.1"
-            force "ch.qos.logback:logback-classic:1.5.19"
+            force "ch.qos.logback:logback-classic:1.5.20"
             force "commons-io:commons-io:2.20.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
@@ -573,6 +573,10 @@ allprojects {
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.9.0') {
+            exclude(group: 'net.minidev', module: 'json-smart')
+        }
     }
 }
 

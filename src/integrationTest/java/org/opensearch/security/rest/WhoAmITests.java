@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
@@ -38,8 +39,6 @@ import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
-
-import joptsimple.internal.Strings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
