@@ -9,7 +9,6 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,20 +42,16 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
 
-    private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
-
     public ResourceIndexListener(
         ThreadPool threadPool,
         Client client,
         ResourcePluginInfo resourcePluginInfo,
-        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
-        OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourceTypesSetting
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         this.threadPool = threadPool;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(client, threadPool, resourcePluginInfo);
         this.resourcePluginInfo = resourcePluginInfo;
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
-        this.protectedResourceTypesSetting = resourceSharingProtectedResourceTypesSetting;
     }
 
     /**
@@ -71,8 +66,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
-        List<String> protectedResourceTypes = protectedResourceTypesSetting.getDynamicSettingValue();
-        if (!protectedResourceTypes.contains(resourcePluginInfo.typeByIndex(resourceIndex))) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
             // type is marked as not protected
             return;
         }
@@ -138,8 +132,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
-        List<String> protectedResourceTypes = protectedResourceTypesSetting.getDynamicSettingValue();
-        if (!protectedResourceTypes.contains(resourcePluginInfo.typeByIndex(resourceIndex))) {
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
             // type is marked as not protected
             return;
         }

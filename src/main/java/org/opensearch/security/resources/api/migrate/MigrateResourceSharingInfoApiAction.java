@@ -139,33 +139,57 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      3. Create a SourceDoc for each raw doc
      *      4. Returns a triple of the source index name, the default access level and the list of source docs.
      */
-    private ValidationResult<Triple<String, String, List<SourceDoc>>> loadCurrentSharingInfo(RestRequest request, Client client)
-        throws IOException {
+    private ValidationResult<Triple<String, Map<String, String>, List<SourceDoc>>> loadCurrentSharingInfo(
+        RestRequest request,
+        Client client
+    ) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultAccessLevel = body.get("default_access_level").asText();
-
-        // check that access level exists for given resource-index
-        String type = resourcePluginInfo.typeByIndex(sourceIndex);
-        var availableAGs = resourcePluginInfo.flattenedForType(type).actionGroups();
-        if (!availableAGs.contains(defaultAccessLevel)) {
-            LOGGER.error(
-                "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
-                defaultAccessLevel,
-                sourceIndex,
-                availableAGs
-            );
-            String badRequestMessage = "Invalid access level "
-                + defaultAccessLevel
-                + " for resource sharing for resource type ["
-                + type
-                + "]. Available access-levels are ["
-                + availableAGs
-                + "]";
+        JsonNode node = body.get("default_access_level");
+        Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
+        String typePath = null;
+        if (body.has("type_path")) {
+            typePath = body.get("type_path").asText();
+        } else {
+            LOGGER.info("No type_path provided, assuming single resource-type for all records.");
+            if (typeToDefaultAccessLevel.size() > 1) {
+                String badRequestMessage = "type_path must be provided when multiple resource types are specified in default_access_level.";
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+            }
+        }
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
+            String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+        }
+
+        for (String type : typeToDefaultAccessLevel.keySet()) {
+            String defaultAccessLevelForType = typeToDefaultAccessLevel.get(type);
+            LOGGER.info("Default access level for resource type [{}] is [{}]", type, typeToDefaultAccessLevel.get(type));
+            // check that access level exists for given resource-index
+            if (resourcePluginInfo.indexByType(type) == null) {
+                String badRequestMessage = "Invalid resource type " + type + ".";
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+            }
+            var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
+            if (!accessLevels.contains(defaultAccessLevelForType)) {
+                LOGGER.error(
+                    "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
+                    defaultAccessLevelForType,
+                    type,
+                    accessLevels
+                );
+                String badRequestMessage = "Invalid access level "
+                    + defaultAccessLevelForType
+                    + " for resource sharing for resource type ["
+                    + type
+                    + "]. Available access-levels are ["
+                    + accessLevels
+                    + "]";
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+            }
         }
 
         List<SourceDoc> results = new ArrayList<>();
@@ -201,7 +225,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     }
                 }
 
-                results.add(new SourceDoc(id, username, backendRoles));
+                String type;
+                if (typePath != null) {
+                    type = rec.at(typePath.startsWith("/") ? typePath : ("/" + typePath)).asText(null);
+                } else {
+                    type = typeToDefaultAccessLevel.keySet().iterator().next();
+                }
+
+                results.add(new SourceDoc(id, username, backendRoles, type));
             }
             // 4) fetch next batch
             SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -214,7 +245,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         clear.addScrollId(scrollId);
         client.clearScroll(clear).actionGet();
 
-        return ValidationResult.success(Triple.of(sourceIndex, defaultAccessLevel, results));
+        return ValidationResult.success(Triple.of(sourceIndex, typeToDefaultAccessLevel, results));
     }
 
     /**
@@ -222,7 +253,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Parses existing sharing info to a new ResourceSharing records
      *      2. Indexes the new record into corresponding resource-sharing index
      */
-    private ValidationResult<MigrationStats> createNewSharingRecords(Triple<String, String, List<SourceDoc>> sourceInfo)
+    private ValidationResult<MigrationStats> createNewSharingRecords(Triple<String, Map<String, String>, List<SourceDoc>> sourceInfo)
         throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
         AtomicReference<Set<String>> skippedNoUser = new AtomicReference<>();
@@ -243,10 +274,19 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            // 2) skip if no username node
+            // 2a) skip if no username node
             String username = doc.username;
             if (username == null || username.isEmpty()) {
                 LOGGER.debug("Record without associated user, skipping entirely: {}", doc.resourceId);
+                skippedNoUser.get().add(doc.resourceId);
+                migrationStatsLatch.countDown();
+                continue;
+            }
+
+            // 2b) skip if no type
+            String type = doc.type;
+            if (type == null || type.isEmpty()) {
+                LOGGER.debug("Record without associated type, skipping entirely: {}", doc.resourceId);
                 skippedNoUser.get().add(doc.resourceId);
                 migrationStatsLatch.countDown();
                 continue;
@@ -261,7 +301,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 ShareWith shareWith = null;
                 if (!backendRoles.isEmpty()) {
                     Recipients recipients = new Recipients(Map.of(Recipient.BACKEND_ROLES, new HashSet<>(backendRoles)));
-                    shareWith = new ShareWith(Map.of(sourceInfo.getMiddle(), recipients));
+                    shareWith = new ShareWith(Map.of(sourceInfo.getMiddle().get(doc.type), recipients));
                 }
 
                 // 5) index the new record
@@ -342,8 +382,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
                             .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
                             .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
-                            .put("default_access_level", RequestContentValidator.DataType.STRING) // default access level for the new
-                                                                                                  // structure
+                            .put("type_path", RequestContentValidator.DataType.STRING) // path to resource type
+                            .put("default_access_level", RequestContentValidator.DataType.OBJECT) // default access level by type
                             .build();
                     }
                 });
@@ -355,11 +395,13 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String resourceId;
         String username;
         List<String> backendRoles;
+        String type;
 
-        public SourceDoc(String id, String username, List<String> backendRoles) {
+        public SourceDoc(String id, String username, List<String> backendRoles, String type) {
             this.resourceId = id;
             this.username = username;
             this.backendRoles = backendRoles;
+            this.type = type;
         }
     }
 

@@ -71,13 +71,11 @@ public class ResourceAccessEvaluator {
      *
      * @param request                         may contain information about the index and the resource being requested
      * @param action                          the action being requested to be performed on the resource
-     * @param context                         the evaluation context to be used when performing authorization
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
     public void evaluateAsync(
         final ActionRequest request,
         final String action,
-        final PrivilegesEvaluationContext context,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
         PrivilegesEvaluatorResponse pResponse = new PrivilegesEvaluatorResponse();
@@ -87,7 +85,7 @@ public class ResourceAccessEvaluator {
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
         DocRequest req = (DocRequest) request;
 
-        resourceAccessHandler.hasPermission(req.id(), req.index(), action, context, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(req.id(), req.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponse.allowed = true;
                 pResponseListener.onResponse(pResponse.markComplete());

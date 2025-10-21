@@ -22,18 +22,18 @@ public interface ResourceSharingClient {
     /**
      * Verifies if the current user has access to the specified resource.
      * @param resourceId     The ID of the resource to verify access for.
-     * @param resourceIndex  The index containing the resource.
+     * @param resourceType   The resource type.
      * @param action         The action to be verified
      * @param listener       The listener to be notified with the access verification result.
      */
-    void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener);
+    void verifyAccess(String resourceId, String resourceType, String action, ActionListener<Boolean> listener);
 
     /**
      * Lists resourceIds of all shareable resources accessible by the current user.
-     * @param resourceIndex The index containing the resources.
+     * @param resourceType The resource type
      * @param listener The listener to be notified with the set of accessible resources.
      */
-    void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener);
+    void getAccessibleResourceIds(String resourceType, ActionListener<Set<String>> listener);
 
     /**
      * Returns a flag to indicate whether resource-sharing is enabled for resource-type

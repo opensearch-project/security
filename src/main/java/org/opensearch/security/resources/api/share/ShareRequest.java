@@ -32,6 +32,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @JsonProperty("resource_id")
     private final String resourceId;
     @JsonProperty("resource_type")
+    private final String resourceType;
     private final String resourceIndex;
     @JsonProperty("share_with")
     private final ShareWith shareWith;
@@ -40,8 +41,6 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @JsonProperty("revoke")
     private final ShareWith revoke;
 
-    private final String resourceType;
-
     private final RestRequest.Method method;
 
     /**
@@ -49,12 +48,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      */
     private ShareRequest(Builder builder) {
         this.resourceId = builder.resourceId;
+        this.resourceType = builder.resourceType;
         this.resourceIndex = builder.resourceIndex;
         this.shareWith = builder.shareWith;
         this.add = builder.add;
         this.revoke = builder.revoke;
         this.method = builder.method;
-        this.resourceType = builder.resourceType;
     }
 
     public ShareRequest(StreamInput in) throws IOException {
@@ -82,7 +81,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     @Override
     public ActionRequestValidationException validate() {
         var arv = new ActionRequestValidationException();
-        if (Strings.isNullOrEmpty(resourceIndex) || Strings.isNullOrEmpty(resourceId)) {
+        if (Strings.isNullOrEmpty(resourceType) || Strings.isNullOrEmpty(resourceId)) {
             arv.addValidationError("resource_id and resource_type must be present");
             throw arv;
         }
@@ -148,13 +147,13 @@ public class ShareRequest extends ActionRequest implements DocRequest {
      * Builder for ShareRequest
      */
     public static class Builder {
-        private String resourceId;
-        private String resourceIndex;
-        private String resourceType;
-        private ShareWith shareWith;
-        private ShareWith add;
-        private ShareWith revoke;
-        private RestRequest.Method method;
+        String resourceId;
+        String resourceIndex;
+        String resourceType;
+        ShareWith shareWith;
+        ShareWith add;
+        ShareWith revoke;
+        RestRequest.Method method;
 
         public void resourceId(String resourceId) {
             this.resourceId = resourceId;

@@ -48,7 +48,6 @@ public class ResourcePluginInfo {
 
     // type <-> index
     private final Map<String, String> typeToIndex = new HashMap<>();
-    private final Map<String, String> indexToType = new HashMap<>();
 
     // UI: action-group *names* per type
     private final Map<String, LinkedHashSet<String>> typeToGroupNames = new HashMap<>();
@@ -70,7 +69,6 @@ public class ResourcePluginInfo {
         try {
             resourceSharingExtensions.clear();
             typeToIndex.clear();
-            indexToType.clear();
 
             // Enforce resource-type unique-ness
             Set<String> resourceTypes = new HashSet<>();
@@ -81,7 +79,6 @@ public class ResourcePluginInfo {
                         resourceTypes.add(rp.resourceType());
                         // also cache type->index and index->type mapping
                         typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
-                        indexToType.put(rp.resourceIndexName(), rp.resourceType());
                     } else {
                         throw new OpenSearchSecurityException(
                             String.format(
@@ -108,7 +105,6 @@ public class ResourcePluginInfo {
         try {
             // Rebuild mappings based on the current allowlist
             typeToIndex.clear();
-            indexToType.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
                 // No protected types -> leave maps empty
@@ -127,7 +123,6 @@ public class ResourcePluginInfo {
 
                     final String index = rp.resourceIndexName();
                     typeToIndex.put(type, index);
-                    indexToType.put(index, type);
                 }
             }
 
@@ -192,19 +187,23 @@ public class ResourcePluginInfo {
         }
     }
 
-    public String typeByIndex(String index) {
+    public String indexByType(String type) {
         lock.readLock().lock();
         try {
-            return indexToType.get(index);
+            return typeToIndex.get(type);
         } finally {
             lock.readLock().unlock();
         }
     }
 
-    public String indexByType(String type) {
+    public Set<String> typesByIndex(String index) {
         lock.readLock().lock();
         try {
-            return typeToIndex.get(type);
+            return typeToIndex.entrySet()
+                .stream()
+                .filter(entry -> Objects.equals(entry.getValue(), index))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
         } finally {
             lock.readLock().unlock();
         }
@@ -227,7 +226,7 @@ public class ResourcePluginInfo {
     public Set<String> getResourceIndices() {
         lock.readLock().lock();
         try {
-            return new LinkedHashSet<>(indexToType.keySet());
+            return new HashSet<>(typeToIndex.values());
         } finally {
             lock.readLock().unlock();
         }
@@ -246,10 +245,10 @@ public class ResourcePluginInfo {
                 return cachedProtectedTypeIndices;
             }
 
-            return indexToType.entrySet()
+            return typeToIndex.entrySet()
                 .stream()
-                .filter(e -> resourceTypes.contains(e.getValue()))
-                .map(Map.Entry::getKey)
+                .filter(e -> resourceTypes.contains(e.getKey()))
+                .map(Map.Entry::getValue)
                 .collect(Collectors.toSet());
         } finally {
             lock.readLock().unlock();

@@ -783,8 +783,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 threadPool,
                 localClient,
                 resourcePluginInfo,
-                resourceSharingEnabledSetting,
-                resourceSharingProtectedResourceTypesSetting
+                resourceSharingEnabledSetting
             );
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();

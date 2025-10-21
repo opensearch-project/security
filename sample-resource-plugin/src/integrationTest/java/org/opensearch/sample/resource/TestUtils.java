@@ -39,6 +39,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
@@ -79,11 +80,21 @@ public final class TestUtils {
     public static final String SAMPLE_READ_WRITE = "sample_read_write";
     public static final String SAMPLE_FULL_ACCESS = "sample_full_access";
 
+    public static final String SAMPLE_GROUP_READ_ONLY = "sample_group_read_only";
+    public static final String SAMPLE_GROUP_READ_WRITE = "sample_group_read_write";
+    public static final String SAMPLE_GROUP_FULL_ACCESS = "sample_group_full_access";
+
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
+
+    public static final String SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/create";
+    public static final String SAMPLE_RESOURCE_GROUP_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/get";
+    public static final String SAMPLE_RESOURCE_GROUP_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/update";
+    public static final String SAMPLE_RESOURCE_GROUP_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/delete";
+    public static final String SAMPLE_RESOURCE_GROUP_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/search";
 
     public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
     public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
@@ -91,7 +102,7 @@ public final class TestUtils {
     public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
-        return newCluster(featureEnabled, systemIndexEnabled, List.of(RESOURCE_TYPE));
+        return newCluster(featureEnabled, systemIndexEnabled, List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE));
     }
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled, List<String> protectedResourceTypes) {
@@ -144,10 +155,12 @@ public final class TestUtils {
     public static String migrationPayload_valid() {
         return """
             {
-            "source_index": "%s",
-            "username_path": "%s",
-            "backend_roles_path": "%s",
-            "default_access_level": "%s"
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
@@ -155,12 +168,14 @@ public final class TestUtils {
     public static String migrationPayload_valid_withSpecifiedAccessLevel(String accessLevel) {
         return """
             {
-            "source_index": "%s",
-            "username_path": "%s",
-            "backend_roles_path": "%s",
-            "default_access_level": "%s"
+             "source_index": "%s",
+             "username_path": "%s",
+             "backend_roles_path": "%s",
+             "default_access_level": {
+                 "sample-resource": "%s"
+              }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
+             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
     }
 
     public static String migrationPayload_missingSourceIndex() {
@@ -168,7 +183,9 @@ public final class TestUtils {
             {
             "username_path": "%s",
             "backend_roles_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted("user/name", "user/backend_roles", "sample_read_only");
     }
@@ -178,7 +195,9 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "backend_roles_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "sample_read_only");
     }
@@ -188,7 +207,9 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
-            "default_access_level": "%s"
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "sample_read_only");
     }
@@ -330,6 +351,15 @@ public final class TestUtils {
             }
         }
 
+        public String createSampleResourceGroupAs(TestSecurityConfig.User user, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String sample = "{\"name\":\"samplegroup\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT, sample, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
         public String createRawResourceAs(CertificateData adminCert) {
             try (TestRestClient client = cluster.getRestClient(adminCert)) {
                 String sample = "{\"name\":\"sample\"}";
@@ -350,6 +380,12 @@ public final class TestUtils {
         public TestRestClient.HttpResponse getResource(String resourceId, TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        public TestRestClient.HttpResponse getResourceGroup(String resourceGroupId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GROUP_GET_ENDPOINT + "/" + resourceGroupId);
             }
         }
 
@@ -484,6 +520,13 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse updateResourceGroup(String resourceGroupId, TestSecurityConfig.User user, String newName) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
+                return client.postJson(SAMPLE_RESOURCE_GROUP_UPDATE_ENDPOINT + "/" + resourceGroupId, updatePayload);
+            }
+        }
+
         public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
             assertUpdate(RESOURCE_INDEX_NAME + "/_doc/" + resourceId + "?refresh=true", newName, user, status);
         }
@@ -526,6 +569,20 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse shareResourceGroup(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_GROUP_TYPE, accessLevel, Recipient.USERS, target.getName())
+                );
+            }
+        }
+
         public TestRestClient.HttpResponse shareResourceByRole(
             String resourceId,
             TestSecurityConfig.User user,
@@ -536,6 +593,20 @@ public final class TestUtils {
                 return client.putJson(
                     SECURITY_SHARE_ENDPOINT,
                     putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
+                );
+            }
+        }
+
+        public TestRestClient.HttpResponse shareResourceGroupByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_GROUP_TYPE, accessLevel, Recipient.ROLES, targetRole)
                 );
             }
         }
@@ -555,6 +626,21 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse revokeResourceGroup(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_GROUP_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
+            }
+        }
+
         public void assertDirectDelete(String resourceId, TestSecurityConfig.User user, int status) {
             assertDelete(RESOURCE_INDEX_NAME + "/_doc/" + resourceId, user, status);
         }
@@ -566,6 +652,12 @@ public final class TestUtils {
         public TestRestClient.HttpResponse deleteResource(String resourceId, TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        public TestRestClient.HttpResponse deleteResourceGroup(String resourceGroupId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.delete(SAMPLE_RESOURCE_GROUP_DELETE_ENDPOINT + "/" + resourceGroupId);
             }
         }
 

@@ -42,19 +42,19 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
         );
         switch (request.getMethod()) {
             case GET:
-                resourceAccessHandler.getSharingInfo(request.id(), request.index(), sharingInfoListener);
+                resourceAccessHandler.getSharingInfo(request.id(), request.type(), sharingInfoListener);
                 return;
             case PATCH:
                 resourceAccessHandler.patchSharingInfo(
                     request.id(),
-                    request.index(),
+                    request.type(),
                     request.getAdd(),
                     request.getRevoke(),
                     sharingInfoListener
                 );
                 break;
             case PUT:
-                resourceAccessHandler.share(request.id(), request.index(), request.getShareWith(), sharingInfoListener);
+                resourceAccessHandler.share(request.id(), request.type(), request.getShareWith(), sharingInfoListener);
                 break;
         }
 

@@ -49,14 +49,14 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
      * Verifies whether the current user has access to the specified resource.
      *
      * @param resourceId    The ID of the resource to verify.
-     * @param resourceIndex The index in which the resource resides.
+     * @param resourceType  The resource type.
      * @param action        The action to be evaluated against
      * @param listener      Callback that receives {@code true} if access is granted, {@code false} otherwise.
      */
     @Override
-    public void verifyAccess(String resourceId, String resourceIndex, String action, ActionListener<Boolean> listener) {
+    public void verifyAccess(String resourceId, String resourceType, String action, ActionListener<Boolean> listener) {
         // following situation will arise when resource is onboarded to framework but not marked as protected
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
+        if (!isFeatureEnabledForType(resourceType)) {
             LOGGER.warn(
                 "Resource '{}' is onboarded to sharing framework but is not marked as protected. Action {} is allowed.",
                 resourceId,
@@ -65,18 +65,18 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
             listener.onResponse(true);
             return;
         }
-        resourceAccessHandler.hasPermission(resourceId, resourceIndex, action, null, listener);
+        resourceAccessHandler.hasPermission(resourceId, resourceType, action, listener);
     }
 
     /**
      * Lists all resources the current user has access to within the given index.
      *
-     * @param resourceIndex The index to search for accessible resources.
+     * @param resourceType  The resource type.
      * @param listener      Callback receiving a set of resource ids.
      */
     @Override
-    public void getAccessibleResourceIds(String resourceIndex, ActionListener<Set<String>> listener) {
-        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceIndex, listener);
+    public void getAccessibleResourceIds(String resourceType, ActionListener<Set<String>> listener) {
+        resourceAccessHandler.getOwnAndSharedResourceIdsForCurrentUser(resourceType, listener);
     }
 
     /**
