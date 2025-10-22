@@ -50,6 +50,7 @@ import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportA
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.resourcegroup.actions.rest.add.AddResourceToGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRestAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupAction;
@@ -59,6 +60,7 @@ import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupActi
 import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupRestAction;
 import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.transport.AddResourceToGroupTransportAction;
 import org.opensearch.sample.resourcegroup.actions.transport.CreateResourceGroupTransportAction;
 import org.opensearch.sample.resourcegroup.actions.transport.DeleteResourceGroupTransportAction;
 import org.opensearch.sample.resourcegroup.actions.transport.GetResourceGroupTransportAction;
@@ -141,6 +143,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(UpdateResourceGroupAction.INSTANCE, UpdateResourceGroupTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceGroupAction.INSTANCE, DeleteResourceGroupTransportAction.class));
         actions.add(new ActionHandler<>(SearchResourceGroupAction.INSTANCE, SearchResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(AddResourceToGroupAction.INSTANCE, AddResourceToGroupTransportAction.class));
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }
