@@ -204,26 +204,6 @@ public class PrivilegesEvaluatorResponse {
         return this;
     }
 
-    public PrivilegesEvaluatorResponse insufficient(List<PrivilegesEvaluatorResponse> subResults) {
-        String reason = this.reason;
-        if (reason == null) {
-            reason = subResults.stream().map(result -> result.reason).filter(Objects::nonNull).findFirst().orElse(null);
-        }
-        PrivilegesEvaluatorResponse result = new PrivilegesEvaluatorResponse();
-        result.allowed = false;
-        result.indexToActionCheckTable = this.indexToActionCheckTable;
-        result.subResults = ImmutableList.copyOf(subResults);
-        return result;
-    }
-
-    public PrivilegesEvaluatorResponse originalResult(PrivilegesEvaluatorResponse originalResult) {
-        if (originalResult != null && !originalResult.evaluationExceptions.isEmpty()) {
-            this.originalResult = originalResult;
-            this.evaluationExceptions.addAll(originalResult.evaluationExceptions);
-        }
-        return this;
-    }
-
     @Override
     public String toString() {
         return "PrivEvalResponse [\nallowed="

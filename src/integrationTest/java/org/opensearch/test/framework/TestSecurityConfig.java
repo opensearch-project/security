@@ -567,20 +567,6 @@ public class TestSecurityConfig {
             return this;
         }
 
-        public String getDescription() {
-            return description;
-        }
-
-        @Override
-        public boolean isAdminCertUser() {
-            return adminCertUser;
-        }
-
-        public User adminCertUser() {
-            this.adminCertUser = true;
-            return this;
-        }
-
         public Object getAttribute(String attributeName) {
             return attributes.get(attributeName);
         }

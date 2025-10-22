@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
-import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;

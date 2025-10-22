@@ -41,6 +41,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -153,23 +154,27 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        if (isApplicable(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
+        if (!isApplicable(context.getAction())) {
             return true;
         }
+
+        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
             return true;
         }
+        OptionallyResolvedIndices resolved = context.getResolvedRequest();
         ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
-                ResolvedIndices resolved = context.getResolvedRequest();
+            if (resourceSharingEnabledSetting.getDynamicSettingValue()
+                && request instanceof SearchRequest
+                && resolved instanceof ResolvedIndices resolvedIndices) {
                 Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                 WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
-                if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
+                Set<String> resolvedIndexNames = resolvedIndices.local().namesOfIndices(context.clusterState());
+                if (resourceIndicesMatcher.matchAll(resolvedIndexNames)) {
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                         namedXContentRegistry,
-                        resolved,
+                        resolvedIndexNames,
                         userSubject.getUser()
                     );
 
@@ -188,7 +193,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        OptionallyResolvedIndices resolved = context.getResolvedRequest();
 
         try {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);

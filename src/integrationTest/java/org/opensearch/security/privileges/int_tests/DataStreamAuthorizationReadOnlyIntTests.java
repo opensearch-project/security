@@ -29,16 +29,12 @@ import org.opensearch.test.framework.data.TestDataStream;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.data.TestIndexTemplate;
-import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.data.TestIndex.openSearchSecurityConfigIndex;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnResponseIndexMatcher.containsExactly;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedTo;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
@@ -277,7 +273,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             if (user != LIMITED_USER_OTHER_PRIVILEGES) {
                 assertThat(
                     httpResponse,
-                    containsExactly(ALL_INDICES).at("hits.hits[*]._index")
+                    containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("hits.hits[*]._index")
                         .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isNotFound() : isForbidden())
                 );
@@ -391,38 +387,14 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_indexPattern_minus() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-ds_b2,-ds_b3/_search?size=1000");
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                // does not handle the expression ds_a*,ds_b*,-ds_b2,-ds_b3 in a way that excludes the data streams. See
-                // search_indexPattern_minus_backingIndices for an alternative.
-                assertThat(
+            // OpenSearch does not handle the expression ds_a*,ds_b*,-ds_b2,-ds_b3 in a way that excludes the data streams. See
+            // search_indexPattern_minus_backingIndices for an alternative.
+            assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            } else {
-                // The IndexResolverReplacer fails to interpret the minus patterns and falls back to interpreting the given index names
-                // literally
-                // In the logs, this then looks like this:
-                // | indices:data/read/search |
-                // -ds_b2| MISSING |
-                // -ds_b3| MISSING |
-                // ds_b* | MISSING |
-                // ds_a* | MISSING |
-                // This has the effect that granted privileges using wildcards might work, but granted privileges without wildcards won't
-                // work
-                if (user == LIMITED_USER_B1) {
-                    // No wildcard in the index pattern
-                    assertThat(httpResponse, isForbidden());
-                } else {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
                             .reducedBy(user.reference(READ))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                    );
-                }
-            }
+            );
         }
     }
 
@@ -438,7 +410,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
             } else {
-
                 // dnfof has the effect that the index expression is interpreted differently and that ds_b2 and ds_b3 get included
                 assertThat(
                     httpResponse,
@@ -457,19 +428,13 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 "ds_a*,ds_b*,xxx_non_existing/_search?size=1000&ignore_unavailable=true"
             );
 
-            // The presence of a non existing index has the effect that the other patterns are not resolved by IndexResolverReplacer
-            // This causes a few more 403 errors where the granted index patterns do not use wildcards
-
-            if (user == LIMITED_USER_B1) {
-                assertThat(httpResponse, isForbidden());
-            } else {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
                         .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
-            }
+
         }
     }
 
@@ -484,14 +449,6 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             } else {
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
-            } else {
-                // dnfof makes the expand_wildcards=none option ineffective
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
             }
         }
     }
@@ -537,7 +494,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
 
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
             );
 
         }

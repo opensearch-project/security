@@ -26,6 +26,7 @@ import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.auditlog.impl.AuditMessage;

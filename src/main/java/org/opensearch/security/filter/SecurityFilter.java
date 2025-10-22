@@ -94,7 +94,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
-import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -157,7 +156,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, settings, resourceAccessHandler);
+        this.resourceAccessEvaluator = resourceAccessEvaluator;
         this.threadContextUserInfo = new ThreadContextUserInfo(threadPool.getThreadContext(), privilegesConfiguration, settings);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }

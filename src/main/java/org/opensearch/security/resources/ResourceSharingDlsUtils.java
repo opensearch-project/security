@@ -10,6 +10,7 @@ package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
@@ -22,7 +23,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
 public class ResourceSharingDlsUtils {
@@ -30,7 +30,7 @@ public class ResourceSharingDlsUtils {
 
     public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
         NamedXContentRegistry xContentRegistry,
-        IndexResolverReplacer.Resolved resolved,
+        Collection<String> resolvedIndices,
         User user
     ) {
 
@@ -63,7 +63,7 @@ public class ResourceSharingDlsUtils {
         }
 
         ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
-        for (String index : resolved.getAllIndices()) {
+        for (String index : resolvedIndices) {
             mapBuilder.put(index, restriction);
         }
         return new IndexToRuleMap<>(mapBuilder.build());

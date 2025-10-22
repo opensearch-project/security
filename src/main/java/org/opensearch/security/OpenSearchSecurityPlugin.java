@@ -150,7 +150,6 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
-import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
@@ -169,8 +168,6 @@ import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ConfigurableRoleMapper;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
@@ -646,7 +643,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         Objects.requireNonNull(privilegesConfiguration),
                         Objects.requireNonNull(cr),
                         Objects.requireNonNull(threadPool),
-                            resourceSharingEnabledSetting
+                        resourceSharingEnabledSetting
                     )
                 );
                 handlers.add(
@@ -1214,7 +1211,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
-        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, evaluator, resourcePluginInfo);
+        resourceAccessHandler = new ResourceAccessHandler(
+            threadPool,
+            rsIndexHandler,
+            adminDns,
+            privilegesConfiguration,
+            resourcePluginInfo
+        );
 
         // Assign resource sharing client to each extension
         // Using the non-gated client (i.e. no additional permissions required)

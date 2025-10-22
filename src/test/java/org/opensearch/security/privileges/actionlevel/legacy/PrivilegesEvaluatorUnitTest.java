@@ -9,35 +9,18 @@
 package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.threadpool.ThreadPool;
-
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.isClusterPermissionStatic;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
-import static org.opensearch.security.support.SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

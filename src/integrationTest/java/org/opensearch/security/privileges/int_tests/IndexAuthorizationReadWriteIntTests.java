@@ -28,9 +28,6 @@ import org.opensearch.action.admin.indices.open.OpenIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.test.framework.data.TestAlias;
-import org.opensearch.test.framework.data.TestIndex;
-import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -57,6 +54,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 import static org.junit.Assert.assertEquals;
 
+/**
 /**
  * This class defines a huge test matrix for index related access controls. This class is especially for read/write operations on indices and aliases.
  * It uses the following dimensions:
@@ -1203,8 +1201,6 @@ public class IndexAuthorizationReadWriteIntTests {
                     "max_age": "0s"
                   }
                 }""");
-
-            System.out.println(httpResponse.getBody());
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 if (user.reference(MANAGE_ALIAS).covers(index_bw1) && user.reference(MANAGE_INDEX).covers(index_bw2)) {

@@ -105,11 +105,11 @@ public class RestIndexMatchers {
          * This method has the special feature that you can also specify data streams; it will then assert that
          * the backing indices of the data streams will be present in the result set.
          */
-        public static OnResponseIndexMatcher containsExactly(TestIndexOrAliasOrDatastream... testIndices) {
+        public static ContainsExactlyMatcher containsExactly(TestIndexOrAliasOrDatastream... testIndices) {
             return containsExactly(Arrays.asList(testIndices));
         }
 
-        public static OnResponseIndexMatcher containsExactly(Collection<TestIndexOrAliasOrDatastream> testIndices) {
+        public static ContainsExactlyMatcher containsExactly(Collection<TestIndexOrAliasOrDatastream> testIndices) {
             Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>();
             boolean containsOpenSearchSecurityIndex = false;
 
@@ -401,7 +401,7 @@ public class RestIndexMatchers {
      * This asserts that the item we assert on contains a set of indices that exactly corresponds to the expected
      * indices (i.e., not fewer and not more indices). This is usually used to match against REST responses.
      */
-    static class ContainsExactlyMatcher extends AbstractIndexMatcher implements OnResponseIndexMatcher {
+    public static class ContainsExactlyMatcher extends AbstractIndexMatcher implements OnResponseIndexMatcher {
         private static final Pattern DS_BACKING_INDEX_PATTERN = Pattern.compile("\\.ds-(.+)-[0-9]+");
 
         ContainsExactlyMatcher(Map<String, TestIndexOrAliasOrDatastream> indexNameMap, boolean containsOpenSearchSecurityIndex) {
@@ -563,6 +563,16 @@ public class RestIndexMatchers {
             } else {
                 return this.reducedBy(other);
             }
+        }
+
+        public OnResponseIndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices) {
+            Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>(this.expectedIndices);
+
+            for (TestIndexOrAliasOrDatastream testIndex : remoteTestIndices) {
+                indexNameMap.put(prefix + ":" + testIndex.name(), testIndex);
+            }
+
+            return new ContainsExactlyMatcher(indexNameMap, this.containsOpenSearchSecurityIndex);
         }
     }
 
