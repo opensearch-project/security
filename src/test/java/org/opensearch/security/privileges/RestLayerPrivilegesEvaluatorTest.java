@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
@@ -37,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(MockitoJUnitRunner.class)
-    public class RestLayerPrivilegesEvaluatorTest {
+public class RestLayerPrivilegesEvaluatorTest {
 
     private static final User TEST_USER = new User("test_user").withSecurityRoles(Set.of("test_role"));
 

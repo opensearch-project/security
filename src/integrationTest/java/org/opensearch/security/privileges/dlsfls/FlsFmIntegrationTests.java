@@ -28,8 +28,6 @@ import org.junit.runner.RunWith;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.plugin.mapper.MapperSizePlugin;
-import org.opensearch.test.framework.data.TestData;
-import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
