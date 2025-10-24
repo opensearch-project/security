@@ -65,6 +65,7 @@ import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteAction;
 import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.index.IndexAction;
+import org.opensearch.action.search.GetAllPitsAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
@@ -369,6 +370,12 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         presponse = protectedIndexAccessEvaluator.evaluate(request, task, action0, optionallyResolvedIndices, mappedRoles);
         if (presponse != null) {
             return presponse;
+        }
+
+        if (GetAllPitsAction.NAME.equals(action0)) {
+            // We preserve old behavior here: The "indices:data/read/point_in_time/readall" is allowed  when I have privileges on any actions.
+            // This is okay, as the action name includes "readall" anyway. In the new privilege evaluation, this is a cluster privilege.
+            return actionPrivileges.hasIndexPrivilegeForAnyIndex(context, Set.of(action0));
         }
 
         if (request instanceof AnalyzeAction.Request
