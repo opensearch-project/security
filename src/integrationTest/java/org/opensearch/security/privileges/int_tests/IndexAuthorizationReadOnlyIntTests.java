@@ -311,8 +311,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on(".system_index_plugin")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
-        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1,  system_index_plugin))//
-            .reference(GET_ALIAS, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index));
+        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1, system_index_plugin))//
+        .reference(GET_ALIAS, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index));
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
      * This allows them to use actions like _search and receive empty result sets.
@@ -1626,34 +1626,34 @@ public class IndexAuthorizationReadOnlyIntTests {
                 if (user == UNLIMITED_USER) {
                     if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
                         assertThat(
-                                httpResponse,
-                                containsExactly(
-                                        index_a1,
-                                        index_a2,
-                                        index_a3,
-                                        index_b1,
-                                        index_b2,
-                                        index_b3,
-                                        index_c1,
-                                        index_hidden,
-                                        index_hidden_dot,
-                                        system_index_plugin
-                                ).at("$.keys()")
+                            httpResponse,
+                            containsExactly(
+                                index_a1,
+                                index_a2,
+                                index_a3,
+                                index_b1,
+                                index_b2,
+                                index_b3,
+                                index_c1,
+                                index_hidden,
+                                index_hidden_dot,
+                                system_index_plugin
+                            ).at("$.keys()")
                         );
                     } else {
                         assertThat(
-                                httpResponse,
-                                containsExactly(
-                                        index_a1,
-                                        index_a2,
-                                        index_a3,
-                                        index_b1,
-                                        index_b2,
-                                        index_b3,
-                                        index_c1,
-                                        index_hidden,
-                                        index_hidden_dot
-                                ).at("$.keys()")
+                            httpResponse,
+                            containsExactly(
+                                index_a1,
+                                index_a2,
+                                index_a3,
+                                index_b1,
+                                index_b2,
+                                index_b3,
+                                index_c1,
+                                index_hidden,
+                                index_hidden_dot
+                            ).at("$.keys()")
                         );
                     }
                 } else if (!user.reference(GET_ALIAS).isEmpty()) {

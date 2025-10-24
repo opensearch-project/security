@@ -83,12 +83,17 @@ public class ResourceAccessEvaluator {
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
         DocRequest req = (DocRequest) request;
 
-        resourceAccessHandler.hasPermission(req.id(), req.type(), action,             ActionListener.wrap(
+        resourceAccessHandler.hasPermission(
+            req.id(),
+            req.type(),
+            action,
+            ActionListener.wrap(
                 hasAccess -> pResponseListener.onResponse(
-                        hasAccess ? PrivilegesEvaluatorResponse.ok() : PrivilegesEvaluatorResponse.insufficient(action)
+                    hasAccess ? PrivilegesEvaluatorResponse.ok() : PrivilegesEvaluatorResponse.insufficient(action)
                 ),
                 pResponseListener::onFailure
-        ));
+            )
+        );
     }
 
     /**

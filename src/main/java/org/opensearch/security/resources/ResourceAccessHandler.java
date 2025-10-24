@@ -29,7 +29,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
