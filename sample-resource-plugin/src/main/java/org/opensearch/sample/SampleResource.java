@@ -82,6 +82,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
             .field("description", description)
             .field("attributes", attributes)
             .field("user", user)
+            .field("resource_type", RESOURCE_TYPE)
             .endObject();
     }
 

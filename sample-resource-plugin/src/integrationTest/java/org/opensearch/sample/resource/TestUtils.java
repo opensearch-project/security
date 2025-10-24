@@ -96,6 +96,8 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_GROUP_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/delete";
     public static final String SAMPLE_RESOURCE_GROUP_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/search";
 
+    public static final String SAMPLE_ADD_RESOURCE_TO_GROUP_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/add";
+
     public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
     public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
     public static final String SECURITY_TYPES_ENDPOINT = "_plugins/_security/api/resource/types";
@@ -348,6 +350,15 @@ public final class TestUtils {
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
+        public String addResourceToGroup(TestSecurityConfig.User user, String resourceId, String groupId, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String payload = "{\"resource_id\":\"" + resourceId + "\"}";
+                TestRestClient.HttpResponse resp = client.postJson(SAMPLE_ADD_RESOURCE_TO_GROUP_ENDPOINT + "/" + groupId, payload, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").trim();
             }
         }
 

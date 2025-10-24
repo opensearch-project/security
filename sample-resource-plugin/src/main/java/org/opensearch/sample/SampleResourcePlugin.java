@@ -51,6 +51,7 @@ import org.opensearch.sample.resource.actions.transport.GetResourceTransportActi
 import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.sample.resourcegroup.actions.rest.add.AddResourceToGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.add.AddResourceToGroupRestAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRestAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupAction;
@@ -125,6 +126,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new GetResourceGroupRestAction());
         handlers.add(new DeleteResourceGroupRestAction());
         handlers.add(new SearchResourceGroupRestAction());
+        handlers.add(new AddResourceToGroupRestAction());
 
         handlers.add(new SecurePluginRestAction());
         return handlers;

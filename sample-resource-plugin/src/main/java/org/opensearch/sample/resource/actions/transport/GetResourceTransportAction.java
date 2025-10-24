@@ -87,6 +87,7 @@ public class GetResourceTransportAction extends HandledTransportAction<GetResour
             if (resp.isSourceEmpty()) {
                 listener.onFailure(new ResourceNotFoundException("Resource " + resourceId + " not found."));
             } else {
+                System.out.println("Get Resource Response: " + resp.getSourceAsString());
                 SampleResource resource = parseResource(resp.getSourceAsString());
                 listener.onResponse(new GetResourceResponse(Set.of(resource)));
             }

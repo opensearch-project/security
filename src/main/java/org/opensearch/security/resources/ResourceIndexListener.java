@@ -71,6 +71,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
             return;
         }
 
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+
+        // TODO Complete this
+
         log.debug("postIndex called on {}", resourceIndex);
 
         String resourceId = index.id();

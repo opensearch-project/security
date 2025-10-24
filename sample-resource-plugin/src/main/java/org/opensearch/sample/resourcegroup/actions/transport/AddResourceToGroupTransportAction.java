@@ -26,6 +26,7 @@ import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
@@ -63,7 +64,7 @@ public class AddResourceToGroupTransportAction extends HandledTransportAction<Ad
                 .id(resourceId)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
                                                                          // execute search right after update
-                .upsert(Map.of("parent_id", groupId));
+                .doc(Map.of("parent_id", groupId, "parent_type", RESOURCE_GROUP_TYPE));
 
             log.debug("Update Request: {}", ur.toString());
 

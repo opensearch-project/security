@@ -12,7 +12,6 @@ import java.io.IOException;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
-import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
@@ -23,7 +22,9 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 /**
  * Request object for AddResourceToGroupRequest transport action
  */
-public class AddResourceToGroupRequest extends ActionRequest implements DocRequest.ParentReferencing {
+// TODO Make this implement DocRequest.ParentReferencing and show authorization of add to group/remove from group actions
+// This is currently authorized as a cluster permission
+public class AddResourceToGroupRequest extends ActionRequest {
 
     private final String groupId;
     private final String resourceId;
@@ -60,27 +61,27 @@ public class AddResourceToGroupRequest extends ActionRequest implements DocReque
         return this.groupId;
     }
 
-    @Override
+    // @Override
     public String type() {
         return RESOURCE_TYPE;
     }
 
-    @Override
+    // @Override
     public String index() {
         return RESOURCE_INDEX_NAME;
     }
 
-    @Override
+    // @Override
     public String id() {
         return resourceId;
     }
 
-    @Override
+    // @Override
     public String parentType() {
         return RESOURCE_GROUP_TYPE;
     }
 
-    @Override
+    // @Override
     public String parentId() {
         return groupId;
     }

@@ -18,6 +18,7 @@ import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
@@ -28,7 +29,32 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
     @Override
     public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(new ResourceProvider(RESOURCE_TYPE, RESOURCE_INDEX_NAME));
+        return Set.of(new ResourceProvider() {
+            @Override
+            public String resourceType() {
+                return RESOURCE_TYPE;
+            }
+
+            @Override
+            public String resourceIndexName() {
+                return RESOURCE_INDEX_NAME;
+            }
+
+            @Override
+            public String typeField() {
+                return "resource_type";
+            }
+
+            @Override
+            public String parentType() {
+                return RESOURCE_GROUP_TYPE;
+            }
+
+            @Override
+            public String parentIdField() {
+                return "group_id";
+            }
+        });
     }
 
     @Override
