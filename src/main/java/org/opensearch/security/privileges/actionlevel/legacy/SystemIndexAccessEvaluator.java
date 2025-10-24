@@ -41,6 +41,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.opensearch.action.search.GetAllPitsAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
@@ -387,6 +388,11 @@ public class SystemIndexAccessEvaluator {
      * be skipped.
      */
     private boolean backwartsCompatGateForSystemIndexPrivileges(String action, ActionRequest actionRequest) {
+        if (GetAllPitsAction.NAME.equals(action)) {
+            // The indices:data/read/point_in_time/readall action does not give access to index contents
+            return false;
+        }
+
         if (!(actionRequest instanceof IndicesRequest indicesRequest)) {
             // If we cannot resolve indices, we go into the explicit privilege check code; the code will then deny the request
             return true;

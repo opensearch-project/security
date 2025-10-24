@@ -311,7 +311,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on(".system_index_plugin")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
-        .reference(READ_NEXT_GEN, limitedTo(index_c1, system_index_plugin, alias_with_system_index))//
+        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1,  system_index_plugin))//
             .reference(GET_ALIAS, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index));
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
@@ -698,7 +698,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     );
                 }
             } else {
-                if (user.reference(READ).covers(alias_with_system_index)) {
+                if (user.reference(READ_NEXT_GEN).covers(alias_with_system_index)) {
                     assertThat(httpResponse, isOk());
                     assertThat(httpResponse, containsExactly(system_index_plugin).at("hits.hits[*]._index"));
                 } else {

@@ -54,7 +54,8 @@ public class MiscPrivilegesIntTests {
         );
 
     private String TEST_RENDER_SEARCH_TEMPLATE_QUERY =
-        "{\"params\":{\"status\":[\"pending\",\"published\"]},\"source\":\"{\\\"query\\\": {\\\"terms\\\": {\\\"status\\\": [\\\"{{#status}}\\\",\\\"{{.}}\\\",\\\"{{/status}}\\\"]}}}\"}";
+            """
+                    {"params":{"status":["pending","published"]},"source":"{\\"query\\": {\\"terms\\": {\\"status\\": [\\"{{#status}}\\",\\"{{.}}\\",\\"{{/status}}\\"]}}}"}""";
 
     final static TestIndex R = TestIndex.name("r").build();
     /**

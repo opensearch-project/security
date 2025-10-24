@@ -402,22 +402,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_indexPattern_minus_backingIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-.ds-ds_b2*,-.ds-ds_b3*/_search?size=1000");
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("hits.hits[*]._index")
                         .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
-            } else {
-                // dnfof has the effect that the index expression is interpreted differently and that ds_b2 and ds_b3 get included
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            }
         }
     }
 
@@ -822,22 +812,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void field_caps_indexPattern_minus_backingIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-.ds-ds_b2*,-.ds-ds_b3*/_field_caps?fields=*");
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("indices")
                         .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
-            } else {
-                // dnfof has the effect that the index expression is interpreted differently and that ds_b2 and ds_b3 get included
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("indices")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            }
         }
     }
 
