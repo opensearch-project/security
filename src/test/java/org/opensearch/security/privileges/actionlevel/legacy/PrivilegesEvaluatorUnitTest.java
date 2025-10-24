@@ -18,7 +18,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.isClusterPermissionStatic;
 import static org.junit.Assert.assertFalse;

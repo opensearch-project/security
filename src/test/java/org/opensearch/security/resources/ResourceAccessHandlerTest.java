@@ -23,6 +23,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
@@ -70,8 +71,13 @@ public class ResourceAccessHandlerTest {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, new PrivilegesConfiguration(privilegesEvaluator));
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator, resourcePluginInfo);
+        handler = new ResourceAccessHandler(
+            threadPool,
+            sharingIndexHandler,
+            adminDNs,
+            new PrivilegesConfiguration(privilegesEvaluator),
+            resourcePluginInfo
+        );
 
         // For tests that verify permission with action-group
         when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
