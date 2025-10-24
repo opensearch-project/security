@@ -390,10 +390,10 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             // OpenSearch does not handle the expression ds_a*,ds_b*,-ds_b2,-ds_b3 in a way that excludes the data streams. See
             // search_indexPattern_minus_backingIndices for an alternative.
             assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                            .reducedBy(user.reference(READ))
-                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                httpResponse,
+                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
             );
         }
     }
@@ -402,12 +402,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void search_indexPattern_minus_backingIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-.ds-ds_b2*,-.ds-ds_b3*/_search?size=1000");
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            assertThat(
+                httpResponse,
+                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("hits.hits[*]._index")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+            );
         }
     }
 
@@ -418,12 +418,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
                 "ds_a*,ds_b*,xxx_non_existing/_search?size=1000&ignore_unavailable=true"
             );
 
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            assertThat(
+                httpResponse,
+                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1, ds_b2, ds_b3).at("hits.hits[*]._index")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+            );
 
         }
     }
@@ -484,7 +484,9 @@ public class DataStreamAuthorizationReadOnlyIntTests {
 
             assertThat(
                 httpResponse,
-                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("aggregations.indices.buckets[*].key").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                containsExactly(ALL_INDICES_EXCEPT_SYSTEM_INDICES).at("aggregations.indices.buckets[*].key")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(isOk())
             );
 
         }
@@ -812,12 +814,12 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public void field_caps_indexPattern_minus_backingIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("ds_a*,ds_b*,-.ds-ds_b2*,-.ds-ds_b3*/_field_caps?fields=*");
-                assertThat(
-                    httpResponse,
-                    containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("indices")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            assertThat(
+                httpResponse,
+                containsExactly(ds_a1, ds_a2, ds_a3, ds_b1).at("indices")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+            );
         }
     }
 

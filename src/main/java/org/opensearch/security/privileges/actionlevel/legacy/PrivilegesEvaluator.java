@@ -373,7 +373,8 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
         }
 
         if (GetAllPitsAction.NAME.equals(action0)) {
-            // We preserve old behavior here: The "indices:data/read/point_in_time/readall" is allowed  when I have privileges on any actions.
+            // We preserve old behavior here: The "indices:data/read/point_in_time/readall" is allowed when I have privileges on any
+            // actions.
             // This is okay, as the action name includes "readall" anyway. In the new privilege evaluation, this is a cluster privilege.
             return actionPrivileges.hasIndexPrivilegeForAnyIndex(context, Set.of(action0));
         }
