@@ -32,6 +32,7 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.support.ConfigConstants;
