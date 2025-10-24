@@ -51,6 +51,25 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private String resourceId;
 
     /**
+     * The type of the resource
+     */
+    private String resourceType;
+
+    /**
+     * The type of the parent resource
+     *
+     * Nullable
+     */
+    private String parentType;
+
+    /**
+     * The unique identifier of the parent resource
+     *
+     * Nullable
+     */
+    private String parentId;
+
+    /**
      * Information about who created the resource
      */
     private final CreatedBy createdBy;
@@ -64,6 +83,19 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.resourceId = resourceId;
         this.createdBy = createdBy;
         this.shareWith = shareWith;
+    }
+
+    private ResourceSharing(Builder b) {
+        this.resourceId = b.resourceId;
+        this.resourceType = b.resourceType;
+        this.parentType = b.parentType;
+        this.parentId = b.parentId;
+        this.createdBy = b.createdBy;
+        this.shareWith = b.shareWith;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getResourceId() {
@@ -122,21 +154,41 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ResourceSharing resourceSharing = (ResourceSharing) o;
-        return Objects.equals(getResourceId(), resourceSharing.getResourceId())
-            && Objects.equals(getCreatedBy(), resourceSharing.getCreatedBy())
-            && Objects.equals(getShareWith(), resourceSharing.getShareWith());
+        if (!(o instanceof ResourceSharing)) return false;
+        ResourceSharing that = (ResourceSharing) o;
+        return Objects.equals(resourceId, that.resourceId)
+            && Objects.equals(resourceType, that.resourceType)
+            && Objects.equals(parentType, that.parentType)
+            && Objects.equals(parentId, that.parentId)
+            && Objects.equals(createdBy, that.createdBy)
+            && Objects.equals(shareWith, that.shareWith);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getResourceId(), getCreatedBy(), getShareWith());
+        return Objects.hash(resourceId, resourceType, parentType, parentId, createdBy, shareWith);
     }
 
     @Override
     public String toString() {
-        return "ResourceSharing {" + "resourceId='" + resourceId + '\'' + ", createdBy=" + createdBy + ", sharedWith=" + shareWith + '}';
+        return "ResourceSharing{"
+            + "resourceId='"
+            + resourceId
+            + '\''
+            + ", resourceType='"
+            + resourceType
+            + '\''
+            + ", parentType='"
+            + parentType
+            + '\''
+            + ", parentId='"
+            + parentId
+            + '\''
+            + ", createdBy="
+            + createdBy
+            + ", shareWith="
+            + shareWith
+            + '}';
     }
 
     @Override
@@ -147,6 +199,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(resourceId);
+        out.writeString(resourceType);
+        out.writeOptionalString(parentType);
+        out.writeOptionalString(parentId);
         createdBy.writeTo(out);
         if (shareWith != null) {
             out.writeBoolean(true);
@@ -158,8 +213,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject().field("resource_id", resourceId).field("created_by");
+        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType).field("created_by");
         createdBy.toXContent(builder, params);
+        if (parentType != null) {
+            builder.field("parent_type", parentType);
+        }
+        if (parentId != null) {
+            builder.field("parent_id", parentId);
+        }
         if (shareWith != null) {
             builder.field("share_with");
             shareWith.toXContent(builder, params);
@@ -168,26 +229,32 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     public static ResourceSharing fromXContent(XContentParser parser) throws IOException {
-        String resourceId = null;
-        CreatedBy createdBy = null;
-        ShareWith shareWith = null;
+        Builder b = ResourceSharing.builder();
 
         String currentFieldName = null;
         XContentParser.Token token;
-
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 currentFieldName = parser.currentName();
             } else {
                 switch (Objects.requireNonNull(currentFieldName)) {
                     case "resource_id":
-                        resourceId = parser.text();
+                        b.resourceId(parser.text());
+                        break;
+                    case "resource_type":
+                        b.resourceType(parser.text());
+                        break;
+                    case "parent_type":
+                        b.parentType(parser.text());
+                        break;
+                    case "parent_id":
+                        b.parentId(parser.text());
                         break;
                     case "created_by":
-                        createdBy = CreatedBy.fromXContent(parser);
+                        b.createdBy(CreatedBy.fromXContent(parser));
                         break;
                     case "share_with":
-                        shareWith = ShareWith.fromXContent(parser);
+                        b.shareWith(ShareWith.fromXContent(parser));
                         break;
                     default:
                         parser.skipChildren();
@@ -196,10 +263,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             }
         }
 
-        validateRequiredField("resource_id", resourceId);
-        validateRequiredField("created_by", createdBy);
-
-        return new ResourceSharing(resourceId, createdBy, shareWith);
+        return b.build();
     }
 
     private static <T> void validateRequiredField(String field, T value) {
@@ -314,5 +378,54 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
 
         return principals;
+    }
+
+    public static final class Builder {
+        private String resourceId;
+        private String resourceType;
+        private String parentType;
+        private String parentId;
+        private CreatedBy createdBy;
+        private ShareWith shareWith;
+
+        public Builder resourceId(String resourceId) {
+            this.resourceId = resourceId;
+            return this;
+        }
+
+        public Builder resourceType(String resourceType) {
+            this.resourceType = resourceType;
+            return this;
+        }
+
+        public Builder parentType(String parentType) {
+            this.parentType = parentType;
+            return this;
+        }
+
+        public Builder parentId(String parentId) {
+            this.parentId = parentId;
+            return this;
+        }
+
+        public Builder createdBy(CreatedBy createdBy) {
+            this.createdBy = createdBy;
+            return this;
+        }
+
+        public Builder shareWith(ShareWith shareWith) {
+            this.shareWith = shareWith;
+            return this;
+        }
+
+        /**
+         * Build the immutable/constructed instance, validating required fields.
+         */
+        public ResourceSharing build() {
+            validateRequiredField("resource_id", resourceId);
+            validateRequiredField("created_by", createdBy);
+
+            return new ResourceSharing(this);
+        }
     }
 }

@@ -22,6 +22,7 @@ import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -72,8 +73,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
 
         String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
-
-        // TODO Complete this
+        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
 
         log.debug("postIndex called on {}", resourceIndex);
 
@@ -112,13 +112,17 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
             }, e -> { log.debug(e.getMessage()); });
             // User.getRequestedTenant() is null if multi-tenancy is disabled
-            this.resourceSharingIndexHandler.indexResourceSharing(
-                resourceId,
-                resourceIndex,
-                new CreatedBy(user.getName(), user.getRequestedTenant()),
-                null,
-                listener
-            );
+            ResourceSharing.Builder builder = ResourceSharing.builder()
+                .resourceId(resourceId)
+                .resourceType(resourceType)
+                .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
+            if (provider.parentType() != null) {
+                builder.parentType(provider.parentType())
+                    .parentId(ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index));
+            }
+            ResourceSharing sharingInfo = builder.build();
+
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
 
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);

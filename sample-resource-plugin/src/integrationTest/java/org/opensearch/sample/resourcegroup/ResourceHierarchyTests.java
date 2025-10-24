@@ -50,9 +50,8 @@ public class ResourceHierarchyTests {
     public void setup() {
         resourceGroupId = api.createSampleResourceGroupAs(USER_ADMIN);
         api.awaitSharingEntry(resourceGroupId); // wait until sharing entry is created
-        resourceId = api.createSampleResourceAs(USER_ADMIN);
+        resourceId = api.createSampleResourceWithGroupAs(USER_ADMIN, resourceGroupId);
         api.awaitSharingEntry(resourceId); // wait until sharing entry is created
-        api.addResourceToGroup(USER_ADMIN, resourceId, resourceGroupId);
     }
 
     @After

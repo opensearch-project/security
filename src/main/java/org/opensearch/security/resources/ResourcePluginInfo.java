@@ -120,31 +120,40 @@ public class ResourcePluginInfo {
         }
     }
 
+    public static String extractFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
+        String fieldValue = null;
+        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
+            if (f.stringValue() != null) {
+                fieldValue = f.stringValue();
+                break;
+            }
+            if (f.binaryValue() != null) { // e.g., BytesRef-backed
+                fieldValue = f.binaryValue().utf8ToString();
+                break;
+            }
+        }
+        return fieldValue;
+    }
+
     public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
         lock.readLock().lock();
         try {
-            // Eagerly use type field from provider of same index as the indexOp
-            // If typeField is present, assume single resource type per index
-            for (var entry : typeToProvider.entrySet()) {
-                if (entry.getValue().resourceIndexName().equals(resourceIndex)) {
-                    if (entry.getValue().typeField() != null) {
-                        String resourceType = null;
-                        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(entry.getValue().typeField())) {
-                            if (f.stringValue() != null) {
-                                resourceType = f.stringValue();
-                                break;
-                            }
-                            if (f.binaryValue() != null) { // e.g., BytesRef-backed
-                                resourceType = f.binaryValue().utf8ToString();
-                                break;
-                            }
-                        }
-                        return resourceType;
-                    }
-                    return entry.getValue().typeField();
-                }
+            // Eagerly use type field from first matching provider of same index as the indexOp
+            // If typeField is not present, assume single resource type per index and return type from provider
+            var provider = typeToProvider.values()
+                .stream()
+                .filter(p -> p.resourceIndexName().equals(resourceIndex))
+                .findFirst()
+                .orElse(null);
+            if (provider == null) {
+                // should not happen
+                return null;
             }
-            return null;
+            if (provider.typeField() != null) {
+                return extractFieldFromIndexOp(provider.typeField(), indexOp);
+            }
+            // If `typeField` is not defined, assume single type to index and return type from provider
+            return provider.resourceType();
         } finally {
             lock.readLock().unlock();
         }
@@ -191,6 +200,15 @@ public class ResourcePluginInfo {
         lock.readLock().lock();
         try {
             return typeToFlattened.getOrDefault(resourceType, FlattenedActionGroups.EMPTY);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public ResourceProvider getResourceProvider(String type) {
+        lock.readLock().lock();
+        try {
+            return typeToProvider.get(type);
         } finally {
             lock.readLock().unlock();
         }

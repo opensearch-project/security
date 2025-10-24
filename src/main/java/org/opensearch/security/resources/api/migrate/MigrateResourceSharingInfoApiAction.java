@@ -60,6 +60,7 @@ import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -292,6 +293,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
+            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
+
             try {
                 // 3) build CreatedBy
                 CreatedBy createdBy = new CreatedBy(username);
@@ -319,7 +322,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
-                sharingIndexHandler.indexResourceSharing(resourceId, sourceInfo.getLeft(), createdBy, shareWith, listener);
+                // TODO account for hierarchy in migration as well
+                ResourceSharing sharingInfo = new ResourceSharing(resourceId, createdBy, shareWith);
+                sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();

@@ -60,10 +60,12 @@ public class CreateResourceRestAction extends BaseRestHandler {
     private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
+        String groupId = source.containsKey("group_id") ? (String) source.get("group_id") : null;
         Map<String, String> attributes = getAttributes(source);
         SampleResource resource = new SampleResource();
         resource.setName(name);
         resource.setDescription(description);
+        resource.setGroupId(groupId);
         resource.setAttributes(attributes);
         final UpdateResourceRequest updateResourceRequest = new UpdateResourceRequest(resourceId, resource);
         return channel -> client.executeLocally(
@@ -75,10 +77,12 @@ public class CreateResourceRestAction extends BaseRestHandler {
 
     private RestChannelConsumer createResource(Map<String, Object> source, NodeClient client) throws IOException {
         String name = (String) source.get("name");
+        String groupId = source.containsKey("group_id") ? (String) source.get("group_id") : null;
         String description = source.containsKey("description") ? (String) source.get("description") : null;
         Map<String, String> attributes = getAttributes(source);
         boolean shouldStoreUser = source.containsKey("store_user") && (boolean) source.get("store_user");
         SampleResource resource = new SampleResource();
+        resource.setGroupId(groupId);
         resource.setName(name);
         resource.setDescription(description);
         resource.setAttributes(attributes);

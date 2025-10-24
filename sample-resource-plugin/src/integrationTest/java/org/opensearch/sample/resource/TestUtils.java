@@ -353,12 +353,12 @@ public final class TestUtils {
             }
         }
 
-        public String addResourceToGroup(TestSecurityConfig.User user, String resourceId, String groupId, Header... headers) {
+        public String createSampleResourceWithGroupAs(TestSecurityConfig.User user, String groupId, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                String payload = "{\"resource_id\":\"" + resourceId + "\"}";
-                TestRestClient.HttpResponse resp = client.postJson(SAMPLE_ADD_RESOURCE_TO_GROUP_ENDPOINT + "/" + groupId, payload, headers);
+                String sample = "{\"group_id\":\"" + groupId + "\", \"name\":\"sample\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-                return resp.getTextFromJsonBody("/message").trim();
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
         }
 
