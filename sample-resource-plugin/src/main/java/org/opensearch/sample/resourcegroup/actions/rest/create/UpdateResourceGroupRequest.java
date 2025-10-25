@@ -52,7 +52,7 @@ public class UpdateResourceGroupRequest extends ActionRequest implements DocRequ
         return null;
     }
 
-    public SampleResourceGroup getResource() {
+    public SampleResourceGroup getResourceGroup() {
         return this.resourceGroup;
     }
 
