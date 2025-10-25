@@ -60,6 +60,7 @@ public class SecuritySettingsConfigurer {
         ".plugins-ml-stop-words",
         ".opendistro-alerting-config",
         ".opendistro-alerting-alert*",
+        ".opensearch-alerting-v2-alert*",
         ".opendistro-anomaly-results*",
         ".opendistro-anomaly-detector*",
         ".opendistro-anomaly-checkpoints",
