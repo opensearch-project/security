@@ -137,7 +137,7 @@ public interface PrivilegesEvaluator {
         }
 
         private OpenSearchSecurityException exception() {
-            StringBuilder error = new StringBuilder("OpenSearch Security is not initialized");
+            StringBuilder error = new StringBuilder("OpenSearch Security not initialized");
             String reason = this.unavailablityReasonSupplier.get();
 
             if (reason != null) {
