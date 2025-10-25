@@ -25,7 +25,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceGroup;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRequest;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupResponse;
@@ -53,11 +53,11 @@ public class CreateResourceGroupTransportAction extends HandledTransportAction<C
 
     @Override
     protected void doExecute(Task task, CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
-        createResource(request, listener);
+        createResourceGroup(request, listener);
     }
 
-    private void createResource(CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
-        SampleResource sample = request.getResource();
+    private void createResourceGroup(CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
+        SampleResourceGroup sample = request.getResourceGroup();
 
         // 1. Read mapping JSON from the config file
         final String mappingJson;

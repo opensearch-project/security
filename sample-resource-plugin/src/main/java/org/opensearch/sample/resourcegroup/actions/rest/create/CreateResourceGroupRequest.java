@@ -15,7 +15,7 @@ import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.DocRequest;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceGroup;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -25,22 +25,22 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  */
 public class CreateResourceGroupRequest extends ActionRequest implements DocRequest {
 
-    private final SampleResource resource;
+    private final SampleResourceGroup resourceGroup;
 
     /**
      * Default constructor
      */
-    public CreateResourceGroupRequest(SampleResource resource) {
-        this.resource = resource;
+    public CreateResourceGroupRequest(SampleResourceGroup resourceGroup) {
+        this.resourceGroup = resourceGroup;
     }
 
     public CreateResourceGroupRequest(StreamInput in) throws IOException {
-        this.resource = in.readNamedWriteable(SampleResource.class);
+        this.resourceGroup = in.readNamedWriteable(SampleResourceGroup.class);
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
-        resource.writeTo(out);
+        resourceGroup.writeTo(out);
     }
 
     @Override
@@ -48,8 +48,8 @@ public class CreateResourceGroupRequest extends ActionRequest implements DocRequ
         return null;
     }
 
-    public SampleResource getResource() {
-        return this.resource;
+    public SampleResourceGroup getResourceGroup() {
+        return this.resourceGroup;
     }
 
     @Override

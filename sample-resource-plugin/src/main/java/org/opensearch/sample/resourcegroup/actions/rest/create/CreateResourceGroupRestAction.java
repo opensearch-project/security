@@ -16,7 +16,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
-import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceGroup;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -60,12 +60,10 @@ public class CreateResourceGroupRestAction extends BaseRestHandler {
     private RestChannelConsumer updateResource(Map<String, Object> source, String resourceId, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
-        Map<String, String> attributes = getAttributes(source);
-        SampleResource resource = new SampleResource();
-        resource.setName(name);
-        resource.setDescription(description);
-        resource.setAttributes(attributes);
-        final UpdateResourceGroupRequest updateResourceRequest = new UpdateResourceGroupRequest(resourceId, resource);
+        SampleResourceGroup resourceGroup = new SampleResourceGroup();
+        resourceGroup.setName(name);
+        resourceGroup.setDescription(description);
+        final UpdateResourceGroupRequest updateResourceRequest = new UpdateResourceGroupRequest(resourceId, resourceGroup);
         return channel -> client.executeLocally(
             UpdateResourceGroupAction.INSTANCE,
             updateResourceRequest,
@@ -76,22 +74,14 @@ public class CreateResourceGroupRestAction extends BaseRestHandler {
     private RestChannelConsumer createResource(Map<String, Object> source, NodeClient client) throws IOException {
         String name = (String) source.get("name");
         String description = source.containsKey("description") ? (String) source.get("description") : null;
-        Map<String, String> attributes = getAttributes(source);
-        SampleResource resource = new SampleResource();
-        resource.setName(name);
-        resource.setDescription(description);
-        resource.setAttributes(attributes);
-        final CreateResourceGroupRequest createSampleResourceRequest = new CreateResourceGroupRequest(resource);
+        SampleResourceGroup resourceGroup = new SampleResourceGroup();
+        resourceGroup.setName(name);
+        resourceGroup.setDescription(description);
+        final CreateResourceGroupRequest createSampleResourceRequest = new CreateResourceGroupRequest(resourceGroup);
         return channel -> client.executeLocally(
             CreateResourceGroupAction.INSTANCE,
             createSampleResourceRequest,
             new RestToXContentListener<>(channel)
         );
-    }
-
-    // NOTE: Do NOT use @SuppressWarnings("unchecked") on untrusted data in production code. This is used here only to keep the code simple
-    @SuppressWarnings("unchecked")
-    private Map<String, String> getAttributes(Map<String, Object> source) {
-        return source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
     }
 }
