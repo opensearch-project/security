@@ -305,9 +305,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private ResourceAccessHandler resourceAccessHandler;
     private final ResourcePluginInfo resourcePluginInfo = new ResourcePluginInfo();
     private volatile ResourceAccessEvaluator resourceAccessEvaluator;
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-    private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
-    // CS-ENFORCE-SINGLE
 
     public static boolean isActionTraceEnabled() {
 
