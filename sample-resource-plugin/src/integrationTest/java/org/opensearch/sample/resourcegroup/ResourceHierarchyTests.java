@@ -80,7 +80,7 @@ public class ResourceHierarchyTests {
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
 
         ok(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
-        ok(() -> api.getResource(resourceGroupId, FULL_ACCESS_USER));
+        ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
     }
 
 }

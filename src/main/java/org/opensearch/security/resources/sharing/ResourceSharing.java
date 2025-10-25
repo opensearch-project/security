@@ -26,6 +26,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.user.User;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
@@ -112,6 +113,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public ShareWith getShareWith() {
         return shareWith;
+    }
+
+    public String getParentType() {
+        return parentType;
+    }
+
+    public String getParentId() {
+        return parentId;
     }
 
     public void share(String accessLevel, Recipients target) {
@@ -306,6 +315,25 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
 
         return shareWith.atAccessLevel(accessLevel).isSharedWithAny(recipientType, targets);
+    }
+
+    /**
+     *
+     * @param user
+     * @return
+     */
+    public Set<String> getAccessLevelsForUser(User user) {
+        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
+        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
+
+        userRoles.add("*");
+        userBackendRoles.add("*");
+
+        Set<String> accessLevels = new HashSet<>();
+        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
+        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, userRoles));
+        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+        return accessLevels;
     }
 
     /**

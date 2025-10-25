@@ -29,7 +29,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -160,8 +159,6 @@ public class ResourceAccessHandler {
             listener.onResponse(true);
             return;
         }
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
@@ -170,30 +167,29 @@ public class ResourceAccessHandler {
             return;
         }
 
-        resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(document -> {
+        resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
             // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
             // This also means that for non-existing documents, the evaluator will return 403 instead
-            if (document == null) {
+            if (sharingInfo == null) {
                 LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
                 listener.onResponse(false);
                 return;
             }
 
-            userRoles.add("*");
-            userBackendRoles.add("*");
-
-            if (document.isCreatedBy(user.getName())) {
+            if (sharingInfo.isCreatedBy(user.getName())) {
                 listener.onResponse(true);
                 return;
             }
 
-            Set<String> accessLevels = new HashSet<>();
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.ROLES, userRoles));
-            accessLevels.addAll(document.fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+            Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
 
+            // no matching access level, either recurse up or fail fast
             if (accessLevels.isEmpty()) {
-                listener.onResponse(false);
+                if (sharingInfo.getParentId() != null) {
+                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+                } else {
+                    listener.onResponse(false);
+                }
                 return;
             }
 
@@ -202,7 +198,16 @@ public class ResourceAccessHandler {
             final Set<String> allowedActions = agForType.resolve(accessLevels);
             final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
 
-            listener.onResponse(matcher.test(action));
+            if (matcher.test(action)) {
+                listener.onResponse(true);
+                return;
+            }
+
+            if (sharingInfo.getParentId() != null) {
+                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+            } else {
+                listener.onResponse(false);
+            }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
