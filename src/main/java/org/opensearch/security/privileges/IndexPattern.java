@@ -60,13 +60,13 @@ public class IndexPattern {
         WildcardMatcher staticPattern,
         ImmutableList<String> patternTemplates,
         ImmutableList<String> dateMathExpressions,
-        boolean memberIndexPrivilegesYieldALiasPrivileges
+        boolean memberIndexPrivilegesYieldAliasPrivileges
     ) {
         this.staticPattern = staticPattern;
         this.patternTemplates = patternTemplates;
         this.dateMathExpressions = dateMathExpressions;
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
-        this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldALiasPrivileges;
+        this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
     }
 
     public boolean matches(
