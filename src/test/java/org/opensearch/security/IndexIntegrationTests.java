@@ -26,7 +26,6 @@
 
 package org.opensearch.security;
 
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -595,6 +594,9 @@ public class IndexIntegrationTests extends SingleClusterTest {
         );
         assertContains(res, "*\"hits\" : {*\"value\" : 0,*\"hits\" : [ ]*");
 
+        res = rh.executePutRequest("/logstash-1/_alias/alog1", "", encodeBasicHeader("aliasmngt", "nagilum"));
+        System.out.println(res.getBody());
+
         // add alias to allowed index
         assertThat(
             HttpStatus.SC_OK,
@@ -664,11 +666,17 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup();
         final RestHelper rh = nonSslRestHelper();
 
-        // invalid_index_name_exception should be thrown and responded when invalid index name is mentioned in requests.
-        HttpResponse res = rh.executeGetRequest(
-            URLEncoder.encode("_##pdt_data/_search", "UTF-8"),
-            encodeBasicHeader("ccsresolv", "nagilum")
-        );
+        // invalid_index_name_exception should be thrown and responded when invalid index name is mentioned in requests AND if the
+        // user has in theory privileges for the (invalid) index name. This is because the index name validation takes
+        // place in the transport action itself.
+        // The security plugin should not engage itself in any validation logic that is outside of its scope.
+
+        // We do not have privileges for the index below, thus we get a 403 error
+        HttpResponse res = rh.executeGetRequest("/_pdt_data/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+
+        // We have privileges for the invalid index name below, thus we get through to the validation logic
+        res = rh.executeGetRequest("/_abcdata/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(res.getBody().contains("invalid_index_name_exception"));
     }

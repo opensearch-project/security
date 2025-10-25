@@ -236,7 +236,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         final DynamicConfigModel dcm;
         final InternalUsersModel ium;
-        final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         final AllowlistingSettings allowlist = cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = cr.getConfiguration(CType.AUDIT).getCEntry("config");
@@ -278,10 +277,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         // rebuild v7 Models
         dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
-        cm = new ConfigModelV7(roles, rolesmapping, dcm, opensearchSettings);
 
         // notify subscribers
-        eventBus.post(cm);
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);

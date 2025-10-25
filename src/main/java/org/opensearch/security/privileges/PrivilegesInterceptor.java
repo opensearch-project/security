@@ -31,8 +31,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -40,14 +38,26 @@ import org.opensearch.transport.client.Client;
 public class PrivilegesInterceptor {
 
     public static class ReplaceResult {
-        final boolean continueEvaluation;
-        final boolean accessDenied;
-        final CreateIndexRequestBuilder createIndexRequestBuilder;
+        public final boolean continueEvaluation;
+        public final boolean accessDenied;
+        public final CreateIndexRequestBuilder createIndexRequestBuilder;
 
         private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequestBuilder createIndexRequestBuilder) {
             this.continueEvaluation = continueEvaluation;
             this.accessDenied = accessDenied;
             this.createIndexRequestBuilder = createIndexRequestBuilder;
+        }
+
+        @Override
+        public String toString() {
+            return "ReplaceResult{"
+                + "continueEvaluation="
+                + continueEvaluation
+                + ", accessDenied="
+                + accessDenied
+                + ", createIndexRequestBuilder="
+                + createIndexRequestBuilder
+                + '}';
         }
     }
 
@@ -80,10 +90,7 @@ public class PrivilegesInterceptor {
         final ActionRequest request,
         final String action,
         final User user,
-        final DynamicConfigModel config,
-        final Resolved requestedResolved,
-        final PrivilegesEvaluationContext context,
-        final TenantPrivileges tenantPrivileges
+        final PrivilegesEvaluationContext context
     ) {
         throw new RuntimeException("not implemented");
     }
