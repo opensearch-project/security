@@ -21,11 +21,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionRequestMetadata;
@@ -33,6 +31,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -56,12 +55,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -70,11 +68,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Mock
     private AuditLog auditLog;
     @Mock
-    private ActionRequest request;
-    @Mock
     private Task task;
-    @Mock
-    private PrivilegesEvaluatorResponse presponse;
     @Mock
     private Logger log;
     @Mock
@@ -175,7 +169,7 @@ public class SystemIndexAccessEvaluatorTest {
             user,
             ImmutableSet.of("role_a"),
             action,
-            request,
+            new SearchRequest(),
             ActionRequestMetadata.empty(),
             null,
             indexNameExpressionResolver,
@@ -185,11 +179,6 @@ public class SystemIndexAccessEvaluatorTest {
         );
     }
 
-    @After
-    public void after() {
-        verifyNoMoreInteractions(auditLog, request, task, presponse, log);
-    }
-
     @Test
     public void testUnprotectedActionOnRegularIndex_systemIndexDisabled() {
         setup(false, false, TEST_INDEX, false);
@@ -197,7 +186,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -205,7 +194,7 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
 
     }
 
@@ -216,7 +205,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -224,7 +213,7 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
     }
 
     @Test
@@ -234,7 +223,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -242,7 +231,7 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
     }
 
     @Test
@@ -252,7 +241,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_SYSTEM_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -260,7 +249,7 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
     }
 
     @Test
@@ -270,7 +259,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_SYSTEM_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -278,13 +267,14 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
     }
 
     @Test
     public void testUnprotectedActionOnSystemIndex_systemIndexPermissionEnabled_WithoutSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
+        SearchRequest request = new SearchRequest(TEST_SYSTEM_INDEX);
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
@@ -296,7 +286,7 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(presponse.isAllowed(), is(false));
+        assertThat(response.isAllowed(), is(false));
 
         verify(auditLog).logSecurityIndexAttempt(request, UNPROTECTED_ACTION, null);
         verify(log).isInfoEnabled();
@@ -315,7 +305,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // Action
         final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_SYSTEM_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -323,21 +313,19 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        // unprotected action is not allowed on a system index
-        assertThat(presponse.isAllowed(), is(false));
+        // user has system index permission; let them pass
+        assertThat(response, is(nullValue()));
     }
 
     @Test
     public void testDisableCacheOrRealtimeOnSystemIndex_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
 
-        final SearchRequest searchRequest = mock(SearchRequest.class);
-        final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
         PrivilegesEvaluatorResponse response = evaluator.evaluate(
-            request,
+            new SearchRequest(TEST_SYSTEM_INDEX),
             null,
             UNPROTECTED_ACTION,
             resolved,
@@ -345,26 +333,25 @@ public class SystemIndexAccessEvaluatorTest {
             actionPrivileges,
             user
         );
-        assertThat(response, isNull());
+        assertThat(response, is(nullValue()));
     }
 
     @Test
     public void testDisableCacheOrRealtimeOnSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
 
-        final SearchRequest searchRequest = mock(SearchRequest.class);
-        final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
+        final SearchRequest searchRequest = new SearchRequest(TEST_SYSTEM_INDEX);
+        final MultiGetRequest realtimeRequest = new MultiGetRequest().add(TEST_SYSTEM_INDEX, "id");
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
 
-        verify(searchRequest).requestCache(Boolean.FALSE);
-        verify(realtimeRequest).realtime(Boolean.FALSE);
+        assertFalse(searchRequest.requestCache());
+        ;
+        assertFalse(realtimeRequest.realtime());
 
-        verify(log, times(2)).isDebugEnabled();
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
     }
@@ -373,27 +360,25 @@ public class SystemIndexAccessEvaluatorTest {
     public void testDisableCacheOrRealtimeOnSystemIndex_systemIndexPermissionEnabled_withoutSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
 
-        final SearchRequest searchRequest = mock(SearchRequest.class);
-        final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
+        final SearchRequest searchRequest = new SearchRequest(TEST_SYSTEM_INDEX);
+        final MultiGetRequest realtimeRequest = new MultiGetRequest().add(TEST_SYSTEM_INDEX, "id");
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
 
-        verify(searchRequest).requestCache(Boolean.FALSE);
-        verify(realtimeRequest).realtime(Boolean.FALSE);
+        assertFalse(searchRequest.requestCache());
+        ;
+        assertFalse(realtimeRequest.realtime());
 
-        verify(log, times(2)).isDebugEnabled();
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
-        verify(auditLog).logSecurityIndexAttempt(request, UNPROTECTED_ACTION, null);
         verify(auditLog).logSecurityIndexAttempt(searchRequest, UNPROTECTED_ACTION, null);
         verify(auditLog).logSecurityIndexAttempt(realtimeRequest, UNPROTECTED_ACTION, null);
         verify(log, times(2)).isDebugEnabled();
-        verify(log, times(3)).isInfoEnabled();
-        verify(log, times(3)).info(
+        verify(log, times(2)).isInfoEnabled();
+        verify(log, times(2)).info(
             "No {} permission for user roles {} to System Indices {}",
             UNPROTECTED_ACTION,
             user.getSecurityRoles(),
@@ -407,121 +392,193 @@ public class SystemIndexAccessEvaluatorTest {
     public void testDisableCacheOrRealtimeOnSystemIndex_systemIndexPermissionEnabled_withSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, true);
 
-        final SearchRequest searchRequest = mock(SearchRequest.class);
-        final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
+        final SearchRequest searchRequest = new SearchRequest(TEST_SYSTEM_INDEX);
+        final MultiGetRequest realtimeRequest = new MultiGetRequest().add(TEST_SYSTEM_INDEX, "id");
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
         evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, ctx(UNPROTECTED_ACTION), actionPrivileges, user);
 
-        verify(searchRequest).requestCache(Boolean.FALSE);
-        verify(realtimeRequest).realtime(Boolean.FALSE);
+        assertFalse(searchRequest.requestCache());
+        ;
+        assertFalse(realtimeRequest.realtime());
 
         verify(log, times(2)).isDebugEnabled();
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
     }
-    /*
 
     @Test
     public void testProtectedActionLocalAll_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
-        final ResolvedIndices resolved = ResolvedIndices.all();
+        final OptionallyResolvedIndices resolved = ResolvedIndices.unknown();
+        final SearchRequest request = new SearchRequest(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
         verify(log).warn("{} for '_all' indices is not allowed for a regular user", "indices:data/write");
     }
 
     @Test
     public void testProtectedActionLocalAll_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
-        final ResolvedIndices resolved = ResolvedIndices.all();
+        final OptionallyResolvedIndices resolved = ResolvedIndices.unknown();
+        final SearchRequest request = new SearchRequest(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
         verify(log).warn("{} for '_all' indices is not allowed for a regular user", PROTECTED_ACTION);
     }
 
     @Test
     public void testProtectedActionLocalAll_systemIndexPermissionEnabled() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
-        final ResolvedIndices resolved = ResolvedIndices.all();
+        final OptionallyResolvedIndices resolved = ResolvedIndices.unknown();
+        final SearchRequest request = new SearchRequest(TEST_SYSTEM_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
-        verify(log).warn("{} for '_all' indices is not allowed for a regular user", PROTECTED_ACTION);
+        assertThat(presponse.isAllowed(), is(false));
+        verify(log).info(
+            "{} not permitted for a regular user {} on protected system indices {}",
+            PROTECTED_ACTION,
+            Set.of("role_a"),
+            ".opendistro_security"
+        );
     }
 
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexDisabled() {
         setup(false, false, TEST_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
-        assertThat(presponse.allowed, is(false));
+        assertThat(presponse, is(nullValue()));
     }
 
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
-        assertThat(presponse.allowed, is(false));
+        assertThat(presponse, is(nullValue()));
     }
 
     @Test
     public void testProtectedActionOnRegularIndex_systemIndexPermissionEnabled() {
         setup(true, true, TEST_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
-        assertThat(presponse.allowed, is(false));
+        assertThat(presponse, is(nullValue()));
     }
 
     @Test
     public void testProtectedActionOnSystemIndex_systemIndexDisabled() {
         setup(false, false, TEST_SYSTEM_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
-        assertThat(presponse.allowed, is(false));
+        assertThat(presponse, is(nullValue()));
     }
 
     @Test
     public void testProtectedActionOnSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, TEST_SYSTEM_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, TEST_SYSTEM_INDEX);
     }
 
@@ -529,13 +586,21 @@ public class SystemIndexAccessEvaluatorTest {
     public void testProtectedActionOnSystemIndex_systemIndexPermissionEnabled_withoutSystemIndexPermission() {
         setup(true, true, TEST_SYSTEM_INDEX, false);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
         verify(log).isInfoEnabled();
         verify(log).info(
             "No {} permission for user roles {} to System Indices {}",
@@ -550,24 +615,41 @@ public class SystemIndexAccessEvaluatorTest {
 
         setup(true, true, TEST_SYSTEM_INDEX, true);
         final ResolvedIndices resolved = createResolved(TEST_SYSTEM_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
-        assertThat(presponse.allowed, is(false));
+        assertThat(presponse, is(nullValue()));
     }
 
     @Test
     public void testProtectedActionOnProtectedSystemIndex_systemIndexDisabled() {
         setup(false, false, SECURITY_INDEX, false);
         final ResolvedIndices resolved = createResolved(SECURITY_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
 
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, SECURITY_INDEX);
     }
@@ -576,13 +658,21 @@ public class SystemIndexAccessEvaluatorTest {
     public void testProtectedActionOnProtectedSystemIndex_systemIndexPermissionDisabled() {
         setup(true, false, SECURITY_INDEX, false);
         final ResolvedIndices resolved = createResolved(SECURITY_INDEX);
+        final SearchRequest request = new SearchRequest(TEST_INDEX);
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, ctx(PROTECTED_ACTION), actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(
+            request,
+            task,
+            PROTECTED_ACTION,
+            resolved,
+            ctx(PROTECTED_ACTION),
+            actionPrivileges,
+            user
+        );
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
-        assertThat(presponse.allowed, is(false));
-        verify(presponse).markComplete();
+        assertThat(presponse.isAllowed(), is(false));
 
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, SECURITY_INDEX);
     }
@@ -605,7 +695,28 @@ public class SystemIndexAccessEvaluatorTest {
     @Test
     public void testProtectedActionOnProtectedSystemIndex_systemIndexPermissionEnabled_withSystemIndexPermission() {
         testSecurityIndexAccess(PROTECTED_ACTION);
-    }*/
+    }
+
+    private void testSecurityIndexAccess(String action) {
+        setup(true, true, SECURITY_INDEX, true);
+
+        final OptionallyResolvedIndices resolved = ResolvedIndices.of(SECURITY_INDEX);
+        final SearchRequest request = new SearchRequest(SECURITY_INDEX);
+
+        // Action
+        PrivilegesEvaluatorResponse presponse = evaluator.evaluate(request, task, action, resolved, ctx(action), actionPrivileges, user);
+
+        verify(auditLog).logSecurityIndexAttempt(request, action, task);
+        assertThat(presponse.isAllowed(), is(false));
+
+        verify(log).isInfoEnabled();
+        verify(log).info(
+            "{} not permitted for a regular user {} on protected system indices {}",
+            action,
+            user.getSecurityRoles(),
+            SECURITY_INDEX
+        );
+    }
 
     private ResolvedIndices createResolved(final String... indexes) {
         return ResolvedIndices.of(indexes);

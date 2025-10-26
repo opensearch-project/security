@@ -152,21 +152,19 @@ public class SystemIndexAccessEvaluator {
             containsSystemIndex
         );
 
-        if (response == null || response.isAllowed()) {
-            if (containsSystemIndex) {
+        if (containsSystemIndex) {
 
-                if (request instanceof SearchRequest) {
-                    ((SearchRequest) request).requestCache(Boolean.FALSE);
-                    if (log.isDebugEnabled()) {
-                        log.debug("Disable search request cache for this request");
-                    }
+            if (request instanceof SearchRequest) {
+                ((SearchRequest) request).requestCache(Boolean.FALSE);
+                if (log.isDebugEnabled()) {
+                    log.debug("Disable search request cache for this request");
                 }
+            }
 
-                if (request instanceof RealtimeRequest) {
-                    ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                    if (log.isDebugEnabled()) {
-                        log.debug("Disable realtime for this request");
-                    }
+            if (request instanceof RealtimeRequest) {
+                ((RealtimeRequest) request).realtime(Boolean.FALSE);
+                if (log.isDebugEnabled()) {
+                    log.debug("Disable realtime for this request");
                 }
             }
         }
