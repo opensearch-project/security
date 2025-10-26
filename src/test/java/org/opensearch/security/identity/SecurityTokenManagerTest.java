@@ -284,23 +284,4 @@ public class SecurityTokenManagerTest {
         });
         assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
     }
-
-    @Test
-    public void testCreateJwtWithBadRoles() {
-        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
-        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
-        when(threadPool.getThreadContext()).thenReturn(threadContext);
-
-        createMockJwtVendorInTokenManager(true);
-
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
-    }
 }

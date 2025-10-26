@@ -372,7 +372,7 @@ public class PrivilegesEvaluator implements org.opensearch.security.privileges.P
             return presponse;
         }
 
-        if (GetAllPitsAction.NAME.equals(action0)) {
+        if (GetAllPitsAction.NAME.equals(action0) && dnfofEnabled) {
             // We preserve old behavior here: The "indices:data/read/point_in_time/readall" is allowed when I have privileges on any
             // actions.
             // This is okay, as the action name includes "readall" anyway. In the new privilege evaluation, this is a cluster privilege.
