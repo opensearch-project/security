@@ -516,7 +516,7 @@ public class SubjectBasedActionPrivilegesTest {
                     config,
                     FlattenedActionGroups.EMPTY,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                    false
+                    true
                 );
             }
 
@@ -785,7 +785,7 @@ public class SubjectBasedActionPrivilegesTest {
             assertTrue(result.hasEvaluationExceptions());
             assertTrue(
                 "Result contains exception info: " + result.getEvaluationExceptionInfo(),
-                result.getEvaluationExceptionInfo().startsWith("Exceptions encountered during privilege evaluation:")
+                result.getEvaluationExceptionInfo().contains("Unescaped trailing backslash near index")
             );
         }
 

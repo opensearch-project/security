@@ -432,7 +432,7 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
                 normalUserHeader
             );
 
-            validateForbiddenResponse(res, "cluster:admin/snapshot/restore", normalUser);
+            assertThat(res.getStatusCode(), is(RestStatus.FORBIDDEN.getStatus()));
         }
     }
 

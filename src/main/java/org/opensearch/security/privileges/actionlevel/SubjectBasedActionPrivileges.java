@@ -415,12 +415,16 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             CheckTable<String, String> checkTable
         ) {
             for (String action : actions) {
-                if (!this.actionsWithWildcardIndexPrivileges.contains(action)) {
-                    return null;
+                if (this.actionsWithWildcardIndexPrivileges.contains(action)) {
+                    checkTable.checkIf(index -> true, action);
                 }
             }
 
-            return new IntermediateResult(checkTable);
+            if (checkTable.isComplete()) {
+                return new IntermediateResult(checkTable);
+            } else {
+                return null;
+            }
         }
 
         /**
