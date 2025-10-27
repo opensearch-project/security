@@ -2441,17 +2441,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
     }
 
-    @SuppressWarnings("removal")
-    private void tryAddSecurityProvider() {
-        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-            if (Security.getProvider("BCFIPS") == null) {
-                Security.addProvider(new BouncyCastleFipsProvider());
-                log.debug("Bouncy Castle FIPS Provider added");
-            }
-            return null;
-        });
-    }
-
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
     public void loadExtensions(ExtensionLoader loader) {
