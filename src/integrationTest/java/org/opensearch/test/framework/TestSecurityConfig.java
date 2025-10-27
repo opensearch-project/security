@@ -161,11 +161,7 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig user(User user) {
         this.internalUsers.put(user.name, user);
-
-        for (Role role : user.roles) {
-            this.roles.put(role.name, role);
-        }
-
+        // The user's roles will be collected by aggregateRoles() when the configuration is written
         return this;
     }
 
@@ -185,6 +181,7 @@ public class TestSecurityConfig {
             if (this.roles.containsKey(role.name)) {
                 throw new IllegalStateException("Role with name " + role.name + " is already defined");
             }
+            role.addedIndependentlyOfUser = true;
             this.roles.put(role.name, role);
         }
 
