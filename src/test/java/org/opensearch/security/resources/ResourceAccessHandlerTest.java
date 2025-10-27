@@ -150,8 +150,7 @@ public class ResourceAccessHandlerTest {
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
         ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy("charlie")).thenReturn(false);
-        when(doc.fetchAccessLevels(any(), any())).thenReturn(Collections.emptySet());
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);

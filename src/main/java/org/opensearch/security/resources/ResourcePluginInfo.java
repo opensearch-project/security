@@ -217,6 +217,9 @@ public class ResourcePluginInfo {
     public String indexByType(String type) {
         lock.readLock().lock();
         try {
+            if (!typeToProvider.containsKey(type)) {
+                return null;
+            }
             return typeToProvider.get(type).resourceIndexName();
         } finally {
             lock.readLock().unlock();
