@@ -119,7 +119,7 @@ public class SecurityFilterTests {
         );
 
         // Act
-        filter.apply(null, null, null, listener, null);
+        filter.apply(null, null, null, null, listener, null);
 
         // Verify
         verify(auditLog).getComplianceConfig(); // Make sure the exception was thrown

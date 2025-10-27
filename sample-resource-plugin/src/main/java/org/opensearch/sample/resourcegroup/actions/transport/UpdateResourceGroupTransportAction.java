@@ -19,7 +19,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceGroup;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupResponse;
 import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupRequest;
@@ -59,7 +59,7 @@ public class UpdateResourceGroupTransportAction extends HandledTransportAction<U
     private void updateResource(UpdateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
         try {
             String resourceId = request.getResourceId();
-            SampleResource sample = request.getResource();
+            SampleResourceGroup sample = request.getResourceGroup();
             try (XContentBuilder builder = jsonBuilder()) {
                 sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
@@ -73,7 +73,7 @@ public class UpdateResourceGroupTransportAction extends HandledTransportAction<U
 
                 pluginClient.index(ir, ActionListener.wrap(updateResponse -> {
                     listener.onResponse(
-                        new CreateResourceGroupResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                        new CreateResourceGroupResponse("Resource " + request.getResourceGroup().getName() + " updated successfully.")
                     );
                 }, listener::onFailure));
             }
