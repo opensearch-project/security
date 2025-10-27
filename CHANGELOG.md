@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Refactoring
 - [Resource Sharing] Make migrate api require default access level to be supplied and updates documentations + tests ([#5717](https://github.com/opensearch-project/security/pull/5717))
 - [Resource Sharing] Removes share and revoke java APIs ([#5718](https://github.com/opensearch-project/security/pull/5718))
+- Fix build failure in SecurityFilterTests ([#5736](https://github.com/opensearch-project/security/pull/5736))
 
 ### Maintenance
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.0 ([#5678](https://github.com/opensearch-project/security/pull/5678))
@@ -38,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.autonomousapps.build-health` from 3.0.4 to 3.1.0 ([#5726](https://github.com/opensearch-project/security/pull/5726))
 - Bump `spring_version` from 6.2.11 to 6.2.12 ([#5725](https://github.com/opensearch-project/security/pull/5725))
 - Bump `actions/download-artifact` from 5 to 6 ([#5739](https://github.com/opensearch-project/security/pull/5739))
+- Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.30.0 ([#5741](https://github.com/opensearch-project/security/pull/5741))
 
 ### Documentation
 
