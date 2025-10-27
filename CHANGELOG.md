@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
 - Bump `com.autonomousapps.build-health` from 3.0.4 to 3.1.0 ([#5726](https://github.com/opensearch-project/security/pull/5726))
 - Bump `spring_version` from 6.2.11 to 6.2.12 ([#5725](https://github.com/opensearch-project/security/pull/5725))
+- Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.30.0 ([#5741](https://github.com/opensearch-project/security/pull/5741))
 
 ### Documentation
 
