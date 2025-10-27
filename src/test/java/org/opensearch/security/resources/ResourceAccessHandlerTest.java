@@ -24,7 +24,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -124,10 +123,7 @@ public class ResourceAccessHandlerTest {
 
         // Document setup: shared with the user at access-level "read"
         ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy("bob")).thenReturn(false);
-        when(doc.fetchAccessLevels(eq(Recipient.USERS), any())).thenReturn(Set.of("read"));
-        when(doc.fetchAccessLevels(eq(Recipient.ROLES), any())).thenReturn(Set.of());
-        when(doc.fetchAccessLevels(eq(Recipient.BACKEND_ROLES), any())).thenReturn(Set.of());
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Set.of("read"));
 
         FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
         when(resourcePluginInfo.flattenedForType(TYPE)).thenReturn(ag);

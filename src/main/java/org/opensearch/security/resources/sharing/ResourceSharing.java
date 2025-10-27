@@ -112,6 +112,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     public ShareWith getShareWith() {
+        if (shareWith == null) {
+            // never been shared before, private access
+            return new ShareWith(new HashMap<>());
+        }
         return shareWith;
     }
 
@@ -251,13 +255,25 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                         b.resourceId(parser.text());
                         break;
                     case "resource_type":
-                        b.resourceType(parser.text());
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.resourceType(null);
+                        } else {
+                            b.resourceType(parser.text());
+                        }
                         break;
                     case "parent_type":
-                        b.parentType(parser.text());
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.parentType(null);
+                        } else {
+                            b.parentType(parser.text());
+                        }
                         break;
                     case "parent_id":
-                        b.parentId(parser.text());
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.parentId(null);
+                        } else {
+                            b.parentId(parser.text());
+                        }
                         break;
                     case "created_by":
                         b.createdBy(CreatedBy.fromXContent(parser));

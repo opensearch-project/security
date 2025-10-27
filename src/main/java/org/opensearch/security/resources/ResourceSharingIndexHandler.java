@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -720,33 +719,19 @@ public class ResourceSharingIndexHandler {
 
         // Apply patch and update the document
         sharingInfoListener.whenComplete(sharingInfo -> {
-            ShareWith updatedShareWith = sharingInfo.getShareWith();
-            if (updatedShareWith == null) {
-                updatedShareWith = new ShareWith(new HashMap<>());
-            }
             if (add != null) {
-                updatedShareWith = updatedShareWith.add(add);
+                sharingInfo.getShareWith().add(add);
             }
             if (revoke != null) {
-                updatedShareWith = updatedShareWith.revoke(revoke);
+                sharingInfo.getShareWith().revoke(revoke);
             }
-
-            ShareWith cleaned = null;
-            if (updatedShareWith != null) {
-                ShareWith pruned = updatedShareWith.prune();
-                if (!pruned.isPrivate()) {
-                    cleaned = pruned; // store only if something non-empty remains
-                }
-            }
-
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, sharingInfo.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(resourceId)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
 
@@ -762,13 +747,13 @@ public class ResourceSharingIndexHandler {
                     updateResourceVisibility(
                         resourceId,
                         resourceIndex,
-                        updatedSharingInfo.getAllPrincipals(),
+                        sharingInfo.getAllPrincipals(),
                         ActionListener.wrap((updateResponse) -> {
                             LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
-                            listener.onResponse(updatedSharingInfo);
+                            listener.onResponse(sharingInfo);
                         }, (e) -> {
                             LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                            listener.onResponse(updatedSharingInfo);
+                            listener.onResponse(sharingInfo);
                         })
                     );
 
