@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
@@ -26,6 +28,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -35,6 +38,11 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -42,10 +50,12 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
 
     private final static String REST_ADMIN_PERMISSION_ROLE = "rest-admin-permission-role";
 
-    static {
-        testSecurityConfig.withRestAdminUser(REST_API_ADMIN_ACTION_ROLES_ONLY, restAdminPermission(Endpoint.ROLES))
-            .roles(new TestSecurityConfig.Role(REST_ADMIN_PERMISSION_ROLE).clusterPermissions(allRestAdminPermissions()));
-    }
+    @ClassRule
+    public static LocalCluster localCluster = clusterBuilder().users(
+        new TestSecurityConfig.User(REST_API_ADMIN_ACTION_ROLES_ONLY).roles(
+            new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.ROLES))
+        )
+    ).roles(new TestSecurityConfig.Role(REST_ADMIN_PERMISSION_ROLE).clusterPermissions(allRestAdminPermissions())).build();
 
     public RolesRestApiIntegrationTest() {
         super("roles", new TestDescriptor() {
@@ -71,27 +81,47 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         });
     }
 
+    @Test
+    public void forbiddenForRegularUsers() throws Exception {
+        super.forbiddenForRegularUsers(localCluster);
+    }
+
+    @Test
+    public void availableForAdminUser() throws Exception {
+        super.availableForAdminUser(localCluster);
+    }
+
+    @Test
+    public void availableForTLSAdminUser() throws Exception {
+        super.availableForTLSAdminUser(localCluster);
+    }
+
+    @Test
+    public void availableForRESTAdminUser() throws Exception {
+        super.availableForRESTAdminUser(localCluster);
+    }
+
     @Override
     void verifyCrudOperations(final Boolean hidden, final Boolean reserved, final TestRestClient client) throws Exception {
         final var newRoleJson = Strings.toString(
             XContentType.JSON,
             role(hidden, reserved, randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
         );
-        created(() -> client.putJson(apiPath("new_role"), newRoleJson));
+        assertThat(client.putJson(apiPath("new_role"), newRoleJson), isCreated());
         assertRole(ok(() -> client.get(apiPath("new_role"))), "new_role", hidden, reserved, newRoleJson);
 
         final var updatedRoleJson = Strings.toString(
             XContentType.JSON,
             role(hidden, reserved, randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
         );
-        ok(() -> client.putJson(apiPath("new_role"), updatedRoleJson));
+        assertThat(client.putJson(apiPath("new_role"), updatedRoleJson), isOk());
         assertRole(ok(() -> client.get(apiPath("new_role"))), "new_role", hidden, reserved, updatedRoleJson);
 
-        ok(() -> client.delete(apiPath("new_role")));
-        notFound(() -> client.get(apiPath("new_role")));
+        assertThat(client.delete(apiPath("new_role")), isOk());
+        assertThat(client.get(apiPath("new_role")), isNotFound());
 
         final var roleForPatch = role(hidden, reserved, configJsonArray("a", "b"), configJsonArray(), configJsonArray());
-        ok(() -> client.patch(apiPath(), patch(addOp("new_role_for_patch", roleForPatch))));
+        assertThat(client.patch(apiPath(), patch(addOp("new_role_for_patch", roleForPatch))), isOk());
         assertRole(
             ok(() -> client.get(apiPath("new_role_for_patch"))),
             "new_role_for_patch",
@@ -101,47 +131,43 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         );
 
         // TODO related to issue #4426
-        ok(
-            () -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b")))),
-            "No updates required"
+        assertThat(client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b")))), isOk());
+        assertThat(
+            client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b", "c")))),
+            isOk()
         );
-        ok(
-            () -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b", "c")))),
-            "'new_role_for_patch' updated."
-        );
-        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("index_permissions", randomIndexPermissions(false)))));
-        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("tenant_permissions", randomTenantPermissions(false)))));
-
-        ok(() -> client.patch(apiPath(), patch(removeOp("new_role_for_patch"))));
-        notFound(() -> client.get(apiPath("new_role_for_patch")));
+        assertThat(client.patch(apiPath("new_role_for_patch"), patch(addOp("index_permissions", randomIndexPermissions(false)))), isOk());
+        assertThat(client.patch(apiPath("new_role_for_patch"), patch(addOp("tenant_permissions", randomTenantPermissions(false)))), isOk());
+        assertThat(client.patch(apiPath(), patch(removeOp("new_role_for_patch"))), isOk());
+        assertThat(client.get(apiPath("new_role_for_patch")), isNotFound());
     }
 
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
-        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), EMPTY_BODY));
-        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        assertThat(client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), EMPTY_BODY), isBadRequest());
+        assertThat(client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions");
             randomClusterPermissions(false).toXContent(builder, params);
             builder.field("cluster_permissions");
             randomClusterPermissions(false).toXContent(builder, params);
             return builder.endObject();
-        }));
-        assertInvalidKeys(badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        }), isBadRequest());
+        assertInvalidKeys(client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
             builder.field("cluster_permissions");
             randomClusterPermissions(false).toXContent(builder, params);
             return builder.endObject();
-        })), "unknown_json_property");
-        assertWrongDataType(badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        }), "unknown_json_property");
+        assertWrongDataType(client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions").value("a");
             builder.field("index_permissions").value("b");
             return builder.endObject();
-        })), Map.of("cluster_permissions", "Array expected", "index_permissions", "Array expected"));
+        }), Map.of("cluster_permissions", "Array expected", "index_permissions", "Array expected"));
         assertNullValuesInArray(
             client.putJson(
                 apiPath(randomAsciiAlphanumOfLength(5)),
@@ -150,18 +176,23 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         );
         // patch
         final var predefinedRoleName = randomAsciiAlphanumOfLength(4);
-        created(() -> client.putJson(apiPath(predefinedRoleName), role(configJsonArray("a", "b"), configJsonArray(), configJsonArray())));
-
-        badRequest(() -> client.patch(apiPath(), patch(addOp("some_new_role", EMPTY_BODY))));
-        badRequest(
-            () -> client.patch(
-                apiPath(predefinedRoleName),
-                patch(replaceOp(randomFrom(List.of("cluster_permissions", "index_permissions", "tenant_permissions")), EMPTY_BODY))
-            )
+        assertThat(
+            client.putJson(apiPath(predefinedRoleName), role(configJsonArray("a", "b"), configJsonArray(), configJsonArray())),
+            isCreated()
         );
 
-        badRequest(
-            () -> client.patch(
+        assertThat(client.patch(apiPath(), patch(addOp("some_new_role", EMPTY_BODY))), isBadRequest());
+
+        assertThat(
+            client.patch(
+                apiPath(predefinedRoleName),
+                patch(replaceOp(randomFrom(List.of("cluster_permissions", "index_permissions", "tenant_permissions")), EMPTY_BODY))
+            ),
+            isBadRequest()
+        );
+
+        assertThat(
+            client.patch(
                 apiPath(randomAsciiAlphanumOfLength(5)),
                 patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
                     builder.startObject();
@@ -171,29 +202,34 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                     randomClusterPermissions(false).toXContent(builder, params);
                     return builder.endObject();
                 }))
-            )
+            ),
+            isBadRequest()
         );
-        badRequest(() -> client.patch(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+
+        assertThat(client.patch(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
             builder.field("cluster_permissions");
             randomClusterPermissions(false).toXContent(builder, params);
             return builder.endObject();
-        }));
-        assertWrongDataType(
-            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
-                builder.startObject();
-                builder.field("cluster_permissions").value("a");
-                builder.field("index_permissions").value("b");
-                return builder.endObject();
-            })))),
-            Map.of("cluster_permissions", "Array expected", "index_permissions", "Array expected")
+        }), isBadRequest());
+
+        var response = client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
+            builder.startObject();
+            builder.field("cluster_permissions").value("a");
+            builder.field("index_permissions").value("b");
+            return builder.endObject();
+        })));
+        assertThat(
+            response,
+            isBadRequest().withAttribute("/status", "error")
+                .withAttribute("/cluster_permissions", "Array expected")
+                .withAttribute("/index_permissions", "Array expected")
         );
-        assertWrongDataType(
-            badRequest(() -> client.patch(apiPath(predefinedRoleName), patch(replaceOp("cluster_permissions", "true")))),
-            Map.of("cluster_permissions", "Array expected")
-        );
+
+        response = badRequest(() -> client.patch(apiPath(predefinedRoleName), patch(replaceOp("cluster_permissions", "true"))));
+        assertThat(response, isBadRequest().withAttribute("/status", "error").withAttribute("/cluster_permissions", "Array expected"));
         assertNullValuesInArray(
             client.patch(
                 apiPath(),
@@ -213,26 +249,25 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
 
     @Override
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
-        forbidden(() -> client.putJson(apiPath("new_rest_admin_role"), roleWithClusterPermissions(randomRestAdminPermission())));
-        forbidden(
-            () -> client.patch(
-                apiPath(),
-                patch(addOp("new_rest_admin_action_group", roleWithClusterPermissions(randomRestAdminPermission())))
-            )
+        assertThat(client.putJson(apiPath("new_rest_admin_role"), roleWithClusterPermissions(randomRestAdminPermission())), isForbidden());
+        assertThat(
+            client.patch(apiPath(), patch(addOp("new_rest_admin_action_group", roleWithClusterPermissions(randomRestAdminPermission())))),
+            isForbidden()
         );
     }
 
     @Override
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         // update
-        forbidden(
-            () -> client.putJson(
+        assertThat(
+            client.putJson(
                 apiPath(REST_ADMIN_PERMISSION_ROLE),
                 role(randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
-            )
+            ),
+            isForbidden()
         );
-        forbidden(
-            () -> client.patch(
+        assertThat(
+            client.patch(
                 apiPath(),
                 patch(
                     replaceOp(
@@ -240,18 +275,17 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                         role(randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
                     )
                 )
-            )
+            ),
+            isForbidden()
         );
-        forbidden(
-            () -> client.patch(
-                apiPath(REST_ADMIN_PERMISSION_ROLE),
-                patch(replaceOp("cluster_permissions", randomClusterPermissions(false)))
-            )
+        assertThat(
+            client.patch(apiPath(REST_ADMIN_PERMISSION_ROLE), patch(replaceOp("cluster_permissions", randomClusterPermissions(false)))),
+            isForbidden()
         );
         // remove
-        forbidden(() -> client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ROLE))));
-        forbidden(() -> client.patch(apiPath(REST_ADMIN_PERMISSION_ROLE), patch(removeOp("cluster_permissions"))));
-        forbidden(() -> client.delete(apiPath(REST_ADMIN_PERMISSION_ROLE)));
+        assertThat(client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ROLE))), isForbidden());
+        assertThat(client.patch(apiPath(REST_ADMIN_PERMISSION_ROLE), patch(removeOp("cluster_permissions"))), isForbidden());
+        assertThat(client.delete(apiPath(REST_ADMIN_PERMISSION_ROLE)), isForbidden());
     }
 
     void assertRole(

@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
-import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -91,8 +91,6 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 * the configuration index of the security plugin.
 */
 public class TestSecurityConfig {
-
-    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
@@ -174,18 +172,6 @@ public class TestSecurityConfig {
     public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
-        }
-        return this;
-    }
-
-    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
-        if (!internalUsers.containsKey(name)) {
-            user(new User(name).description("REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
-            final var roleName = name + "__rest_admin_role";
-            roles(new Role(roleName).clusterPermissions(permissions));
-
-            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
-            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
         }
         return this;
     }
@@ -457,10 +443,13 @@ public class TestSecurityConfig {
         private String password;
         List<Role> roles = new ArrayList<>();
         List<String> backendRoles = new ArrayList<>();
+        /**
+         * This will be initialized by aggregateRoles()
+         */
+        Set<String> roleNames;
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
-        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
         private boolean adminCertUser = false;
 
         private Boolean hidden = null;
@@ -487,11 +476,7 @@ public class TestSecurityConfig {
         }
 
         public User roles(Role... roles) {
-            // We scope the role names by user to keep tests free of potential side effects
-            String roleNamePrefix = "user_" + this.getName() + "__";
-            this.roles.addAll(
-                Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
-            );
+            this.roles.addAll(Arrays.asList(roles));
             return this;
         }
 
@@ -538,7 +523,10 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
-            return roles.stream().map(Role::getName).collect(Collectors.toSet());
+            if (roleNames == null) {
+                this.aggregateRoles();
+            }
+            return roleNames;
         }
 
         public String getDescription() {
@@ -641,6 +629,25 @@ public class TestSecurityConfig {
                 this.type = type;
             }
         }
+
+        void aggregateRoles() {
+            if (this.roleNames == null) {
+                this.roleNames = new HashSet<>();
+            }
+
+            for (Role role : this.roles) {
+                if (role.addedIndependentlyOfUser) {
+                    // This is a globally defined role, we just use this
+                    this.roleNames.add(role.name);
+                } else {
+                    // This is role that is locally defined for the user; let's scope the name
+                    if (!role.name.startsWith("user_" + this.name)) {
+                        role.name = "user_" + this.name + "__" + role.name;
+                    }
+                    this.roleNames.add(role.name);
+                }
+            }
+        }
     }
 
     public static class Role implements ToXContentObject {
@@ -656,6 +663,12 @@ public class TestSecurityConfig {
         private Boolean reserved;
 
         private String description;
+
+        /**
+         * This will be set to true, if this was added using the roles() method on TestSecurityConfig.
+         * Then, we will consider this a role which is shared between users and we won't scope its name.
+         */
+        private boolean addedIndependentlyOfUser = false;
 
         public Role(String name) {
             this(name, null);
@@ -1095,7 +1108,7 @@ public class TestSecurityConfig {
             if (auditConfiguration != null) {
                 writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
             }
-            writeConfigToIndex(client, CType.ROLES, roles);
+            writeConfigToIndex(client, CType.ROLES, aggregateRoles());
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
             writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
@@ -1107,7 +1120,25 @@ public class TestSecurityConfig {
                 writeConfigToIndex(client, entry.getKey(), entry.getValue());
             }
         }
+    }
 
+    /**
+     * Merges the globally defined roles with the roles defined by user. Roles defined by user will be scoped
+     * so that user definitions cannot interfere with others.
+     */
+    private Map<String, Role> aggregateRoles() {
+        Map<String, Role> result = new HashMap<>(this.roles);
+        for (User user : this.internalUsers.values()) {
+            user.aggregateRoles();
+
+            for (Role role : user.roles) {
+                if (!role.addedIndependentlyOfUser) {
+                    result.put(role.name, role);
+                }
+            }
+        }
+
+        return result;
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {

@@ -13,10 +13,13 @@ package org.opensearch.security.api;
 
 import java.util.List;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -24,16 +27,16 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class DashboardsInfoTest extends AbstractApiIntegrationTest {
 
-    static {
-        testSecurityConfig.user(
-            new TestSecurityConfig.User("dashboards_user").roles(
-                new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
-            )
-        );
-    }
+    static final TestSecurityConfig.User DASHBOARDS_USER = new TestSecurityConfig.User("dashboards_user").roles(
+        new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
+    );
+
+    @ClassRule
+    public static LocalCluster localCluster = clusterBuilder().users(DASHBOARDS_USER).build();
 
     private String apiPath() {
         return randomFrom(List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo"));
@@ -41,10 +44,11 @@ public class DashboardsInfoTest extends AbstractApiIntegrationTest {
 
     @Test
     public void testDashboardsInfoValidationMessage() throws Exception {
-        withUser("dashboards_user", client -> {
-            final var response = ok(() -> client.get(apiPath()));
+        try (TestRestClient client = localCluster.getRestClient(DASHBOARDS_USER)) {
+            final var response = client.get(apiPath());
+            assertThat(response, isOk());
             assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
             assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
-        });
+        }
     }
 }
