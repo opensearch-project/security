@@ -36,4 +36,10 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     ); // Not filtered
 
+    public static final Setting<Boolean> USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING = Setting.boolSetting(
+        ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED,
+        ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    ); // Not filtered
 }

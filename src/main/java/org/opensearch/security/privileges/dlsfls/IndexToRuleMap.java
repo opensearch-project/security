@@ -28,7 +28,7 @@ public class IndexToRuleMap<Rule extends AbstractRuleBasedPrivileges.Rule> {
 
     private final ImmutableMap<String, Rule> indexMap;
 
-    IndexToRuleMap(ImmutableMap<String, Rule> indexMap) {
+    public IndexToRuleMap(ImmutableMap<String, Rule> indexMap) {
         this.indexMap = indexMap;
     }
 

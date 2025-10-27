@@ -68,6 +68,8 @@ public class Utils {
     @Deprecated
     public final static String LEGACY_PLUGIN_API_ROUTE_PREFIX = LEGACY_PLUGIN_ROUTE_PREFIX + "/api";
 
+    public final static String PLUGIN_API_RESOURCE_ROUTE_PREFIX = PLUGIN_API_ROUTE_PREFIX + "/resource";
+
     public final static String OPENDISTRO_API_DEPRECATION_MESSAGE =
         "[_opendistro/_security] is a deprecated endpoint path. Please use _plugins/_security instead.";
 
@@ -123,6 +125,11 @@ public class Utils {
 
     public static JsonNode toJsonNode(final String content) throws IOException {
         return DefaultObjectMapper.readTree(content);
+    }
+
+    public static Map<String, String> toMapOfStrings(final JsonNode jsonNode) {
+        return internalMapper.convertValue(jsonNode, new TypeReference<Map<String, String>>() {
+        });
     }
 
     public static Object toConfigObject(final JsonNode content, final Class<?> clazz) throws IOException {

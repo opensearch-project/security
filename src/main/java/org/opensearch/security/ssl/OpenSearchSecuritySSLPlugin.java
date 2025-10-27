@@ -94,6 +94,17 @@ import org.opensearch.watcher.ResourceWatcherService;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_CIPHERS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_PROTOCOLS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
+
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
@@ -634,6 +645,24 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             )
         );
 
+        /**
+         * Expose aux transport settings.
+         */
+        settings.addAll(
+            List.of(
+                SECURITY_SSL_AUX_ENABLED,
+                SECURITY_SSL_AUX_ENABLED_CIPHERS,
+                SECURITY_SSL_AUX_ENABLED_PROTOCOLS,
+                SECURITY_SSL_AUX_KEYSTORE_FILEPATH,
+                SECURITY_SSL_AUX_PEMKEY_FILEPATH,
+                SECURITY_SSL_AUX_PEMKEY_PASSWORD,
+                SECURITY_SSL_AUX_PEMCERT_FILEPATH,
+                SECURITY_SSL_AUX_CLIENTAUTH_MODE,
+                SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH,
+                SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH
+            )
+        );
+
         return settings;
     }
 
@@ -664,7 +693,18 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
         settingsFilter.add("opendistro_security.*");
-        settingsFilter.add("plugins.security.*");
+        settingsFilter.add("plugins.security.transport_user_cache.*");
+        settingsFilter.add("plugins.security.nodes_dn.*");
+        settingsFilter.add("plugins.security.restapi.*");
+        settingsFilter.add("plugins.security.ssl.*");
+        settingsFilter.add("plugins.security.config_version.*");
+        settingsFilter.add("plugins.security.nodes_dn_dynamic_config_enabled.*");
+        settingsFilter.add("plugins.security.privileges_evaluation.*");
+        settingsFilter.add("plugins.security.authcz.*");
+        settingsFilter.add("plugins.security.password.*");
+        settingsFilter.add("plugins.security.unsupported.*");
+        settingsFilter.add("plugins.security.audit.*");
+        settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }
 
@@ -727,5 +767,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         }
 
         return builder.build();
+    }
+
+    public ThreadPool getThreadPool() {
+        return this.threadPool;
     }
 }

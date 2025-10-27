@@ -14,9 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -46,16 +43,27 @@ import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRestAction;
-import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessAction;
-import org.opensearch.sample.resource.actions.rest.revoke.RevokeResourceAccessRestAction;
-import org.opensearch.sample.resource.actions.rest.share.ShareResourceAction;
-import org.opensearch.sample.resource.actions.rest.share.ShareResourceRestAction;
+import org.opensearch.sample.resource.actions.rest.search.SearchResourceAction;
+import org.opensearch.sample.resource.actions.rest.search.SearchResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
-import org.opensearch.sample.resource.actions.transport.RevokeResourceAccessTransportAction;
-import org.opensearch.sample.resource.actions.transport.ShareResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.create.UpdateResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.delete.DeleteResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.delete.DeleteResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.get.GetResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupAction;
+import org.opensearch.sample.resourcegroup.actions.rest.search.SearchResourceGroupRestAction;
+import org.opensearch.sample.resourcegroup.actions.transport.CreateResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.DeleteResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.GetResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.SearchResourceGroupTransportAction;
+import org.opensearch.sample.resourcegroup.actions.transport.UpdateResourceGroupTransportAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginAction;
 import org.opensearch.sample.secure.actions.rest.create.SecurePluginRestAction;
 import org.opensearch.sample.secure.actions.transport.SecurePluginTransportAction;
@@ -66,8 +74,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
-import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
-import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT;
 
 /**
  * Sample Resource plugin.
@@ -75,14 +81,9 @@ import static org.opensearch.security.spi.resources.FeatureConfigConstants.OPENS
  *
  */
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, IdentityAwarePlugin {
-    private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
-    private boolean isResourceSharingEnabled = false;
-
     private PluginClient pluginClient;
 
-    public SampleResourcePlugin(final Settings settings) {
-        isResourceSharingEnabled = settings.getAsBoolean(OPENSEARCH_RESOURCE_SHARING_ENABLED, OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT);
-    }
+    public SampleResourcePlugin() {}
 
     @Override
     public Collection<Object> createComponents(
@@ -99,6 +100,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.pluginClient = new PluginClient(client);
+
         return List.of(pluginClient);
     }
 
@@ -116,12 +118,13 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new CreateResourceRestAction());
         handlers.add(new GetResourceRestAction());
         handlers.add(new DeleteResourceRestAction());
-        handlers.add(new SecurePluginRestAction());
+        handlers.add(new SearchResourceRestAction());
+        handlers.add(new CreateResourceGroupRestAction());
+        handlers.add(new GetResourceGroupRestAction());
+        handlers.add(new DeleteResourceGroupRestAction());
+        handlers.add(new SearchResourceGroupRestAction());
 
-        if (isResourceSharingEnabled) {
-            handlers.add(new ShareResourceRestAction());
-            handlers.add(new RevokeResourceAccessRestAction());
-        }
+        handlers.add(new SecurePluginRestAction());
         return handlers;
     }
 
@@ -132,10 +135,12 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         actions.add(new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class));
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));
-        if (isResourceSharingEnabled) {
-            actions.add(new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class));
-            actions.add(new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class));
-        }
+        actions.add(new ActionHandler<>(SearchResourceAction.INSTANCE, SearchResourceTransportAction.class));
+        actions.add(new ActionHandler<>(CreateResourceGroupAction.INSTANCE, CreateResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(GetResourceGroupAction.INSTANCE, GetResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(UpdateResourceGroupAction.INSTANCE, UpdateResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(DeleteResourceGroupAction.INSTANCE, DeleteResourceGroupTransportAction.class));
+        actions.add(new ActionHandler<>(SearchResourceGroupAction.INSTANCE, SearchResourceGroupTransportAction.class));
         actions.add(new ActionHandler<>(SecurePluginAction.INSTANCE, SecurePluginTransportAction.class));
         return actions;
     }

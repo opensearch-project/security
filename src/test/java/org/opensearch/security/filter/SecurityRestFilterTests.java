@@ -21,6 +21,8 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Currently tests that the allowlisting functionality works correctly.
@@ -300,4 +302,61 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
+
+    /**
+     * Tests that the perform_permission_check param works correctly.
+     * When perform_permission_check=true is added to a request, returns
+     * whether the request would be allowed or Denied, without actually executing the request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testHasPermissionCheckParam_AccessAllowedCase() throws Exception {
+        setup();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        response = rh.executeGetRequest("_cluster/health?perform_permission_check=true", nonAdminCredsHeader);
+        rh.sendAdminCertificate = false;
+        // user has permissions to GET /_cluster/health response accessAllowed:true
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertTrue(response.getBody().contains("\"accessAllowed\":true"));
+        assertTrue(response.getBody().contains("\"missingPrivileges\":[]"));
+
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_search?perform_permission_check=false\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
+        // perform_permission_check=false (normal execution flow) no simulation fields in response
+        rh.sendAdminCertificate = false;
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertFalse(response.getBody().contains("\"accessAllowed\":"));
+        assertFalse(response.getBody().contains("\"missingPrivileges\":"));
+
+    }
+
+    @Test
+    public void testHasPermissionCheckParam_AccessNotAllowedCase() throws Exception {
+        setup();
+
+        // Create a new user with no permissions
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String createUserBody = "{" + "\"password\": \"test-pass\"," + "\"backend_roles\": []" + "}";
+
+        response = rh.executePutRequest("_plugins/_security/api/internalusers/test_user", createUserBody, adminCredsHeader);
+        Header testUserHeader = encodeBasicHeader("test_user", "test-pass");
+        rh.sendAdminCertificate = false;
+
+        // test_user has no permissions to GET /_cluster/health response accessAllowed:false
+        response = rh.executeGetRequest("_cluster/health?perform_permission_check=true", testUserHeader);
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertTrue(response.getBody().contains("\"accessAllowed\":false"));
+        assertTrue(response.getBody().contains("\"missingPrivileges\":[\"cluster:monitor/health\"]"));
+
+    }
+
 }

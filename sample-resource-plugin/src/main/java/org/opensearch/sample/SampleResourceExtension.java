@@ -13,20 +13,22 @@ package org.opensearch.sample;
 
 import java.util.Set;
 
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
+import org.opensearch.sample.client.ResourceSharingClientAccessor;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Responsible for parsing the XContent into a SampleResource object.
  */
 public class SampleResourceExtension implements ResourceSharingExtension {
+
     @Override
     public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
+        return Set.of(new ResourceProvider(RESOURCE_TYPE, RESOURCE_INDEX_NAME));
     }
 
     @Override

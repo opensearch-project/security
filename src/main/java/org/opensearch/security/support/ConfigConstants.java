@@ -72,6 +72,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
+    public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
 
@@ -123,6 +124,8 @@ public class ConfigConstants {
 
     // persistent header. This header is set once and cannot be stashed
     public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "authenticated_user";
+    public static final String OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER = OPENDISTRO_SECURITY_AUTHENTICATED_USER + "_header";
+    public static final String OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER = OPENDISTRO_SECURITY_USER + "_same_as_subject_header";
 
     public static final String OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "user_info";
 
@@ -130,6 +133,7 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
     public static final String OPENDISTRO_SECURITY_INJECTED_USER_HEADER = "injected_user_header";
+    public static final String OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES = "injected_user_custom_attributes";
 
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "xff_done";
 
@@ -160,6 +164,8 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_VERSIONS_INDEX_NAME = SECURITY_SETTINGS_PREFIX + "config_versions_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = SECURITY_SETTINGS_PREFIX + "authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = SECURITY_SETTINGS_PREFIX + "authcz.rest_impersonation_user";
+
+    public static final String SECURITY_PERFORM_PERMISSION_CHECK_PARAM = "perform_permission_check";
 
     public static final String BCRYPT = "bcrypt";
     public static final String PBKDF2 = "pbkdf2";
@@ -406,6 +412,9 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_VERSION_RETENTION_COUNT = SECURITY_SETTINGS_PREFIX + "config_version.retention_count";
     public static final int SECURITY_CONFIG_VERSION_RETENTION_COUNT_DEFAULT = 10;
 
+    public static final String USER_ATTRIBUTE_SERIALIZATION_ENABLED = SECURITY_SETTINGS_PREFIX + "user_attribute_serialization.enabled";
+    public static final boolean USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT = false;
+
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
@@ -414,6 +423,17 @@ public class ConfigConstants {
 
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
+
+    // Resource sharing feature-flag
+    public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
+    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
+
+    // Protected resource types
+    // Resource sharing will only apply to these types
+    public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES =
+        "plugins.security.experimental.resource_sharing.protected_types";
+    public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
+                                                                                                      // protected
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

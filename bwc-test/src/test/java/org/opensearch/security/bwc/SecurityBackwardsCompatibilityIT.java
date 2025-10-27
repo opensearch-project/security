@@ -8,10 +8,14 @@
 package org.opensearch.security.bwc;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,10 +46,12 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.Randomness;
+import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.common.xcontent.support.XContentMapValues;
+import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
@@ -119,6 +125,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .build();
     }
 
+    @Override
+    protected Settings restAdminSettings() {
+        return Settings.builder()
+            .put("http.port", 9200)
+            .put("plugins.security.ssl.http.enabled", true)
+            // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
+            .put("plugins.security.ssl.http.pemcert_filepath", "sample.pem")
+            .put("plugins.security.ssl.http.keystore_filepath", "test-kirk.jks")
+            .put("plugins.security.ssl.http.keystore_password", "changeit")
+            .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
+            .build();
+    }
+
     protected RestClient buildClient(Settings settings, HttpHost[] hosts, String username, String password) {
         RestClientBuilder builder = RestClient.builder(hosts);
         configureHttpsClient(builder, settings, username, password);
@@ -128,7 +147,18 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     @Override
-    protected RestClient buildClient(Settings settings, HttpHost[] hosts) {
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+        String keystore = settings.get("plugins.security.ssl.http.keystore_filepath");
+        if (Objects.nonNull(keystore)) {
+            URI uri = null;
+            try {
+                uri = this.getClass().getClassLoader().getResource("security/test-kirk.jks").toURI();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            Path configPath = PathUtils.get(uri).getParent().toAbsolutePath();
+            return new SecureRestClientBuilder(settings, configPath, hosts).build();
+        }
         String username = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
             .orElseThrow(() -> new RuntimeException("user name is missing"));
         String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
@@ -166,6 +196,68 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    /**
+     * Test /certificates endpoint.
+     * Validate certificate info for correctness and check for errors.
+     */
+    public void testSslCertsInfoEndpoint() throws IOException {
+        List<String> expectCertificates = List.of("http", "transport", "transport_client");
+        List<Response> resp = RestHelper.requestAgainstAllNodes(adminClient(), "GET", "_plugins/_security/api/certificates", null);
+        resp.forEach(response -> {
+            assertEquals("SSL certs info endpoint should return 200", 200, response.getStatusLine().getStatusCode());
+            Map<String, Object> responseMap;
+            try {
+                responseMap = responseAsMap(response);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to parse certs info response", e);
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nodeFailureMap = (Map<String, Object>) responseMap.get("_nodes");
+            assertEquals(3, nodeFailureMap.get("total"));
+            assertEquals(3, nodeFailureMap.get("successful"));
+            assertEquals(0, nodeFailureMap.get("failed"));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nodesMap = (Map<String, Object>) responseMap.get("nodes");
+            for (String nodeKey : nodesMap.keySet()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nodeInfo = (Map<String, Object>) nodesMap.get(nodeKey);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nodeCerts = (Map<String, Object>) nodeInfo.get("certificates");
+                for (String expectCertKey : expectCertificates) {
+                    // required cert types
+                    if (Set.of("http", "transport").contains(expectCertKey)) {
+                        assertTrue(nodeCerts.containsKey(expectCertKey));
+                    }
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> certList = (List<Map<String, Object>>) nodeCerts.getOrDefault(expectCertKey, List.of());
+                    for (Map<String, Object> singleCert : certList) {
+                        verifyCertificateInfo(singleCert);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Validate the structure of certificates info response items.
+     */
+    private void verifyCertificateInfo(Map<String, Object> certInfo) {
+        assertThat("Certificate should have subject_dn", certInfo, hasKey("subject_dn"));
+        assertThat("Certificate should have issuer_dn", certInfo, hasKey("issuer_dn"));
+        assertThat("Certificate should have not_before", certInfo, hasKey("not_before"));
+        assertThat("Certificate should have not_after", certInfo, hasKey("not_after"));
+        Object subjectDn = certInfo.get("subject_dn");
+        if (subjectDn != null) {
+            assertTrue("subject_dn should be a string", subjectDn instanceof String);
+            assertFalse("subject_dn should not be empty", ((String) subjectDn).isEmpty());
+        }
+        Object issuerDn = certInfo.get("issuer_dn");
+        if (issuerDn != null) {
+            assertTrue("issuer_dn should be a string", issuerDn instanceof String);
+            assertFalse("issuer_dn should not be empty", ((String) issuerDn).isEmpty());
+        }
     }
 
     public void testWhoAmI() throws Exception {

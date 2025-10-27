@@ -29,6 +29,7 @@ package org.opensearch.security.filter;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -48,7 +49,6 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -61,6 +61,7 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -72,11 +73,13 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.security.action.simulate.PermissionCheckResponse;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -86,6 +89,7 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
@@ -98,23 +102,24 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
-    private DlsFlsRequestValve dlsFlsValve;
+    private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
-    private final ThreadContext threadContext;
+    private final ThreadPool threadPool;
     private final ClusterService cs;
     private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
-    private final XFFResolver xffResolver;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
+    private final ResourceAccessEvaluator resourceAccessEvaluator;
 
     public SecurityFilter(
         final Settings settings,
@@ -127,23 +132,24 @@ public class SecurityFilter implements ActionFilter {
         final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
-        final XFFResolver xffResolver
+        final XFFResolver xffResolver,
+        ResourceAccessEvaluator resourceAccessEvaluator
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
-        this.threadContext = threadPool.getThreadContext();
+        this.threadPool = threadPool;
         this.cs = cs;
         this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
-        this.xffResolver = xffResolver;
         this.immutableIndicesMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.resourceAccessEvaluator = resourceAccessEvaluator;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -162,10 +168,11 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
-        try (StoredContext ctx = threadContext.newStoredContext(true)) {
+        try (StoredContext ctx = threadPool.getThreadContext().newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
@@ -183,7 +190,7 @@ public class SecurityFilter implements ActionFilter {
         ActionFilterChain<Request, Response> chain
     ) {
         try {
-
+            ThreadContext threadContext = threadPool.getThreadContext();
             if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
@@ -192,7 +199,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadPool);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
                 UserInjector.Result injectedUser = userInjector.getInjectedUser();
@@ -200,6 +207,9 @@ public class SecurityFilter implements ActionFilter {
                     user = injectedUser.getUser();
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
+            }
+            if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -343,6 +353,12 @@ public class SecurityFilter implements ActionFilter {
                         log.info("Transport auth in passive mode and no user found. Injecting default user");
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                        if (threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+                            threadContext.putPersistent(
+                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
+                                new UserSubjectImpl(threadPool, user)
+                            );
+                        }
                     } else {
                         log.error(
                             "No user found for "
@@ -382,10 +398,54 @@ public class SecurityFilter implements ActionFilter {
             }
 
             PrivilegesEvaluationContext context = eval.createContext(user, action, request, task, injectedRoles);
+            User finalUser = user;
+            Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
+                auditLog.logMissingPrivileges(action, request, task);
+                String err;
+                if (!response.getMissingSecurityRoles().isEmpty()) {
+                    err = String.format("No mapping for %s on roles %s", finalUser, response.getMissingSecurityRoles());
+                } else {
+                    err = (injectedRoles != null)
+                        ? String.format(
+                            "no permissions for %s and associated roles %s",
+                            response.getMissingPrivileges(),
+                            context.getMappedRoles()
+                        )
+                        : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+                }
+                log.debug(err);
+                listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
+            };
+
+            // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
+            // require blocking transport threads leading to thread exhaustion and request timeouts
+            // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
+            if (resourceAccessEvaluator.shouldEvaluate(request)) {
+                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
+                    if (handlePermissionCheckRequest(listener, response, action)) {
+                        return;
+                    }
+                    if (response.isAllowed()) {
+                        auditLog.logGrantedPrivileges(action, request, task);
+                        auditLog.logIndexEvent(action, request, task);
+                        chain.proceed(task, action, request, listener);
+                    } else {
+                        handleUnauthorized.accept(response);
+                    }
+                }, listener::onFailure));
+                // We early return here to skip calling rest of the evaluation as this is a resource-access request
+                // Chain will proceed inside the async ActionListener above, if allowed, else returns forbidden
+                return;
+            }
+
+            // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
+            }
+            if (handlePermissionCheckRequest(listener, pres, action)) {
+                return;
             }
 
             if (pres.isAllowed()) {
@@ -405,71 +465,50 @@ public class SecurityFilter implements ActionFilter {
                         createIndexRequest.index(),
                         alias2Name(createIndexRequest.aliases())
                     );
-                    createIndexRequestBuilder.execute(new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            if (createIndexResponse.isAcknowledged()) {
-                                log.debug(
-                                    "Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName()
-                                );
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                String message = LoggerMessageFormat.format(
-                                    "Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName()
-                                );
-                                log.error(message);
-                                listener.onFailure(new OpenSearchException(message));
-                            }
+                    createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
+                        if (createIndexResponse.isAcknowledged()) {
+                            log.debug(
+                                "Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName()
+                            );
+                            chain.proceed(task, action, request, listener);
+                        } else {
+                            String message = LoggerMessageFormat.format(
+                                "Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName()
+                            );
+                            log.error(message);
+                            listener.onFailure(new OpenSearchException(message));
                         }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            Throwable cause = ExceptionsHelper.unwrapCause(e);
-                            if (cause instanceof ResourceAlreadyExistsException) {
-                                log.warn(
-                                    "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName(),
-                                    e
-                                );
-                                chain.proceed(task, action, request, listener);
-                            } else {
-                                log.error(
-                                    "Request to create index {} with aliases {} failed, failing {}",
-                                    createIndexRequest.index(),
-                                    alias2Name(createIndexRequest.aliases()),
-                                    request.getClass().getSimpleName(),
-                                    e
-                                );
-                                listener.onFailure(e);
-                            }
+                    }, e -> {
+                        Throwable cause = ExceptionsHelper.unwrapCause(e);
+                        if (cause instanceof ResourceAlreadyExistsException) {
+                            log.warn(
+                                "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName(),
+                                e
+                            );
+                            chain.proceed(task, action, request, listener);
+                        } else {
+                            log.error(
+                                "Request to create index {} with aliases {} failed, failing {}",
+                                createIndexRequest.index(),
+                                alias2Name(createIndexRequest.aliases()),
+                                request.getClass().getSimpleName(),
+                                e
+                            );
+                            listener.onFailure(e);
                         }
-                    });
+                    }));
                 }
             } else {
-                auditLog.logMissingPrivileges(action, request, task);
-                String err;
-                if (!pres.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
-                } else {
-                    err = (injectedRoles != null)
-                        ? String.format(
-                            "no permissions for %s and associated roles %s",
-                            pres.getMissingPrivileges(),
-                            context.getMappedRoles()
-                        )
-                        : String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
-                }
-                log.debug(err);
-
-                listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
+                handleUnauthorized.accept(pres);
             }
         } catch (OpenSearchException e) {
             if (task != null) {
@@ -479,21 +518,17 @@ public class SecurityFilter implements ActionFilter {
             }
             listener.onFailure(e);
         } catch (Throwable e) {
-            log.error("Unexpected exception " + e, e);
+            log.error("Unexpected exception {}", e, e);
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
-        if (user != null && adminDns.isAdmin(user)) {
-            return true;
-        }
-
-        return false;
+        return user != null && adminDns.isAdmin(user);
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-
+        final ThreadContext threadContext = threadPool.getThreadContext();
         if (request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
@@ -505,6 +540,30 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
+    }
+
+    private <Response extends ActionResponse> boolean handlePermissionCheckRequest(
+        ActionListener<Response> listener,
+        PrivilegesEvaluatorResponse pres,
+        String action
+    ) {
+        boolean isDryRun = Boolean.parseBoolean(threadPool.getThreadContext().getHeader(SECURITY_PERFORM_PERMISSION_CHECK_PARAM));
+        if (!isDryRun) {
+            return false;
+        }
+
+        @SuppressWarnings("unchecked")
+        Response response = (Response) new PermissionCheckResponse(pres.isAllowed(), pres.getMissingPrivileges());
+        listener.onResponse(response);
+
+        log.debug(
+            "Dry run permission check for action '{}': accessAllowed={}, missingPrivileges={}",
+            action,
+            pres.isAllowed(),
+            pres.getMissingPrivileges()
+        );
+
+        return true;
     }
 
     @SuppressWarnings("rawtypes")

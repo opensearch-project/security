@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.4.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -24,16 +24,16 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.1.0.0-SNAPSHOT')
+        common_utils_version = System.getProperty("common_utils.version", '3.2.0.0-SNAPSHOT')
 
         kafka_version  = '4.0.0'
-        open_saml_version = '5.1.4'
+        open_saml_version = '5.1.6'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
-        jjwt_version = '0.12.6'
-        guava_version = '33.4.8-jre'
+        jjwt_version = '0.13.0'
+        guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.8'
+        spring_version = '6.2.12'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -47,8 +47,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
     }
@@ -66,9 +65,9 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.2"
+    id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.2.2"
+    id "com.github.spotbugs" version "6.4.4"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -375,7 +374,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.26.1"
+    toolVersion "11.0.0"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
@@ -392,6 +391,7 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+    extendedPlugins = ['workload-management;optional=true', 'rule-framework']
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -422,10 +422,11 @@ publishing {
     repositories {
         maven {
             name = "Snapshots" //  optional target repository name
-            url = "https://central.sonatype.com/repository/maven-snapshots/"
-            credentials {
-                username "$System.env.SONATYPE_USERNAME"
-                password "$System.env.SONATYPE_PASSWORD"
+            url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+            credentials(AwsCredentials) {
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
             }
         }
     }
@@ -451,9 +452,9 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.18.0'
+            force 'commons-codec:commons-codec:1.19.0'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.16'
+            force 'org.scala-lang:scala-library:2.13.17'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -464,15 +465,15 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.7"
+            force "org.xerial.snappy:snappy-java:1.1.10.8"
             force "com.google.guava:guava:${guava_version}"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.0"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.200"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
@@ -481,16 +482,19 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.40.0"
-            force "org.checkerframework:checker-qual:3.49.5"
-            force "ch.qos.logback:logback-classic:1.5.18"
-            force "commons-io:commons-io:2.19.0"
+            force "com.google.errorprone:error_prone_annotations:2.42.0"
+            force "org.checkerframework:checker-qual:3.51.1"
+            force "ch.qos.logback:logback-classic:1.5.20"
+            force "commons-io:commons-io:2.20.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.18.0"
-            force "net.bytebuddy:byte-buddy:1.17.6"
-            force "org.ow2.asm:asm:9.8"
-            force "com.google.j2objc:j2objc-annotations:3.0.0"
+            force "org.mockito:mockito-core:5.20.0"
+            force "net.bytebuddy:byte-buddy:1.17.8"
+            force "org.ow2.asm:asm:9.9"
+            force "com.google.j2objc:j2objc-annotations:3.1"
+
+            // For org.opensearch.plugin:transport-grpc
+            force "com.google.guava:failureaccess:1.0.3"
         }
     }
 
@@ -503,8 +507,7 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
         maven { url "build.shibboleth.net/maven/releases"}
@@ -520,7 +523,7 @@ allprojects {
         testImplementation 'org.hamcrest:hamcrest:2.2'
         testImplementation 'junit:junit:4.13.2'
         testImplementation "org.opensearch:opensearch:${opensearch_version}"
-        testImplementation "org.mockito:mockito-core:5.18.0"
+        testImplementation "org.mockito:mockito-core:5.20.0"
 
         //integration test framework:
         integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
@@ -530,8 +533,12 @@ allprojects {
         integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
             exclude(group: 'org.slf4j', module: 'slf4j-api')
         }
+        integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
+        integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
+        integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+        integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-        integrationTestImplementation 'commons-io:commons-io:2.19.0'
+        integrationTestImplementation 'commons-io:commons-io:2.20.0'
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
         integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
@@ -548,7 +555,7 @@ allprojects {
         integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
         integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
         integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-        integrationTestImplementation "org.mockito:mockito-core:5.18.0"
+        integrationTestImplementation "org.mockito:mockito-core:5.20.0"
         integrationTestImplementation "org.passay:passay:1.6.6"
         integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
@@ -559,15 +566,17 @@ allprojects {
         integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
         integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
         integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
-        integrationTestImplementation 'org.apache.commons:commons-collections4:4.5.0'
+        integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
         integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
             exclude(group:'com.fasterxml.jackson.core')
             exclude(group: 'org.apache.commons', module: 'commons-collections4')
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
-        integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
 
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.9.0') {
+            exclude(group: 'net.minidev', module: 'json-smart')
+        }
     }
 }
 
@@ -652,15 +661,17 @@ dependencies {
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
-    implementation 'commons-cli:commons-cli:1.9.0'
+    implementation 'commons-cli:commons-cli:1.10.0'
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.5'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
+    compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
+    compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -671,23 +682,23 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
-    implementation 'org.apache.commons:commons-collections4:4.5.0'
+    implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     //Password generation
     implementation 'org.passay:passay:1.6.6'
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.2'
+    runtimeOnly 'net.minidev:accessors-smart:2.6.0'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.18.0'
+    runtimeOnly 'commons-codec:commons-codec:1.19.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.40.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.42.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.8'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
+    runtimeOnly 'org.ow2.asm:asm:9.9'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
@@ -695,27 +706,27 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.33"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.37"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.3'
-    runtimeOnly 'org.apache.commons:commons-text:1.13.1'
+    runtimeOnly 'org.apache.commons:commons-text:1.14.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.0.0'
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.1'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.7'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.8'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.49.5'
+    runtimeOnly 'org.checkerframework:checker-qual:3.51.1'
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -751,10 +762,10 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.0'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M2"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M5"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.0'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -768,8 +779,8 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.16'
-    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.17'
+    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
@@ -784,7 +795,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.28.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.30.0') {
         exclude group: 'com.google.guava'
     }
 }

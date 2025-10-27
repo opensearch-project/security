@@ -6,14 +6,14 @@ apply plugin: 'maven-publish'
 
 buildscript {
     ext {
-        open_saml_version = '5.1.4'
-        open_saml_shib_version = "9.1.4"
+        open_saml_version = '5.1.6'
+        open_saml_shib_version = "9.1.6"
     }
 
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
 
     dependencies {
@@ -23,6 +23,15 @@ buildscript {
 
 repositories {
     maven { url "build.shibboleth.net/maven/releases"}
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+        force "org.bouncycastle:bcpkix-jdk18on:1.82"
+        force "org.bouncycastle:bcprov-jdk18on:1.82"
+        force "org.apache.commons:commons-lang3:${versions.commonslang}"
+    }
 }
 
 task sourcesJar(type: Jar) {
@@ -69,6 +78,8 @@ tasks.shadowJar {
     exclude 'org/publicsuffix/**'
     exclude 'org/slf4j/**'
     exclude 'javax/**'
+    exclude 'META-INF/maven/commons-io/commons-io/**'
+    exclude 'META-INF/maven/org.apache.commons/commons-lang3/**'
     exclude 'META-INF/versions/**/org/bouncycastle/**'
     exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
 }

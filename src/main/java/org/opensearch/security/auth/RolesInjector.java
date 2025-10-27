@@ -15,6 +15,7 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -26,8 +27,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
-import org.opensearch.transport.TransportRequest;
+import org.opensearch.threadpool.ThreadPool;
 
 /**
  * This is used to inject opendistro-roles into the request when there is no user involved, like periodic plugin
@@ -38,15 +38,15 @@ import org.opensearch.transport.TransportRequest;
  * User name is ignored. And roles are opendistro-roles.
  */
 final public class RolesInjector {
-    protected final Logger log = LogManager.getLogger(RolesInjector.class);
+    private final Logger log = LogManager.getLogger(RolesInjector.class);
     private final AuditLog auditLog;
 
     public RolesInjector(AuditLog auditLog) {
         this.auditLog = auditLog;
     }
 
-    public Set<String> injectUserAndRoles(TransportRequest transportRequest, String action, Task task, final ThreadContext ctx) {
-        final String injectedUserAndRoles = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
+    public Set<String> injectUserAndRoles(final ThreadPool threadPool) {
+        final String injectedUserAndRoles = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
         if (injectedUserAndRoles == null) {
             return null;
         }
@@ -71,21 +71,25 @@ final public class RolesInjector {
             return null;
         }
         Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
-        User user = new User(strs[0]).withSecurityRoles(roles);
 
-        addUser(user, transportRequest, action, task, ctx);
+        Map<String, String> customAttributes = threadPool.getThreadContext()
+            .getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES);
+
+        User user = new User(strs[0]).withSecurityRoles(roles).withAttributes(customAttributes);
+
+        addUser(user, threadPool);
         return roles;
     }
 
-    private void addUser(
-        final User user,
-        final TransportRequest transportRequest,
-        final String action,
-        final Task task,
-        final ThreadContext threadContext
-    ) {
-        if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null) return;
+    private void addUser(final User user, final ThreadPool threadPool) {
+        final ThreadContext ctx = threadPool.getThreadContext();
 
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+        if (ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) == null) {
+            ctx.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+        }
+        if (ctx.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
+            ctx.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
+        }
+
     }
 }

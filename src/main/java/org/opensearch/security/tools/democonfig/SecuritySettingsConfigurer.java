@@ -37,6 +37,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
+import static org.opensearch.security.tools.democonfig.Installer.certificateGenerator;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -105,6 +106,59 @@ public class SecuritySettingsConfigurer {
         writeSecurityConfigToOpenSearchYML();
     }
 
+    boolean isSecurityPluginIsConfiguredWithDemoCerts() {
+        if (installer.OPENSEARCH_CONF_FILE == null || !new File(installer.OPENSEARCH_CONF_FILE).exists()) {
+            return false;
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
+            Yaml yaml = new Yaml();
+            Map<String, Object> yamlData = yaml.load(br);
+            if (yamlData == null) return false;
+
+            String[] requiredSettings = {
+                "plugins.security.ssl.transport.pemcert_filepath",
+                "plugins.security.ssl.transport.pemkey_filepath",
+                "plugins.security.ssl.transport.pemtrustedcas_filepath",
+                "plugins.security.ssl.http.pemcert_filepath",
+                "plugins.security.ssl.http.pemkey_filepath",
+                "plugins.security.ssl.http.pemtrustedcas_filepath" };
+
+            String[] expectedValues = { "esnode.pem", "esnode-key.pem", "root-ca.pem", "esnode.pem", "esnode-key.pem", "root-ca.pem" };
+
+            for (int i = 0; i < requiredSettings.length; i++) {
+                String value = getNestedValue(yamlData, requiredSettings[i]);
+                if (!expectedValues[i].equals(value)) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String getNestedValue(Map<String, Object> yamlData, String key) {
+        // Check for flattened key first
+        if (yamlData.containsKey(key)) {
+            Object value = yamlData.get(key);
+            return value instanceof String ? (String) value : null;
+        }
+
+        // Check for nested structure
+        String[] parts = key.split("\\.");
+        Object current = yamlData;
+        for (String part : parts) {
+            if (current instanceof Map) {
+                current = ((Map<String, Object>) current).get(part);
+            } else {
+                return null;
+            }
+        }
+        return current instanceof String ? (String) current : null;
+    }
+
     /**
      * Checks if security plugin is already configured. If so, the script execution will exit.
      */
@@ -119,6 +173,9 @@ public class SecuritySettingsConfigurer {
                     // Check for flat keys
                     for (String key : yamlData.keySet()) {
                         if (key.startsWith("plugins.security")) {
+                            if (isSecurityPluginIsConfiguredWithDemoCerts()) {
+                                certificateGenerator.createDemoCertificates();
+                            }
                             System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
                             installer.getExitHandler().exit(installer.skip_updates);
                         }
@@ -128,6 +185,9 @@ public class SecuritySettingsConfigurer {
                         Map<String, Object> plugins = (Map<String, Object>) yamlData.get("plugins");
                         for (String key : plugins.keySet()) {
                             if (key.startsWith("security")) {
+                                if (isSecurityPluginIsConfiguredWithDemoCerts()) {
+                                    certificateGenerator.createDemoCertificates();
+                                }
                                 System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
                                 installer.getExitHandler().exit(installer.skip_updates);
                             }
@@ -292,7 +352,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.transport.pemcert_filepath", Certificates.NODE_CERT.getFileName());
         configMap.put("plugins.security.ssl.transport.pemkey_filepath", Certificates.NODE_KEY.getFileName());
         configMap.put("plugins.security.ssl.transport.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
-        configMap.put("plugins.security.ssl.transport.enforce_hostname_verification", false);
+        configMap.put("transport.ssl.enforce_hostname_verification", false);
         configMap.put("plugins.security.ssl.http.enabled", true);
         configMap.put("plugins.security.ssl.http.pemcert_filepath", Certificates.NODE_CERT.getFileName());
         configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());

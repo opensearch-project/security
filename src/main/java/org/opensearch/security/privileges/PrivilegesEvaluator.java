@@ -80,6 +80,7 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -103,7 +104,9 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -113,9 +116,17 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
+import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT;
 import static org.opensearch.security.support.SecurityUtils.escapePipe;
 
 public class PrivilegesEvaluator {
+
+    private static final String USER_TENANT = "__user__";
+    private static final String GLOBAL_TENANT = "global_tenant";
+    private static final String READ_ACCESS = "READ";
+    private static final String WRITE_ACCESS = "WRITE";
+    private static final String NO_ACCESS = "NONE";
 
     static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
         ImmutableList.of(
@@ -144,6 +155,7 @@ public class PrivilegesEvaluator {
     private PrivilegesInterceptor privilegesInterceptor;
 
     private final boolean checkSnapshotRestoreWritePrivileges;
+    private boolean isUserAttributeSerializationEnabled;
 
     private final ClusterInfoHolder clusterInfoHolder;
     private final ConfigurationRepository configurationRepository;
@@ -195,6 +207,10 @@ public class PrivilegesEvaluator {
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
+        this.isUserAttributeSerializationEnabled = settings.getAsBoolean(
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED,
+            USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT
+        );
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -227,8 +243,9 @@ public class PrivilegesEvaluator {
                     actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
-        }
 
+            this.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        }
     }
 
     void updateConfiguration(
@@ -278,24 +295,56 @@ public class PrivilegesEvaluator {
         return configModel != null && dcm != null && actionPrivileges.get() != null;
     }
 
-    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
+    public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
+        clusterSettings.addSettingsUpdateConsumer(
+            SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
+            newIsUserAttributeSerializationEnabled -> {
+                isUserAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
+            }
+        );
+    }
+
+    private boolean isUserAttributeSerializationEnabled() {
+        return isUserAttributeSerializationEnabled;
+    }
+
+    private void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             // Escape any pipe characters in the values before joining
-            joiner.add(escapePipe(user.getName()));
-            joiner.add(escapePipe(String.join(",", user.getRoles())));
-            joiner.add(escapePipe(String.join(",", mappedRoles)));
+            joiner.add(escapePipe(context.getUser().getName()));
+            joiner.add(escapePipe(String.join(",", context.getUser().getRoles())));
+            joiner.add(escapePipe(String.join(",", context.getMappedRoles())));
 
-            String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(escapePipe(requestedTenant));
+            String requestedTenant = context.getUser().getRequestedTenant();
+            joiner.add(requestedTenant);
+
+            String tenantAccessToCheck = getTenancyAccess(context);
+            joiner.add(tenantAccessToCheck);
+            log.debug(joiner);
+
+            if (this.isUserAttributeSerializationEnabled()) {
+                joiner.add(Base64Helper.serializeObject(new HashMap<>(context.getUser().getCustomAttributesMap())));
             }
+
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
     public PrivilegesEvaluationContext createContext(User user, String action) {
         return createContext(user, action, null, null, null);
+    }
+
+    private String getTenancyAccess(PrivilegesEvaluationContext context) {
+        String requestedTenant = context.getUser().getRequestedTenant();
+        final String tenant = Strings.isNullOrEmpty(requestedTenant) ? GLOBAL_TENANT : requestedTenant;
+        if (tenantPrivileges.get().hasTenantPrivilege(context, tenant, TenantPrivileges.ActionType.WRITE)) {
+            return WRITE_ACCESS;
+        } else if (tenantPrivileges.get().hasTenantPrivilege(context, tenant, TenantPrivileges.ActionType.READ)) {
+            return READ_ACCESS;
+        } else {
+            return NO_ACCESS;
+        }
     }
 
     public PrivilegesEvaluationContext createContext(
@@ -387,7 +436,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
 
-        setUserInfoInThreadContext(user, mappedRoles);
+        setUserInfoInThreadContext(context);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
@@ -430,11 +479,13 @@ public class PrivilegesEvaluator {
         }
 
         // check snapshot/restore requests
+        // NOTE: Has to go first as restore request could be for protected and/or system indices and the request may
+        // fail with 403 if system index or protected index evaluators are triggered first
         if (snapshotRestoreEvaluator.evaluate(request, task, action0, clusterInfoHolder, presponse).isComplete()) {
             return presponse;
         }
 
-        // Security index access
+        // System index access
         if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
             .isComplete()) {
             return presponse;

@@ -17,7 +17,7 @@ plugins.security.system_indices.enabled: true
 
 ## Features
 
-- Create, update, get, delete SampleResource, as well as share and revoke access to a resource.
+- Create, update, get, search, delete SampleResource, as well as share and revoke access to a resource via security plugin.
 
 ## Installation
 
@@ -58,12 +58,13 @@ plugins.security.system_indices.enabled: true
 
 4. **Interaction Rules**
     - If a **user is not the resource owner**, they must:
-        - Be assigned **a role with `sample_read_access`** permissions.
-        - **Have the resource shared with them** via the resource-sharing API.
+        - **Have the resource shared with them** via the resource-sharing API with appropriate action group.
     - A user **without** the necessary `sample-resource-plugin` cluster permissions:
         - **Cannot access the resource**, even if it is shared with them.
     - A user **with `sample-resource-plugin` permissions** but **without a shared resource**:
         - **Cannot access the resource**, since resource-level access control applies.
+    - A user **with full-access to the resource** will be able to **update and delete that resource**.
+        - Owners and super-admin get full-access by default.
 
 
 ## API Endpoints
@@ -138,44 +139,20 @@ The plugin exposes the following six API endpoints:
   }
   ```
 
-### 5. Share Resource
-- **Endpoint:** `POST /_plugins/sample_resource_sharing/share/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
-- **Request Body:**
-  ```json
-  {
-    "share_with": {
-      "users": [ "sample_user" ]
-    }
-  }
-  ```
-- **Response:**
-  ```json
-    {
-      "share_with": {
-        "default": {
-          "users": [ "sample_user" ]
-        }
-      }
-    }
-  ```
-
-### 6. Revoke Resource Access
-- **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke/{resource_id}`
-- **Description:** Shares a resource with the intended entities. At present, only admin and resource owners can share the resource.
+### 5. Search Resource
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/search`, `GET /_plugins/sample_resource_sharing/search`
+- **Description:** Search for one ore more resources.
 - **Request Body:**
   ```json
     {
-      "entities_to_revoke": {
-        "users": [ "sample_user" ]
+      "query": {
+        "match_all": {}
       }
     }
   ```
 - **Response:**
   ```json
-    {
-      "share_with" : { }
-    }
+    {"_index":".sample_resource","_id":"x2him5gBNtGh_iGqK19z","_score":1.0,"_source":{"name":"sampleUpdateUser","description":null,"attributes":null,"user":null}}
   ```
 
 ## License

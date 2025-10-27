@@ -72,6 +72,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -325,7 +327,6 @@ public class TestSecurityConfig {
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
             }
-
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
                 xContentBuilder.field("authz", authzDomainMap);
@@ -449,9 +450,8 @@ public class TestSecurityConfig {
 
     public static final class User implements UserCredentialsHolder, ToXContentObject {
 
-        public final static TestSecurityConfig.User USER_ADMIN = new User("admin").roles(
-            new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
-        );
+        public final static TestSecurityConfig.User USER_ADMIN = new User("admin").attr("attr1", "val1")
+            .roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
 
         String name;
         private String password;
@@ -460,6 +460,8 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
+        private boolean adminCertUser = false;
 
         private Boolean hidden = null;
 
@@ -539,6 +541,20 @@ public class TestSecurityConfig {
             return roles.stream().map(Role::getName).collect(Collectors.toSet());
         }
 
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public boolean isAdminCertUser() {
+            return adminCertUser;
+        }
+
+        public User adminCertUser() {
+            this.adminCertUser = true;
+            return this;
+        }
+
         public Object getAttribute(String attributeName) {
             return attributes.get(attributeName);
         }
@@ -552,7 +568,7 @@ public class TestSecurityConfig {
             if (result != null) {
                 return key.type.cast(result);
             } else {
-                return null;
+                throw new RuntimeException("Unknown reference " + key + " in user " + this.name);
             }
         }
 
@@ -1082,7 +1098,7 @@ public class TestSecurityConfig {
             writeConfigToIndex(client, CType.ROLES, roles);
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
-            writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
+            writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
             writeEmptyConfigToIndex(client, CType.TENANTS);
         } else {
             // Write raw configuration alternatively to the normal configuration

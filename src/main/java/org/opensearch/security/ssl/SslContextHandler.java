@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.transport.NettyAllocator;
 
+import io.netty.handler.ssl.JdkSslContext;
 import io.netty.handler.ssl.SslContext;
 
 import static java.util.function.Predicate.not;
@@ -55,15 +58,39 @@ public class SslContextHandler {
         return sslContext.newEngine(NettyAllocator.getAllocator());
     }
 
-    public SSLEngine createSSLEngine(final String hostname, final int port) {
-        return sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+    /**
+     * Creates a SSL engine for usage as a client. In this case, we can optionally perform hostname verification.
+     */
+    public SSLEngine createClientSSLEngine(final String hostname, final int port) {
+        SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+        if (hostname != null) {
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            sslEngine.setSSLParameters(sslParams);
+        }
+        return sslEngine;
     }
 
     public SslConfiguration sslConfiguration() {
         return sslConfiguration;
     }
 
-    SslContext sslContext() {
+    /**
+     * Attempt to fetch the underlying io.netty.handler.ssl.SslContext as a javax SSLContext.
+     * As JDK is the only supported provider we expect sslContext is always of type JdkSslContext,
+     * allowing us to extract the javax.net.ssl.SSLContext delegate. Providing a javax SSLContext is
+     * desirable for dependencies which want to access security settings without taking on netty as a dependency.
+     * @return null if context cannot be fetched as JdkSslContext.
+     */
+    public SSLContext tryFetchSSLContext() {
+        if (sslContext instanceof JdkSslContext) {
+            return ((JdkSslContext) sslContext).context();
+        }
+        return null;
+    }
+
+    // public for testing
+    public SslContext sslContext() {
         return sslContext;
     }
 

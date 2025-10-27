@@ -45,8 +45,7 @@ ext {
 buildscript {
     repositories {
         mavenLocal()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -58,8 +57,7 @@ buildscript {
 
 repositories {
     mavenLocal()
-    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
 }
@@ -67,7 +65,7 @@ repositories {
 configurations.all {
     resolutionStrategy {
         force "org.hamcrest:hamcrest:2.2"
-        force "org.mockito:mockito-core:5.18.0"
+        force "org.mockito:mockito-core:5.20.0"
     }
 }
 
@@ -147,7 +145,7 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
-                node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
+                node.setting("plugins.security.authcz.admin_dn", "\n - CN=kirk,OU=client,O=client,L=test,C=de")
                 node.setting("plugins.security.audit.type", "internal_opensearch")
                 node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")

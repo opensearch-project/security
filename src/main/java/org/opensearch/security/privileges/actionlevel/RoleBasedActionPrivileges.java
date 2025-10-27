@@ -920,4 +920,8 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             return statefulIndex != null ? statefulIndex.metadataVersion : 0;
         }
     };
+
+    public FlattenedActionGroups flattenedActionGroups() {
+        return actionGroups;
+    }
 }

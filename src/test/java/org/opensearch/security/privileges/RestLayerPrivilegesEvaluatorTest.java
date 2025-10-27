@@ -29,6 +29,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
@@ -39,6 +40,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -46,6 +48,7 @@ import org.mockito.quality.Strictness;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.support.SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,6 +80,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         setLoggingLevel(Level.DEBUG); // Enable debug logging scenarios for verification
         ClusterState clusterState = mock(ClusterState.class);
         when(clusterService.state()).thenReturn(clusterState);
+        when(clusterService.getClusterSettings()).thenReturn(new ClusterSettings(Settings.EMPTY, Set.of(USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING)));
         Metadata metadata = mock(Metadata.class);
         when(clusterState.metadata()).thenReturn(metadata);
         when(metadata.getIndicesLookup()).thenReturn(new TreeMap<>());
@@ -159,7 +163,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
             clusterService,
             () -> clusterService.state(),
-            null,
+            mock(ThreadPool.class),
             new ThreadContext(Settings.EMPTY),
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),

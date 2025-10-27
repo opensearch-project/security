@@ -8,31 +8,24 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
-import org.opensearch.sample.resource.client.ResourceSharingClientAccessor;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
+import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -44,13 +37,13 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
     private static final Logger log = LogManager.getLogger(UpdateResourceTransportAction.class);
 
     private final TransportService transportService;
-    private final NodeClient nodeClient;
+    private final PluginClient pluginClient;
 
     @Inject
-    public UpdateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public UpdateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, PluginClient pluginClient) {
         super(UpdateResourceAction.NAME, transportService, actionFilters, UpdateResourceRequest::new);
         this.transportService = transportService;
-        this.nodeClient = nodeClient;
+        this.pluginClient = pluginClient;
     }
 
     @Override
@@ -60,48 +53,30 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             return;
         }
         // Check permission to resource
-        ResourceSharingClient resourceSharingClient = ResourceSharingClientAccessor.getInstance().getResourceSharingClient();
-        if (resourceSharingClient == null) {
-            updateResource(request, listener);
-            return;
-        }
-        resourceSharingClient.verifyAccess(request.getResourceId(), RESOURCE_INDEX_NAME, ActionListener.wrap(isAuthorized -> {
-            if (!isAuthorized) {
-                listener.onFailure(
-                    new OpenSearchStatusException(
-                        "Current user is not authorized to access resource: " + request.getResourceId(),
-                        RestStatus.FORBIDDEN
-                    )
-                );
-                return;
-            }
-
-            updateResource(request, listener);
-        }, listener::onFailure));
+        updateResource(request, listener);
     }
 
     private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        ThreadContext threadContext = this.transportService.getThreadPool().getThreadContext();
-        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
+        try {
             String resourceId = request.getResourceId();
             SampleResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
-                UpdateRequest ur = new UpdateRequest(RESOURCE_INDEX_NAME, resourceId).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .doc(sample.toXContent(builder, ToXContent.EMPTY_PARAMS));
+                sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
-                log.debug("Update Request: {}", ur.toString());
+                // because some plugins seem to treat update API calls as index request
+                IndexRequest ir = new IndexRequest(RESOURCE_INDEX_NAME).id(resourceId)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
+                                                                             // execute search right after update
+                    .source(builder);
 
-                nodeClient.update(
-                    ur,
-                    ActionListener.wrap(
-                        updateResponse -> { log.debug("Updated resource: {}", updateResponse.toString()); },
-                        listener::onFailure
-                    )
-                );
-            } catch (IOException e) {
-                listener.onFailure(new RuntimeException(e));
+                log.debug("Update Request: {}", ir.toString());
+
+                pluginClient.index(ir, ActionListener.wrap(updateResponse -> {
+                    listener.onResponse(
+                        new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                    );
+                }, listener::onFailure));
             }
-            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully."));
         } catch (Exception e) {
             log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);

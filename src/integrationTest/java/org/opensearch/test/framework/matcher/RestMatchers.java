@@ -9,6 +9,10 @@
  */
 package org.opensearch.test.framework.matcher;
 
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
@@ -18,176 +22,159 @@ public class RestMatchers {
 
     private RestMatchers() {}
 
-    public static DiagnosingMatcher<HttpResponse> isOk() {
-        return new DiagnosingMatcher<HttpResponse>() {
+    public static HttpResponseMatcher isOk() {
+        return new HttpResponseMatcher(200, "OK");
+    }
 
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Response has status 200 OK");
-            }
+    public static HttpResponseMatcher isCreated() {
+        return new HttpResponseMatcher(201, "Created");
+    }
 
-            @Override
-            protected boolean matches(Object item, Description mismatchDescription) {
-                if (!(item instanceof HttpResponse)) {
-                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
-                    return false;
-                }
-
-                HttpResponse response = (HttpResponse) item;
-
-                if (response.getStatusCode() == 200) {
-                    return true;
-                } else {
-                    mismatchDescription.appendText("Status is not 200 OK: ").appendValue(item);
-                    return false;
-                }
-
-            }
-
-        };
+    public static OpenSearchErrorHttpResponseMatcher isForbidden() {
+        return new OpenSearchErrorHttpResponseMatcher(403, "Forbidden");
     }
 
     public static DiagnosingMatcher<HttpResponse> isForbidden(String jsonPointer, String patternString) {
-        return new DiagnosingMatcher<HttpResponse>() {
+        return isForbidden().withAttribute(jsonPointer, patternString);
+    }
 
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Response has status 403 Forbidden with a JSON response that has the value ")
-                    .appendValue(patternString)
-                    .appendText(" at ")
-                    .appendValue(jsonPointer);
-            }
-
-            @Override
-            protected boolean matches(Object item, Description mismatchDescription) {
-                if (!(item instanceof HttpResponse)) {
-                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
-                    return false;
-                }
-
-                HttpResponse response = (HttpResponse) item;
-
-                if (response.getStatusCode() != 403) {
-                    mismatchDescription.appendText("Status is not 403 Forbidden: ").appendText("\n").appendValue(item);
-                    return false;
-                }
-
-                try {
-                    String value = response.getTextFromJsonBody(jsonPointer);
-
-                    if (value == null) {
-                        mismatchDescription.appendText("Could not find value at " + jsonPointer).appendText("\n").appendValue(item);
-                        return false;
-                    }
-
-                    if (value.contains(patternString)) {
-                        return true;
-                    } else {
-                        mismatchDescription.appendText("Value at " + jsonPointer + " does not match pattern: " + patternString + "\n")
-                            .appendValue(item);
-                        return false;
-                    }
-                } catch (Exception e) {
-                    mismatchDescription.appendText("Parsing request body failed with " + e).appendText("\n").appendValue(item);
-                    return false;
-                }
-            }
-        };
+    public static OpenSearchErrorHttpResponseMatcher isBadRequest() {
+        return new OpenSearchErrorHttpResponseMatcher(400, "Bad Request");
     }
 
     public static DiagnosingMatcher<HttpResponse> isBadRequest(String jsonPointer, String patternString) {
-        return new DiagnosingMatcher<HttpResponse>() {
+        return isBadRequest().withAttribute(jsonPointer, patternString);
+    }
 
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Response has status 400 Bad Request with a JSON response that has the value ")
-                    .appendValue(patternString)
-                    .appendText(" at ")
-                    .appendValue(jsonPointer);
-            }
+    public static OpenSearchErrorHttpResponseMatcher isNotImplemented() {
+        return new OpenSearchErrorHttpResponseMatcher(501, "Not Implemented");
+    }
 
-            @Override
-            protected boolean matches(Object item, Description mismatchDescription) {
-                if (!(item instanceof HttpResponse)) {
-                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
-                    return false;
-                }
+    public static DiagnosingMatcher<HttpResponse> isMethodNotImplemented(String jsonPointer, String patternString) {
+        return isNotImplemented().withAttribute(jsonPointer, patternString);
+    }
 
-                HttpResponse response = (HttpResponse) item;
-
-                if (response.getStatusCode() != 400) {
-                    mismatchDescription.appendText("Status is not 400 Bad Request: ").appendText("\n").appendValue(item);
-                    return false;
-                }
-
-                try {
-                    String value = response.getTextFromJsonBody(jsonPointer);
-
-                    if (value == null) {
-                        mismatchDescription.appendText("Could not find value at " + jsonPointer).appendText("\n").appendValue(item);
-                        return false;
-                    }
-
-                    if (value.contains(patternString)) {
-                        return true;
-                    } else {
-                        mismatchDescription.appendText("Value at " + jsonPointer + " does not match pattern: " + patternString + "\n")
-                            .appendValue(item);
-                        return false;
-                    }
-                } catch (Exception e) {
-                    mismatchDescription.appendText("Parsing request body failed with " + e).appendText("\n").appendValue(item);
-                    return false;
-                }
-            }
-        };
+    public static OpenSearchErrorHttpResponseMatcher isInternalServerError() {
+        return new OpenSearchErrorHttpResponseMatcher(500, "Internal Server Error");
     }
 
     public static DiagnosingMatcher<HttpResponse> isInternalServerError(String jsonPointer, String patternString) {
-        return new DiagnosingMatcher<HttpResponse>() {
+        return isInternalServerError().withAttribute(jsonPointer, patternString);
+    }
 
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Response has status 500 Internal Server Error with a JSON response that has the value ")
-                    .appendValue(patternString)
-                    .appendText(" at ")
-                    .appendValue(jsonPointer);
+    public static OpenSearchErrorHttpResponseMatcher isNotFound() {
+        return new OpenSearchErrorHttpResponseMatcher(404, "Not Found");
+    }
+
+    public static class HttpResponseMatcher extends DiagnosingMatcher<HttpResponse> {
+        final int statusCode;
+        final String statusName;
+
+        HttpResponseMatcher(int statusCode, String statusName) {
+            this.statusCode = statusCode;
+            this.statusName = statusName;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("Response has status " + statusCode + " " + statusName);
+        }
+
+        @Override
+        protected boolean matches(Object item, Description mismatchDescription) {
+            if (!(item instanceof HttpResponse response)) {
+                mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
+                return false;
             }
 
-            @Override
-            protected boolean matches(Object item, Description mismatchDescription) {
-                if (!(item instanceof HttpResponse)) {
-                    mismatchDescription.appendValue(item).appendText(" is not a HttpResponse");
-                    return false;
-                }
+            if (response.getStatusCode() == this.statusCode) {
+                return true;
+            } else {
+                mismatchDescription.appendText("Status is not " + statusCode + " " + statusName + ":\n").appendValue(item);
+                return false;
+            }
+        }
 
-                HttpResponse response = (HttpResponse) item;
+        public int statusCode() {
+            return this.statusCode;
+        }
 
-                if (response.getStatusCode() != 500) {
-                    mismatchDescription.appendText("Status is not 500 Internal Server Error: ").appendText("\n").appendValue(item);
-                    return false;
-                }
+    }
+
+    public static class OpenSearchErrorHttpResponseMatcher extends HttpResponseMatcher {
+        final ImmutableMap<String, String> attributes;
+
+        OpenSearchErrorHttpResponseMatcher(int statusCode, String statusName) {
+            super(statusCode, statusName);
+            this.attributes = ImmutableMap.of();
+        }
+
+        OpenSearchErrorHttpResponseMatcher(int statusCode, String statusName, ImmutableMap<String, String> attributes) {
+            super(statusCode, statusName);
+            this.attributes = attributes;
+        }
+
+        public OpenSearchErrorHttpResponseMatcher withReason(String reason) {
+            return withAttribute("/error/reason", reason);
+        }
+
+        public OpenSearchErrorHttpResponseMatcher withType(String type) {
+            return withAttribute("/error/type", type);
+        }
+
+        public OpenSearchErrorHttpResponseMatcher withAttribute(String jsonPointer, String value) {
+            return new OpenSearchErrorHttpResponseMatcher(
+                this.statusCode,
+                this.statusName,
+                ImmutableMap.<String, String>builder().putAll(this.attributes).put(jsonPointer, value).build()
+            );
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            super.describeTo(description);
+            for (Map.Entry<String, String> entry : this.attributes.entrySet()) {
+                description.appendText(" with " + entry.getKey() + " " + entry.getValue());
+            }
+        }
+
+        @Override
+        protected boolean matches(Object item, Description mismatchDescription) {
+            if (!super.matches(item, mismatchDescription)) {
+                return false;
+            }
+
+            HttpResponse response = (HttpResponse) item;
+            boolean result = true;
+
+            if (!this.attributes.isEmpty()) {
+                JsonNode responseDocument;
 
                 try {
-                    String value = response.getTextFromJsonBody(jsonPointer);
-
-                    if (value == null) {
-                        mismatchDescription.appendText("Could not find value at " + jsonPointer).appendText("\n").appendValue(item);
-                        return false;
-                    }
-
-                    if (value.contains(patternString)) {
-                        return true;
-                    } else {
-                        mismatchDescription.appendText("Value at " + jsonPointer + " does not match pattern: " + patternString + "\n")
-                            .appendValue(item);
-                        return false;
-                    }
+                    responseDocument = response.bodyAsJsonNode();
                 } catch (Exception e) {
                     mismatchDescription.appendText("Parsing request body failed with " + e).appendText("\n").appendValue(item);
                     return false;
                 }
+
+                for (Map.Entry<String, String> entry : this.attributes.entrySet()) {
+                    String actualValue = responseDocument.at(entry.getKey()).asText();
+                    String expectedValue = entry.getValue();
+                    if (actualValue == null || !actualValue.contains(entry.getValue())) {
+                        mismatchDescription.appendText(entry.getKey() + " is not " + expectedValue + ": ")
+                            .appendValue(actualValue)
+                            .appendText("\n");
+                        result = false;
+                    }
+                }
             }
-        };
+
+            if (!result) {
+                mismatchDescription.appendValue(item);
+            }
+
+            return result;
+        }
+
     }
 }
