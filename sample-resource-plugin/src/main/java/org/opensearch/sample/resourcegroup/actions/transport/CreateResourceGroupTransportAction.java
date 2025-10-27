@@ -25,7 +25,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.SampleResourceGroup;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupAction;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupRequest;
 import org.opensearch.sample.resourcegroup.actions.rest.create.CreateResourceGroupResponse;
@@ -57,7 +57,7 @@ public class CreateResourceGroupTransportAction extends HandledTransportAction<C
     }
 
     private void createResource(CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
-        SampleResource sample = request.getResource();
+        SampleResourceGroup sampleGroup = request.getResourceGroup();
 
         // 1. Read mapping JSON from the config file
         final String mappingJson;
@@ -81,7 +81,7 @@ public class CreateResourceGroupTransportAction extends HandledTransportAction<C
                 IndexRequest ir = pluginClient.prepareIndex(RESOURCE_INDEX_NAME)
                     .setWaitForActiveShards(1)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(sample.toXContent(builder, ToXContent.EMPTY_PARAMS))
+                    .setSource(sampleGroup.toXContent(builder, ToXContent.EMPTY_PARAMS))
                     .request();
 
                 log.debug("Index Request: {}", ir);
