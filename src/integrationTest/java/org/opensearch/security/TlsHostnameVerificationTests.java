@@ -35,7 +35,7 @@ public class TlsHostnameVerificationTests {
         .anonymousAuth(false)
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
-            Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true)
+            Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, SSLConfigConstants.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, true)
         )
         .sslOnly(true);
 
