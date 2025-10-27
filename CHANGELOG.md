@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Features
 
 ### Enhancements
+- Moved configuration reloading to dedicated thread to improve node stability  ([#5479](https://github.com/opensearch-project/security/pull/5479))
 - Makes resource settings dynamic ([#5677](https://github.com/opensearch-project/security/pull/5677))
 - [Resource Sharing] Allow multiple sharable resource types in single resource index ([#5713](https://github.com/opensearch-project/security/pull/5713))
 
