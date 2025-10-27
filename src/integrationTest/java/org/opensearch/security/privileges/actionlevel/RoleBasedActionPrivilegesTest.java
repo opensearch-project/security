@@ -589,12 +589,7 @@ public class RoleBasedActionPrivilegesTest {
                 if (covers(ctx, "data_stream_a11", "data_stream_a12")) {
                     assertThat(result, isAllowed());
                 } else if (covers(ctx, "data_stream_a11")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(
-                            "data_stream_a11"
-                        )
-                    );
+                    assertThat(result, isPartiallyOk("data_stream_a11"));
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -604,27 +599,17 @@ public class RoleBasedActionPrivilegesTest {
             public void positive_partial_breakDownAliases() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
                 PrivilegesEvaluatorResponse result = subject(true).hasIndexPrivilege(
-                        ctx,
-                        requiredActions,
-                        resolved("data_stream_a11", "data_stream_a12")
+                    ctx,
+                    requiredActions,
+                    resolved("data_stream_a11", "data_stream_a12")
                 );
 
                 if (covers(ctx, "data_stream_a11", "data_stream_a12")) {
                     assertThat(result, isAllowed());
                 } else if (covers(ctx, "data_stream_a11")) {
-                    assertThat(
-                            result,
-                            isPartiallyOk(
-                                    "data_stream_a11"
-                            )
-                    );
+                    assertThat(result, isPartiallyOk("data_stream_a11"));
                 } else if (covers(ctx, ".ds-data_stream_a11")) {
-                    assertThat(
-                            result,
-                            isPartiallyOk(
-                                    "data_stream_a11"
-                            )
-                    );
+                    assertThat(result, isPartiallyOk("data_stream_a11"));
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -713,19 +698,19 @@ public class RoleBasedActionPrivilegesTest {
                 Settings settings = Settings.EMPTY;
                 if (statefulness == Statefulness.STATEFUL_LIMITED) {
                     settings = Settings.builder()
-                            .put(
-                                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
-                                    new ByteSizeValue(10, ByteSizeUnit.BYTES)
-                            )
-                            .build();
+                        .put(
+                            RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
+                            new ByteSizeValue(10, ByteSizeUnit.BYTES)
+                        )
+                        .build();
                 }
 
                 RoleBasedActionPrivileges result = new RoleBasedActionPrivileges(
-                        roles,
-                        FlattenedActionGroups.EMPTY,
-                        RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                        settings,
-                        breakDownAliases
+                    roles,
+                    FlattenedActionGroups.EMPTY,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    settings,
+                    breakDownAliases
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {

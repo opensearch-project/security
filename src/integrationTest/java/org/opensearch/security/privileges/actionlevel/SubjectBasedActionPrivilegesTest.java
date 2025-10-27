@@ -421,12 +421,7 @@ public class SubjectBasedActionPrivilegesTest {
                 if (covers(ctx, "data_stream_a11", "data_stream_a12")) {
                     assertThat(result, isAllowed());
                 } else if (covers(ctx, "data_stream_a11")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(
-                            "data_stream_a11"
-                        )
-                    );
+                    assertThat(result, isPartiallyOk("data_stream_a11"));
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }

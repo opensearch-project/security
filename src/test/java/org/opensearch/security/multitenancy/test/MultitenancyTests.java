@@ -406,7 +406,8 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         // get
-        assertThat(res.getBody(),
+        assertThat(
+            res.getBody(),
             HttpStatus.SC_OK,
             is(
                 (res = rh.executeGetRequest(
@@ -416,10 +417,10 @@ public class MultitenancyTests extends SingleClusterTest {
                 )).getStatusCode()
             )
         );
-        Assert.assertFalse(res.getBody(),res.getBody().contains("exception"));
-        Assert.assertTrue(res.getBody(),res.getBody().contains("humanresources"));
-        Assert.assertTrue(res.getBody(),res.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(res.getBody(),res.getBody().contains(dashboardsIndex));
+        Assert.assertFalse(res.getBody(), res.getBody().contains("exception"));
+        Assert.assertTrue(res.getBody(), res.getBody().contains("humanresources"));
+        Assert.assertTrue(res.getBody(), res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody(), res.getBody().contains(dashboardsIndex));
 
         // mget
         body = "{\"docs\" : [{\"_index\" : \".kibana\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
