@@ -450,6 +450,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder nodeSetting(String key, Object value) {
+            nodeOverrideSettingsBuilder.put(key, String.valueOf(value));
+            return this;
+        }
+
         public Builder nodeSpecificSettings(int nodeNumber, Map<String, Object> settings) {
             if (!nodeSpecificOverrideSettingsBuilder.containsKey(nodeNumber)) {
                 Settings.Builder builderCopy = Settings.builder();

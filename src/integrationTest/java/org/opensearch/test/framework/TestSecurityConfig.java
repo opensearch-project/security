@@ -74,7 +74,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
-import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -92,8 +91,6 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 * the configuration index of the security plugin.
 */
 public class TestSecurityConfig {
-
-    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
@@ -176,18 +173,6 @@ public class TestSecurityConfig {
     public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
-        }
-        return this;
-    }
-
-    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
-        if (!internalUsers.containsKey(name)) {
-            user(new User(name).description("REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
-            final var roleName = name + "__rest_admin_role";
-            roles(new Role(roleName).clusterPermissions(permissions));
-
-            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
-            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
         }
         return this;
     }
@@ -476,7 +461,6 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
-        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
         private boolean adminCertUser = false;
 
         private Boolean hidden = null;
@@ -550,6 +534,9 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
+            if (roleNames == null) {
+                this.aggregateRoles();
+            }
             return roleNames;
         }
 
@@ -651,6 +638,25 @@ public class TestSecurityConfig {
             public MetadataKey(String name, Class<T> type) {
                 this.name = name;
                 this.type = type;
+            }
+        }
+
+        void aggregateRoles() {
+            if (this.roleNames == null) {
+                this.roleNames = new HashSet<>();
+            }
+
+            for (Role role : this.roles) {
+                if (role.addedIndependentlyOfUser) {
+                    // This is a globally defined role, we just use this
+                    this.roleNames.add(role.name);
+                } else {
+                    // This is role that is locally defined for the user; let's scope the name
+                    if (!role.name.startsWith("user_" + this.name)) {
+                        role.name = "user_" + this.name + "__" + role.name;
+                    }
+                    this.roleNames.add(role.name);
+                }
             }
         }
     }
@@ -1135,20 +1141,10 @@ public class TestSecurityConfig {
         Map<String, Role> result = new HashMap<>(this.roles);
 
         for (User user : this.internalUsers.values()) {
-            if (user.roleNames == null) {
-                user.roleNames = new HashSet<>();
-            }
+            user.aggregateRoles();
 
             for (Role role : user.roles) {
-                if (role.addedIndependentlyOfUser) {
-                    // This is a globally defined role, we just use this
-                    user.roleNames.add(role.name);
-                } else {
-                    // This is role that is locally defined for the user; let's scope the name
-                    if (!role.name.startsWith("user_" + user.name)) {
-                        role.name = "user_" + user.name + "__" + role.name;
-                    }
-                    user.roleNames.add(role.name);
+                if (!role.addedIndependentlyOfUser) {
                     result.put(role.name, role);
                 }
             }

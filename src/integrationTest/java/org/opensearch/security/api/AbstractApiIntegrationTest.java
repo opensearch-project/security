@@ -11,8 +11,6 @@
 
 package org.opensearch.security.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,29 +18,17 @@ import java.util.StringJoiner;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.runner.RunWith;
 
-import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedSupplier;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.security.ConfigurationFiles;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -52,7 +38,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
@@ -61,21 +46,28 @@ import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvalua
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
-import static org.opensearch.test.framework.TestSecurityConfig.REST_ADMIN_REST_API_ACCESS;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
-    private static final Logger LOGGER = LogManager.getLogger(TestSecurityConfig.class);
+    public static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(
+        new TestSecurityConfig.Role("all_access").clusterPermissions("*").indexPermissions("*").on("*")
+    );
+    public static final TestSecurityConfig.User REST_ADMIN_USER = new TestSecurityConfig.User("rest-api-admin").roles(
+        new TestSecurityConfig.Role("role").clusterPermissions(allRestAdminPermissions())
+    );
 
-    public static final String NEW_USER = "new-user";
+    public static final TestSecurityConfig.Role REST_ADMIN_REST_API_ACCESS_ROLE = new TestSecurityConfig.Role(
+        "rest_admin__rest_api_access"
+    );
+    public static final TestSecurityConfig.Role EXAMPLE_ROLE = new TestSecurityConfig.Role("example_role").indexPermissions("crud")
+        .on("example_index");
 
-    public static final String REST_ADMIN_USER = "rest-api-admin";
-
-    public static final String ADMIN_USER_NAME = "admin";
+    /**
+     * A user without any privileges
+     */
+    public static final TestSecurityConfig.User NEW_USER = new TestSecurityConfig.User("new-user");
 
     public static final String DEFAULT_PASSWORD = "secret";
 
@@ -85,119 +77,21 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
     );
 
-    public static Path configurationFolder;
-
-    protected static TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
-
-    public static LocalCluster localCluster;
-
-    private Class<? extends AbstractApiIntegrationTest> testClass;
-
-    @Before
-    public void startCluster() throws IOException {
-        if (this.getClass().equals(testClass)) {
-            return;
-        }
-        configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-        extendConfiguration();
-        final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
-        final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
+    protected static LocalCluster.Builder clusterBuilder() {
+        return new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
             .nodeSettings(getClusterSettings())
-            .defaultConfigurationInitDirectory(configurationFolder.toString())
-            .loadConfigurationIntoIndex(false);
-        localCluster = localClusterBuilder.build();
-        localCluster.before();
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            Awaitility.await()
-                .alias("Load default configuration")
-                .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
-        }
-        testClass = this.getClass();
+            .authc(TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL)
+            .users(ADMIN_USER, REST_ADMIN_USER, NEW_USER)
+            .roles(EXAMPLE_ROLE, REST_ADMIN_REST_API_ACCESS_ROLE);
     }
 
-    protected Map<String, Object> getClusterSettings() {
+    protected static Map<String, Object> getClusterSettings() {
         Map<String, Object> clusterSettings = new HashMap<>();
-        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true);
-        clusterSettings.put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS));
-        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
+        clusterSettings.put(
+            PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED,
+            List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS_ROLE.getName(), "user_rest-api-admin__role")
+        );
         return clusterSettings;
-    }
-
-    private static void extendConfiguration() throws IOException {
-        extendActionGroups(configurationFolder, testSecurityConfig.actionGroups());
-        extendRoles(configurationFolder, testSecurityConfig.roles());
-        extendRolesMapping(configurationFolder, testSecurityConfig.rolesMapping());
-        extendUsers(configurationFolder, testSecurityConfig.getUsers());
-    }
-
-    private static void extendUsers(final Path configFolder, final List<TestSecurityConfig.User> users) throws IOException {
-        if (users == null) return;
-        if (users.isEmpty()) return;
-        LOGGER.info("Adding users to the default configuration: ");
-        try (final var contentBuilder = XContentFactory.yamlBuilder()) {
-            contentBuilder.startObject();
-            for (final var u : users) {
-                LOGGER.info("\t\t - {}", u.getName());
-                contentBuilder.field(u.getName());
-                u.toXContent(contentBuilder, ToXContent.EMPTY_PARAMS);
-            }
-            contentBuilder.endObject();
-            ConfigurationFiles.writeToConfig(CType.INTERNALUSERS, configFolder, removeDashes(contentBuilder.toString()));
-        }
-    }
-
-    private static void extendActionGroups(final Path configFolder, final List<TestSecurityConfig.ActionGroup> actionGroups)
-        throws IOException {
-        if (actionGroups == null) return;
-        if (actionGroups.isEmpty()) return;
-        LOGGER.info("Adding action groups to the default configuration: ");
-        try (final var contentBuilder = XContentFactory.yamlBuilder()) {
-            contentBuilder.startObject();
-            for (final var ag : actionGroups) {
-                LOGGER.info("\t\t - {}", ag.name());
-                contentBuilder.field(ag.name());
-                ag.toXContent(contentBuilder, ToXContent.EMPTY_PARAMS);
-            }
-            contentBuilder.endObject();
-            ConfigurationFiles.writeToConfig(CType.ACTIONGROUPS, configFolder, removeDashes(contentBuilder.toString()));
-        }
-    }
-
-    private static void extendRoles(final Path configFolder, final List<TestSecurityConfig.Role> roles) throws IOException {
-        if (roles == null) return;
-        if (roles.isEmpty()) return;
-        LOGGER.info("Adding roles to the default configuration: ");
-        try (final var contentBuilder = XContentFactory.yamlBuilder()) {
-            contentBuilder.startObject();
-            for (final var r : roles) {
-                LOGGER.info("\t\t - {}", r.getName());
-                contentBuilder.field(r.getName());
-                r.toXContent(contentBuilder, ToXContent.EMPTY_PARAMS);
-            }
-            contentBuilder.endObject();
-            ConfigurationFiles.writeToConfig(CType.ROLES, configFolder, removeDashes(contentBuilder.toString()));
-        }
-    }
-
-    private static void extendRolesMapping(final Path configFolder, final List<TestSecurityConfig.RoleMapping> rolesMapping)
-        throws IOException {
-        if (rolesMapping == null) return;
-        if (rolesMapping.isEmpty()) return;
-        LOGGER.info("Adding roles mapping to the default configuration: ");
-        try (final var contentBuilder = XContentFactory.yamlBuilder()) {
-            contentBuilder.startObject();
-            for (final var rm : rolesMapping) {
-                LOGGER.info("\t\t - {}", rm.name());
-                contentBuilder.field(rm.name());
-                rm.toXContent(contentBuilder, ToXContent.EMPTY_PARAMS);
-            }
-            contentBuilder.endObject();
-            ConfigurationFiles.writeToConfig(CType.ROLESMAPPING, configFolder, removeDashes(contentBuilder.toString()));
-        }
-    }
-
-    private static String removeDashes(final String content) {
-        return content.replace("---", "");
     }
 
     protected static String[] allRestAdminPermissions() {
@@ -233,42 +127,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return randomFrom(permissions);
     }
 
-    @AfterClass
-    public static void stopCluster() throws IOException {
-        if (localCluster != null) localCluster.close();
-        FileUtils.deleteDirectory(configurationFolder.toFile());
-    }
-
-    protected void withUser(final String user, final CheckedConsumer<TestRestClient, Exception> restClientHandler) throws Exception {
-        withUser(user, DEFAULT_PASSWORD, restClientHandler);
-    }
-
-    protected void withUser(final String user, final String password, final CheckedConsumer<TestRestClient, Exception> restClientHandler)
-        throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(user, password)) {
-            restClientHandler.accept(client);
-        }
-    }
-
-    protected void withUser(
-        final String user,
-        final CertificateData certificateData,
-        final CheckedConsumer<TestRestClient, Exception> restClientHandler
-    ) throws Exception {
-        withUser(user, DEFAULT_PASSWORD, certificateData, restClientHandler);
-    }
-
-    protected void withUser(
-        final String user,
-        final String password,
-        final CertificateData certificateData,
-        final CheckedConsumer<TestRestClient, Exception> restClientHandler
-    ) throws Exception {
-        try (final TestRestClient client = localCluster.getRestClient(user, password, certificateData)) {
-            restClientHandler.accept(client);
-        }
-    }
-
     protected String apiPathPrefix() {
         return randomFrom(List.of(LEGACY_OPENDISTRO_PREFIX, PLUGINS_PREFIX));
     }
@@ -298,31 +156,11 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return fullPath.toString();
     }
 
-    void badRequestWithReason(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
-        throws Exception {
-        final var response = badRequest(endpointCallback);
-        assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), is(expectedMessage));
-    }
-
-    void badRequestWithMessage(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
-        throws Exception {
-        final var response = badRequest(endpointCallback);
-        assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
-    }
-
     public static TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         assertResponseBody(response.getBody());
-        return response;
-    }
-
-    TestRestClient.HttpResponse created(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
-        final var response = endpointCallback.get();
-        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
-        assertResponseBody(response.getBody());
-        assertThat(response.getBody(), response.getTextFromJsonBody("/status"), equalToIgnoringCase("created"));
         return response;
     }
 
@@ -338,14 +176,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-        assertResponseBody(response.getBody());
-        return response;
-    }
-
-    TestRestClient.HttpResponse methodNotAllowed(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
-        throws Exception {
-        final var response = endpointCallback.get();
-        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_METHOD_NOT_ALLOWED));
         assertResponseBody(response.getBody());
         return response;
     }
@@ -366,34 +196,10 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    void notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
-        throws Exception {
-        final var response = notFound(endpointCallback);
-        assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
-    }
-
     public static TestRestClient.HttpResponse ok(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertResponseBody(response.getBody());
-        return response;
-    }
-
-    public static TestRestClient.HttpResponse ok(
-        final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
-        final String expectedMessage
-    ) throws Exception {
-        final var response = endpointCallback.get();
-        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertResponseBody(response.getBody(), expectedMessage);
-        return response;
-    }
-
-    TestRestClient.HttpResponse unauthorized(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
-        throws Exception {
-        final var response = endpointCallback.get();
-        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
         assertResponseBody(response.getBody());
         return response;
     }

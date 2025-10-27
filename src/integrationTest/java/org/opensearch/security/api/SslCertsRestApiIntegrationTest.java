@@ -10,34 +10,35 @@
  */
 package org.opensearch.security.api;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 @Deprecated
 public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     final static String REST_API_ADMIN_SSL_INFO = "rest-api-admin-ssl-info";
 
-    static {
-        testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
-            .withRestAdminUser(REST_API_ADMIN_SSL_INFO, restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION));
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        return clusterSettings;
-    }
+    @ClassRule
+    public static LocalCluster localCluster = clusterBuilder().nodeSetting(SECURITY_RESTAPI_ADMIN_ENABLED, true)
+        .users(
+            new TestSecurityConfig.User(REST_API_ADMIN_SSL_INFO).roles(
+                REST_ADMIN_REST_API_ACCESS_ROLE,
+                new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION))
+            )
+        )
+        .build();
 
     protected String sslCertsPath() {
         return super.apiPath("ssl", "certs");
@@ -45,27 +46,38 @@ public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @Test
     public void certsInfoForbiddenForRegularUser() throws Exception {
-        withUser(NEW_USER, client -> forbidden(() -> client.get(sslCertsPath())));
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.get(sslCertsPath()), isForbidden());
+        }
     }
 
     @Test
     public void certsInfoForbiddenForAdminUser() throws Exception {
-        withUser(NEW_USER, client -> forbidden(() -> client.get(sslCertsPath())));
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.get(sslCertsPath()), isForbidden());
+        }
     }
 
     @Test
     public void certsInfoAvailableForTlsAdmin() throws Exception {
-        withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), this::verifySSLCertsInfo);
+        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
+            verifySSLCertsInfo(client);
+        }
     }
 
     @Test
     public void certsInfoAvailableForRestAdmin() throws Exception {
-        withUser(REST_ADMIN_USER, this::verifySSLCertsInfo);
-        withUser(REST_API_ADMIN_SSL_INFO, this::verifySSLCertsInfo);
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            verifySSLCertsInfo(client);
+        }
+        try (TestRestClient client = localCluster.getRestClient(REST_API_ADMIN_SSL_INFO, DEFAULT_PASSWORD)) {
+            verifySSLCertsInfo(client);
+        }
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {
-        final var response = ok(() -> client.get(sslCertsPath()));
+        final var response = client.get(sslCertsPath());
+        assertThat(response, isOk());
 
         final var body = response.bodyAsJsonNode();
         assertThat(response.getBody(), body.has("http_certificates_list"));
