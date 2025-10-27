@@ -35,8 +35,8 @@ import java.util.function.Supplier;
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
