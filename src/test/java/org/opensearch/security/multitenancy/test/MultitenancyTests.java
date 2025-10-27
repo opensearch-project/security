@@ -406,7 +406,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         // get
-        assertThat(
+        assertThat(res.getBody(),
             HttpStatus.SC_OK,
             is(
                 (res = rh.executeGetRequest(
@@ -416,10 +416,10 @@ public class MultitenancyTests extends SingleClusterTest {
                 )).getStatusCode()
             )
         );
-        Assert.assertFalse(res.getBody().contains("exception"));
-        Assert.assertTrue(res.getBody().contains("humanresources"));
-        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
+        Assert.assertFalse(res.getBody(),res.getBody().contains("exception"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("humanresources"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody(),res.getBody().contains(dashboardsIndex));
 
         // mget
         body = "{\"docs\" : [{\"_index\" : \".kibana\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
@@ -563,7 +563,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 )).getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));
+        Assert.assertTrue(res.getBody(), res.getBody().contains(".kibana_-900636979_kibanaro"));
     }
 
     @Test
@@ -638,12 +638,12 @@ public class MultitenancyTests extends SingleClusterTest {
 
         /* The anonymous user has access to its tenant */
         res = rh.executeGetRequest(url, new BasicHeader("securitytenant", anonymousTenant));
-        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        assertThat(res.findValueInJson("_source.tenant"), is(anonymousTenant));
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(res.getBody(), res.findValueInJson("_source.tenant"), is(anonymousTenant));
 
         /* No access to other tenants */
         res = rh.executeGetRequest(url, new BasicHeader("securitytenant", "human_resources"));
-        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
 
     @Test

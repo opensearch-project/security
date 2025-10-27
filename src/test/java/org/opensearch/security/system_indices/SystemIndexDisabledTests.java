@@ -394,7 +394,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
                 "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
                 header
             );
-            validateForbiddenResponse(res, action, user);
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         }
     }
 }

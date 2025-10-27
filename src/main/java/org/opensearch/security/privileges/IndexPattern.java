@@ -53,8 +53,14 @@ public class IndexPattern {
      * Index patterns which contain date math (like <index_{now}>)
      */
     private final ImmutableList<String> dateMathExpressions;
-    private final int hashCode;
+
+    /**
+     * If this is true, this pattern will also match an alias or data stream if it actually matches ALL child indices of
+     * of the alias or data stream.
+     */
     private final boolean memberIndexPrivilegesYieldAliasPrivileges;
+
+    private final int hashCode;
 
     private IndexPattern(
         WildcardMatcher staticPattern,

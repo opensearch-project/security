@@ -404,11 +404,6 @@ public class SubjectBasedActionPrivilegesTest {
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
                 if (covers(ctx, "data_stream_a11")) {
                     assertThat(result, isAllowed());
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
-                    );
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -429,16 +424,8 @@ public class SubjectBasedActionPrivilegesTest {
                     assertThat(
                         result,
                         isPartiallyOk(
-                            "data_stream_a11",
-                            ".ds-data_stream_a11-000001",
-                            ".ds-data_stream_a11-000002",
-                            ".ds-data_stream_a11-000003"
+                            "data_stream_a11"
                         )
-                    );
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
                     );
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
@@ -516,7 +503,7 @@ public class SubjectBasedActionPrivilegesTest {
                     config,
                     FlattenedActionGroups.EMPTY,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                    true
+                    false // breakDownAliases = true is already sufficiently checked in RoleBasedActionPrivilegesTest
                 );
             }
 
@@ -526,30 +513,6 @@ public class SubjectBasedActionPrivilegesTest {
 
             static ResolvedIndices resolved(String... indices) {
                 return ResolvedIndices.of(indices);
-                /* TODO CHECK
-                ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
-
-                for (String index : indices) {
-                    IndexAbstraction indexAbstraction = INDEX_METADATA.getIndicesLookup().get(index);
-
-                    if (indexAbstraction instanceof IndexAbstraction.DataStream) {
-                        allIndices.addAll(
-                            indexAbstraction.getIndices().stream().map(i -> i.getIndex().getName()).collect(Collectors.toList())
-                        );
-                    }
-
-                    allIndices.add(index);
-                }
-
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    allIndices.build(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
-
-                 */
             }
         }
 

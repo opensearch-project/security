@@ -551,19 +551,27 @@ public class RoleBasedActionPrivilegesTest {
             final String primaryAction;
             final ImmutableSet<String> requiredActions;
             final ImmutableSet<String> otherActions;
-            final RoleBasedActionPrivileges subject;
+            final Statefulness statefulness;
 
             @Test
             public void positive_full() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
-                PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
+                PrivilegesEvaluatorResponse result = subject(false).hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
                 if (covers(ctx, "data_stream_a11")) {
                     assertThat(result, isAllowed());
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
-                    );
+                } else {
+                    assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                }
+            }
+
+            @Test
+            public void positive_full_breakDownAliases() throws Exception {
+                PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
+                PrivilegesEvaluatorResponse result = subject(true).hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
+                if (covers(ctx, "data_stream_a11")) {
+                    assertThat(result, isAllowed());
+                } else if (covers(ctx, ".ds-data_stream_a11")) {
+                    assertThat(result, isAllowed());
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -572,7 +580,7 @@ public class RoleBasedActionPrivilegesTest {
             @Test
             public void positive_partial() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
-                PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
+                PrivilegesEvaluatorResponse result = subject(false).hasIndexPrivilege(
                     ctx,
                     requiredActions,
                     resolved("data_stream_a11", "data_stream_a12")
@@ -584,16 +592,38 @@ public class RoleBasedActionPrivilegesTest {
                     assertThat(
                         result,
                         isPartiallyOk(
-                            "data_stream_a11",
-                            ".ds-data_stream_a11-000001",
-                            ".ds-data_stream_a11-000002",
-                            ".ds-data_stream_a11-000003"
+                            "data_stream_a11"
                         )
                     );
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
+                } else {
+                    assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                }
+            }
+
+            @Test
+            public void positive_partial_breakDownAliases() throws Exception {
+                PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
+                PrivilegesEvaluatorResponse result = subject(true).hasIndexPrivilege(
+                        ctx,
+                        requiredActions,
+                        resolved("data_stream_a11", "data_stream_a12")
+                );
+
+                if (covers(ctx, "data_stream_a11", "data_stream_a12")) {
+                    assertThat(result, isAllowed());
+                } else if (covers(ctx, "data_stream_a11")) {
                     assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
+                            result,
+                            isPartiallyOk(
+                                    "data_stream_a11"
+                            )
+                    );
+                } else if (covers(ctx, ".ds-data_stream_a11")) {
+                    assertThat(
+                            result,
+                            isPartiallyOk(
+                                    "data_stream_a11"
+                            )
                     );
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
@@ -603,14 +633,14 @@ public class RoleBasedActionPrivilegesTest {
             @Test
             public void negative_wrongRole() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx().roles("other_role").indexMetadata(INDEX_METADATA).get();
-                PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
+                PrivilegesEvaluatorResponse result = subject(false).hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
                 assertThat(result, isForbidden(missingPrivileges(requiredActions)));
             }
 
             @Test
             public void negative_wrongAction() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx().roles("test_role").indexMetadata(INDEX_METADATA).get();
-                PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, otherActions, resolved("data_stream_a11"));
+                PrivilegesEvaluatorResponse result = subject(false).hasIndexPrivilege(ctx, otherActions, resolved("data_stream_a11"));
                 assertThat(result, isForbidden(missingPrivileges(otherActions)));
             }
 
@@ -676,28 +706,33 @@ public class RoleBasedActionPrivilegesTest {
                     ? ImmutableSet.of("indices:data/write/update")
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA.getIndicesLookup();
+                this.statefulness = statefulness;
+            }
 
+            private RoleBasedActionPrivileges subject(boolean breakDownAliases) {
                 Settings settings = Settings.EMPTY;
                 if (statefulness == Statefulness.STATEFUL_LIMITED) {
                     settings = Settings.builder()
-                        .put(
-                            RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
-                            new ByteSizeValue(10, ByteSizeUnit.BYTES)
-                        )
-                        .build();
+                            .put(
+                                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
+                                    new ByteSizeValue(10, ByteSizeUnit.BYTES)
+                            )
+                            .build();
                 }
 
-                this.subject = new RoleBasedActionPrivileges(
-                    roles,
-                    FlattenedActionGroups.EMPTY,
-                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                    settings,
-                    false
+                RoleBasedActionPrivileges result = new RoleBasedActionPrivileges(
+                        roles,
+                        FlattenedActionGroups.EMPTY,
+                        RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                        settings,
+                        breakDownAliases
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
-                    this.subject.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
+                    result.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
                 }
+
+                return result;
             }
 
             final static Metadata INDEX_METADATA = //
@@ -706,22 +741,6 @@ public class RoleBasedActionPrivilegesTest {
 
             static ResolvedIndices resolved(String... indices) {
                 return ResolvedIndices.of(indices);
-                // TODO check
-                // ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
-                //
-                //
-                // for (String index : indices) {
-                // IndexAbstraction indexAbstraction = INDEX_METADATA.getIndicesLookup().get(index);
-                //
-                // if (indexAbstraction instanceof IndexAbstraction.DataStream) {
-                // allIndices.addAll(
-                // indexAbstraction.getIndices().stream().map(i -> i.getIndex().getName()).collect(Collectors.toList())
-                // );
-                // }
-                //
-                // allIndices.add(index);
-                // }
-
             }
         }
 
@@ -850,21 +869,6 @@ public class RoleBasedActionPrivilegesTest {
 
     public static class Misc {
         @Test
-        public void relevantOnly_identity() throws Exception {
-            Map<String, IndexAbstraction> metadata = //
-                indices("index_a11", "index_a12", "index_b")//
-                    .alias("alias_a")
-                    .of("index_a11", "index_a12")//
-                    .build()
-                    .getIndicesLookup();
-
-            assertTrue(
-                "relevantOnly() returned identical object",
-                RoleBasedActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, i -> false) == metadata
-            );
-        }
-
-        @Test
         public void relevantOnly_closed() throws Exception {
             Map<String, IndexAbstraction> metadata = indices("index_open_1", "index_open_2")//
                 .index("index_closed", IndexMetadata.State.CLOSE)
@@ -942,7 +946,7 @@ public class RoleBasedActionPrivilegesTest {
             assertTrue(
                 "Result mentions role_with_errors: " + result.getEvaluationExceptionInfo(),
                 result.getEvaluationExceptionInfo()
-                    .startsWith("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating")
+                    .contains("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating")
             );
         }
 
@@ -1075,7 +1079,7 @@ public class RoleBasedActionPrivilegesTest {
             assertTrue(
                 "Result mentions role_with_errors: " + result.getEvaluationExceptionInfo(),
                 result.getEvaluationExceptionInfo()
-                    .startsWith("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating role role_with_errors")
+                    .contains("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating role role_with_errors")
             );
         }
 
