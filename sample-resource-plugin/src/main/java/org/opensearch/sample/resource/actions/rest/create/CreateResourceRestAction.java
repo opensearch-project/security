@@ -94,7 +94,6 @@ public class CreateResourceRestAction extends BaseRestHandler {
         );
     }
 
-    // NOTE: Do NOT use @SuppressWarnings("unchecked") on untrusted data in production code. This is used here only to keep the code simple
     @SuppressWarnings("unchecked")
     private Map<String, String> getAttributes(Map<String, Object> source) {
         return source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
