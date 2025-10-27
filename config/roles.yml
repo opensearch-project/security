@@ -35,11 +35,11 @@ alerting_read_access:
     - 'cluster:admin/opensearch/alerting/comments/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
     - 'cluster:admin/opensearch/alerting/remote/indexes/get'
-    - 'cluster:admin/opensearch/alerting/workflow/get'
-    - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
     - 'cluster:admin/opensearch/alerting/v2/alerts/get'
     - 'cluster:admin/opensearch/alerting/v2/monitor/get'
     - 'cluster:admin/opensearch/alerting/v2/monitor/search'
+    - 'cluster:admin/opensearch/alerting/workflow/get'
+    - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
 
 # Allows users to view and acknowledge alerts
 alerting_ack_alerts:
