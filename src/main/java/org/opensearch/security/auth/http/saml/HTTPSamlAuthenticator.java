@@ -299,7 +299,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 openSamlInitialized = true;
             });
         } catch (Exception e) {
-            throw new RuntimeException(e.getCause());
+            throw new RuntimeException(e);
         }
     }
 

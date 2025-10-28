@@ -33,8 +33,8 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
             return AccessController.doPrivilegedChecked(SamlFilesystemMetadataResolver.super::fetchMetadata);
         } catch (Exception e) {
 
-            if (e.getCause() instanceof ResolverException) {
-                throw (ResolverException) e.getCause();
+            if (e instanceof ResolverException) {
+                throw (ResolverException) e;
             } else {
                 throw new RuntimeException(e);
             }

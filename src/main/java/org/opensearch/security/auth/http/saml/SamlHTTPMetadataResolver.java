@@ -40,9 +40,8 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         try {
             return AccessController.doPrivilegedChecked(SamlHTTPMetadataResolver.super::fetchMetadata);
         } catch (Exception e) {
-
-            if (e.getCause() instanceof ResolverException) {
-                throw (ResolverException) e.getCause();
+            if (e instanceof ResolverException) {
+                throw (ResolverException) e;
             } else {
                 throw new RuntimeException(e);
             }

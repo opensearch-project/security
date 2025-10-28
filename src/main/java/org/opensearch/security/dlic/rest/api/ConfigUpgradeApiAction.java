@@ -320,7 +320,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             });
         } catch (final Exception e) {
             LOGGER.error("Error when loading configuration from file", e);
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
@@ -340,7 +340,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             });
         } catch (final Exception e) {
             LOGGER.error("Error when loading configuration from file", e);
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 

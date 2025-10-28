@@ -57,7 +57,7 @@ public class NonValidatingObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> nonValidatingObjectMapper.readValue(string, jt));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 

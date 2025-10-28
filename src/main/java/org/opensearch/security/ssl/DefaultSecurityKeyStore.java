@@ -994,8 +994,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         try {
             sslContext = AccessController.doPrivilegedChecked(sslContextBuilder::build);
         } catch (final Exception e) {
-            if (e.getCause() instanceof SSLException) {
-                throw (SSLException) e.getCause();
+            if (e instanceof SSLException) {
+                throw (SSLException) e;
             } else {
                 throw new RuntimeException(e);
             }

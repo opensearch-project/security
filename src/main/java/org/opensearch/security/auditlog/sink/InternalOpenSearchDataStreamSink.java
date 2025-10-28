@@ -119,9 +119,9 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
             }
             this.dataStreamInitialized = true;
         } catch (final Exception e) {
-            if (e.getCause() instanceof ResourceAlreadyExistsException
-                || (e.getCause() instanceof RemoteTransportException
-                    && e.getCause().getCause() instanceof ResourceAlreadyExistsException)) {
+            if (e instanceof ResourceAlreadyExistsException
+                || (e instanceof RemoteTransportException
+                    && (e.getCause() != null && e.getCause() instanceof ResourceAlreadyExistsException))) {
                 log.trace("Datastream {} already exists", dataStreamName);
                 this.dataStreamInitialized = true;
             } else {

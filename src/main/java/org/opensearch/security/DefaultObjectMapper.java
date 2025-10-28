@@ -140,7 +140,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.treeToValue(node, clazz));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
@@ -148,7 +148,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, clazz));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
@@ -156,7 +156,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readTree(string));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
@@ -166,7 +166,7 @@ public class DefaultObjectMapper {
                 () -> (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(value)
             );
         } catch (final Exception e) {
-            throw (JsonProcessingException) e.getCause();
+            throw (JsonProcessingException) e;
         }
 
     }
@@ -181,7 +181,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> mapper.writeValueAsString(value));
         } catch (final Exception e) {
-            throw (JsonProcessingException) e.getCause();
+            throw (JsonProcessingException) e;
         }
 
     }
@@ -190,7 +190,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, tr));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
 
     }
@@ -200,7 +200,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, jt));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
@@ -208,7 +208,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.convertValue(jsonNode, jt));
         } catch (final Exception e) {
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 

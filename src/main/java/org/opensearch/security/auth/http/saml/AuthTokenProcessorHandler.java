@@ -112,16 +112,7 @@ class AuthTokenProcessorHandler {
     }
 
     Optional<SecurityResponse> handle(RestRequest restRequest) throws Exception {
-        try {
-
-            return AccessController.doPrivilegedChecked(() -> handleLowLevel(restRequest));
-        } catch (Exception e) {
-            if (e.getCause() instanceof Exception) {
-                throw (Exception) e.getCause();
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> handleLowLevel(restRequest));
     }
 
     private AuthTokenProcessorAction.Response handleImpl(

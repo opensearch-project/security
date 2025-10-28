@@ -153,12 +153,12 @@ public class Utils {
         try {
             return AccessController.doPrivilegedChecked(() -> internalMapper.writeValueAsBytes(jsonAsMap));
         } catch (final Exception e) {
-            if (e.getCause() instanceof JsonProcessingException) {
-                throw (JsonProcessingException) e.getCause();
-            } else if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
+            if (e instanceof JsonProcessingException) {
+                throw (JsonProcessingException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
-                throw new RuntimeException(e.getCause());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -169,12 +169,12 @@ public class Utils {
             return AccessController.doPrivilegedChecked(() -> internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
             }));
         } catch (final Exception e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            } else if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
-                throw new RuntimeException(e.getCause());
+                throw new RuntimeException(e);
             }
         }
     }
