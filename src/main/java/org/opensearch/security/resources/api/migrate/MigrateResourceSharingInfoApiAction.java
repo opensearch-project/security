@@ -322,8 +322,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
-                // TODO account for hierarchy in migration as well
-                ResourceSharing sharingInfo = new ResourceSharing(resourceId, createdBy, shareWith);
+                // TODO account for hierarchy in migration as well (i.e. parent id)
+                ResourceSharing.Builder builder = ResourceSharing.builder()
+                    .resourceId(resourceId)
+                    .createdBy(createdBy)
+                    .shareWith(shareWith);
+                builder.resourceType(provider.resourceType());
+                // TODO uncomment when hierarchy fully supported
+                // builder.parentType(provider.parentType());
+                ResourceSharing sharingInfo = builder.build();
                 sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());

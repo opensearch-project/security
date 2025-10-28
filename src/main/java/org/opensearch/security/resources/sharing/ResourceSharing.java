@@ -114,7 +114,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public ShareWith getShareWith() {
         if (shareWith == null) {
             // never been shared before, private access
-            return new ShareWith(new HashMap<>());
+            shareWith = new ShareWith(new HashMap<>());
         }
         return shareWith;
     }
