@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
@@ -28,7 +29,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.RemoteTransportException;
 import org.opensearch.transport.client.Client;
 
 public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpenSearchSink {
@@ -119,9 +119,7 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
             }
             this.dataStreamInitialized = true;
         } catch (final Exception e) {
-            if (e instanceof ResourceAlreadyExistsException
-                || (e instanceof RemoteTransportException
-                    && (e.getCause() != null && e.getCause() instanceof ResourceAlreadyExistsException))) {
+            if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
                 log.trace("Datastream {} already exists", dataStreamName);
                 this.dataStreamInitialized = true;
             } else {
