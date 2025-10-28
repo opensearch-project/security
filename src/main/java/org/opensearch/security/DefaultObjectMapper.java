@@ -195,7 +195,6 @@ public class DefaultObjectMapper {
 
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
 
         try {
@@ -205,7 +204,6 @@ public class DefaultObjectMapper {
         }
     }
 
-    @SuppressWarnings("removal")
     public static <T> T convertValue(JsonNode jsonNode, JavaType jt) throws IOException {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.convertValue(jsonNode, jt));

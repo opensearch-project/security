@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,6 +47,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.Meta;
@@ -66,7 +65,6 @@ public class ConfigHelper {
         uploadFile(tc, filepath, index, cType, configVersion, false);
     }
 
-    @SuppressWarnings("removal")
     public static void uploadFile(
         Client tc,
         String filepath,
@@ -85,7 +83,7 @@ public class ConfigHelper {
                 + populateEmptyIfFileMissing
         );
 
-        AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+        AccessController.doPrivilegedChecked(() -> {
             if (!populateEmptyIfFileMissing) {
                 ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
             }
@@ -107,7 +105,6 @@ public class ConfigHelper {
             } catch (VersionConflictEngineException versionConflictEngineException) {
                 LOGGER.info("Index {} already contains doc with id {}, skipping update.", index, configType);
             }
-            return null;
         });
     }
 

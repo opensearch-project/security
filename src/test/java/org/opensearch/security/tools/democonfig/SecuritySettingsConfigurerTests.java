@@ -55,7 +55,6 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-@SuppressWarnings("removal")
 @RunWith(RandomizedRunner.class)
 public class SecuritySettingsConfigurerTests {
 

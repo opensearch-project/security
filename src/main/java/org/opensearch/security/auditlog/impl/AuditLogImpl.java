@@ -13,8 +13,6 @@ package org.opensearch.security.auditlog.impl;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Map;
 
 import org.opensearch.SpecialPermission;
@@ -28,6 +26,7 @@ import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
@@ -61,7 +60,6 @@ public final class AuditLogImpl extends AbstractAuditLog {
         this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null, new UserFactory.Simple());
     }
 
-    @SuppressWarnings("removal")
     public AuditLogImpl(
         final Settings settings,
         final Path configPath,
@@ -80,7 +78,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
         log.info("Message routing enabled: {}", this.messageRouterEnabled);
 
         SpecialPermission.check();
-        shutdownHook = AccessController.doPrivileged((PrivilegedAction<Thread>) this::addShutdownHook);
+        shutdownHook = AccessController.doPrivileged(this::addShutdownHook);
         log.debug("Shutdown hook {} registered", shutdownHook);
     }
 
@@ -109,14 +107,12 @@ public final class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
-    @SuppressWarnings("removal")
     public void close() throws IOException {
 
         log.info("Closing {}", getClass().getSimpleName());
 
-        SpecialPermission.check();
         try {
-            final boolean removed = AccessController.doPrivileged((PrivilegedAction<Boolean>) this::removeShutdownHook);
+            final boolean removed = AccessController.doPrivileged(this::removeShutdownHook);
             if (removed) {
                 log.debug("Shutdown hook {} unregistered", shutdownHook);
                 shutdownHook.run();

@@ -12,8 +12,6 @@
 package org.opensearch.security.configuration;
 
 import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +30,6 @@ import org.apache.lucene.util.BytesRef;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
@@ -67,6 +64,7 @@ import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.DocumentAllowList;
@@ -683,10 +681,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
-        @SuppressWarnings("removal")
         private static <T> Field getField(Class<T> cls, String name) {
-            SpecialPermission.check();
-            return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged(cls, name));
+            return AccessController.doPrivileged(() -> getFieldPrivileged(cls, name));
         }
 
         @SuppressWarnings("unchecked")

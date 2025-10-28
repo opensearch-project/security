@@ -350,7 +350,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
-    @SuppressWarnings("removal")
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
@@ -2425,7 +2424,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
     }
 
-    @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
         AccessController.doPrivileged(() -> {
             if (Security.getProvider("BCFIPS") == null) {

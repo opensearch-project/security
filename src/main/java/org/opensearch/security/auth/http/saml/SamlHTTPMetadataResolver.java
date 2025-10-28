@@ -12,9 +12,6 @@
 package org.opensearch.security.auth.http.saml;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.time.Duration;
 
 import org.apache.hc.client5.http.classic.HttpClient;
@@ -22,8 +19,8 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4;
 
 import net.shibboleth.shared.resolver.ResolverException;
@@ -39,11 +36,10 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     }
 
     @Override
-    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) SamlHTTPMetadataResolver.super::fetchMetadata);
-        } catch (PrivilegedActionException e) {
+            return AccessController.doPrivilegedChecked(SamlHTTPMetadataResolver.super::fetchMetadata);
+        } catch (Exception e) {
 
             if (e.getCause() instanceof ResolverException) {
                 throw (ResolverException) e.getCause();
@@ -57,17 +53,10 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
     }
 
-    @SuppressWarnings("removal")
     private static HttpClient createHttpClient(Settings settings, Path configPath) throws Exception {
         try {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            return AccessController.doPrivileged((PrivilegedExceptionAction<HttpClient>) () -> createHttpClient0(settings, configPath));
-        } catch (PrivilegedActionException e) {
+            return AccessController.doPrivilegedChecked(() -> createHttpClient0(settings, configPath));
+        } catch (Exception e) {
             if (e.getCause() instanceof Exception) {
                 throw (Exception) e.getCause();
             } else {

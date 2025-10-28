@@ -34,7 +34,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -140,7 +139,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final SSLConfig SSLConfig;
     protected volatile ThreadPool threadPool;
 
-    @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 
         if (disabled) {
@@ -180,13 +178,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             log.warn(renegoMsg);
         } else {
             if (!rejectClientInitiatedRenegotiation) {
-
-                final SecurityManager sm = System.getSecurityManager();
-
-                if (sm != null) {
-                    sm.checkPermission(new SpecialPermission());
-                }
-
                 AccessController.doPrivileged(
                     () -> System.setProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION, "true")
                 );

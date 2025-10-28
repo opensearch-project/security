@@ -15,7 +15,6 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
@@ -35,13 +34,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.kerberos.util.JaasKrbUtil;
 import org.opensearch.security.auth.http.kerberos.util.KrbConstants;
@@ -68,91 +67,80 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     private Set<String> acceptorPrincipal;
     private Path acceptorKeyTabPath;
 
-    @SuppressWarnings("removal")
     public HTTPSpnegoAuthenticator(final Settings settings, final Path configPath) {
         super();
         try {
             final Path configDir = new Environment(settings, configPath).configDir();
             final String krb5PathSetting = settings.get("plugins.security.kerberos.krb5_filepath");
 
-            final SecurityManager sm = System.getSecurityManager();
+            AccessController.doPrivileged(() -> {
 
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            AccessController.doPrivileged(new PrivilegedAction<Void>() {
-
-                @Override
-                public Void run() {
-
-                    try {
-                        if (settings.getAsBoolean("krb_debug", false)) {
-                            JaasKrbUtil.setDebug(true);
-                            System.setProperty("sun.security.krb5.debug", "true");
-                            System.setProperty("java.security.debug", "gssloginconfig,logincontext,configparser,configfile");
-                            System.setProperty("sun.security.spnego.debug", "true");
-                            log.info("Kerberos debug is enabled on stdout");
-                        } else {
-                            log.debug("Kerberos debug is NOT enabled");
-                        }
-                    } catch (Throwable e) {
-                        log.error("Unable to enable krb_debug due to ", e);
-                        log.debug("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
+                try {
+                    if (settings.getAsBoolean("krb_debug", false)) {
+                        JaasKrbUtil.setDebug(true);
+                        System.setProperty("sun.security.krb5.debug", "true");
+                        System.setProperty("java.security.debug", "gssloginconfig,logincontext,configparser,configfile");
+                        System.setProperty("sun.security.spnego.debug", "true");
+                        log.info("Kerberos debug is enabled on stdout");
+                    } else {
+                        log.debug("Kerberos debug is NOT enabled");
                     }
+                } catch (Throwable e) {
+                    log.error("Unable to enable krb_debug due to ", e);
+                    log.debug("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
+                }
 
-                    System.setProperty(KrbConstants.USE_SUBJECT_CREDS_ONLY_PROP, "false");
+                System.setProperty(KrbConstants.USE_SUBJECT_CREDS_ONLY_PROP, "false");
 
-                    String krb5Path = krb5PathSetting;
+                String krb5Path = krb5PathSetting;
 
-                    if (!Strings.isNullOrEmpty(krb5Path)) {
+                if (!Strings.isNullOrEmpty(krb5Path)) {
 
-                        if (Paths.get(krb5Path).isAbsolute()) {
-                            log.debug("krb5_filepath: {}", krb5Path);
-                            System.setProperty(KrbConstants.KRB5_CONF_PROP, krb5Path);
-                        } else {
-                            krb5Path = configDir.resolve(krb5Path).toAbsolutePath().toString();
-                            log.debug("krb5_filepath (resolved from {}): {}", configDir, krb5Path);
-                        }
-
+                    if (Paths.get(krb5Path).isAbsolute()) {
+                        log.debug("krb5_filepath: {}", krb5Path);
                         System.setProperty(KrbConstants.KRB5_CONF_PROP, krb5Path);
                     } else {
-                        if (Strings.isNullOrEmpty(System.getProperty(KrbConstants.KRB5_CONF_PROP))) {
-                            System.setProperty(KrbConstants.KRB5_CONF_PROP, "/etc/krb5.conf");
-                            log.debug("krb5_filepath (was not set or configured, set to default): /etc/krb5.conf");
-                        }
+                        krb5Path = configDir.resolve(krb5Path).toAbsolutePath().toString();
+                        log.debug("krb5_filepath (resolved from {}): {}", configDir, krb5Path);
                     }
 
-                    stripRealmFromPrincipalName = settings.getAsBoolean("strip_realm_from_principal", true);
-                    acceptorPrincipal = new HashSet<>(
-                        settings.getAsList("plugins.security.kerberos.acceptor_principal", Collections.emptyList())
+                    System.setProperty(KrbConstants.KRB5_CONF_PROP, krb5Path);
+                } else {
+                    if (Strings.isNullOrEmpty(System.getProperty(KrbConstants.KRB5_CONF_PROP))) {
+                        System.setProperty(KrbConstants.KRB5_CONF_PROP, "/etc/krb5.conf");
+                        log.debug("krb5_filepath (was not set or configured, set to default): /etc/krb5.conf");
+                    }
+                }
+
+                stripRealmFromPrincipalName = settings.getAsBoolean("strip_realm_from_principal", true);
+                acceptorPrincipal = new HashSet<>(
+                    settings.getAsList("plugins.security.kerberos.acceptor_principal", Collections.emptyList())
+                );
+                final String _acceptorKeyTabPath = settings.get("plugins.security.kerberos.acceptor_keytab_filepath");
+
+                if (acceptorPrincipal == null || acceptorPrincipal.size() == 0) {
+                    log.error("acceptor_principal must not be null or empty. Kerberos authentication will not work");
+                    acceptorPrincipal = null;
+                }
+
+                if (_acceptorKeyTabPath == null || _acceptorKeyTabPath.length() == 0) {
+                    log.error(
+                        "plugins.security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work"
                     );
-                    final String _acceptorKeyTabPath = settings.get("plugins.security.kerberos.acceptor_keytab_filepath");
+                    acceptorKeyTabPath = null;
+                } else {
+                    acceptorKeyTabPath = configDir.resolve(settings.get("plugins.security.kerberos.acceptor_keytab_filepath"));
 
-                    if (acceptorPrincipal == null || acceptorPrincipal.size() == 0) {
-                        log.error("acceptor_principal must not be null or empty. Kerberos authentication will not work");
-                        acceptorPrincipal = null;
-                    }
-
-                    if (_acceptorKeyTabPath == null || _acceptorKeyTabPath.length() == 0) {
+                    if (!Files.exists(acceptorKeyTabPath)) {
                         log.error(
-                            "plugins.security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work"
+                            "Unable to read keytab from {} - Maybe the file does not exist or is not readable. Kerberos authentication will not work",
+                            acceptorKeyTabPath
                         );
                         acceptorKeyTabPath = null;
-                    } else {
-                        acceptorKeyTabPath = configDir.resolve(settings.get("plugins.security.kerberos.acceptor_keytab_filepath"));
-
-                        if (!Files.exists(acceptorKeyTabPath)) {
-                            log.error(
-                                "Unable to read keytab from {} - Maybe the file does not exist or is not readable. Kerberos authentication will not work",
-                                acceptorKeyTabPath
-                            );
-                            acceptorKeyTabPath = null;
-                        }
                     }
-
-                    return null;
                 }
+
+                return null;
             });
 
             log.debug("strip_realm_from_principal {}", stripRealmFromPrincipalName);
@@ -170,25 +158,13 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
-        final SecurityManager sm = System.getSecurityManager();
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
-            @Override
-            public AuthCredentials run() {
-                return extractCredentials0(request);
-            }
-        });
+        AuthCredentials creds = AccessController.doPrivileged(() -> extractCredentials0(request));
 
         return creds;
     }
 
-    @SuppressWarnings("removal")
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
 
         if (acceptorPrincipal == null || acceptorKeyTabPath == null) {

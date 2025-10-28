@@ -17,8 +17,6 @@
 
 package org.opensearch.security.ssl.transport;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,31 +30,21 @@ import javax.security.auth.x500.X500Principal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 public class DefaultPrincipalExtractor implements PrincipalExtractor {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     @Override
-    @SuppressWarnings("removal")
     public String extractPrincipal(final X509Certificate x509Certificate, final Type type) {
         if (x509Certificate == null) {
             return null;
         }
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        String dnString = AccessController.doPrivileged(new PrivilegedAction<String>() {
-            @Override
-            public String run() {
-                final X500Principal principal = x509Certificate.getSubjectX500Principal();
-                return principal.toString();
-            }
+        String dnString = AccessController.doPrivileged(() -> {
+            final X500Principal principal = x509Certificate.getSubjectX500Principal();
+            return principal.toString();
         });
 
         // remove whitespaces
