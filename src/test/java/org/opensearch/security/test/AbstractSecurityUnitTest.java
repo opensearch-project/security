@@ -304,7 +304,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks")
                 )
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false);
+                .put("transport.ssl.enforce_hostname_verification", false);
         }
 
         if (!sslOnly) {

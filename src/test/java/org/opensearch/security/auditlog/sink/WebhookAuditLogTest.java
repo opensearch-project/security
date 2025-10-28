@@ -100,7 +100,7 @@ public class WebhookAuditLogTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
+            .put("transport.ssl.enforce_hostname_verification", false)
             .build();
 
         MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
