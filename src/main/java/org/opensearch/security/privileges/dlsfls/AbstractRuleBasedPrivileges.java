@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.settings.Settings;
@@ -230,6 +231,46 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     private boolean hasUnrestrictedRulesExplicit(PrivilegesEvaluationContext context, StatefulRules<SingleRule> statefulRules, String index)
         throws PrivilegesEvaluationException {
 
+        if (hasUnrestrictedRulesExplicitNoRecursion(context, statefulRules, index)) {
+            return true;
+        }
+
+        IndexAbstraction indexAbstraction = context.getIndicesLookup().get(index);
+        if (indexAbstraction instanceof IndexAbstraction.Index) {
+            for (String parent : getParents(indexAbstraction)) {
+                if (hasUnrestrictedRulesExplicitNoRecursion(context, statefulRules, parent)) {
+                    return true;
+                }
+            }
+        } else if (indexAbstraction instanceof IndexAbstraction.DataStream || indexAbstraction instanceof IndexAbstraction.Alias) {
+            // If we got an alias or a data stream, we might be also unrestricted if all member indices are unrestricted
+
+            List<IndexMetadata> memberIndices = indexAbstraction.getIndices();
+            int unrestrictedMemberIndices = 0;
+
+            for (IndexMetadata memberIndex : memberIndices) {
+                if (hasUnrestrictedRulesExplicitNoRecursion(context, statefulRules, memberIndex.getIndex().getName())) {
+                    unrestrictedMemberIndices++;
+                }
+            }
+
+            if (unrestrictedMemberIndices == memberIndices.size()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Should be only called by hasUnrestrictedRulesExplicit()
+     */
+    private boolean hasUnrestrictedRulesExplicitNoRecursion(
+        PrivilegesEvaluationContext context,
+        StatefulRules<SingleRule> statefulRules,
+        String index
+    ) throws PrivilegesEvaluationException {
+
         if (statefulRules != null && statefulRules.covers(index)) {
             Set<String> roleWithoutRule = statefulRules.indexToRoleWithoutRule.get(index);
 
@@ -246,17 +287,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
             return true;
         }
 
-        IndexAbstraction indexAbstraction = context.getIndicesLookup().get(index);
-        if (indexAbstraction != null) {
-            for (String parent : getParents(indexAbstraction)) {
-                if (hasUnrestrictedRulesExplicit(context, statefulRules, parent)) {
-                    return true;
-                }
-            }
-        }
-
         return false;
-
     }
 
     /**
@@ -283,12 +314,48 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         }
 
         IndexAbstraction indexAbstraction = context.getIndicesLookup().get(index);
-        if (indexAbstraction != null) {
+        if (indexAbstraction instanceof IndexAbstraction.Index) {
             for (String parent : getParents(indexAbstraction)) {
-                if (hasRestrictedRulesExplicit(context, statefulRules, parent)) {
+                if (hasRestrictedRulesExplicitNoRecursion(context, statefulRules, parent)) {
                     return true;
                 }
             }
+        } else if (indexAbstraction instanceof IndexAbstraction.DataStream || indexAbstraction instanceof IndexAbstraction.Alias) {
+            // If we got an alias or a data stream, we might be also restricted if there is a member index that is restricted
+
+            for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
+                if (hasRestrictedRulesExplicitNoRecursion(context, statefulRules, memberIndex.getIndex().getName())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Should be only called by hasRestrictedRulesExplicit()
+     */
+    private boolean hasRestrictedRulesExplicitNoRecursion(
+        PrivilegesEvaluationContext context,
+        StatefulRules<SingleRule> statefulRules,
+        String index
+    ) throws PrivilegesEvaluationException {
+
+        if (statefulRules != null && statefulRules.covers(index)) {
+            Map<String, SingleRule> roleWithRule = statefulRules.indexToRoleToRule.get(index);
+
+            if (roleWithRule != null && CollectionUtils.containsAny(roleWithRule.keySet(), context.getMappedRoles())) {
+                return true;
+            }
+        } else {
+            if (this.staticRules.hasRestrictedPatterns(context, index)) {
+                return true;
+            }
+        }
+
+        if (this.staticRules.hasRestrictedPatternTemplates(context, index)) {
+            return true;
         }
 
         return false;
