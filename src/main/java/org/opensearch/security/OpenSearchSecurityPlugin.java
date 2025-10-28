@@ -1168,8 +1168,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
         RoleMapper roleMapper = new RolesInjector.InjectedRoleMapper(
-                new ConfigurableRoleMapper(cr, settings),
-                threadPool.getThreadContext()
+            new ConfigurableRoleMapper(cr, settings),
+            threadPool.getThreadContext()
         );
         this.roleMapper = roleMapper;
         tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
