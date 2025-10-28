@@ -138,7 +138,7 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
                 node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
-                node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
+                node.setting("transport.ssl.enforce_hostname_verification", "false")
                 node.setting("plugins.security.ssl.http.enabled", "true")
                 node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")

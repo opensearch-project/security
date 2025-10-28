@@ -49,6 +49,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
+import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 import static org.junit.Assert.assertThrows;
 
 public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
@@ -164,7 +165,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             .put(settings)
             .put(SecuritySettings.SSL_DUAL_MODE_SETTING.getKey(), true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .build();
 
         try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(deprecated, osPathHome, false)) {
@@ -189,7 +190,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             .put(settings)
             .put(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY, true)
             .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY, false)
-            .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
+            .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .build();
 
         try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, osPathHome, false)) {
@@ -217,8 +218,8 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY
             ),
             Tuple.tuple(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
-                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+                TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
             )
         );
 
@@ -228,7 +229,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 .put(duplicate.v1(), true)
                 .put(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY, true)
                 .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY, false)
-                .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
+                .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
                 .build();
 
             try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, osPathHome, false)) {
