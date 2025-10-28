@@ -18,8 +18,6 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -756,7 +754,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @SuppressWarnings("removal")
     protected void tryAddSecurityProvider() {
-        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+        AccessController.doPrivileged(() -> {
             if (Security.getProvider("BCFIPS") == null) {
                 Security.addProvider(new BouncyCastleFipsProvider());
                 log.debug("Bouncy Castle FIPS Provider added");
