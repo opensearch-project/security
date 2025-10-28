@@ -482,7 +482,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.42.0"
+            force "com.google.errorprone:error_prone_annotations:2.43.0"
             force "org.checkerframework:checker-qual:3.51.1"
             force "ch.qos.logback:logback-classic:1.5.20"
             force "commons-io:commons-io:2.20.0"
@@ -695,7 +695,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.19.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.42.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.43.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
     runtimeOnly 'org.ow2.asm:asm:9.9'
@@ -762,7 +762,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.0'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M5"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.0'
@@ -795,7 +795,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.28.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.30.0') {
         exclude group: 'com.google.guava'
     }
 }

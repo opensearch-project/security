@@ -17,12 +17,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.log.LogsRule;
+
+import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -34,9 +35,7 @@ public class TlsHostnameVerificationTests {
     public LocalCluster.Builder clusterBuilder = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
         .loadConfigurationIntoIndex(false)
-        .nodeSettings(
-            Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true)
-        )
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, true))
         .sslOnly(true);
 
     @Test
