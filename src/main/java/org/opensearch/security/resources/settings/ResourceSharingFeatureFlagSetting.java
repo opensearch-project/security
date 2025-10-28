@@ -19,7 +19,6 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.support.ConfigConstants;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 public class ResourceSharingFeatureFlagSetting extends OpensearchDynamicSetting<Boolean> {
     private static final Logger logger = LogManager.getLogger(ResourceSharingFeatureFlagSetting.class);
 
@@ -60,4 +59,3 @@ public class ResourceSharingFeatureFlagSetting extends OpensearchDynamicSetting<
         );
     }
 }
-// CS-ENFORCE-SINGLE

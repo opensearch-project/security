@@ -10,7 +10,6 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -21,7 +20,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
-// CS-ENFORCE-SINGLE
 
 public class TransportRunClusterHealthAction extends HandledTransportAction<RunClusterHealthRequest, AcknowledgedResponse> {
 

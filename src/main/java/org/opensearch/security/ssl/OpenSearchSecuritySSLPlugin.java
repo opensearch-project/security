@@ -103,12 +103,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
-        SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+        SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY,
         true,
         Property.NodeScope,
         Property.Filtered,

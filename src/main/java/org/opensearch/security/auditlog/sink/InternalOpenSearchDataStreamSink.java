@@ -11,7 +11,6 @@
 
 package org.opensearch.security.auditlog.sink;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;

@@ -218,7 +218,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY
             ),
             Tuple.tuple(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY,
                 TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
             )
         );
