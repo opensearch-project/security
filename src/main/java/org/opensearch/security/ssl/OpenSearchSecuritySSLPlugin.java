@@ -752,7 +752,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         return this.threadPool;
     }
 
-    @SuppressWarnings("removal")
     protected void tryAddSecurityProvider() {
         AccessController.doPrivileged(() -> {
             if (Security.getProvider("BCFIPS") == null) {
