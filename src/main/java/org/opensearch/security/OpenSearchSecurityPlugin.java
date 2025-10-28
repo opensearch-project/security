@@ -2347,12 +2347,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Function<String, Predicate<String>> getFieldFilter() {
-        final PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
-            ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
-            : null;
         return index -> {
             if (threadPool == null || dlsFlsValve == null) {
                 return field -> true;
+            }
+
+            PrivilegesEvaluationContext ctx;
+
+            if (threadPool.getThreadContext().getTransient("tmp_dls_fls_ctx") != null) {
+                ctx = threadPool.getThreadContext().getTransient("tmp_dls_fls_ctx");
+            } else {
+                ctx = this.dlsFlsBaseContext != null ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext() : null;
+                threadPool.getThreadContext().putTransient("tmp_dls_fls_ctx", ctx);
             }
 
             return field -> {
