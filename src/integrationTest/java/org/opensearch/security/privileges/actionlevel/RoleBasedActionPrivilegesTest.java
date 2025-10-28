@@ -931,7 +931,7 @@ public class RoleBasedActionPrivilegesTest {
             assertTrue(
                 "Result mentions role_with_errors: " + result.getEvaluationExceptionInfo(),
                 result.getEvaluationExceptionInfo()
-                    .contains("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating")
+                    .contains("Error while evaluating dynamic index pattern: /invalid_regex_with_attr${user.name}\\/")
             );
         }
 
@@ -1063,8 +1063,7 @@ public class RoleBasedActionPrivilegesTest {
             assertTrue(result.hasEvaluationExceptions());
             assertTrue(
                 "Result mentions role_with_errors: " + result.getEvaluationExceptionInfo(),
-                result.getEvaluationExceptionInfo()
-                    .contains("Exceptions encountered during privilege evaluation:\n" + "Error while evaluating role role_with_errors")
+                result.getEvaluationExceptionInfo().contains("Error while evaluating role role_with_errors")
             );
         }
 

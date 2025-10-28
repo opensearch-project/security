@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Streams;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -166,7 +166,9 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig user(User user) {
         this.internalUsers.put(user.name, user);
-        // The user's roles will be collected by aggregateRoles() when the configuration is written
+        for (Role role : user.roles) {
+            this.roles.put(role.name, role);
+        }
         return this;
     }
 
@@ -453,11 +455,8 @@ public class TestSecurityConfig {
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
+        List<Role> referencedRoles = new ArrayList<>();
         List<String> backendRoles = new ArrayList<>();
-        /**
-         * This will be initialized by aggregateRoles()
-         */
-        Set<String> roleNames;
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
@@ -486,8 +485,31 @@ public class TestSecurityConfig {
             return this;
         }
 
+        /**
+         * Adds a user-specific role to this user. Internally, the role name will be scoped with the user name
+         * to avoid accidental collisions between roles of different users.
+         */
         public User roles(Role... roles) {
-            this.roles.addAll(Arrays.asList(roles));
+            // We scope the role names by user to keep tests free of potential side effects
+            String roleNamePrefix = "user_" + this.getName() + "__";
+
+            for (Role role : roles) {
+                Role copy = role.clone();
+                if (!copy.name.startsWith(roleNamePrefix)) {
+                    copy.name = roleNamePrefix + role.name;
+                }
+                this.roles.add(copy);
+            }
+
+            return this;
+        }
+
+        /**
+         * Adds references to roles which are already defined for the top-level SecurityTestConfig object.
+         * This allows tests to share roles between users.
+         */
+        public User referencedRoles(Role... roles) {
+            this.referencedRoles.addAll(Arrays.asList(roles));
             return this;
         }
 
@@ -534,10 +556,7 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
-            if (roleNames == null) {
-                this.aggregateRoles();
-            }
-            return roleNames;
+            return Streams.concat(roles.stream(), referencedRoles.stream()).map(Role::getName).collect(Collectors.toSet());
         }
 
         public String getDescription() {
@@ -638,25 +657,6 @@ public class TestSecurityConfig {
             public MetadataKey(String name, Class<T> type) {
                 this.name = name;
                 this.type = type;
-            }
-        }
-
-        void aggregateRoles() {
-            if (this.roleNames == null) {
-                this.roleNames = new HashSet<>();
-            }
-
-            for (Role role : this.roles) {
-                if (role.addedIndependentlyOfUser) {
-                    // This is a globally defined role, we just use this
-                    this.roleNames.add(role.name);
-                } else {
-                    // This is role that is locally defined for the user; let's scope the name
-                    if (!role.name.startsWith("user_" + this.name)) {
-                        role.name = "user_" + this.name + "__" + role.name;
-                    }
-                    this.roleNames.add(role.name);
-                }
             }
         }
     }
@@ -1115,11 +1115,13 @@ public class TestSecurityConfig {
         client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
         if (rawConfigurationDocuments == null) {
+            checkReferencedRoles();
+
             writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
             if (auditConfiguration != null) {
                 writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
             }
-            writeConfigToIndex(client, CType.ROLES, aggregateRoles());
+            writeConfigToIndex(client, CType.ROLES, roles);
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
             writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
@@ -1134,23 +1136,23 @@ public class TestSecurityConfig {
     }
 
     /**
-     * Merges the globally defined roles with the roles defined by user. Roles defined by user will be scoped
-     * so that user definitions cannot interfere with others.
+     * Does a sanity check on the user's referenced roles; these must actually match the globally defined roles.
      */
-    private Map<String, Role> aggregateRoles() {
-        Map<String, Role> result = new HashMap<>(this.roles);
-
+    private void checkReferencedRoles() {
         for (User user : this.internalUsers.values()) {
-            user.aggregateRoles();
-
-            for (Role role : user.roles) {
-                if (!role.addedIndependentlyOfUser) {
-                    result.put(role.name, role);
+            for (Role role : user.referencedRoles) {
+                if (this.roles.containsKey(role.name) && !this.roles.get(role.name).equals(role)) {
+                    throw new RuntimeException(
+                        "Referenced role '"
+                            + role.name
+                            + "' in user '"
+                            + user.name
+                            + "' does not match the definition in TestSecurityConfig: "
+                            + this.roles.get(role.name)
+                    );
                 }
             }
         }
-
-        return result;
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {

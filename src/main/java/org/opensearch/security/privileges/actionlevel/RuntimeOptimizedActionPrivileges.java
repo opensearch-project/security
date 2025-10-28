@@ -452,7 +452,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                         } catch (PrivilegesEvaluationException e) {
                             // We can ignore these errors, as this max leads to fewer privileges than available
                             log.error("Error while evaluating index pattern of {}. Ignoring entry", this, e);
-                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + this, e));
+                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating index pattern " + indexPattern, e));
                         }
                     }
                 }
