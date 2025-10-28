@@ -59,6 +59,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -76,6 +77,7 @@ import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCreden
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
 
+import static java.util.Arrays.asList;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 
@@ -103,8 +105,8 @@ public class TestSecurityConfig {
     private Map<String, Role> roles = new LinkedHashMap<>();
     private AuditConfiguration auditConfiguration;
     private Map<String, RoleMapping> rolesMapping = new LinkedHashMap<>();
-
     private Map<String, ActionGroup> actionGroups = new LinkedHashMap<>();
+    private Map<String, Tenant> tenants = new LinkedHashMap<>();
 
     /**
      * A map from document id to a string containing config JSON.
@@ -167,7 +169,9 @@ public class TestSecurityConfig {
     public TestSecurityConfig user(User user) {
         this.internalUsers.put(user.name, user);
         for (Role role : user.roles) {
-            this.roles.put(role.name, role);
+            if (!role.isPredefined) {
+                this.roles.put(role.name, role);
+            }
         }
         return this;
     }
@@ -188,7 +192,6 @@ public class TestSecurityConfig {
             if (this.roles.containsKey(role.name)) {
                 throw new IllegalStateException("Role with name " + role.name + " is already defined");
             }
-            role.addedIndependentlyOfUser = true;
             this.roles.put(role.name, role);
         }
 
@@ -228,6 +231,17 @@ public class TestSecurityConfig {
 
     public List<ActionGroup> actionGroups() {
         return List.copyOf(actionGroups.values());
+    }
+
+    public TestSecurityConfig tenants(Tenant... tenants) {
+        for (Tenant tenant : tenants) {
+            if (this.tenants.containsKey(tenant.name)) {
+                throw new IllegalArgumentException("Tenant " + tenant.name + " already exists");
+            }
+            this.tenants.put(tenant.name, tenant);
+        }
+
+        return this;
     }
 
     /**
@@ -494,11 +508,16 @@ public class TestSecurityConfig {
             String roleNamePrefix = "user_" + this.getName() + "__";
 
             for (Role role : roles) {
-                Role copy = role.clone();
-                if (!copy.name.startsWith(roleNamePrefix)) {
-                    copy.name = roleNamePrefix + role.name;
+                if (!role.isPredefined) {
+                    Role copy = role.clone();
+                    if (!copy.name.startsWith(roleNamePrefix)) {
+                        copy.name = roleNamePrefix + role.name;
+                    }
+                    this.roles.add(copy);
+                } else {
+                    // Add the unscoped role for predefined roles
+                    this.roles.add(role);
                 }
-                this.roles.add(copy);
             }
 
             return this;
@@ -663,23 +682,22 @@ public class TestSecurityConfig {
 
     public static class Role implements ToXContentObject {
         public static Role ALL_ACCESS = new Role("all_access").clusterPermissions("*").indexPermissions("*").on("*");
+        public static Role KIBANA_USER = new Role("kibana_user").isPredefined(true);
 
         private String name;
         private List<String> clusterPermissions = new ArrayList<>();
-
         private List<IndexPermission> indexPermissions = new ArrayList<>();
+        private List<TenantPermission> tenantPermissions = new ArrayList<>();
 
         private Boolean hidden;
-
         private Boolean reserved;
-
         private String description;
 
         /**
-         * This will be set to true, if this was added using the roles() method on TestSecurityConfig.
-         * Then, we will consider this a role which is shared between users and we won't scope its name.
+         * If this is true, the role is expected to be defined in static_roles.yml. Thus, it is not necessary to include it
+         * in the written role config.
          */
-        private boolean addedIndependentlyOfUser = false;
+        private boolean isPredefined = false;
 
         public Role(String name) {
             this(name, null);
@@ -697,6 +715,10 @@ public class TestSecurityConfig {
 
         public IndexPermission indexPermissions(String... indexPermissions) {
             return new IndexPermission(this, indexPermissions);
+        }
+
+        public TenantPermission tenantPermissions(String... tenantPermissions) {
+            return new TenantPermission(this, tenantPermissions);
         }
 
         public Role name(String name) {
@@ -718,10 +740,20 @@ public class TestSecurityConfig {
             return this;
         }
 
+        /**
+         * If this is true, the role is expected to be defined in static_roles.yml. Thus, it is not necessary to include it
+         * in the written role config.
+         */
+        public Role isPredefined(boolean isPredefined) {
+            this.isPredefined = isPredefined;
+            return this;
+        }
+
         public Role clone() {
             Role role = new Role(this.name);
             role.clusterPermissions.addAll(this.clusterPermissions);
             role.indexPermissions.addAll(this.indexPermissions);
+            role.tenantPermissions.addAll(this.tenantPermissions);
             return role;
         }
 
@@ -732,9 +764,11 @@ public class TestSecurityConfig {
             if (!clusterPermissions.isEmpty()) {
                 xContentBuilder.field("cluster_permissions", clusterPermissions);
             }
-
             if (!indexPermissions.isEmpty()) {
                 xContentBuilder.field("index_permissions", indexPermissions);
+            }
+            if (!tenantPermissions.isEmpty()) {
+                xContentBuilder.field("tenant_permissions", tenantPermissions);
             }
             if (hidden != null) {
                 xContentBuilder.field("hidden", hidden);
@@ -943,6 +977,58 @@ public class TestSecurityConfig {
         }
     }
 
+    public static class TenantPermission implements ToXContentObject {
+        private List<String> tenantPatterns;
+        private final List<String> allowedActions;
+        private Role role;
+
+        TenantPermission(Role role, String... allowedActions) {
+            this.allowedActions = asList(allowedActions);
+            this.role = role;
+        }
+
+        public Role on(String... tenantPatterns) {
+            this.tenantPatterns = asList(tenantPatterns);
+            this.role.tenantPermissions.add(this);
+            return this.role;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+            xContentBuilder.startObject();
+            xContentBuilder.field("tenant_patterns", tenantPatterns);
+            xContentBuilder.field("allowed_actions", allowedActions);
+            xContentBuilder.endObject();
+            return xContentBuilder;
+        }
+    }
+
+    public static class Tenant implements ToXContentObject {
+        private String name;
+        private String description;
+
+        public Tenant(String name) {
+            this.name = Objects.requireNonNull(name, "Name is required");
+        }
+
+        public Tenant description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
+            xContentBuilder.startObject();
+            xContentBuilder.field("description", description);
+            xContentBuilder.endObject();
+            return xContentBuilder;
+        }
+    }
+
     public static class AuthcDomain implements ToXContentObject {
 
         private static String PUBLIC_KEY =
@@ -1125,7 +1211,7 @@ public class TestSecurityConfig {
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
             writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
-            writeEmptyConfigToIndex(client, CType.TENANTS);
+            writeConfigToIndex(client, CType.TENANTS, tenants);
         } else {
             // Write raw configuration alternatively to the normal configuration
 
