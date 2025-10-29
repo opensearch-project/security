@@ -1915,7 +1915,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
                 // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here
-                if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
+                if (user != LIMITED_USER_NONE) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
