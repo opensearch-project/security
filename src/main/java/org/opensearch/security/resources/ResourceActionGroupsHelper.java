@@ -21,7 +21,6 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
 import org.yaml.snakeyaml.Yaml;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 /**
  * Helper class to load `resource-action-groups.yml` file for all resource sharing extensions.
  */
@@ -100,4 +99,3 @@ public class ResourceActionGroupsHelper {
         }
     }
 }
-// CS-ENFORCE-SINGLE

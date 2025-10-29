@@ -11,10 +11,8 @@
 
 package org.opensearch.security.util;
 
-import java.security.AccessController;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivilegedAction;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -24,8 +22,8 @@ import java.util.Objects;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.Strings;
+import org.opensearch.secure_sm.AccessController;
 
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
@@ -33,53 +31,43 @@ import io.jsonwebtoken.security.Keys;
 
 public class KeyUtils {
 
-    @SuppressWarnings("removal")
     public static JwtParserBuilder createJwtParserBuilderFromSigningKey(final String signingKey, final Logger log) {
-        final SecurityManager sm = System.getSecurityManager();
-
         JwtParserBuilder jwtParserBuilder = null;
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
+        jwtParserBuilder = AccessController.doPrivileged(() -> {
+            if (Strings.isNullOrEmpty(signingKey)) {
+                log.error("Unable to find signing key");
+                return null;
+            } else {
+                try {
+                    PublicKey key = null;
+                    final String minimalKeyFormat = signingKey.replaceAll("\\r|\\n", "")
+                        .replace("-----BEGIN PUBLIC KEY-----", "")
+                        .replace("-----END PUBLIC KEY-----", "")
+                        .trim();
+                    final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
-        jwtParserBuilder = AccessController.doPrivileged(new PrivilegedAction<JwtParserBuilder>() {
-            @Override
-            public JwtParserBuilder run() {
-                if (Strings.isNullOrEmpty(signingKey)) {
-                    log.error("Unable to find signing key");
-                    return null;
-                } else {
                     try {
-                        PublicKey key = null;
-                        final String minimalKeyFormat = signingKey.replaceAll("\\r|\\n", "")
-                            .replace("-----BEGIN PUBLIC KEY-----", "")
-                            .replace("-----END PUBLIC KEY-----", "")
-                            .trim();
-                        final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
+                        key = getPublicKey(decoded, "RSA");
 
-                        try {
-                            key = getPublicKey(decoded, "RSA");
-
-                        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                            log.debug("No public RSA key, try other algos ({})", e.toString());
-                        }
-
-                        try {
-                            key = getPublicKey(decoded, "EC");
-                        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                            log.debug("No public ECDSA key, try other algos ({})", e.toString());
-                        }
-
-                        if (Objects.nonNull(key)) {
-                            return Jwts.parser().verifyWith(key);
-                        }
-
-                        return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(decoded));
-                    } catch (Throwable e) {
-                        log.error("Error while creating JWT authenticator", e);
-                        throw new OpenSearchSecurityException(e.toString(), e);
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                        log.debug("No public RSA key, try other algos ({})", e.toString());
                     }
+
+                    try {
+                        key = getPublicKey(decoded, "EC");
+                    } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                        log.debug("No public ECDSA key, try other algos ({})", e.toString());
+                    }
+
+                    if (Objects.nonNull(key)) {
+                        return Jwts.parser().verifyWith(key);
+                    }
+
+                    return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(decoded));
+                } catch (Throwable e) {
+                    log.error("Error while creating JWT authenticator", e);
+                    throw new OpenSearchSecurityException(e.toString(), e);
                 }
             }
         });

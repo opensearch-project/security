@@ -18,6 +18,7 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,9 +33,9 @@ import java.util.function.Supplier;
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -103,12 +104,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
-        SECURITY_SSL_TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+        SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY,
         true,
         Property.NodeScope,
         Property.Filtered,
@@ -140,7 +141,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final SSLConfig SSLConfig;
     protected volatile ThreadPool threadPool;
 
-    @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 
         if (disabled) {
@@ -180,13 +180,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             log.warn(renegoMsg);
         } else {
             if (!rejectClientInitiatedRenegotiation) {
-
-                final SecurityManager sm = System.getSecurityManager();
-
-                if (sm != null) {
-                    sm.checkPermission(new SpecialPermission());
-                }
-
                 AccessController.doPrivileged(
                     () -> System.setProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION, "true")
                 );
@@ -230,6 +223,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
         }
+
+        tryAddSecurityProvider();
 
         this.sslSettingsManager = new SslSettingsManager(new Environment(settings, configPath));
     }
@@ -746,5 +741,15 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     public ThreadPool getThreadPool() {
         return this.threadPool;
+    }
+
+    private void tryAddSecurityProvider() {
+        AccessController.doPrivileged(() -> {
+            if (Security.getProvider("BCFIPS") == null) {
+                Security.addProvider(new BouncyCastleFipsProvider());
+                log.debug("Bouncy Castle FIPS Provider added");
+            }
+            return null;
+        });
     }
 }

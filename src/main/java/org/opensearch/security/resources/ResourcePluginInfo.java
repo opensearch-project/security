@@ -8,7 +8,6 @@
 
 package org.opensearch.security.resources;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -252,4 +251,3 @@ public class ResourcePluginInfo {
     }
 
 }
-// CS-ENFORCE-SINGLE

@@ -263,14 +263,12 @@ public class SslContextHandlerTest {
         final var newCaCertificate = certificatesRule.generateCaCertificate(keyPair);
         final var currentAccessCertificate = certificatesRule.accessCertificateHolder();
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         final var newAccessCertificate = certificatesRule.generateAccessCertificate(
             keyPair,
             currentAccessCertificate.getNotBefore().toInstant(),
             currentAccessCertificate.getNotAfter().toInstant().plus(10, ChronoUnit.MINUTES),
             shuffledSans(currentAccessCertificate.getExtension(Extension.subjectAlternativeName))
         );
-        // CS-ENFORCE-SINGLE
 
         writeCertificates(newCaCertificate, newAccessCertificate.v2(), newAccessCertificate.v1());
 
@@ -279,7 +277,6 @@ public class SslContextHandlerTest {
         assertThat("Context reloaded", is(not(sslContextBefore.equals(sslContextHandler.sslContext()))));
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
     List<ASN1Encodable> shuffledSans(Extension currentSans) {
         final var san1Sequence = ASN1Sequence.getInstance(currentSans.getParsedValue().toASN1Primitive());
 
@@ -293,7 +290,6 @@ public class SslContextHandlerTest {
             Collections.shuffle(shuffledSans);
         return shuffledSans;
     }
-    // CS-ENFORCE-SINGLE
 
     SslContextHandler sslContextHandler() {
         final var sslParameters = SslParameters.loader(CertType.TRANSPORT, Settings.EMPTY).load();

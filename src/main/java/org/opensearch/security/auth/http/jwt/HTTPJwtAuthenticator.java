@@ -12,8 +12,6 @@
 package org.opensearch.security.auth.http.jwt;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,10 +31,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
@@ -70,7 +68,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
 
-    @SuppressWarnings("removal")
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
@@ -107,32 +104,17 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 jwtParserBuilder.clockSkewSeconds(clockSkewToleranceSeconds);
 
-                final SecurityManager sm = System.getSecurityManager();
-                if (sm != null) {
-                    sm.checkPermission(new SpecialPermission());
-                }
-                jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) jwtParserBuilder::build);
+                jwtParser = AccessController.doPrivileged(jwtParserBuilder::build);
             }
             jwtParsers.add(jwtParser);
         }
     }
 
     @Override
-    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
-        final SecurityManager sm = System.getSecurityManager();
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
-            @Override
-            public AuthCredentials run() {
-                return extractCredentials0(request);
-            }
-        });
+        AuthCredentials creds = AccessController.doPrivileged(() -> extractCredentials0(request));
 
         return creds;
     }

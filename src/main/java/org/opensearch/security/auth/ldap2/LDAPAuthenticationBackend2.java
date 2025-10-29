@@ -13,10 +13,6 @@ package org.opensearch.security.auth.ldap2;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -28,8 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.Destroyable;
@@ -47,7 +43,6 @@ import org.ldaptive.ConnectionFactory;
 import org.ldaptive.Credential;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
-import org.ldaptive.Response;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.pool.ConnectionPool;
 
@@ -91,28 +86,16 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
     }
 
     @Override
-    @SuppressWarnings("removal")
     public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<User>() {
-                @Override
-                public User run() throws Exception {
-                    return authenticate0(context);
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof OpenSearchSecurityException) {
-                throw (OpenSearchSecurityException) e.getException();
-            } else if (e.getException() instanceof RuntimeException) {
-                throw (RuntimeException) e.getException();
+            return AccessController.doPrivilegedChecked(() -> authenticate0(context));
+        } catch (Exception e) {
+            if (e instanceof OpenSearchSecurityException) {
+                throw (OpenSearchSecurityException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
-                throw new RuntimeException(e.getException());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -199,16 +182,9 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
         return "ldap";
     }
 
-    @SuppressWarnings("removal")
     @Override
     public Optional<User> impersonate(User user) {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        return AccessController.doPrivileged((PrivilegedAction<Optional<User>>) () -> {
+        return AccessController.doPrivileged(() -> {
             Connection ldapConnection = null;
             String userName = user.getName();
 
@@ -240,26 +216,16 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
         });
     }
 
-    @SuppressWarnings("removal")
     private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password) throws LdapException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Response<Void>>() {
-                @Override
-                public Response<Void> run() throws LdapException {
-                    return connection.getProviderConnection().bind(new BindRequest(dn, new Credential(password)));
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof LdapException) {
-                throw (LdapException) e.getException();
-            } else if (e.getException() instanceof RuntimeException) {
-                throw (RuntimeException) e.getException();
+            AccessController.doPrivilegedChecked(
+                () -> connection.getProviderConnection().bind(new BindRequest(dn, new Credential(password)))
+            );
+        } catch (Exception e) {
+            if (e instanceof LdapException) {
+                throw (LdapException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
                 throw new RuntimeException(e);
             }
