@@ -12,9 +12,6 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.Callback;
@@ -26,8 +23,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
 public class KafkaSink extends AuditLogSink {
@@ -37,7 +34,6 @@ public class KafkaSink extends AuditLogSink {
     private Producer<Long, String> producer;
     private String topicName;
 
-    @SuppressWarnings("removal")
     public KafkaSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
 
@@ -66,20 +62,9 @@ public class KafkaSink extends AuditLogSink {
         // ssl.truststore.location
         // sasl.kerberos.kinit.cmd
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            this.producer = AccessController.doPrivileged(new PrivilegedExceptionAction<KafkaProducer<Long, String>>() {
-                @Override
-                public KafkaProducer<Long, String> run() throws Exception {
-                    return new KafkaProducer<Long, String>(producerProps);
-                }
-            });
-        } catch (PrivilegedActionException e) {
+            this.producer = AccessController.doPrivilegedChecked(() -> new KafkaProducer<Long, String>(producerProps));
+        } catch (Exception e) {
             log.error("Failed to configure Kafka producer due to ", e);
             this.valid = false;
         }

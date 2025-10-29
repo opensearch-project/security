@@ -107,10 +107,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_trustedcluster_request";
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_extension_request";
-    // CS-ENFORCE-SINGLE
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
@@ -414,10 +412,8 @@ public class ConfigConstants {
     public static final boolean USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT = false;
 
     // On-behalf-of endpoints settings
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
     public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
-    // CS-ENFORCE-SINGLE
 
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";

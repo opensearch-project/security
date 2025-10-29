@@ -14,9 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -45,6 +42,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
@@ -312,27 +310,25 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
     }
 
-    @SuppressWarnings("removal")
     JsonNode loadConfigFileAsJson(final CType<?> cType) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
+            return AccessController.doPrivilegedChecked(() -> {
                 final var loadedConfiguration = loadYamlFile(filepath, cType);
                 return Utils.convertJsonToJackson(loadedConfiguration, true);
             });
-        } catch (final PrivilegedActionException e) {
+        } catch (final Exception e) {
             LOGGER.error("Error when loading configuration from file", e);
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 
-    @SuppressWarnings("removal")
     JsonNode loadEntitiesFromConfigFileAsJson(final CType<?> cType, final List<String> entities) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
+            return AccessController.doPrivilegedChecked(() -> {
                 final var loadedConfiguration = loadYamlFile(filepath, cType);
                 Map<String, Object> filteredEntities = new HashMap<>();
                 for (String entity : entities) {
@@ -342,9 +338,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 }
                 return DefaultObjectMapper.objectMapper.valueToTree(filteredEntities);
             });
-        } catch (final PrivilegedActionException e) {
+        } catch (final Exception e) {
             LOGGER.error("Error when loading configuration from file", e);
-            throw (IOException) e.getCause();
+            throw (IOException) e;
         }
     }
 

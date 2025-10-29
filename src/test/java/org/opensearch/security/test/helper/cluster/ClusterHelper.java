@@ -26,7 +26,6 @@
 
 package org.opensearch.security.test.helper.cluster;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -74,7 +73,6 @@ import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-// CS-ENFORCE-SINGLE
 
 public final class ClusterHelper {
 

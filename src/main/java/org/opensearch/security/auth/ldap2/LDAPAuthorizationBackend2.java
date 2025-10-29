@@ -12,9 +12,6 @@
 package org.opensearch.security.auth.ldap2;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,9 +29,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.Destroyable;
@@ -121,30 +118,17 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         return Collections.singletonList(result.entrySet().iterator().next());
     }
 
-    @SuppressWarnings("removal")
     @Override
     public User addRoles(final User user, AuthenticationContext context) throws OpenSearchSecurityException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<User>() {
-                @Override
-                public User run() throws Exception {
-                    return addRoles0(user, context);
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof OpenSearchSecurityException) {
-                throw (OpenSearchSecurityException) e.getException();
-            } else if (e.getException() instanceof RuntimeException) {
-                throw (RuntimeException) e.getException();
+            return AccessController.doPrivilegedChecked(() -> addRoles0(user, context));
+        } catch (Exception e) {
+            if (e instanceof OpenSearchSecurityException) {
+                throw (OpenSearchSecurityException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
-                throw new RuntimeException(e.getException());
+                throw new RuntimeException(e);
             }
         }
     }
