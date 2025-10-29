@@ -10,7 +10,6 @@ package org.opensearch.security.resources;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +27,8 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -42,15 +43,15 @@ public class ResourcePluginInfo {
 
     private ResourceSharingClient resourceAccessControlClient;
 
-    private OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting;
+    private OpensearchDynamicSetting<List<String>> protectedTypesSetting;
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
     // type <-> index
     private final Map<String, String> typeToIndex = new HashMap<>();
 
-    // UI: action-group *names* per type
-    private final Map<String, LinkedHashSet<String>> typeToGroupNames = new HashMap<>();
+    // UI: access-level *names* per type
+    private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
 
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
@@ -60,8 +61,8 @@ public class ResourcePluginInfo {
     private Set<String> currentProtectedTypes = Collections.emptySet();          // snapshot of last set
     private Set<String> cachedProtectedTypeIndices = Collections.emptySet();     // precomputed indices
 
-    public void setResourceSharingProtectedTypesSetting(OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting) {
-        this.resourceSharingProtectedTypesSetting = resourceSharingProtectedTypesSetting;
+    public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
+        this.protectedTypesSetting = protectedTypesSetting;
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -145,34 +146,26 @@ public class ResourcePluginInfo {
         return resourceAccessControlClient;
     }
 
-    /** Register/merge action-group names for a given resource type. */
-    public record ResourceDashboardInfo(String resourceType, Set<String> actionGroups // names only (for UI)
+    /** Register/merge access-levels names for a given resource type. */
+    public record ResourceDashboardInfo(String resourceType, Set<String> accessLevels // names only (for UI)
     ) implements ToXContentObject {
         @Override
         public XContentBuilder toXContent(XContentBuilder b, Params p) throws IOException {
             b.startObject();
             b.field("type", resourceType);
-            b.field("action_groups", actionGroups == null ? Collections.emptyList() : actionGroups);
+            b.field("access_levels", accessLevels == null ? Collections.emptyList() : accessLevels);
             return b.endObject();
         }
     }
 
-    public void registerActionGroupNames(String resourceType, Collection<String> names) {
-        if (resourceType == null || names == null) return;
+    public void registerAccessLevels(String resourceType, SecurityDynamicConfiguration<ActionGroupsV7> accessLevels) {
+        if (resourceType == null || accessLevels == null) return;
         lock.writeLock().lock();
         try {
-            typeToGroupNames.computeIfAbsent(resourceType, k -> new LinkedHashSet<>())
-                .addAll(names.stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isEmpty()).toList());
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    public void registerFlattened(String resourceType, FlattenedActionGroups flattened) {
-        if (resourceType == null || flattened == null) return;
-        lock.writeLock().lock();
-        try {
+            FlattenedActionGroups flattened = new FlattenedActionGroups(accessLevels);
             typeToFlattened.put(resourceType, flattened);
+            typeToAccessLevels.computeIfAbsent(resourceType, k -> new LinkedHashSet<>())
+                .addAll(accessLevels.getCEntries().keySet().stream().toList());
         } finally {
             lock.writeLock().unlock();
         }
@@ -215,7 +208,10 @@ public class ResourcePluginInfo {
             return typeToIndex.keySet()
                 .stream()
                 .map(
-                    s -> new ResourceDashboardInfo(s, Collections.unmodifiableSet(typeToGroupNames.getOrDefault(s, new LinkedHashSet<>())))
+                    s -> new ResourceDashboardInfo(
+                        s,
+                        Collections.unmodifiableSet(typeToAccessLevels.getOrDefault(s, new LinkedHashSet<>()))
+                    )
                 )
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         } finally {
@@ -233,7 +229,7 @@ public class ResourcePluginInfo {
     }
 
     public Set<String> getResourceIndicesForProtectedTypes() {
-        List<String> resourceTypes = this.resourceSharingProtectedTypesSetting.getDynamicSettingValue();
+        List<String> resourceTypes = this.protectedTypesSetting.getDynamicSettingValue();
         if (resourceTypes == null || resourceTypes.isEmpty()) {
             return Collections.emptySet();
         }

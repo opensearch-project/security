@@ -26,6 +26,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.user.User;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
@@ -66,6 +67,16 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.shareWith = shareWith;
     }
 
+    private ResourceSharing(Builder b) {
+        this.resourceId = b.resourceId;
+        this.createdBy = b.createdBy;
+        this.shareWith = b.shareWith;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getResourceId() {
         return resourceId;
     }
@@ -79,6 +90,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     public ShareWith getShareWith() {
+        if (shareWith == null) {
+            // never been shared before, private access
+            shareWith = new ShareWith(new HashMap<>());
+        }
         return shareWith;
     }
 
@@ -168,9 +183,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     public static ResourceSharing fromXContent(XContentParser parser) throws IOException {
-        String resourceId = null;
-        CreatedBy createdBy = null;
-        ShareWith shareWith = null;
+        Builder b = ResourceSharing.builder();
 
         String currentFieldName = null;
         XContentParser.Token token;
@@ -181,13 +194,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             } else {
                 switch (Objects.requireNonNull(currentFieldName)) {
                     case "resource_id":
-                        resourceId = parser.text();
+                        b.resourceId(parser.text());
                         break;
                     case "created_by":
-                        createdBy = CreatedBy.fromXContent(parser);
+                        b.createdBy(CreatedBy.fromXContent(parser));
                         break;
                     case "share_with":
-                        shareWith = ShareWith.fromXContent(parser);
+                        b.shareWith(ShareWith.fromXContent(parser));
                         break;
                     default:
                         parser.skipChildren();
@@ -196,10 +209,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             }
         }
 
-        validateRequiredField("resource_id", resourceId);
-        validateRequiredField("created_by", createdBy);
-
-        return new ResourceSharing(resourceId, createdBy, shareWith);
+        return b.build();
     }
 
     private static <T> void validateRequiredField(String field, T value) {
@@ -242,6 +252,37 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
 
         return shareWith.atAccessLevel(accessLevel).isSharedWithAny(recipientType, targets);
+    }
+
+    /**
+     * Resolves all access levels that the given {@link User} is entitled to.
+     * <p>
+     * This method aggregates access levels based on:
+     * <ul>
+     *   <li>The user’s explicit identifier (username and wildcard {@code *}).</li>
+     *   <li>The user’s security roles (including the wildcard {@code *}).</li>
+     *   <li>The user’s backend roles (including the wildcard {@code *}).</li>
+     * </ul>
+     * For each category (user, roles, backend roles), a lookup is performed through
+     * {@link #fetchAccessLevels(Recipient, Set)} to collect the matching access levels.
+     * </p>
+     *
+     * @param user the {@link User} whose access levels should be determined;
+     *             must not be {@code null}.
+     * @return a {@link Set} of access level identifiers granted to the user, never {@code null}.
+     */
+    public Set<String> getAccessLevelsForUser(User user) {
+        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
+        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
+
+        userRoles.add("*");
+        userBackendRoles.add("*");
+
+        Set<String> accessLevels = new HashSet<>();
+        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
+        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, userRoles));
+        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+        return accessLevels;
     }
 
     /**
@@ -314,5 +355,36 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
 
         return principals;
+    }
+
+    public static final class Builder {
+        private String resourceId;
+        private CreatedBy createdBy;
+        private ShareWith shareWith;
+
+        public Builder resourceId(String resourceId) {
+            this.resourceId = resourceId;
+            return this;
+        }
+
+        public Builder createdBy(CreatedBy createdBy) {
+            this.createdBy = createdBy;
+            return this;
+        }
+
+        public Builder shareWith(ShareWith shareWith) {
+            this.shareWith = shareWith;
+            return this;
+        }
+
+        /**
+         * Build the immutable/constructed instance, validating required fields.
+         */
+        public ResourceSharing build() {
+            validateRequiredField("resource_id", resourceId);
+            validateRequiredField("created_by", createdBy);
+
+            return new ResourceSharing(this);
+        }
     }
 }
