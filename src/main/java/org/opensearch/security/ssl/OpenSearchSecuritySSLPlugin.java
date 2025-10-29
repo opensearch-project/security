@@ -779,7 +779,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @SuppressWarnings("removal")
     private void tryAddSecurityProvider() {
-        AccessController.doPrivileged(() -> {
+        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
             if (Security.getProvider("BCFIPS") == null) {
                 Security.addProvider(new BouncyCastleFipsProvider());
                 log.debug("Bouncy Castle FIPS Provider added");
