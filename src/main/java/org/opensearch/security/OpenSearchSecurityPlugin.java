@@ -2352,14 +2352,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 return field -> true;
             }
 
-            PrivilegesEvaluationContext ctx;
-
-            if (threadPool.getThreadContext().getTransient("tmp_dls_fls_ctx") != null) {
-                ctx = threadPool.getThreadContext().getTransient("tmp_dls_fls_ctx");
-            } else {
-                ctx = this.dlsFlsBaseContext != null ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext() : null;
-                threadPool.getThreadContext().putTransient("tmp_dls_fls_ctx", ctx);
-            }
+            PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
+                ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
+                : null;
 
             return field -> {
                 try {
