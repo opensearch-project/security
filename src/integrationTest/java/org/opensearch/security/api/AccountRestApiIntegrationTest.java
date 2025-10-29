@@ -10,25 +10,16 @@
 
 package org.opensearch.security.api;
 
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
-import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
-import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
-import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
-import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
-import static org.opensearch.test.framework.matcher.RestMatchers.isUnauthorized;
 
 public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -42,12 +33,11 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     public final static String TEST_USER_NEW_PASSWORD = randomAlphabetic(10);
 
-    @ClassRule
-    public static LocalCluster localCluster = clusterBuilder().users(
-        new TestSecurityConfig.User(TEST_USER).password(TEST_USER_PASSWORD),
-        new TestSecurityConfig.User(RESERVED_USER).reserved(true),
-        new TestSecurityConfig.User(HIDDEN_USERS).hidden(true)
-    ).build();
+    static {
+        testSecurityConfig.user(new TestSecurityConfig.User(TEST_USER).password(TEST_USER_PASSWORD))
+            .user(new TestSecurityConfig.User(RESERVED_USER).reserved(true))
+            .user(new TestSecurityConfig.User(HIDDEN_USERS).hidden(true));
+    }
 
     private String accountPath() {
         return super.apiPath("account");
@@ -55,11 +45,10 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @Test
     public void accountInfo() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isOk());
+        withUser(NEW_USER, client -> {
+            var response = ok(() -> client.get(accountPath()));
             final var account = response.bodyAsJsonNode();
-            assertThat(response.getBody(), account.get("user_name").asText(), is(NEW_USER.getName()));
+            assertThat(response.getBody(), account.get("user_name").asText(), is(NEW_USER));
             assertThat(response.getBody(), not(account.get("is_reserved").asBoolean()));
             assertThat(response.getBody(), not(account.get("is_hidden").asBoolean()));
             assertThat(response.getBody(), account.get("is_internal_user").asBoolean());
@@ -68,77 +57,69 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
             assertThat(response.getBody(), account.get("custom_attribute_names").isArray());
             assertThat(response.getBody(), account.get("tenants").isObject());
             assertThat(response.getBody(), account.get("roles").isArray());
-        }
-        try (TestRestClient client = localCluster.getRestClient(NEW_USER.getName(), "a")) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isUnauthorized());
-        }
-        try (TestRestClient client = localCluster.getRestClient("a", "b")) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isUnauthorized());
-        }
+        });
+        withUser(NEW_USER, "a", client -> unauthorized(() -> client.get(accountPath())));
+        withUser("a", "b", client -> unauthorized(() -> client.get(accountPath())));
     }
 
     @Test
     public void changeAccountPassword() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(TEST_USER, TEST_USER_PASSWORD)) {
-            verifyWrongPayload(client);
-        }
+        withUser(TEST_USER, TEST_USER_PASSWORD, this::verifyWrongPayload);
         verifyPasswordCanBeChanged();
 
-        try (TestRestClient client = localCluster.getRestClient(RESERVED_USER, DEFAULT_PASSWORD)) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isOk());
-            assertThat(response.getBooleanFromJsonBody("/is_reserved"), is(true));
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isForbidden());
-        }
-        try (TestRestClient client = localCluster.getRestClient(HIDDEN_USERS, DEFAULT_PASSWORD)) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isOk());
-            assertThat(response.getBooleanFromJsonBody("/is_hidden"), is(true));
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isNotFound());
-        }
-        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
-            HttpResponse response = client.get(accountPath());
-            assertThat(response, isOk());
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isNotFound());
-        }
+        withUser(RESERVED_USER, client -> {
+            var response = ok(() -> client.get(accountPath()));
+            assertThat(response.getBody(), response.getBooleanFromJsonBody("/is_reserved"));
+            forbidden(() -> client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))));
+        });
+        withUser(HIDDEN_USERS, client -> {
+            var response = ok(() -> client.get(accountPath()));
+            assertThat(response.getBody(), response.getBooleanFromJsonBody("/is_hidden"));
+            notFound(() -> client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))));
+        });
+        withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), client -> {
+            ok(() -> client.get(accountPath()));
+            notFound(() -> client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))));
+        });
     }
 
     private void verifyWrongPayload(final TestRestClient client) throws Exception {
-        assertThat(client.putJson(accountPath(), EMPTY_BODY), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordPayload(null, "new_password")), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordPayload("wrong-password", "some_new_pwd")), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordPayload(TEST_USER_PASSWORD, null)), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordPayload(TEST_USER_PASSWORD, "")), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordWithHashPayload(TEST_USER_PASSWORD, null)), isBadRequest());
-        assertThat(client.putJson(accountPath(), changePasswordWithHashPayload(TEST_USER_PASSWORD, "")), isBadRequest());
-        assertThat(
-            client.putJson(
+        badRequest(() -> client.putJson(accountPath(), EMPTY_BODY));
+        badRequest(() -> client.putJson(accountPath(), changePasswordPayload(null, "new_password")));
+        badRequest(() -> client.putJson(accountPath(), changePasswordPayload("wrong-password", "some_new_pwd")));
+        badRequest(() -> client.putJson(accountPath(), changePasswordPayload(TEST_USER_PASSWORD, null)));
+        badRequest(() -> client.putJson(accountPath(), changePasswordPayload(TEST_USER_PASSWORD, "")));
+        badRequest(() -> client.putJson(accountPath(), changePasswordWithHashPayload(TEST_USER_PASSWORD, null)));
+        badRequest(() -> client.putJson(accountPath(), changePasswordWithHashPayload(TEST_USER_PASSWORD, "")));
+        badRequest(
+            () -> client.putJson(
                 accountPath(),
                 (builder, params) -> builder.startObject()
                     .field("current_password", TEST_USER_PASSWORD)
                     .startArray("backend_roles")
                     .endArray()
                     .endObject()
-            ),
-            isBadRequest()
+            )
         );
     }
 
     private void verifyPasswordCanBeChanged() throws Exception {
         final var newPassword = randomAlphabetic(10);
-        try (TestRestClient client = localCluster.getRestClient(TEST_USER, TEST_USER_PASSWORD)) {
-            HttpResponse resp = client.putJson(
-                accountPath(),
-                changePasswordWithHashPayload(TEST_USER_PASSWORD, passwordHasher.hash(newPassword.toCharArray()))
-            );
-            assertThat(resp, isOk());
-        }
-        try (TestRestClient client = localCluster.getRestClient(TEST_USER, newPassword)) {
-            HttpResponse resp = client.putJson(accountPath(), changePasswordPayload(newPassword, TEST_USER_NEW_PASSWORD));
-            assertThat(resp, isOk());
-        }
+        withUser(
+            TEST_USER,
+            TEST_USER_PASSWORD,
+            client -> ok(
+                () -> client.putJson(
+                    accountPath(),
+                    changePasswordWithHashPayload(TEST_USER_PASSWORD, passwordHasher.hash(newPassword.toCharArray()))
+                )
+            )
+        );
+        withUser(
+            TEST_USER,
+            newPassword,
+            client -> ok(() -> client.putJson(accountPath(), changePasswordPayload(newPassword, TEST_USER_NEW_PASSWORD)))
+        );
     }
 
     @Test
@@ -146,9 +127,10 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
         final var username = "test";
         final String password = randomAlphabetic(10);
         final String newPassword = randomAlphabetic(10);
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            assertThat(
-                client.putJson(
+        withUser(
+            ADMIN_USER_NAME,
+            client -> created(
+                () -> client.putJson(
                     apiPath("internalusers", username),
                     (builder, params) -> builder.startObject()
                         .field("password", password)
@@ -158,29 +140,24 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
                         .endArray()
                         .field("opendistro_security_roles")
                         .startArray()
-                        .value(EXAMPLE_ROLE.getName())
+                        .value("user_limited-user__limited-role")
                         .endArray()
                         .field("attributes")
                         .startObject()
                         .field("foo", "bar")
                         .endObject()
                         .endObject()
-                ),
-                isCreated()
-            );
-        }
-        try (TestRestClient client = localCluster.getRestClient(username, password)) {
-            HttpResponse resp = client.putJson(accountPath(), changePasswordPayload(password, newPassword));
-            assertThat(resp, isOk());
-        }
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            HttpResponse response = client.get(apiPath("internalusers", username));
-            assertThat(response, isOk());
+                )
+            )
+        );
+        withUser(username, password, client -> ok(() -> client.putJson(accountPath(), changePasswordPayload(password, newPassword))));
+        withUser(ADMIN_USER_NAME, client -> {
+            final var response = ok(() -> client.get(apiPath("internalusers", username)));
             final var user = response.bodyAsJsonNode().get(username);
             assertThat(user.toPrettyString(), user.get("backend_roles").get(0).asText(), is("test-backend-role"));
-            assertThat(user.toPrettyString(), user.get("opendistro_security_roles").get(0).asText(), is(EXAMPLE_ROLE.getName()));
+            assertThat(user.toPrettyString(), user.get("opendistro_security_roles").get(0).asText(), is("user_limited-user__limited-role"));
             assertThat(user.toPrettyString(), user.get("attributes").get("foo").asText(), is("bar"));
-        }
+        });
     }
 
     private ToXContentObject changePasswordPayload(final String currentPassword, final String newPassword) {

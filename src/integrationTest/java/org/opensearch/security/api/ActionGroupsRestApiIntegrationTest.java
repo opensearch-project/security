@@ -12,15 +12,12 @@
 package org.opensearch.security.api;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -31,11 +28,6 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
-import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
-import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
-import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
-import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -43,20 +35,16 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     private final static String REST_ADMIN_PERMISSION_ACTION_GROUP = "rest-admin-permissions-action-group";
 
-    @ClassRule
-    public static LocalCluster localCluster = clusterBuilder().users(
-        new TestSecurityConfig.User(REST_API_ADMIN_ACTION_GROUPS_ONLY).roles(
-            new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.ACTIONGROUPS))
-        )
-    )
-        .actionGroups(
-            new TestSecurityConfig.ActionGroup(
-                REST_ADMIN_PERMISSION_ACTION_GROUP,
-                TestSecurityConfig.ActionGroup.Type.INDEX,
-                allRestAdminPermissions()
-            )
-        )
-        .build();
+    static {
+        testSecurityConfig.withRestAdminUser(REST_API_ADMIN_ACTION_GROUPS_ONLY, restAdminPermission(Endpoint.ACTIONGROUPS))
+            .actionGroups(
+                new TestSecurityConfig.ActionGroup(
+                    REST_ADMIN_PERMISSION_ACTION_GROUP,
+                    TestSecurityConfig.ActionGroup.Type.INDEX,
+                    allRestAdminPermissions()
+                )
+            );
+    }
 
     public ActionGroupsRestApiIntegrationTest() {
         super("actiongroups", new TestDescriptor() {
@@ -123,117 +111,74 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         return randomFrom(List.of(TestSecurityConfig.ActionGroup.Type.CLUSTER.type(), TestSecurityConfig.ActionGroup.Type.INDEX.type()));
     }
 
-    @Test
-    public void forbiddenForRegularUsers() throws Exception {
-        super.forbiddenForRegularUsers(localCluster);
-    }
-
-    @Test
-    public void availableForAdminUser() throws Exception {
-        super.availableForAdminUser(localCluster);
-    }
-
-    @Test
-    public void availableForTLSAdminUser() throws Exception {
-        super.availableForTLSAdminUser(localCluster);
-    }
-
-    @Test
-    public void availableForRESTAdminUser() throws Exception {
-        super.availableForRESTAdminUser(localCluster);
-    }
-
     @Override
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
-        assertThat(client.putJson(apiPath("new_rest_admin_action_group"), actionGroup(randomRestAdminPermission())), isForbidden());
-        assertThat(
-            client.patch(apiPath(), patch(addOp("new_rest_admin_action_group", actionGroup(randomRestAdminPermission())))),
-            isForbidden()
-        );
+        forbidden(() -> client.putJson(apiPath("new_rest_admin_action_group"), actionGroup(randomRestAdminPermission())));
+        forbidden(() -> client.patch(apiPath(), patch(addOp("new_rest_admin_action_group", actionGroup(randomRestAdminPermission())))));
     }
 
     @Override
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         // update
-        assertThat(client.putJson(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), actionGroup()), isForbidden());
-        assertThat(client.patch(apiPath(), patch(replaceOp(REST_ADMIN_PERMISSION_ACTION_GROUP, actionGroup("a", "b")))), isForbidden());
-        assertThat(
-            client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(replaceOp("allowed_actions", configJsonArray("c", "d")))),
-            isForbidden()
+        forbidden(() -> client.putJson(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), actionGroup()));
+        forbidden(() -> client.patch(apiPath(), patch(replaceOp(REST_ADMIN_PERMISSION_ACTION_GROUP, actionGroup("a", "b")))));
+        forbidden(
+            () -> client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(replaceOp("allowed_actions", configJsonArray("c", "d"))))
         );
         // remove
-        assertThat(client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ACTION_GROUP))), isForbidden());
-        assertThat(client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(removeOp("allowed_actions"))), isForbidden());
-        assertThat(client.delete(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP)), isForbidden());
+        forbidden(() -> client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ACTION_GROUP))));
+        forbidden(() -> client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(removeOp("allowed_actions"))));
+        forbidden(() -> client.delete(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP)));
     }
 
     @Override
     void verifyCrudOperations(final Boolean hidden, final Boolean reserved, final TestRestClient client) throws Exception {
-        // create
-        assertThat(client.putJson(apiPath("new_action_group"), actionGroup(hidden, reserved, "a", "b")), isCreated());
-        var response = client.get(apiPath("new_action_group"));
-        assertThat(response, isOk());
-        assertActionGroup(response, "new_action_group", List.of("a", "b"));
+        created(() -> client.putJson(apiPath("new_action_group"), actionGroup(hidden, reserved, "a", "b")));
+        assertActionGroup(ok(() -> client.get(apiPath("new_action_group"))), "new_action_group", List.of("a", "b"));
 
-        // update
-        assertThat(client.putJson(apiPath("new_action_group"), actionGroup(hidden, reserved, "c", "d")), isOk());
-        response = client.get(apiPath("new_action_group"));
-        assertThat(response, isOk());
-        assertActionGroup(response, "new_action_group", List.of("c", "d"));
+        ok(() -> client.putJson(apiPath("new_action_group"), actionGroup(hidden, reserved, "c", "d")));
+        assertActionGroup(ok(() -> client.get(apiPath("new_action_group"))), "new_action_group", List.of("c", "d"));
 
-        // delete
-        assertThat(client.delete(apiPath("new_action_group")), isOk());
-        response = client.get(apiPath("new_action_group"));
-        assertThat(response, isNotFound());
+        ok(() -> client.delete(apiPath("new_action_group")));
+        notFound(() -> client.get(apiPath("new_action_group")));
 
-        // patch add
-        assertThat(client.patch(apiPath(), patch(addOp("new_action_group_for_patch", actionGroup(hidden, reserved, "e", "f")))), isOk());
-        response = client.get(apiPath("new_action_group_for_patch"));
-        assertThat(response, isOk());
-        assertActionGroup(response, "new_action_group_for_patch", List.of("e", "f"));
+        ok(() -> client.patch(apiPath(), patch(addOp("new_action_group_for_patch", actionGroup(hidden, reserved, "e", "f")))));
+        assertActionGroup(ok(() -> client.get(apiPath("new_action_group_for_patch"))), "new_action_group_for_patch", List.of("e", "f"));
 
-        // patch replace
-        assertThat(
-            client.patch(apiPath("new_action_group_for_patch"), patch(replaceOp("allowed_actions", configJsonArray("g", "h")))),
-            isOk()
-        );
-        response = client.get(apiPath("new_action_group_for_patch"));
-        assertThat(response, isOk());
-        assertActionGroup(response, "new_action_group_for_patch", List.of("g", "h"));
+        ok(() -> client.patch(apiPath("new_action_group_for_patch"), patch(replaceOp("allowed_actions", configJsonArray("g", "h")))));
+        assertActionGroup(ok(() -> client.get(apiPath("new_action_group_for_patch"))), "new_action_group_for_patch", List.of("g", "h"));
 
-        // patch remove
-        assertThat(client.patch(apiPath(), patch(removeOp("new_action_group_for_patch"))), isOk());
-        response = client.get(apiPath("new_action_group_for_patch"));
-        assertThat(response, isNotFound());
+        ok(() -> client.patch(apiPath(), patch(removeOp("new_action_group_for_patch"))));
+        notFound(() -> client.get(apiPath("new_action_group_for_patch")));
     }
 
     @Override
     void verifyBadRequestOperations(final TestRestClient client) throws Exception {
         // put
-        assertThat(client.putJson(apiPath("some_action_group"), EMPTY_BODY), isBadRequest());
-        assertThat(
-            client.putJson(apiPath("kibana_user"), actionGroup("a", "b")),
-            isBadRequest("/message", "kibana_user is an existing role. A action group cannot be named with an existing role name.")
+        badRequest(() -> client.putJson(apiPath("some_action_group"), EMPTY_BODY));
+        badRequestWithMessage(
+            () -> client.putJson(apiPath("kibana_user"), actionGroup("a", "b")),
+            "kibana_user is an existing role. A action group cannot be named with an existing role name."
         );
-        assertThat(
-            client.putJson(apiPath("reference_itself"), actionGroup("reference_itself")),
-            isBadRequest("/message", "reference_itself cannot be an allowed_action of itself")
+        badRequestWithMessage(
+            () -> client.putJson(apiPath("reference_itself"), actionGroup("reference_itself")),
+            "reference_itself cannot be an allowed_action of itself"
         );
-        assertThat(client.putJson(apiPath("some_action_group"), (builder, params) -> {
+
+        badRequestWithMessage(() -> client.putJson(apiPath("some_action_group"), (builder, params) -> {
             builder.startObject().field("type", "asdasdsad").field("allowed_actions");
             configJsonArray("g", "f").toXContent(builder, params);
             return builder.endObject();
-        }), isBadRequest("/message", "Invalid action group type: asdasdsad. Supported types are: cluster, index."));
+        }), "Invalid action group type: asdasdsad. Supported types are: cluster, index.");
 
-        assertThat(
-            client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c")),
-            isBadRequest("/missing_mandatory_keys/keys", "allowed_actions")
+        assertMissingMandatoryKeys(
+            badRequest(() -> client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c"))),
+            "allowed_actions"
         );
 
-        // duplicate check retained from original
-        assertThat(
-            client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c")),
-            isBadRequest("/missing_mandatory_keys/keys", "allowed_actions")
+        assertMissingMandatoryKeys(
+            badRequest(() -> client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c"))),
+            "allowed_actions"
         );
 
         final ToXContentObject unknownJsonFields = (builder, params) -> {
@@ -241,59 +186,68 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
             configJsonArray("g", "h").toXContent(builder, params);
             return builder.endObject();
         };
-        assertThat(client.putJson(apiPath("some_action_group"), unknownJsonFields), isBadRequest("/invalid_keys/keys", "a,c"));
+        assertInvalidKeys(badRequest(() -> client.putJson(apiPath("some_action_group"), unknownJsonFields)), "a,c");
 
-        assertThat(client.putJson(apiPath("some_action_group"), (builder, params) -> {
+        assertNullValuesInArray(badRequest(() -> client.putJson(apiPath("some_action_group"), (builder, params) -> {
             builder.startObject().field("type", randomType()).field("allowed_actions");
             configJsonArray("g", null, "f").toXContent(builder, params);
             return builder.endObject();
-        }), isBadRequest("/reason", "`null` or blank values are not allowed as json array elements"));
-
+        })));
+        assertWrongDataType(
+            client.putJson(
+                apiPath("some_action_group"),
+                (builder, params) -> builder.startObject().field("allowed_actions", "a").endObject()
+            ),
+            Map.of("allowed_actions", "Array expected")
+        );
         // patch
-        assertThat(client.patch(apiPath("some_action_group"), EMPTY_BODY), isBadRequest());
-        assertThat(client.patch(apiPath(), patch(addOp("some_action_group", EMPTY_BODY))), isBadRequest());
-        assertThat(client.patch(apiPath(), patch(replaceOp("some_action_group", EMPTY_BODY))), isBadRequest());
-        assertThat(
-            client.patch(apiPath(), patch(addOp("kibana_user", actionGroup("a")))),
-            isBadRequest("/message", "kibana_user is an existing role. A action group cannot be named with an existing role name.")
+        badRequest(() -> client.patch(apiPath("some_action_group"), EMPTY_BODY));
+        badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", EMPTY_BODY))));
+        badRequest(() -> client.patch(apiPath(), patch(replaceOp("some_action_group", EMPTY_BODY))));
+
+        badRequestWithMessage(
+            () -> client.patch(apiPath(), patch(addOp("kibana_user", actionGroup("a")))),
+            "kibana_user is an existing role. A action group cannot be named with an existing role name."
         );
-        assertThat(
-            client.patch(apiPath(), patch(addOp("reference_itself", actionGroup("reference_itself")))),
-            isBadRequest("/message", "reference_itself cannot be an allowed_action of itself")
-        );
-        assertThat(
-            client.patch(apiPath(), patch(addOp("some_action_group", configJsonArray("a", "b", "c")))),
-            isBadRequest("/missing_mandatory_keys/keys", "allowed_actions")
+        badRequestWithMessage(
+            () -> client.patch(apiPath(), patch(addOp("reference_itself", actionGroup("reference_itself")))),
+            "reference_itself cannot be an allowed_action of itself"
         );
 
-        assertThat(client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
+        assertMissingMandatoryKeys(
+            badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", configJsonArray("a", "b", "c"))))),
+            "allowed_actions"
+        );
+        badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
             builder.startObject().field("type", "aaaa").field("allowed_actions");
             configJsonArray("g", "f").toXContent(builder, params);
             return builder.endObject();
-        }))), isBadRequest());
+        }))));
 
-        assertThat(client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, parameter) -> {
+        badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, parameter) -> {
             builder.startObject();
             unknownJsonFields.toXContent(builder, parameter);
             return builder.endObject();
-        }))), isBadRequest());
-
-        assertThat(client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
-            builder.startObject().field("type", randomType()).field("allowed_actions");
-            configJsonArray("g", null, "f").toXContent(builder, params);
-            return builder.endObject();
-        }))), isBadRequest("/reason", "`null` or blank values are not allowed as json array elements"));
-
-        var response = client.patch(
-            apiPath(),
-            patch(
-                addOp(
-                    "some_action_group",
-                    (ToXContentObject) (builder, params) -> builder.startObject().field("allowed_actions", "a").endObject()
-                )
-            )
+        }))));
+        assertNullValuesInArray(
+            badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
+                builder.startObject().field("type", randomType()).field("allowed_actions");
+                configJsonArray("g", null, "f").toXContent(builder, params);
+                return builder.endObject();
+            }))))
         );
-        assertThat(response, isBadRequest().withAttribute("/status", "error").withAttribute("/allowed_actions", "Array expected"));
+        assertWrongDataType(
+            client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        "some_action_group",
+                        (ToXContentObject) (builder, params) -> builder.startObject().field("allowed_actions", "a").endObject()
+                    )
+                )
+            ),
+            Map.of("allowed_actions", "Array expected")
+        );
     }
 
     void assertActionGroup(final TestRestClient.HttpResponse response, final String actionGroupName, final List<String> allowedActions) {

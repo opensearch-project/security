@@ -14,13 +14,9 @@ package org.opensearch.security.api;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -29,22 +25,14 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
-import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
-import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
-import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
     private final static String REST_API_ADMIN_TENANTS_ONLY = "rest_api_admin_tenants_only";
 
-    @ClassRule
-    public static LocalCluster localCluster = clusterBuilder().users(
-        new TestSecurityConfig.User(REST_API_ADMIN_TENANTS_ONLY).roles(
-            REST_ADMIN_REST_API_ACCESS_ROLE,
-            new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.TENANTS))
-        )
-    ).build();
+    static {
+        testSecurityConfig.withRestAdminUser(REST_API_ADMIN_TENANTS_ONLY, restAdminPermission(Endpoint.TENANTS));
+    }
 
     public TenantsRestApiIntegrationTest() {
         super("tenants", new TestDescriptor() {
@@ -95,36 +83,15 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
         };
     }
 
-    @Test
-    public void forbiddenForRegularUsers() throws Exception {
-        super.forbiddenForRegularUsers(localCluster);
-    }
-
-    @Test
-    public void availableForAdminUser() throws Exception {
-        super.availableForAdminUser(localCluster);
-    }
-
-    @Test
-    public void availableForTLSAdminUser() throws Exception {
-        super.availableForTLSAdminUser(localCluster);
-    }
-
-    @Test
-    public void availableForRESTAdminUser() throws Exception {
-        super.availableForRESTAdminUser(localCluster);
-    }
-
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
-        assertThat(client.putJson(apiPath(randomAsciiAlphanumOfLength(4)), EMPTY_BODY), isBadRequest());
-        assertThat(
-            client.putJson(
+        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(4)), EMPTY_BODY));
+        badRequest(
+            () -> client.putJson(
                 apiPath(randomAsciiAlphanumOfLength(4)),
                 (builder, params) -> builder.startObject().field("description", "a").field("description", "b").endObject()
-            ),
-            isBadRequest()
+            )
         );
         assertInvalidKeys(
             client.putJson(
@@ -134,9 +101,9 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
             "a,c"
         );
         // patch
-        assertThat(client.patch(apiPath(), EMPTY_BODY), isBadRequest());
-        assertThat(
-            client.patch(
+        badRequest(() -> client.patch(apiPath(), EMPTY_BODY));
+        badRequest(
+            () -> client.patch(
                 apiPath(),
                 patch(
                     addOp(
@@ -147,8 +114,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
                             .endObject()
                     )
                 )
-            ),
-            isBadRequest()
+            )
         );
         assertInvalidKeys(
             client.patch(
@@ -174,23 +140,23 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
         // put
         final var putDescription = randomAsciiAlphanumOfLength(10);
         final var putTenantName = randomAsciiAlphanumOfLength(4);
-        assertThat(client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putDescription)), isCreated());
-        assertTenant(client.get(apiPath(putTenantName)).bodyAsJsonNode().get(putTenantName), hidden, reserved, putDescription);
+        created(() -> client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putDescription)));
+        assertTenant(ok(() -> client.get(apiPath(putTenantName))).bodyAsJsonNode().get(putTenantName), hidden, reserved, putDescription);
 
         final var putUpdatedDescription = randomAsciiAlphanumOfLength(10);
-        assertThat(client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putUpdatedDescription)), isOk());
+        ok(() -> client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putUpdatedDescription)));
         assertTenant(
             ok(() -> client.get(apiPath(putTenantName))).bodyAsJsonNode().get(putTenantName),
             hidden,
             reserved,
             putUpdatedDescription
         );
-        assertThat(client.delete(apiPath(putTenantName)), isOk());
-        assertThat(client.get(apiPath(putTenantName)), isNotFound());
+        ok(() -> client.delete(apiPath(putTenantName)));
+        notFound(() -> client.get(apiPath(putTenantName)));
         // patch
         final var patchTenantName = randomAsciiAlphanumOfLength(4);
         final var patchDescription = randomAsciiAlphanumOfLength(10);
-        assertThat(client.patch(apiPath(), patch(addOp(patchTenantName, tenant(hidden, reserved, patchDescription)))), isOk());
+        ok(() -> client.patch(apiPath(), patch(addOp(patchTenantName, tenant(hidden, reserved, patchDescription)))));
         assertTenant(
             ok(() -> client.get(apiPath(patchTenantName))).bodyAsJsonNode().get(patchTenantName),
             hidden,
@@ -199,7 +165,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
         );
 
         final var patchUpdatedDescription = randomAsciiAlphanumOfLength(10);
-        assertThat(client.patch(apiPath(patchTenantName), patch(replaceOp("description", patchUpdatedDescription))), isOk());
+        ok(() -> client.patch(apiPath(patchTenantName), patch(replaceOp("description", patchUpdatedDescription))));
         assertTenant(
             ok(() -> client.get(apiPath(patchTenantName))).bodyAsJsonNode().get(patchTenantName),
             hidden,
@@ -207,8 +173,8 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
             patchUpdatedDescription
         );
 
-        assertThat(client.patch(apiPath(), patch(removeOp(patchTenantName))), isOk());
-        assertThat(client.get(apiPath(patchTenantName)), isNotFound());
+        ok(() -> client.patch(apiPath(), patch(removeOp(patchTenantName))));
+        notFound(() -> client.get(apiPath(patchTenantName)));
     }
 
     void assertTenant(final JsonNode actualJson, final Boolean hidden, final Boolean reserved, final String expectedDescription) {

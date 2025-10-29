@@ -75,6 +75,7 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static java.util.Arrays.asList;
@@ -93,6 +94,8 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 * the configuration index of the security plugin.
 */
 public class TestSecurityConfig {
+
+    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
@@ -179,6 +182,18 @@ public class TestSecurityConfig {
     public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
+        }
+        return this;
+    }
+
+    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
+        if (!internalUsers.containsKey(name)) {
+            user(new User(name).description("REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
+            final var roleName = name + "__rest_admin_role";
+            roles(new Role(roleName).clusterPermissions(permissions));
+
+            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
+            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
         }
         return this;
     }
@@ -474,6 +489,7 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
         private boolean adminCertUser = false;
 
         private Boolean hidden = null;
