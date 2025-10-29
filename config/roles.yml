@@ -72,6 +72,7 @@ anomaly_read_access:
   cluster_permissions:
     - 'cluster:admin/opendistro/ad/detector/info'
     - 'cluster:admin/opendistro/ad/detector/search'
+    - 'cluster:admin/opendistro/ad/detector/suggest'
     - 'cluster:admin/opendistro/ad/detector/validate'
     - 'cluster:admin/opendistro/ad/detectors/get'
     - 'cluster:admin/opendistro/ad/result/search'
