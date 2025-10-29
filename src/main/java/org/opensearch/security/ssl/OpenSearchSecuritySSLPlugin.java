@@ -752,7 +752,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         return this.threadPool;
     }
 
-    protected void tryAddSecurityProvider() {
+    private void tryAddSecurityProvider() {
         AccessController.doPrivileged(() -> {
             if (Security.getProvider("BCFIPS") == null) {
                 Security.addProvider(new BouncyCastleFipsProvider());

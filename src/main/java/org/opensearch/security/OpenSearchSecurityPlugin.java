@@ -432,8 +432,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("ba9c5a61065f7f6115188128ffbdaa18fca34562b78b811f082439e2bef1d282"); // esnode-key
         demoCertHashes.add("bcd708e8dc707ae065f7ad8582979764b497f062e273d478054ab2f49c5469c6"); // root-ca
 
-        tryAddSecurityProvider();
-
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
             deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
