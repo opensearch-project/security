@@ -40,6 +40,8 @@ import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserInde
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * An integration test matrix for Dashboards multi-tenancy. Verifies both read and write operations
@@ -58,6 +60,10 @@ public class DashboardMultiTenancyIntTests {
 
     static final TestSecurityConfig.Tenant TENANT_BUSINESS_INTELLIGENCE = new TestSecurityConfig.Tenant("business_intelligence")
         .description("Business Intelligence Department Tenant");
+
+    static final TestSecurityConfig.Tenant TENANT_FINANCE = new TestSecurityConfig.Tenant("finance").description(
+        "Finance Department Tenant"
+    );
 
     // -------------------------------------------------------------------------------------------------------
     // Test indices and aliases
@@ -201,6 +207,8 @@ public class DashboardMultiTenancyIntTests {
             new TestSecurityConfig.Role("bi_analyst_role").clusterPermissions("cluster_composite_ops")
                 .tenantPermissions("kibana_all_write")
                 .on("business_intelligence")
+                .tenantPermissions("kibana_all_write")
+                .on("finance")
         )
         .reference(
             READ,
@@ -330,7 +338,7 @@ public class DashboardMultiTenancyIntTests {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USERS)
-            .tenants(TENANT_HUMAN_RESOURCES, TENANT_BUSINESS_INTELLIGENCE)
+            .tenants(TENANT_HUMAN_RESOURCES, TENANT_BUSINESS_INTELLIGENCE, TENANT_FINANCE)
             .indices(
                 dashboards_index_global,
                 dashboards_index_human_resources,
@@ -572,6 +580,183 @@ public class DashboardMultiTenancyIntTests {
             }
         } finally {
             delete(dashboards_index_human_resources.name() + "/_doc/" + testDocId);
+        }
+    }
+
+    @Test
+    public void bulkWithDelete_withTenantHeader_humanResources() {
+        String testDocId1 = "test_bulk_delete_doc_1_" + UUID.randomUUID();
+        String testDocId2 = "test_bulk_delete_doc_2_" + UUID.randomUUID();
+
+        try (TestRestClient restClient = cluster.getRestClient(user); TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+
+            // Create documents first
+            adminRestClient.put(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId1 + "?pretty",
+                json("foo", "bar1"),
+                new BasicHeader("securitytenant", "human_resources")
+            );
+            adminRestClient.put(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId2 + "?pretty",
+                json("foo", "bar2"),
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            String bulkBody = """
+                { "delete" : { "_index" : ".kibana", "_id" : "%s" } }
+                { "delete" : { "_index" : ".kibana", "_id" : "%s" } }
+                """.formatted(testDocId1, testDocId2);
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(
+                response,
+                containsExactly(dashboards_index_human_resources).at("items[*].delete[?(@.result == 'deleted')]._index")
+                    .reducedBy(user.reference(WRITE))
+                    .whenEmpty(isOk())
+            );
+        } finally {
+            delete(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId1,
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId2
+            );
+        }
+    }
+
+    @Test
+    public void bulkWithUpdate_withTenantHeader_humanResources() {
+        String testDocId1 = "test_bulk_update_doc_1_" + UUID.randomUUID();
+        String testDocId2 = "test_bulk_update_doc_2_" + UUID.randomUUID();
+
+        try (TestRestClient restClient = cluster.getRestClient(user); TestRestClient adminRestClient = cluster.getAdminCertRestClient()) {
+
+            // Create documents first
+            adminRestClient.put(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId1 + "?pretty",
+                json("foo", "bar1"),
+                new BasicHeader("securitytenant", "human_resources")
+            );
+            adminRestClient.put(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId2 + "?pretty",
+                json("foo", "bar2"),
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            String bulkBody = """
+                { "update" : { "_index" : ".kibana", "_id" : "%s" } }
+                { "doc" : { "foo" : "updated1" } }
+                { "update" : { "_index" : ".kibana", "_id" : "%s" } }
+                { "doc" : { "foo" : "updated2" } }
+                """.formatted(testDocId1, testDocId2);
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (user.reference(WRITE).covers(dashboards_index_human_resources)) {
+                if (user == GLOBAL_TENANT_READ_WRITE_USER || user == WILDCARD_TENANT_USER) {
+                    assertThat(response, isOk());
+                    assertThat(
+                        response,
+                        containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
+                            .reducedBy(user.reference(WRITE))
+                            .whenEmpty(isOk())
+                    );
+                } else {
+                    // At the moment, we get here a nested error:
+                    // Update is not supported when FLS or DLS or Fieldmasking is activated
+                    // This is a bug; even though it does not seem to have an impact on Dashboards functionality
+                    assertThat(response, isOk());
+                    assertTrue(
+                        response.getBody(),
+                        response.getBody().contains("Update is not supported when FLS or DLS or Fieldmasking is activated")
+                    );
+                }
+
+            } else {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(isOk())
+                );
+            }
+        } finally {
+            delete(
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId1,
+                dashboards_index_human_resources.name() + "/_doc/" + testDocId2
+            );
+        }
+    }
+
+    @Test
+    public void mtermvectors_withTenantHeader_humanResources() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String docId = dashboards_index_human_resources.anyDocument().id();
+
+            TestRestClient.HttpResponse response = restClient.postJson("_mtermvectors?pretty", """
+                {
+                  "docs": [
+                    {
+                      "_index": ".kibana",
+                      "_id": "%s",
+                      "term_statistics": true
+                    }
+                  ]
+                }
+                """.formatted(docId), new BasicHeader("securitytenant", "human_resources"));
+
+            assertThat(
+                response,
+                containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
+                    .reducedBy(user.reference(READ))
+                    .whenEmpty(isOk())
+            );
+        }
+    }
+
+    @Test
+    public void refresh_withTenantHeader_humanResources() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana/_refresh?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (user.reference(WRITE).covers(dashboards_index_human_resources)) {
+                assertThat(response, isOk());
+            } else {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
+    @Test
+    public void createIndex_withTenantHeader_finance() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.putJson(".kibana?pretty", """
+                {
+                  "settings": {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0
+                  }
+                }
+                """, new BasicHeader("securitytenant", "finance"));
+
+            if (user == BI_ANALYST || user == WILDCARD_TENANT_USER) {
+                assertThat(response, isOk());
+                assertEquals(response.getBody(), ".kibana_-853258278_finance_1", response.getTextFromJsonBody("/index"));
+            } else {
+                assertThat(response, isForbidden());
+            }
+        } finally {
+            delete(".kibana_-853258278_finance_1");
         }
     }
 
