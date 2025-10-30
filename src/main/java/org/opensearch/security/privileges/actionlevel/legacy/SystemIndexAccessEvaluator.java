@@ -24,12 +24,13 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
@@ -37,19 +38,28 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.opensearch.action.search.GetAllPitsAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
+import org.opensearch.common.regex.Regex;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.IndicesRequestModifier;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluator.isClusterPermissionStatic;
 
 /**
  * This class performs authorization on requests targeting system indices
@@ -63,30 +73,27 @@ public class SystemIndexAccessEvaluator {
 
     private final String securityIndex;
     private final AuditLog auditLog;
-    private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
-    private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
     private final static ImmutableSet<String> SYSTEM_INDEX_PERMISSION_SET = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
+    private final IndicesRequestModifier indicesRequestModifier = new IndicesRequestModifier();
 
-    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
+    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
-        this.irr = irr;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
 
-        this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
@@ -127,17 +134,25 @@ public class SystemIndexAccessEvaluator {
         final ActionRequest request,
         final Task task,
         final String action,
-        final Resolved requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
+        final OptionallyResolvedIndices requestedResolved,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
         final User user
     ) {
-        evaluateSystemIndicesAccess(action, requestedResolved, request, task, presponse, context, actionPrivileges, user);
+        boolean containsSystemIndex = requestedResolved.local().containsAny(this::isSystemIndex);
 
-        if (requestedResolved.isLocalAll()
-            || requestedResolved.getAllIndices().contains(securityIndex)
-            || requestContainsAnySystemIndices(requestedResolved)) {
+        PrivilegesEvaluatorResponse response = evaluateSystemIndicesAccess(
+            action,
+            requestedResolved,
+            request,
+            task,
+            context,
+            actionPrivileges,
+            user,
+            containsSystemIndex
+        );
+
+        if (containsSystemIndex) {
 
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
@@ -153,70 +168,20 @@ public class SystemIndexAccessEvaluator {
                 }
             }
         }
-        return presponse;
+
+        return response;
     }
 
-    /**
-     * Checks if request is for any system index
-     * @param requestedResolved request which contains indices to be matched against system indices
-     * @return true if a match is found, false otherwise
-     */
-    private boolean requestContainsAnySystemIndices(final Resolved requestedResolved) {
-        return !getAllSystemIndices(requestedResolved).isEmpty();
-    }
-
-    /**
-     * Gets all indices requested in the original request.
-     * It will always return security index if it is present in the request, as security index is protected regardless
-     * of feature being enabled or disabled
-     * @param requestedResolved request which contains indices to be matched against system indices
-     * @return the set of protected system indices present in the request
-     */
-    private Set<String> getAllSystemIndices(final Resolved requestedResolved) {
-        final Set<String> systemIndices = requestedResolved.getAllIndices()
-            .stream()
-            .filter(securityIndex::equals)
-            .collect(Collectors.toSet());
-        if (isSystemIndexEnabled) {
-            systemIndices.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
-            systemIndices.addAll(SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices()));
+    private boolean isSystemIndex(String index) {
+        if (this.securityIndex.equals(index)) {
+            return true;
         }
-        return systemIndices;
-    }
 
-    /**
-     * Checks if request contains any system index that is non-permission-able
-     * NOTE: Security index is currently non-permission-able
-     * @param requestedResolved request which contains indices to be matched against non-permission-able system indices
-     * @return true if the request contains any non-permission-able index,false otherwise
-     */
-    private boolean requestContainsAnyProtectedSystemIndices(final Resolved requestedResolved) {
-        return !getAllProtectedSystemIndices(requestedResolved).isEmpty();
-    }
-
-    /**
-     * Filters the request to get all system indices that are protected and are non-permission-able
-     * @param requestedResolved request which contains indices to be matched against non-permission-able system indices
-     * @return the list of protected system indices present in the request
-     */
-    private List<String> getAllProtectedSystemIndices(final Resolved requestedResolved) {
-        return new ArrayList<>(superAdminAccessOnlyIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
-    }
-
-    /**
-     * Checks if the request contains any regular (non-system and non-protected) indices.
-     * Regular indices are those that are not categorized as system indices or protected system indices.
-     * This method helps in identifying requests that might be accessing regular indices alongside system indices.
-     * @param requestedResolved The resolved object of the request, which contains the list of indices from the original request.
-     * @return true if the request contains any regular indices, false otherwise.
-     */
-    private boolean requestContainsAnyRegularIndices(final Resolved requestedResolved) {
-        Set<String> allIndices = requestedResolved.getAllIndices();
-
-        Set<String> allSystemIndices = getAllSystemIndices(requestedResolved);
-        List<String> allProtectedSystemIndices = getAllProtectedSystemIndices(requestedResolved);
-
-        return allIndices.stream().anyMatch(index -> !allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index));
+        if (this.isSystemIndexEnabled) {
+            return this.systemIndexMatcher.test(index) || SystemIndexRegistry.matchesSystemIndexPattern(index);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -234,46 +199,42 @@ public class SystemIndexAccessEvaluator {
      * @param requestedResolved this object contains all indices this request is resolved to
      * @param request the action request to be used for audit logging
      * @param task task in which this access check will be performed
-     * @param presponse the pre-response object that will eventually become a response and returned to the requester
      * @param context conveys information about user and mapped roles, etc.
      * @param actionPrivileges the up-to-date ActionPrivileges instance
      * @param user this user's permissions will be looked up
      */
-    private void evaluateSystemIndicesAccess(
+    private PrivilegesEvaluatorResponse evaluateSystemIndicesAccess(
         final String action,
-        final Resolved requestedResolved,
+        final OptionallyResolvedIndices requestedResolved,
         final ActionRequest request,
         final Task task,
-        final PrivilegesEvaluatorResponse presponse,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
-        final User user
+        final User user,
+        final boolean containsSystemIndex
     ) {
-        // Perform access check is system index permissions are enabled
-        boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
-        boolean containsRegularIndex = requestContainsAnyRegularIndices(requestedResolved);
         boolean serviceAccountUser = user.isServiceAccount();
 
-        if (isSystemIndexPermissionEnabled) {
+        if (isSystemIndexPermissionEnabled
+            && (!isClusterPermissionStatic(action) || RestoreSnapshotAction.NAME.equals(action))
+            && backwartsCompatGateForSystemIndexPrivileges(action, request)) {
+            boolean containsRegularIndex = requestedResolved.local().containsAny(index -> !isSystemIndex(index));
+
             if (serviceAccountUser && containsRegularIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (!containsSystemIndex && log.isInfoEnabled()) {
                     log.info("{} not permitted for a service account {} on non-system indices.", action, context.getMappedRoles());
                 } else if (containsSystemIndex && log.isDebugEnabled()) {
-                    List<String> regularIndices = requestedResolved.getAllIndices()
+                    List<String> regularIndices = requestedResolved.local()
+                        .names(context.clusterState())
                         .stream()
-                        .filter(
-                            index -> !getAllSystemIndices(requestedResolved).contains(index)
-                                && !getAllProtectedSystemIndices(requestedResolved).contains(index)
-                        )
+                        .filter(index -> !isSystemIndex(index))
                         .collect(Collectors.toList());
                     log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.insufficient(action).reason("Service account cannot access regular indices");
             }
-            boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
+            boolean containsProtectedIndex = requestedResolved.local().containsAny(this.securityIndex::equals);
             if (containsProtectedIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
@@ -281,12 +242,10 @@ public class SystemIndexAccessEvaluator {
                         "{} not permitted for a regular user {} on protected system indices {}",
                         action,
                         context.getMappedRoles(),
-                        String.join(", ", getAllProtectedSystemIndices(requestedResolved))
+                        String.join(", ", this.securityIndex)
                     );
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.insufficient(action);
             } else if (containsSystemIndex
                 && !actionPrivileges.hasExplicitIndexPrivilege(context, SYSTEM_INDEX_PERMISSION_SET, requestedResolved).isAllowed()) {
                     auditLog.logSecurityIndexAttempt(request, action, task);
@@ -295,100 +254,169 @@ public class SystemIndexAccessEvaluator {
                             "No {} permission for user roles {} to System Indices {}",
                             action,
                             context.getMappedRoles(),
-                            String.join(", ", getAllSystemIndices(requestedResolved))
+                            requestedResolved.local()
+                                .names(context.clusterState())
+                                .stream()
+                                .filter(this::isSystemIndex)
+                                .collect(Collectors.joining(", "))
                         );
                     }
-                    presponse.allowed = false;
-                    presponse.markComplete();
-                    return;
+                    return PrivilegesEvaluatorResponse.insufficient(action);
                 }
         }
 
         // the following section should only be run for index actions
-        if (user.isPluginUser() && !isClusterPerm(action)) {
+        if (user.isPluginUser() && !isClusterPermissionStatic(action)) {
             if (this.isSystemIndexEnabled) {
-                Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                PluginSystemIndexSelection pluginSystemIndexSelection = areIndicesPluginSystemIndices(
+                    context,
                     user.getName().replace("plugin:", ""),
-                    requestedResolved.getAllIndices()
+                    requestedResolved
                 );
-                if (requestedResolved.getAllIndices().equals(matchingPluginIndices)) {
+                if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES) {
                     // plugin is authorized to perform any actions on its own registered system indices
-                    presponse.allowed = true;
-                    presponse.markComplete();
-                    return;
-                } else {
-                    Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices());
-                    matchingSystemIndices.removeAll(matchingPluginIndices);
-                    // See if request matches other system indices not belong to the plugin
-                    if (!matchingSystemIndices.isEmpty()) {
-                        if (log.isInfoEnabled()) {
-                            log.info(
-                                "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
-                                user.getName(),
-                                action,
-                                matchingPluginIndices
-                            );
-                        }
-                        presponse.allowed = false;
-                        presponse.getMissingPrivileges();
-                        presponse.markComplete();
-                        return;
+                    return PrivilegesEvaluatorResponse.ok();
+                } else if (pluginSystemIndexSelection == PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES) {
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                            "Plugin {} can only perform {} on it's own registered System Indices. Resolved indices: {}",
+                            user.getName(),
+                            action,
+                            requestedResolved
+                        );
                     }
+                    return PrivilegesEvaluatorResponse.insufficient(action);
                 }
             } else {
                 // no system index protection and request originating from plugin, allow
-                presponse.allowed = true;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.ok();
             }
         }
 
         if (isActionAllowed(action)) {
-            if (requestedResolved.isLocalAll()) {
+            if (!(requestedResolved instanceof ResolvedIndices resolvedIndices)) {
                 if (filterSecurityIndex) {
-                    irr.replace(request, false, "*", "-" + securityIndex);
-                    if (log.isDebugEnabled()) {
-                        log.debug(
-                            "Filtered '{}' from {}, resulting list with *,-{} is {}",
-                            securityIndex,
-                            requestedResolved,
-                            securityIndex,
-                            irr.resolveRequest(request)
-                        );
-                    }
+                    // TODO
+                    // irr.replace(request, false, "*", "-" + securityIndex);
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     log.warn("{} for '_all' indices is not allowed for a regular user", action);
-                    presponse.allowed = false;
-                    presponse.markComplete();
+                    return PrivilegesEvaluatorResponse.insufficient(action);
                 }
             }
             // if system index is enabled and system index permissions are enabled we don't need to perform any further
             // checks as it has already been performed via hasExplicitIndexPermission
             else if (containsSystemIndex && !isSystemIndexPermissionEnabled) {
                 if (filterSecurityIndex) {
-                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
+                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.local().names(context.clusterState()));
                     allWithoutSecurity.remove(securityIndex);
                     if (allWithoutSecurity.isEmpty()) {
                         if (log.isDebugEnabled()) {
                             log.debug("Filtered '{}' but resulting list is empty", securityIndex);
                         }
-                        presponse.allowed = false;
-                        presponse.markComplete();
-                        return;
+                        return PrivilegesEvaluatorResponse.insufficient(action);
                     }
-                    irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
+                    this.indicesRequestModifier.setLocalIndices(request, resolvedIndices, allWithoutSecurity);
                     if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
                     }
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
-                    final String foundSystemIndexes = String.join(", ", getAllSystemIndices(requestedResolved));
+                    final String foundSystemIndexes = requestedResolved.local()
+                        .names(context.clusterState())
+                        .stream()
+                        .filter(this::isSystemIndex)
+                        .collect(Collectors.joining(", "));
                     log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
-                    presponse.allowed = false;
-                    presponse.markComplete();
+                    return PrivilegesEvaluatorResponse.insufficient(action);
                 }
             }
         }
+
+        return null;
+    }
+
+    private PluginSystemIndexSelection areIndicesPluginSystemIndices(
+        PrivilegesEvaluationContext context,
+        String pluginClassName,
+        OptionallyResolvedIndices optionallyResolvedIndices
+    ) {
+        if (optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            Predicate<String> pluginSystemIndexPredicate = SystemIndexRegistry.getPluginSystemIndexPredicate(pluginClassName);
+
+            boolean containsNonPluginSystemIndex = false;
+            boolean containsOtherSystemIndex = false;
+
+            for (String index : resolvedIndices.local().namesOfIndices(context.clusterState())) {
+                if (!pluginSystemIndexPredicate.test(index)) {
+                    containsNonPluginSystemIndex = true;
+                    if (SystemIndexRegistry.matchesSystemIndexPattern(index)) {
+                        containsOtherSystemIndex = true;
+                    }
+                }
+            }
+
+            if (!containsNonPluginSystemIndex) {
+                return PluginSystemIndexSelection.CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES;
+            } else if (containsOtherSystemIndex) {
+                return PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES;
+            } else {
+                return PluginSystemIndexSelection.NO_SYSTEM_INDICES;
+            }
+        } else {
+            // If we have an unknown state, we must assume that other system indices are contained
+            return PluginSystemIndexSelection.CONTAINS_OTHER_SYSTEM_INDICES;
+        }
+    }
+
+    /**
+     * Previous versions of OpenSearch had the bug that indices requests on "*" (or _all) did not get checked
+     * in the block of evaluateSystemIndicesAccess() that checks for the explicit system index privileges.
+     * This is not nice, but also not a big problem, as write operations would be denied anyway at the end of
+     * the evaluateSystemIndicesAccess(). Read operations would be blocked anyway on the Lucene level.
+     * With the introduction of the ResolvedIndices object, we do not have a real notion of "is all" any more;
+     * thus, this method would now block many requests, even if these would be filtered out later by the DNFOF mode
+     * in PrivilegeEvaluator.
+     * <p>
+     * To keep backwards compatibility, we have this method which disables the first block of evaluateSystemIndicesAccess()
+     * for the same cases that were previously skipping its execution. Of course, this is totally hacky, but there
+     * is no better way to keep the available functionality other than rewriting the whole logic; which is actually done
+     * in the next gen privilege evaluation code.
+     * @return true, if the explicit privilege check in evaluateSystemIndicesAccess() shall be executed; false it it shall
+     * be skipped.
+     */
+    private boolean backwartsCompatGateForSystemIndexPrivileges(String action, ActionRequest actionRequest) {
+        if (GetAllPitsAction.NAME.equals(action)) {
+            // The indices:data/read/point_in_time/readall action does not give access to index contents
+            return false;
+        }
+
+        if (!(actionRequest instanceof IndicesRequest indicesRequest)) {
+            // If we cannot resolve indices, we go into the explicit privilege check code; the code will then deny the request
+            return true;
+        }
+
+        if (deniedActionsMatcher.test(action)) {
+            // If this is an action that manipulates documents or indices, we also need to do the explicit privilege check.
+            return true;
+        }
+
+        String[] indices = indicesRequest.indices();
+        boolean isAll = indices == null
+            || indices.length == 0
+            || (indices.length == 1 && (indices[0] == null || Metadata.ALL.equals(indices[0]) || Regex.isMatchAllPattern(indices[0])));
+        if (!isAll) {
+            // For non-is-all requests, previous versions also went through the checks
+            return true;
+        } else {
+            // For is-all requests, we can skip the checks; any data in the indices will be filtered out on the Lucene level
+            return false;
+        }
+    }
+
+    enum PluginSystemIndexSelection {
+        CONTAINS_ONLY_PLUGIN_SYSTEM_INDICES,
+        CONTAINS_OTHER_SYSTEM_INDICES,
+        NO_SYSTEM_INDICES
     }
 }

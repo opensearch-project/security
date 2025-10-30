@@ -33,8 +33,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
+import org.junit.runner.RunWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.Hasher;
 

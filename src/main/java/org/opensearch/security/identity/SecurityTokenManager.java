@@ -32,7 +32,7 @@ import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
-import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -53,21 +53,22 @@ public class SecurityTokenManager implements TokenManager {
     private final ClusterService cs;
     private final ThreadPool threadPool;
     private final UserService userService;
+    private final RoleMapper roleMapper;
 
     private Settings oboSettings = null;
-    private ConfigModel configModel = null;
     private final LongSupplier timeProvider = System::currentTimeMillis;
     private static final Integer OBO_MAX_EXPIRY_SECONDS = 600;
 
-    public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
+    public SecurityTokenManager(
+        final ClusterService cs,
+        final ThreadPool threadPool,
+        final UserService userService,
+        RoleMapper roleMapper
+    ) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
-    }
-
-    @Subscribe
-    public void onConfigModelChanged(final ConfigModel configModel) {
-        this.configModel = configModel;
+        this.roleMapper = roleMapper;
     }
 
     @Subscribe
@@ -90,7 +91,7 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public boolean issueOnBehalfOfTokenAllowed() {
-        return oboSettings != null && configModel != null;
+        return oboSettings != null;
     }
 
     @Override
@@ -117,7 +118,7 @@ public class SecurityTokenManager implements TokenManager {
         }
 
         final TransportAddress callerAddress = null; /* OBO tokens must not roles based on location from network address */
-        final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
+        final Set<String> mappedRoles = roleMapper.map(user, callerAddress);
 
         final long currentTimeMs = timeProvider.getAsLong();
         final Date now = new Date(currentTimeMs);

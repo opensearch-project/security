@@ -14,6 +14,7 @@ package org.opensearch.security.privileges.int_tests;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -47,6 +48,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@NotThreadSafe
 public class SnapshotAuthorizationIntTests {
     static final TestIndex index_a1 = TestIndex.name("index_ar1").documentCount(10).seed(1).build();
     static final TestIndex index_a2 = TestIndex.name("index_ar2").documentCount(11).seed(2).build();
@@ -156,7 +158,6 @@ public class SnapshotAuthorizationIntTests {
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor", "manage_snapshots")
                 .indexPermissions("*")
                 .on("*")//
-
         )//
         .reference(
             READ,

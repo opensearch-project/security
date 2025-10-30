@@ -20,7 +20,6 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -37,7 +36,7 @@ public class RestApiPrivilegesEvaluatorTest {
         this.privilegesEvaluator = new RestApiPrivilegesEvaluator(
             Settings.EMPTY,
             mock(AdminDNs.class),
-            mock(PrivilegesEvaluator.class),
+            (user, caller) -> user.getSecurityRoles(),
             mock(PrincipalExtractor.class),
             mock(Path.class),
             mock(ThreadPool.class)

@@ -114,7 +114,7 @@ public class SystemIndexTests {
                 response,
                 RestMatchers.isForbidden(
                     "/error/root_cause/0/reason",
-                    "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    "no permissions for [indices:admin/create] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
                 )
             );
         }
@@ -125,7 +125,10 @@ public class SystemIndexTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
 
-            assertThat(response, RestMatchers.isForbidden("/error/root_cause/0/reason", "no permissions for [] and User [name=admin"));
+            assertThat(
+                response,
+                RestMatchers.isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/write/index] and User [name=admin")
+            );
         }
     }
 
@@ -284,7 +287,7 @@ public class SystemIndexTests {
             assertThat(
                 response.getBody(),
                 containsString(
-                    "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    "no permissions for [indices:data/write/bulk[s]] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
                 )
             );
         }

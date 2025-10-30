@@ -67,6 +67,7 @@ import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.RestHighLevelClient;
@@ -2281,7 +2282,11 @@ public class SearchOperationTest {
                     .open(new OpenIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
                 statusException(FORBIDDEN)
             );
-            assertThatThrownBy(() -> restHighLevelClient.indices().open(new OpenIndexRequest("*"), DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(
+                () -> restHighLevelClient.indices()
+                    .open(new OpenIndexRequest("*").indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED), DEFAULT),
+                statusException(FORBIDDEN)
+            );
         }
     }
 

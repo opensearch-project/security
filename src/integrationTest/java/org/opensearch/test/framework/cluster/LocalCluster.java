@@ -603,6 +603,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder tenants(TestSecurityConfig.Tenant... tenants) {
+            testSecurityConfig.tenants(tenants);
+            return this;
+        }
+
         public Builder authc(TestSecurityConfig.AuthcDomain authc) {
             testSecurityConfig.authc(authc);
             return this;
@@ -655,6 +660,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder doNotFailOnForbidden(boolean doNotFailOnForbidden) {
             testSecurityConfig.doNotFailOnForbidden(doNotFailOnForbidden);
+            return this;
+        }
+
+        public Builder privilegesEvaluationType(String privilegesEvaluationType) {
+            testSecurityConfig.privilegesEvaluationType(privilegesEvaluationType);
             return this;
         }
 
