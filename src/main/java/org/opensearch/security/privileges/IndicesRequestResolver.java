@@ -20,6 +20,10 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 
+/**
+ * Provides a thin wrapper around ActionRequestMetadata.resolveIndices(), adding a fallback mechanism in case the
+ * particular action does not support it.
+ */
 public class IndicesRequestResolver {
     protected final IndexNameExpressionResolver indexNameExpressionResolver;
 
@@ -56,5 +60,4 @@ public class IndicesRequestResolver {
             return ResolvedIndices.unknown();
         }
     }
-
 }

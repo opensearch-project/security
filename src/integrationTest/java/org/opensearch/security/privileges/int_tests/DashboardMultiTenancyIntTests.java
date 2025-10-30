@@ -595,20 +595,20 @@ public class DashboardMultiTenancyIntTests {
                 """;
 
             TestRestClient.HttpResponse response = restClient.postJson(
-                    "_bulk?pretty",
-                    bulkBody,
-                    new BasicHeader("securitytenant", "human_resources")
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
             );
 
             assertThat(
-                    response,
-                    containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
-                            .butForbiddenIfIncomplete(user.reference(WRITE))
+                response,
+                containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
+                    .butForbiddenIfIncomplete(user.reference(WRITE))
             );
         } finally {
             delete(
-                    dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
-                    dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
             );
         }
     }
@@ -624,20 +624,21 @@ public class DashboardMultiTenancyIntTests {
                 """;
 
             TestRestClient.HttpResponse response = restClient.postJson(
-                    "_bulk?pretty",
-                    bulkBody,
-                    new BasicHeader("securitytenant", "human_resources")
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
             );
 
             assertThat(
-                    response,
-                    containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
-                            .reducedBy(user.reference(WRITE)).whenEmpty(isOk())
+                response,
+                containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
+                    .reducedBy(user.reference(WRITE))
+                    .whenEmpty(isOk())
             );
         } finally {
             delete(
-                    dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
-                    dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
             );
         }
     }
@@ -653,21 +654,19 @@ public class DashboardMultiTenancyIntTests {
                 """;
 
             TestRestClient.HttpResponse response = restClient.postJson(
-                    "_bulk?pretty",
-                    bulkBody,
-                    new BasicHeader("securitytenant", "human_resources")
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
             );
 
             assertThat(
-                    response,
-                    containsExactly(dashboards_index_global).at("items[*].index[?(@.result == 'created')]._index")
-                            .reducedBy(user.reference(WRITE)).whenEmpty(isOk())
+                response,
+                containsExactly(dashboards_index_global).at("items[*].index[?(@.result == 'created')]._index")
+                    .reducedBy(user.reference(WRITE))
+                    .whenEmpty(isOk())
             );
         } finally {
-            delete(
-                    dashboards_index_global.name() + "/_doc/mt_bulk_doc_1",
-                    dashboards_index_global.name() + "/_doc/mt_bulk_doc_2"
-            );
+            delete(dashboards_index_global.name() + "/_doc/mt_bulk_doc_1", dashboards_index_global.name() + "/_doc/mt_bulk_doc_2");
         }
     }
 
