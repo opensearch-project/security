@@ -603,6 +603,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder tenants(TestSecurityConfig.Tenant... tenants) {
+            testSecurityConfig.tenants(tenants);
+            return this;
+        }
+
         public Builder authc(TestSecurityConfig.AuthcDomain authc) {
             testSecurityConfig.authc(authc);
             return this;
