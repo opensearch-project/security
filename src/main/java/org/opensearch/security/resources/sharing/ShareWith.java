@@ -141,16 +141,15 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         if (other == null || other.isPrivate()) {
             return this;
         }
-        Map<String, Recipients> updated = new HashMap<>(this.sharingInfo);
         for (var entry : other.sharingInfo.entrySet()) {
             String level = entry.getKey();
             Recipients patchRecipients = entry.getValue();
-            updated.merge(level, patchRecipients, (orig, patchRec) -> {
+            sharingInfo.merge(level, patchRecipients, (orig, patchRec) -> {
                 orig.share(patchRec);
                 return orig;
             });
         }
-        return new ShareWith(updated);
+        return this;
     }
 
     /**
@@ -160,16 +159,15 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         if (this.sharingInfo.isEmpty() || other == null || other.isPrivate()) {
             return this;
         }
-        Map<String, Recipients> updated = new HashMap<>(this.sharingInfo);
         for (var entry : other.sharingInfo.entrySet()) {
             String level = entry.getKey();
-            Recipients revokeRecipients = entry.getValue();
-            updated.computeIfPresent(level, (lvl, orig) -> {
-                orig.revoke(revokeRecipients);
+            Recipients toRevoke = entry.getValue();
+            sharingInfo.computeIfPresent(level, (lvl, orig) -> {
+                orig.revoke(toRevoke);
                 return orig;
             });
         }
-        return new ShareWith(updated);
+        return this;
     }
 
     /** Return a normalized ShareWith with no empty buckets and no empty action-groups. */

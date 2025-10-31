@@ -14,6 +14,10 @@ package org.opensearch.security.spi.resources;
  *
  * @opensearch.experimental
  */
-public record ResourceProvider(String resourceType, String resourceIndexName) {
+public interface ResourceProvider {
+
+    String resourceType();
+
+    String resourceIndexName();
 
 }

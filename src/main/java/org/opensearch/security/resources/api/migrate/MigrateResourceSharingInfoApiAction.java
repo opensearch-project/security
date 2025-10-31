@@ -319,7 +319,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
-                sharingIndexHandler.indexResourceSharing(resourceId, sourceInfo.getLeft(), createdBy, shareWith, listener);
+                ResourceSharing.Builder builder = ResourceSharing.builder()
+                    .resourceId(resourceId)
+                    .createdBy(createdBy)
+                    .shareWith(shareWith);
+                ResourceSharing sharingInfo = builder.build();
+                sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();

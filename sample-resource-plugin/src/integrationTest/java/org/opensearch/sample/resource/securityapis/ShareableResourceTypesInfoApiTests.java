@@ -59,13 +59,13 @@ public class ShareableResourceTypesInfoApiTests {
             Map<String, Object> firstType = (Map<String, Object>) types.get(0);
             assertThat(firstType.get("type"), equalTo("sample-resource"));
             assertThat(
-                (List<String>) firstType.get("action_groups"),
+                (List<String>) firstType.get("access_levels"),
                 containsInAnyOrder("sample_read_only", "sample_read_write", "sample_full_access")
             );
             Map<String, Object> secondType = (Map<String, Object>) types.get(1);
             assertThat(secondType.get("type"), equalTo("sample-resource-group"));
             assertThat(
-                (List<String>) secondType.get("action_groups"),
+                (List<String>) secondType.get("access_levels"),
                 containsInAnyOrder("sample_group_read_only", "sample_group_read_write", "sample_group_full_access")
             );
         }
