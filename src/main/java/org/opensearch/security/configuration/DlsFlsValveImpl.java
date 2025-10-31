@@ -529,14 +529,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     @Override
-    public boolean isFieldAllowed(String index, String field) throws PrivilegesEvaluationException {
-        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-        if (privilegesEvaluationContext == null) {
+    public boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException {
+        if (ctx == null) {
             return true;
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowedRecursive(field);
+        return config.getFieldPrivileges().getRestriction(ctx, index).isAllowedRecursive(field);
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {

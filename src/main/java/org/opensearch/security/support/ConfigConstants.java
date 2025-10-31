@@ -43,6 +43,7 @@ import com.password4j.types.Hmac;
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
+    public static final String OPENSEARCH_SECURITY_CONFIG_PREFIX = "_opensearch_security_";
     public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
 
     public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
@@ -80,6 +81,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields_ccs";
 
     public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
+    public static final String OPENSEARCH_SECURITY_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "request_headers";
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";

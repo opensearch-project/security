@@ -165,6 +165,7 @@ import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
@@ -2329,9 +2330,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 return field -> true;
             }
 
+            PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
+                ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
+                : null;
+
             return field -> {
                 try {
-                    return dlsFlsValve.isFieldAllowed(index, field);
+                    return dlsFlsValve.isFieldAllowed(index, field, ctx);
                 } catch (PrivilegesEvaluationException e) {
                     log.error("Error while evaluating FLS for {}.{}", index, field, e);
                     return false;
