@@ -70,7 +70,11 @@ public class SampleResourceGroup implements NamedWriteable, ToXContentObject {
     }
 
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject().field("name", name).field("description", description).endObject();
+        return builder.startObject()
+            .field("name", name)
+            .field("description", description)
+            .field("resource_type", RESOURCE_GROUP_TYPE)
+            .endObject();
     }
 
     public void writeTo(StreamOutput out) throws IOException {

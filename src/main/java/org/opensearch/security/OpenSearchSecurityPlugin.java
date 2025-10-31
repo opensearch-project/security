@@ -357,10 +357,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // dynamic settings
         transportPassiveAuthSetting = new TransportPassiveAuthSetting(settings);
-        resourceSharingEnabledSetting = new ResourceSharingFeatureFlagSetting(settings, resourcePluginInfo); // not filtered
-        resourceSharingProtectedResourceTypesSetting = new ResourceSharingProtectedResourcesSetting(settings, resourcePluginInfo); // not
-                                                                                                                                   // filtered
-        resourcePluginInfo.setResourceSharingProtectedTypesSetting(resourceSharingProtectedResourceTypesSetting);
+        resourceSharingEnabledSetting = new ResourceSharingFeatureFlagSetting(settings, resourcePluginInfo);
+        resourceSharingProtectedResourceTypesSetting = new ResourceSharingProtectedResourcesSetting(settings, resourcePluginInfo);
+        resourcePluginInfo.setProtectedTypesSetting(resourceSharingProtectedResourceTypesSetting);
 
         if (disabled) {
             this.sslCertReloadEnabled = false;

@@ -301,6 +301,7 @@ public class MigrateApiTests {
         // 3) Build the _source sub-object
         ObjectNode source = hit.putObject("_source");
         source.put("resource_id", resourceId);
+        source.put("resource_type", RESOURCE_TYPE);
 
         ObjectNode createdBy = source.putObject("created_by");
         createdBy.put("user", MIGRATION_USER.getName());

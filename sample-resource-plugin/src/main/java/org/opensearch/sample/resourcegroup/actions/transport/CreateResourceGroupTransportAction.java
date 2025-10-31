@@ -53,10 +53,10 @@ public class CreateResourceGroupTransportAction extends HandledTransportAction<C
 
     @Override
     protected void doExecute(Task task, CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
-        createResource(request, listener);
+        createResourceGroup(request, listener);
     }
 
-    private void createResource(CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
+    private void createResourceGroup(CreateResourceGroupRequest request, ActionListener<CreateResourceGroupResponse> listener) {
         SampleResourceGroup sampleGroup = request.getResourceGroup();
 
         // 1. Read mapping JSON from the config file
