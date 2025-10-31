@@ -11,11 +11,7 @@
 
 package org.opensearch.security.auth.ldap2;
 
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 import io.netty.util.internal.PlatformDependent;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
@@ -25,32 +21,17 @@ public class MakeJava9Happy {
     private static ClassLoader classLoader;
     private static boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;;
 
-    @SuppressWarnings("removal")
     static ClassLoader getClassLoader() {
         if (!isJava9OrHigher) {
             return null;
         }
 
         if (classLoader == null) {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
 
             try {
-                return AccessController.doPrivileged(new PrivilegedExceptionAction<ClassLoader>() {
-                    @Override
-                    public ClassLoader run() throws Exception {
-                        return new Java9CL();
-                    }
-                });
-            } catch (PrivilegedActionException e) {
-                if (e.getException() instanceof RuntimeException) {
-                    throw (RuntimeException) e.getException();
-                } else {
-                    throw new RuntimeException(e);
-                }
+                return AccessController.doPrivilegedChecked(() -> new Java9CL());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
 

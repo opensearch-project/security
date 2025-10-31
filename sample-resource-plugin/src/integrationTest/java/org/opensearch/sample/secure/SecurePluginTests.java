@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.Version;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -47,7 +46,6 @@ public class SecurePluginTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(PainlessModulePlugin.class)
         .plugin(
             new PluginInfo(
                 SampleResourcePlugin.class.getName(),

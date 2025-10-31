@@ -45,11 +45,9 @@ public class HeaderHelper {
             || context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE) == null;
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
     public static boolean isExtensionRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST) == Boolean.TRUE;
     }
-    // CS-ENFORCE-SINGLE
 
     public static boolean isInternalOrPluginRequest(final ThreadContext threadContext) {
         // If user is empty, this indicates a system-level request which should be permitted

@@ -11,8 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -29,9 +27,9 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -68,21 +66,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private final EncryptionDecryptionUtil encryptionUtil;
 
-    @SuppressWarnings("removal")
     public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
         enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
         encryptionKey = settings.get("encryption_key");
-
-        final SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
-            @Override
-            public JwtParser run() {
-                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-                return builder.build();
-            }
+        jwtParser = AccessController.doPrivileged(() -> {
+            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+            return builder.build();
         });
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
@@ -144,21 +133,9 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
-            @Override
-            public AuthCredentials run() {
-                return extractCredentials0(request);
-            }
-        });
+        AuthCredentials creds = AccessController.doPrivileged(() -> extractCredentials0(request));
 
         return creds;
     }

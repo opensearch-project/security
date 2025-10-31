@@ -61,6 +61,7 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -90,7 +91,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -133,8 +133,7 @@ public class SecurityFilter implements ActionFilter {
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver,
-        Set<String> resourceIndices,
-        ResourceAccessHandler resourceAccessHandler
+        ResourceAccessEvaluator resourceAccessEvaluator
     ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -150,7 +149,7 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, settings, resourceAccessHandler);
+        this.resourceAccessEvaluator = resourceAccessEvaluator;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -169,6 +168,7 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
@@ -421,7 +421,7 @@ public class SecurityFilter implements ActionFilter {
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
+                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }

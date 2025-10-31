@@ -310,6 +310,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return primaryTerm;
     }
 
+    public void setSeqNo(long seqNo) {
+        this.seqNo = seqNo;
+    }
+
+    public void setPrimaryTerm(long primaryTerm) {
+        this.primaryTerm = primaryTerm;
+    }
+
     @JsonIgnore
     public CType<T> getCType() {
         return ctype;

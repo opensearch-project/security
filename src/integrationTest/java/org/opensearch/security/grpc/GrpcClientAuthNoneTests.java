@@ -57,13 +57,12 @@ public class GrpcClientAuthNoneTests {
 
         BulkResponse bulkResp = GrpcHelpers.doBulk(channel, testIndex, testDocs);
         assertNotNull(bulkResp);
-        assertFalse(bulkResp.hasBulkErrorResponse());
-        assertEquals(testDocs, bulkResp.getBulkResponseBody().getItemsCount());
+        assertFalse(bulkResp.getErrors());
+        assertEquals(testDocs, bulkResp.getItemsCount());
 
         SearchResponse searchResp = GrpcHelpers.doMatchAll(channel, testIndex, 10);
         assertNotNull(searchResp);
-        assertEquals(SearchResponse.ResponseCase.RESPONSE_BODY.getNumber(), searchResp.getResponseCase().getNumber());
-        assertEquals(testDocs, searchResp.getResponseBody().getHits().getTotal().getTotalHits().getValue());
+        assertEquals(testDocs, searchResp.getHits().getTotal().getTotalHits().getValue());
 
         channel.shutdown();
     }

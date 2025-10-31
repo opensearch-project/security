@@ -18,6 +18,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sample.SampleResource;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Request object for CreateSampleResource transport action
@@ -57,6 +58,11 @@ public class CreateResourceRequest extends ActionRequest implements DocRequest {
 
     public boolean shouldStoreUser() {
         return this.shouldStoreUser;
+    }
+
+    @Override
+    public String type() {
+        return RESOURCE_TYPE;
     }
 
     @Override

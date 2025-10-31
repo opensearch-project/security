@@ -254,6 +254,12 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 (builder, params) -> builder.startObject().field("backend_roles", configJsonArray(generateArrayValues(true))).endObject()
             )
         );
+        assertNullValuesInArray(
+            client.putJson(
+                apiPath(randomAsciiAlphanumOfLength(10)),
+                (builder, params) -> builder.startObject().field("backend_roles", configJsonArray("a", "")).endObject()
+            )
+        );
         // patch
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), EMPTY_BODY))));
         badRequest(

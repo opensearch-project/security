@@ -153,6 +153,10 @@ public class FlattenedActionGroups {
         this.resolvedActionGroups = ImmutableMap.of();
     }
 
+    public ImmutableSet<String> actionGroups() {
+        return resolvedActionGroups.keySet();
+    }
+
     @Override
     public String toString() {
         return resolvedActionGroups.toString();

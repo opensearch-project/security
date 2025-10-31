@@ -30,11 +30,11 @@ import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.directSharePayload;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
-import static org.opensearch.sample.resource.TestUtils.sampleReadOnlyAG;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -66,7 +66,11 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            if (NO_ACCESS_USER.getName().equals(user.getName())) {
+                api.assertDirectGet(id, user, HttpStatus.SC_FORBIDDEN, "");
+            } else {
+                api.assertDirectGet(id, user, HttpStatus.SC_NOT_FOUND, "");
+            }
             api.assertDirectUpdate(id, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
 
             api.assertDirectDelete(id, user, HttpStatus.SC_FORBIDDEN);
@@ -76,15 +80,14 @@ public class DirectIndexAccessTests {
         private void assertResourceSharingIndexAccess(String id, TestSecurityConfig.User user) {
             // cannot interact with resource sharing index
             api.assertDirectViewSharingRecord(id, user, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectShare(id, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertDirectRevoke(id, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdateSharingInfo(id, user, user, SAMPLE_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
             api.assertDirectDeleteResourceSharingRecord(id, user, HttpStatus.SC_FORBIDDEN);
         }
 
         @Before
         public void setUp() {
             id = api.createRawResourceAs(cluster.getAdminCertificate());
-            api.awaitSharingEntry("kirk");
+            api.awaitSharingEntry(id, "kirk");
         }
 
         @After
@@ -130,8 +133,7 @@ public class DirectIndexAccessTests {
 
             // cannot interact with resource sharing index
             api.assertDirectViewSharingRecord(id, FULL_ACCESS_USER, HttpStatus.SC_NOT_FOUND);
-            api.assertDirectShare(id, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertDirectRevoke(id, FULL_ACCESS_USER, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdateSharingInfo(id, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
             api.assertDirectDeleteResourceSharingRecord(id, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -152,7 +154,7 @@ public class DirectIndexAccessTests {
                 client.get(RESOURCE_SHARING_INDEX + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(
                     RESOURCE_SHARING_INDEX + "/_doc/" + id,
-                    directSharePayload(id, USER_ADMIN.getName(), NO_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                    directSharePayload(id, USER_ADMIN.getName(), NO_ACCESS_USER.getName(), SAMPLE_READ_ONLY)
                 ).assertStatusCode(HttpStatus.SC_OK);
                 client.delete(RESOURCE_SHARING_INDEX + "/_doc/" + id).assertStatusCode(HttpStatus.SC_OK);
 
@@ -180,7 +182,7 @@ public class DirectIndexAccessTests {
         @Before
         public void setup() {
             adminResId = api.createSampleResourceAs(USER_ADMIN);
-            api.awaitSharingEntry(); // wait until sharing entry is created
+            api.awaitSharingEntry(adminResId); // wait until sharing entry is created
         }
 
         @After
@@ -209,8 +211,7 @@ public class DirectIndexAccessTests {
 
             // cannot interact with resource sharing index
             api.assertDirectViewSharingRecord(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertDirectRevoke(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdateSharingInfo(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_FULL_ACCESS, HttpStatus.SC_FORBIDDEN);
             api.assertDirectDeleteResourceSharingRecord(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -224,11 +225,10 @@ public class DirectIndexAccessTests {
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
-            // cannot read admin's resource directly since system index protection is enabled
-            api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // once admin share's record, user can then query it directly
-            api.assertDirectShare(adminResId, USER_ADMIN, LIMITED_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry(LIMITED_ACCESS_USER.getName());
+            api.assertDirectUpdateSharingInfo(adminResId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
+            api.awaitSharingEntry(adminResId, LIMITED_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
             // should be able to access the record since user has direct index access
@@ -242,8 +242,13 @@ public class DirectIndexAccessTests {
 
             // cannot access resource sharing index since user doesn't have permissions on that index
             api.assertDirectViewSharingRecord(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
-            api.assertDirectShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-            api.assertDirectRevoke(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+            api.assertDirectUpdateSharingInfo(
+                adminResId,
+                LIMITED_ACCESS_USER,
+                LIMITED_ACCESS_USER,
+                SAMPLE_FULL_ACCESS,
+                HttpStatus.SC_FORBIDDEN
+            );
             api.assertDirectDeleteResourceSharingRecord(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
         }
 
@@ -259,36 +264,33 @@ public class DirectIndexAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 userResId = resp.getTextFromJsonBody("/_id");
             }
-            // cannot read admin's resource directly since resource is not shared with them
-            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
             // once admin share's record, user can then query it directly
-            api.assertDirectShare(adminResId, USER_ADMIN, FULL_ACCESS_USER, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
-            api.awaitSharingEntry(FULL_ACCESS_USER.getName());
+            api.assertDirectUpdateSharingInfo(adminResId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
+            api.awaitSharingEntry(adminResId, FULL_ACCESS_USER.getName());
             api.assertDirectGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sample");
 
-            // admin cannot read user's resource until after they share it with admin
-            api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
-            api.assertDirectShare(userResId, FULL_ACCESS_USER, USER_ADMIN, sampleReadOnlyAG.name(), HttpStatus.SC_OK);
+            api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            api.assertDirectUpdateSharingInfo(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY, HttpStatus.SC_OK);
             api.assertDirectGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
 
-            // can only access own resource since
             api.assertDirectGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
             api.assertDirectPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 2, "sample");
             api.assertDirectPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sample");
             api.assertDirectPostSearch(searchByNamePayload("sampleUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUser");
 
-            // cannot update or delete resource
-            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-            api.assertDirectDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
             // can update and delete own resource
             api.assertDirectUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
             api.assertDirectDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
 
             // can view, share, revoke and delete resource sharing record(s) directly
             api.assertDirectViewSharingRecord(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
-            api.assertDirectShare(adminResId, FULL_ACCESS_USER, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-            api.assertDirectRevoke(adminResId, FULL_ACCESS_USER, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
+            api.assertDirectUpdateSharingInfo(adminResId, FULL_ACCESS_USER, NO_ACCESS_USER, SAMPLE_FULL_ACCESS, HttpStatus.SC_OK);
             api.assertDirectDeleteResourceSharingRecord(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+
+            // can update or delete admin resource, since system index protection is disabled and user has direct index access.
+            api.assertDirectUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_OK);
+            api.assertDirectDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
         }
 
         @Test
@@ -309,7 +311,7 @@ public class DirectIndexAccessTests {
                 client.get(RESOURCE_SHARING_INDEX + "/_doc/" + adminResId).assertStatusCode(HttpStatus.SC_OK);
                 client.postJson(
                     RESOURCE_SHARING_INDEX + "/_doc/" + adminResId,
-                    directSharePayload(adminResId, USER_ADMIN.getName(), NO_ACCESS_USER.getName(), sampleReadOnlyAG.name())
+                    directSharePayload(adminResId, USER_ADMIN.getName(), NO_ACCESS_USER.getName(), SAMPLE_READ_ONLY)
                 ).assertStatusCode(HttpStatus.SC_OK);
                 client.delete(RESOURCE_SHARING_INDEX + "/_doc/" + adminResId).assertStatusCode(HttpStatus.SC_OK);
 

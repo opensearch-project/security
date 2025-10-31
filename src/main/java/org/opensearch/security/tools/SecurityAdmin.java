@@ -26,8 +26,6 @@
 
 package org.opensearch.security.tools;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
-
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
@@ -134,7 +132,6 @@ import org.opensearch.transport.client.transport.NoNodeAvailableException;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
-// CS-ENFORCE-SINGLE
 
 @SuppressWarnings("deprecation")
 public class SecurityAdmin {
@@ -198,7 +195,6 @@ public class SecurityAdmin {
         options.addOption(
             Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build()
         );
-        // CS-SUPPRESS-SINGLE: RegexpSingleline file extensions is unrelated to OpenSearch extensions
         options.addOption(
             Option.builder("tst")
                 .longOpt("truststore-type")
@@ -215,7 +211,6 @@ public class SecurityAdmin {
                 .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
                 .build()
         );
-        // CS-ENFORCE-SINGLE
         options.addOption(
             Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build()
         );

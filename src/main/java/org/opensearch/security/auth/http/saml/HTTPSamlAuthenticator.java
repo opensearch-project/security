@@ -14,10 +14,7 @@ package org.opensearch.security.auth.http.saml;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.security.AccessController;
 import java.security.PrivateKey;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -33,10 +30,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.jwt.AbstractHTTPJwtAuthenticator;
@@ -281,20 +278,13 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
-    @SuppressWarnings("removal")
     static void ensureOpenSamlInitialization() {
         if (openSamlInitialized) {
             return;
         }
 
-        SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+            AccessController.doPrivilegedChecked(() -> {
                 Thread thread = Thread.currentThread();
                 ClassLoader originalClassLoader = thread.getContextClassLoader();
                 try {
@@ -307,10 +297,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 }
 
                 openSamlInitialized = true;
-                return null;
             });
-        } catch (PrivilegedActionException e) {
-            throw new RuntimeException(e.getCause());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -332,7 +321,6 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
-    @SuppressWarnings("removal")
     private MetadataResolver createMetadataResolver(final Settings settings, final Path configPath) throws Exception {
         final AbstractMetadataResolver metadataResolver;
 
@@ -358,18 +346,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         basicParserPool.initialize();
         metadataResolver.setParserPool(basicParserPool);
 
-        SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
-                metadataResolver.initialize();
-                return null;
-            });
-        } catch (PrivilegedActionException e) {
+            AccessController.doPrivilegedChecked(metadataResolver::initialize);
+        } catch (Exception e) {
             if (e.getCause() instanceof ComponentInitializationException) {
                 throw (ComponentInitializationException) e.getCause();
             } else {

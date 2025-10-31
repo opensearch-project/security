@@ -10,10 +10,17 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -28,6 +35,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -35,35 +45,42 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.script.Script;
-import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.Recipients;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
+import org.opensearch.security.resources.api.share.ShareAction;
+import org.opensearch.security.resources.sharing.CreatedBy;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 /**
  * This class handles the creation and management of the resource sharing index.
@@ -78,21 +95,16 @@ public class ResourceSharingIndexHandler {
     private final Client client;
 
     private final ThreadPool threadPool;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
-    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool) {
+    public ResourceSharingIndexHandler(final Client client, final ThreadPool threadPool, final ResourcePluginInfo resourcePluginInfo) {
         this.client = client;
         this.threadPool = threadPool;
+        this.resourcePluginInfo = resourcePluginInfo;
     }
 
-    public final static Map<String, Object> INDEX_SETTINGS = Map.of(
-        "index.number_of_shards",
-        1,
-        "index.auto_expand_replicas",
-        "0-all",
-        "index.hidden",
-        "true"
-    );
+    public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
     /**
      * Creates the resource sharing index if it doesn't already exist.
@@ -113,7 +125,7 @@ public class ResourceSharingIndexHandler {
      *                          or communicating with the cluster
      */
 
-    public void createResourceSharingIndicesIfAbsent(Set<String> resourceIndices) {
+    public void createResourceSharingIndicesIfAbsent(Collection<String> resourceIndices) {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             for (String resourceIndex : resourceIndices) {
@@ -133,6 +145,87 @@ public class ResourceSharingIndexHandler {
 
     public static String getSharingIndex(String resourceIndex) {
         return resourceIndex + "-sharing";
+    }
+
+    /**
+     * Updates the visibility of a resource document by replacing its {@code principals} field
+     * with the provided list of principals. The update is executed immediately with
+     * {@link WriteRequest.RefreshPolicy#IMMEDIATE} to ensure the change is visible in subsequent
+     * searches.
+     * <p>
+     * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
+     * on success, or with an exception on failure.
+     *
+     * @param resourceId     the unique identifier of the resource document to update
+     * @param resourceIndex  the name of the index containing the resource
+     * @param principals     the list of principals (e.g. {@code user:alice}, {@code role:admin})
+     *                       that should be assigned to the resource
+     * @param listener       callback that will be notified with the update response or an error
+     */
+    public void updateResourceVisibility(
+        String resourceId,
+        String resourceIndex,
+        List<String> principals,
+        ActionListener<UpdateResponse> listener
+    ) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setDoc(Map.of("all_shared_principals", principals))
+                .setId(resourceId)
+                .request();
+
+            ActionListener<UpdateResponse> urListener = ActionListener.wrap(response -> {
+                ctx.restore();
+                LOGGER.info(
+                    "Successfully updated visibility of resource {} in index {} to principals {}.",
+                    resourceIndex,
+                    resourceId,
+                    principals
+                );
+                listener.onResponse(response);
+            }, (e) -> {
+                LOGGER.error("Failed to update visibility in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                listener.onFailure(e);
+            });
+            client.update(ur, urListener);
+        }
+    }
+
+    /**
+     * Resolves 403's on direct document updates, by restoring `all_shared_principals` field that may have been wiped out.
+     *
+     * @param resourceId the id whose sharing info is to be updated
+     * @param resourceIndex the index where the resource exists
+     * @param listener the listener to respond to once async action is complete
+     */
+    public void fetchAndUpdateResourceVisibility(String resourceId, String resourceIndex, ActionListener<Void> listener) {
+        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+
+        // Fetch the current ResourceSharing document
+        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
+
+        // build revoke script
+        sharingInfoListener.whenComplete(sharingInfo -> {
+
+            if (sharingInfo == null) {
+                LOGGER.debug("No sharing info found for resource {} in index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+                return;
+            }
+
+            updateResourceVisibility(resourceId, resourceIndex, sharingInfo.getAllPrincipals(), ActionListener.wrap((updateResponse) -> {
+                LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                listener.onResponse(null);
+            }, (e) -> {
+                LOGGER.error("Failed to update principals field in {} for resource {}", resourceIndex, resourceId, e);
+                listener.onResponse(null);
+            }));
+        }, (failResponse) -> {
+            LOGGER.error(failResponse.getMessage());
+            listener.onFailure(failResponse);
+        });
+
     }
 
     /**
@@ -177,7 +270,22 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                listener.onResponse(entry);
+                updateResourceVisibility(
+                    resourceId,
+                    resourceIndex,
+                    List.of("user:" + createdBy.getUsername()),
+                    ActionListener.wrap((updateResponse) -> {
+                        LOGGER.debug(
+                            "postUpdate: Successfully updated visibility for resource {} within index {}",
+                            resourceId,
+                            resourceIndex
+                        );
+                        listener.onResponse(entry);
+                    }, (e) -> {
+                        LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                        listener.onResponse(entry);
+                    })
+                );
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
@@ -250,13 +358,39 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Helper method to fetch own and shared documents based on action-group match.
+     * Fetches all resource-sharing records for a given resource-index
+     * @param resourceIndex the index whose resource-sharing records are to be fetched
+     * @param resourceType the resource type
+     * @param listener to collect and return the sharing records
+     */
+    public void fetchAllResourceSharingRecords(String resourceIndex, String resourceType, ActionListener<Set<SharingRecord>> listener) {
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        LOGGER.debug("Fetching all resource-sharing records asynchronously from {}", resourceSharingIndex);
+        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            final SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            searchRequest.scroll(scroll);
+
+            MatchAllQueryBuilder query = QueryBuilders.matchAllQuery();
+
+            executeAllSearchRequest(resourceIndex, resourceType, scroll, searchRequest, query, ActionListener.wrap(recs -> {
+                ctx.restore();
+                LOGGER.debug("Found {} resource-sharing records in {}", recs.size(), resourceSharingIndex);
+                listener.onResponse(recs);
+            }, exception -> {
+                LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
+                listener.onFailure(exception);
+            }));
+        }
+    }
+
+    /**
+     * Helper method to fetch own and shared document IDs based on action-group match.
      * This method uses scroll API to handle large result sets efficiently.
-     *
      *
      * @param resourceIndex The source index to match against the source_idx field
      * @param entities      Set of values to match in the specified Recipient field. Used for logging. ActionGroupQuery is already updated with these values.
-     * @param actionGroupQuery The query to match against the action-group field
      * @param listener      The listener to be notified when the operation completes.
      *                      The listener receives a set of resource IDs as a result.
      * @throws RuntimeException if the search operation fails
@@ -269,33 +403,105 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public void fetchAccessibleResourceIds(
-        String resourceIndex,
-        Set<String> entities,
-        BoolQueryBuilder actionGroupQuery,
-        ActionListener<Set<String>> listener
-    ) {
+    public void fetchAccessibleResourceIds(String resourceIndex, Set<String> entities, ActionListener<Set<String>> listener) {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
+            // Search the RESOURCE INDEX directly (not the *-sharing index)
+            SearchRequest searchRequest = new SearchRequest(resourceIndex);
             searchRequest.scroll(scroll);
 
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+            // We match any doc whose "principals" contains at least one of the entities
+            // e.g., "user:alice", "role:admin", "backend:ops"
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("all_shared_principals", entities));
 
-            boolQuery.must(actionGroupQuery);
-
-            executeFlattenedSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
+            executeIdCollectingSearchRequest(scroll, searchRequest, boolQuery, ActionListener.wrap(resourceIds -> {
                 ctx.restore();
-                LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
+                LOGGER.debug("Found {} accessible resources in {} for entities {}", resourceIds.size(), resourceIndex, entities);
                 listener.onResponse(resourceIds);
-
             }, exception -> {
+                if (exception instanceof IndexNotFoundException) {
+                    LOGGER.debug("Index {} not found, returning empty set", resourceIndex, exception);
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed for resourceIndex={}, entities={}", resourceIndex, entities, exception);
                 listener.onFailure(exception);
-
             }));
         }
+    }
+
+    /**
+     * Executes a search request against the resource index and collects _id values (resource IDs) using scroll.
+     *
+     * @param scroll        Search scroll context
+     * @param searchRequest Initial search request
+     * @param query         Query builder for the request
+     * @param listener      Listener to receive the collected resource IDs
+     */
+    private void executeIdCollectingSearchRequest(
+        Scroll scroll,
+        SearchRequest searchRequest,
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        ActionListener<Set<String>> listener
+    ) {
+        SearchSourceBuilder ssb = new SearchSourceBuilder().query(query).size(1000).fetchSource(false); // we only need _id
+
+        searchRequest.source(ssb);
+
+        StepListener<SearchResponse> searchStep = new StepListener<>();
+        client.search(searchRequest, searchStep);
+
+        searchStep.whenComplete(initialResponse -> {
+            Set<String> collectedResourceIds = new HashSet<>();
+            String scrollId = initialResponse.getScrollId();
+            processScrollIds(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+        }, listener::onFailure);
+    }
+
+    /**
+     * Recursively processes scroll results and collects hit IDs.
+     *
+     * @param collectedResourceIds Internal accumulator for resource IDs
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource IDs
+     */
+    private void processScrollIds(
+        Set<String> collectedResourceIds,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Set<String>> listener
+    ) {
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(collectedResourceIds), listener::onFailure));
+            return;
+        }
+
+        for (SearchHit hit : hits) {
+            // Resource ID is the document _id in the resource index
+            collectedResourceIds.add(hit.getId());
+        }
+
+        SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollRequest,
+            ActionListener.wrap(
+                scrollResponse -> processScrollIds(
+                    collectedResourceIds,
+                    scroll,
+                    scrollResponse.getScrollId(),
+                    scrollResponse.getHits().getHits(),
+                    listener
+                ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
     }
 
     /**
@@ -418,7 +624,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revoke(String, String, ShareWith, ActionListener)}
+     * NOTE: This method only grants new access. To update/remove access use {@link #patchSharingInfo(String, String, ShareWith, ShareWith, ActionListener)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -471,96 +677,18 @@ public class ResourceSharingIndexHandler {
                         resourceId,
                         resourceIndex
                     );
-                    listener.onResponse(sharingInfo);
-                }, (failResponse) -> {
-                    LOGGER.error(failResponse.getMessage());
-                    listener.onFailure(failResponse);
-                });
-                client.index(ir, irListener);
-            }
-        }, listener::onFailure);
-    }
-
-    /**
-     * Revokes access for specified entities from a resource sharing document. This method removes the specified
-     * entities (users, roles, or backend roles) from the existing sharing configuration while preserving other
-     * sharing settings.
-     *
-     * <p>The method performs the following steps:
-     * <ol>
-     *   <li>Fetches the existing document</li>
-     *   <li>Removes specified entities from their respective lists in all sharing groups</li>
-     *   <li>Updates the document if modifications were made</li>
-     *   <li>Returns the updated resource sharing configuration</li>
-     * </ol>
-     *
-     * <p>Example document structure:
-     * <pre>
-     * {
-     *   "source_idx": "resource_index_name",
-     *   "resource_id": "resource_id",
-     *   "share_with": {
-     *     "action-group": {
-     *       "users": ["user1", "user2"],
-     *       "roles": ["role1", "role2"],
-     *       "backend_roles": ["backend_role1"]
-     *     }
-     *   }
-     * }
-     * </pre>
-     *
-     * @param resourceId      The ID of the resource from which to revoke access
-     * @param resourceIndex   The name of the system index where the resource exists
-     * @param revokeAccess    A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
-     *                        values to be removed from the sharing configuration
-     * @param listener        Listener to be notified when the operation completes
-     * @throws IllegalArgumentException if resourceId, resourceIndex is null/empty, or if revokeAccess is null/empty
-     * @throws RuntimeException         if the update operation fails or encounters an error
-     * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
-     * entities don't exist in the current configuration), the original document is returned unchanged.
-     * @see Recipient
-     * @see ResourceSharing
-     */
-    public void revoke(String resourceId, String resourceIndex, ShareWith revokeAccess, ActionListener<ResourceSharing> listener) {
-        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(resourceIndex) || revokeAccess == null) {
-            listener.onFailure(new IllegalArgumentException("resourceId, resourceIndex, and revokeAccess must not be null or empty"));
-            return;
-        }
-        String resourceSharingIndex = getSharingIndex(resourceIndex);
-
-        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
-
-        // Fetch the current ResourceSharing document
-        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
-
-        // build revoke script
-        sharingInfoListener.whenComplete(sharingInfo -> {
-
-            assert sharingInfo != null;
-            for (String accessLevel : revokeAccess.accessLevels()) {
-                Recipients target = revokeAccess.atAccessLevel(accessLevel);
-                LOGGER.debug(
-                    "Revoking access for resource {} in {} for entities: {} and accessLevel: {}",
-                    resourceId,
-                    resourceIndex,
-                    target,
-                    accessLevel
-                );
-
-                sharingInfo.revoke(accessLevel, target);
-            }
-            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .setOpType(DocWriteRequest.OpType.INDEX)
-                    .request();
-
-                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    ctx.restore();
-                    LOGGER.info("Successfully revoked access of {} to resource {} in index {}.", revokeAccess, resourceId, resourceIndex);
-                    listener.onResponse(sharingInfo);
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        sharingInfo.getAllPrincipals(),
+                        ActionListener.wrap((updateResponse) -> {
+                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                            listener.onResponse(sharingInfo);
+                        }, (e) -> {
+                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                            listener.onResponse(sharingInfo);
+                        })
+                    );
                 }, (failResponse) -> {
                     LOGGER.error(failResponse.getMessage());
                     listener.onFailure(failResponse);
@@ -596,8 +724,8 @@ public class ResourceSharingIndexHandler {
         fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
 
         // Apply patch and update the document
-        sharingInfoListener.whenComplete(resourceSharing -> {
-            ShareWith updatedShareWith = resourceSharing.getShareWith();
+        sharingInfoListener.whenComplete(sharingInfo -> {
+            ShareWith updatedShareWith = sharingInfo.getShareWith();
             if (updatedShareWith == null) {
                 updatedShareWith = new ShareWith(new HashMap<>());
             }
@@ -608,7 +736,15 @@ public class ResourceSharingIndexHandler {
                 updatedShareWith = updatedShareWith.revoke(revoke);
             }
 
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, resourceSharing.getCreatedBy(), updatedShareWith);
+            ShareWith cleaned = null;
+            if (updatedShareWith != null) {
+                ShareWith pruned = updatedShareWith.prune();
+                if (!pruned.isPrivate()) {
+                    cleaned = pruned; // store only if something non-empty remains
+                }
+            }
+
+            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, sharingInfo.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
@@ -628,7 +764,19 @@ public class ResourceSharingIndexHandler {
                         resourceIndex
                     );
 
-                    listener.onResponse(updatedSharingInfo);
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        updatedSharingInfo.getAllPrincipals(),
+                        ActionListener.wrap((updateResponse) -> {
+                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                            listener.onResponse(updatedSharingInfo);
+                        }, (e) -> {
+                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                            listener.onResponse(updatedSharingInfo);
+                        })
+                    );
+
                 }, (e) -> {
                     LOGGER.error(e.getMessage());
                     listener.onFailure(e);
@@ -742,65 +890,157 @@ public class ResourceSharingIndexHandler {
         searchStep.whenComplete(initialResponse -> {
             Set<String> collectedResourceIds = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResultsAndCollectResourceIds(
+                collectedResourceIds,
+                scroll,
+                scrollId,
+                initialResponse.getHits().getHits(),
+                listener
+            );
         }, listener::onFailure);
     }
 
     /**
-     * Executes a multi-clause query in a flattened fashion to boost performance by almost 20x for large queries.
-     * This is specifically to replace multi-match queries for wild-card expansions.
+     * Executes a search request and returns a set of collected resource-sharing documents using scroll.
+     * @param resourceIndex the index whose records are to be searched
+     * @param resourceType  the resource type
      * @param scroll        Search scroll context
      * @param searchRequest Initial search request
-     * @param filterQuery   Query builder for the request
-     * @param listener      Listener to receive the collected resource IDs
+     * @param query         Query builder for the request
+     * @param listener      Listener to receive the collected resource sharing records
      */
-    private void executeFlattenedSearchRequest(
+    private void executeAllSearchRequest(
+        String resourceIndex,
+        String resourceType,
         Scroll scroll,
         SearchRequest searchRequest,
-        BoolQueryBuilder filterQuery,
-        ActionListener<Set<String>> listener
+        AbstractQueryBuilder<? extends AbstractQueryBuilder<?>> query,
+        ActionListener<Set<SharingRecord>> listener
     ) {
-        // Painless script to emit all share_with principals
-        String scriptSource = """
-                // handle shared
-                if (params._source.share_with instanceof Map) {
-                  for (def grp : params._source.share_with.values()) {
-                    if (grp.users instanceof List) {
-                      for (u in grp.users) {
-                        emit("user:" + u);
-                      }
-                    }
-                    if (grp.roles instanceof List) {
-                      for (r in grp.roles) {
-                        emit("role:" + r);
-                      }
-                    }
-                    if (grp.backend_roles instanceof List) {
-                      for (b in grp.backend_roles) {
-                        emit("backend:" + b);
-                      }
-                    }
-                  }
-                }
-            """;
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
+            .size(1000)
+            .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
 
-        Script script = new Script(ScriptType.INLINE, "painless", scriptSource, Map.of());
-
-        SearchSourceBuilder ssb = new SearchSourceBuilder().derivedField(
-            "all_shared_principals",   // flattened runtime field
-            "keyword",                 // type
-            script
-        ).query(filterQuery).size(1000).fetchSource(new String[] { "resource_id" }, null);
-
-        searchRequest.source(ssb);
+        searchRequest.source(searchSourceBuilder);
 
         StepListener<SearchResponse> searchStep = new StepListener<>();
         client.search(searchRequest, searchStep);
+
         searchStep.whenComplete(initialResponse -> {
-            Set<String> collectedResourceIds = new HashSet<>();
+            Set<SharingRecord> recs = new HashSet<>();
             String scrollId = initialResponse.getScrollId();
-            processScrollResults(collectedResourceIds, scroll, scrollId, initialResponse.getHits().getHits(), listener);
+            processScrollResultsAndCollectSharingRecords(
+                null,
+                true,
+                resourceIndex,
+                resourceType,
+                recs,
+                scroll,
+                scrollId,
+                initialResponse.getHits().getHits(),
+                listener
+            );
         }, listener::onFailure);
+    }
+
+    /**
+     * Fetches resource-sharing records for this user for a given resource-index.
+     * Executes in 2 steps:
+     * Step-1:
+     *  - Fetch resource-ids from the resource index
+     * Step-2:
+     *  - Use mget in batches of 1000 to get the resource sharing records.
+     *
+     * @param resourceIndex the index for which records are to be searched
+     * @param resourceIndex the resource type
+     * @param user the user that is requesting the records
+     * @param flatPrincipals user's name, roles, backend_roles to be used for matching.
+     * @param listener to collect and return accessible sharing records
+     */
+    public void fetchAccessibleResourceSharingRecords(
+        String resourceIndex,
+        String resourceType,
+        User user,
+        Set<String> flatPrincipals,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        final String resourceSharingIndex = getSharingIndex(resourceIndex);
+        final ThreadContext.StoredContext stored = this.threadPool.getThreadContext().stashContext();
+
+        // Phase 1: resolve resource IDs from the RESOURCE index
+        fetchAccessibleResourceIds(resourceIndex, flatPrincipals, ActionListener.wrap(ids -> {
+            if (ids == null || ids.isEmpty()) {
+                stored.restore();
+                listener.onResponse(Collections.emptySet());
+                return;
+            }
+
+            final List<String> idList = new ArrayList<>(ids);
+            final int BATCH = 1000; // tune if docs are large
+            final Set<SharingRecord> out = ConcurrentHashMap.newKeySet();
+            final AtomicInteger cursor = new AtomicInteger(0);
+            final String[] includes = { "resource_id", "created_by", "share_with" };
+
+            // self-referencing lambda for batch run
+            final AtomicReference<Runnable> submitNextRef = new AtomicReference<>();
+
+            // Phase 2: mGet resource sharing records in a batch
+            submitNextRef.set(() -> {
+                int start = cursor.getAndAdd(BATCH); // offset
+                if (start >= idList.size()) {
+                    stored.restore();
+                    listener.onResponse(out);
+
+                    return;
+                }
+                int end = Math.min(start + BATCH, idList.size());
+
+                final MultiGetRequest mget = new MultiGetRequest();
+                final FetchSourceContext fsc = new FetchSourceContext(true, includes, Strings.EMPTY_ARRAY);
+                for (int i = start; i < end; i++) {
+                    mget.add(new MultiGetRequest.Item(resourceSharingIndex, idList.get(i)).fetchSourceContext(fsc));
+                }
+
+                client.multiGet(mget, ActionListener.wrap(mres -> {
+                    for (MultiGetItemResponse item : mres.getResponses()) {
+                        if (item == null || item.isFailed()) continue;
+                        final GetResponse gr = item.getResponse();
+                        if (gr == null || !gr.isExists()) continue;
+
+                        try (
+                            XContentParser p = XContentHelper.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                THROW_UNSUPPORTED_OPERATION,
+                                gr.getSourceAsBytesRef(),
+                                XContentType.JSON
+                            )
+                        ) {
+                            p.nextToken();
+                            ResourceSharing rs = ResourceSharing.fromXContent(p);
+                            boolean canShare = canUserShare(user, /* isAdmin */ false, rs, resourceType);
+                            out.add(new SharingRecord(rs, canShare));
+                        } catch (Exception ex) {
+                            LOGGER.warn("Failed to parse resource-sharing doc id={}", gr.getId(), ex);
+                        }
+                    }
+                    // next batch
+                    submitNextRef.get().run();
+                }, e -> {
+                    try {
+                        listener.onFailure(e);
+                    } finally {
+                        stored.restore();
+                    }
+                }));
+            });
+
+            // kick off
+            submitNextRef.get().run();
+
+        }, e -> {
+            stored.restore();
+            listener.onFailure(e);
+        }));
     }
 
     /**
@@ -812,7 +1052,7 @@ public class ResourceSharingIndexHandler {
      * @param hits                 Search hits
      * @param listener             Listener to receive final set of resource IDs
      */
-    private void processScrollResults(
+    private void processScrollResultsAndCollectResourceIds(
         Set<String> collectedResourceIds,
         Scroll scroll,
         String scrollId,
@@ -835,11 +1075,81 @@ public class ResourceSharingIndexHandler {
         client.searchScroll(
             scrollRequest,
             ActionListener.wrap(
-                scrollResponse -> processScrollResults(
+                scrollResponse -> processScrollResultsAndCollectResourceIds(
                     collectedResourceIds,
                     scroll,
                     scrollResponse.getScrollId(),
                     scrollResponse.getHits().getHits(),
+                    listener
+                ),
+                e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
+                    e.addSuppressed(ex);
+                    listener.onFailure(e);
+                }))
+            )
+        );
+    }
+
+    /**
+     * Recursively processes scroll results and collects resource sharing records.
+     *
+     * @param resourceSharingRecords Internal accumulator for resource sharing records
+     * @param scroll               Scroll context
+     * @param scrollId             Scroll ID
+     * @param hits                 Search hits
+     * @param listener             Listener to receive final set of resource sharing records
+     */
+    private void processScrollResultsAndCollectSharingRecords(
+        User user,
+        boolean isAdmin,
+        String resourceIndex,
+        String resourceType,
+        Set<SharingRecord> resourceSharingRecords,
+        Scroll scroll,
+        String scrollId,
+        SearchHit[] hits,
+        ActionListener<Set<SharingRecord>> listener
+    ) {
+        if (hits == null || hits.length == 0) {
+            clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onResponse(resourceSharingRecords), listener::onFailure));
+            return;
+        }
+
+        for (SearchHit hit : hits) {
+            try (
+                XContentParser parser = XContentHelper.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    hit.getSourceRef(),
+                    XContentType.JSON
+                )
+            ) {
+                parser.nextToken();
+                ResourceSharing rs = ResourceSharing.fromXContent(parser);
+                boolean canShare = canUserShare(user, isAdmin, rs, resourceType);
+                resourceSharingRecords.add(new SharingRecord(rs, canShare));
+            } catch (Exception e) {
+                // TODO: Decide how strict should this failure be:
+                // Option A: fail-fast
+                // listener.onFailure(e); return;
+                // Option B: log & skip bad docs
+                LOGGER.warn("Failed to parse resource-sharing doc id={}", hit.getId(), e);
+            }
+        }
+
+        final SearchScrollRequest scrollReq = new SearchScrollRequest(scrollId).scroll(scroll);
+        client.searchScroll(
+            scrollReq,
+            ActionListener.wrap(
+                sr -> processScrollResultsAndCollectSharingRecords(
+                    user,
+                    isAdmin,
+                    resourceIndex,
+                    resourceType,
+                    resourceSharingRecords,
+                    scroll,
+                    sr.getScrollId(),
+                    sr.getHits().getHits(),
                     listener
                 ),
                 e -> clearScroll(scrollId, ActionListener.wrap(ignored -> listener.onFailure(e), ex -> {
@@ -868,6 +1178,42 @@ public class ResourceSharingIndexHandler {
             LOGGER.warn("Failed to clear scroll context", e);
             listener.onResponse(null);
         }));
+    }
+
+    // **** Check whether user can share this record further
+    /** Resolve access-level for THIS resource type and check required action. */
+    public boolean groupAllows(String resourceType, String accessLevel, String requiredAction) {
+        return resourcePluginInfo.flattenedForType(resourceType).resolve(Set.of(accessLevel)).contains(requiredAction);
+    }
+
+    /**
+     * Checks whether current user has sharing permission, i.e {@link ShareAction#NAME}
+     */
+    public boolean canUserShare(User user, boolean isAdmin, ResourceSharing resourceSharingRecord, String resourceType) {
+        if (resourceSharingRecord == null) return false;
+
+        if (isAdmin || resourceSharingRecord.isCreatedBy(user.getName())) return true;
+
+        if (resourceSharingRecord.isSharedWithEveryone()) return true;
+
+        var sw = resourceSharingRecord.getShareWith();
+        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
+
+        Set<String> users = Set.of(user.getName());
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        Set<String> backend = new HashSet<>(user.getRoles());
+
+        for (String level : sw.getSharingInfo().keySet()) {
+            // first check if this level has share action present
+            if (!groupAllows(resourceType, level, ShareAction.NAME)) continue;
+
+            // second, if share action is present, then check whether it access-level is shared with the user through the user's name, roles
+            // or backend_roles.
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.USERS, users, level)) return true;
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.ROLES, roles, level)) return true;
+            if (resourceSharingRecord.isSharedWithEntity(Recipient.BACKEND_ROLES, backend, level)) return true;
+        }
+        return false;
     }
 
 }

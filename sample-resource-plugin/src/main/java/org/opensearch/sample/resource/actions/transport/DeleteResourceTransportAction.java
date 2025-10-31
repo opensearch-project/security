@@ -19,14 +19,13 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRequest;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceResponse;
+import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
@@ -37,13 +36,13 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
     private static final Logger log = LogManager.getLogger(DeleteResourceTransportAction.class);
 
     private final TransportService transportService;
-    private final NodeClient nodeClient;
+    private final PluginClient pluginClient;
 
     @Inject
-    public DeleteResourceTransportAction(TransportService transportService, ActionFilters actionFilters, NodeClient nodeClient) {
+    public DeleteResourceTransportAction(TransportService transportService, ActionFilters actionFilters, PluginClient pluginClient) {
         super(DeleteResourceAction.NAME, transportService, actionFilters, DeleteResourceRequest::new);
         this.transportService = transportService;
-        this.nodeClient = nodeClient;
+        this.pluginClient = pluginClient;
     }
 
     @Override
@@ -64,10 +63,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
             listener.onFailure(exception);
         });
 
-        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
-        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
-            deleteResource(resourceId, deleteResponseListener);
-        }
+        deleteResource(resourceId, deleteResponseListener);
     }
 
     private void deleteResource(String resourceId, ActionListener<DeleteResponse> listener) {
@@ -75,7 +71,7 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
             WriteRequest.RefreshPolicy.IMMEDIATE
         );
 
-        nodeClient.delete(deleteRequest, listener);
+        pluginClient.delete(deleteRequest, listener);
     }
 
 }

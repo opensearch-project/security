@@ -107,10 +107,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_trustedcluster_request";
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_extension_request";
-    // CS-ENFORCE-SINGLE
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
@@ -414,10 +412,8 @@ public class ConfigConstants {
     public static final boolean USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT = false;
 
     // On-behalf-of endpoints settings
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
     public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
-    // CS-ENFORCE-SINGLE
 
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
@@ -425,6 +421,13 @@ public class ConfigConstants {
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
+
+    // Protected resource types
+    // Resource sharing will only apply to these types
+    public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES =
+        "plugins.security.experimental.resource_sharing.protected_types";
+    public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
+                                                                                                      // protected
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

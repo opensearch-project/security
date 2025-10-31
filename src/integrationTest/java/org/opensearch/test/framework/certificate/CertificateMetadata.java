@@ -9,7 +9,6 @@
 */
 package org.opensearch.test.framework.certificate;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to certificate extensions, keeping this rule disable for the whole file
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -217,4 +216,3 @@ class CertificateMetadata {
         return new ExtendedKeyUsage(usages);
     }
 }
-// CS-ENFORCE-SINGLE
