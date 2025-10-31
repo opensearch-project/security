@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 3.x]
 ### Added
 
+### Changed
+- Ensure all restHeaders from ActionPlugin.getRestHeaders are carried to threadContext for tracing ([#5396](https://github.com/opensearch-project/security/pull/5396))
 ### Features
 
 ### Enhancements
