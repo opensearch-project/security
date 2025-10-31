@@ -191,7 +191,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             String logmsg = "current config (because of "
                 + typeToConfig.keySet()
                 + ")\n"
-                + " accessLevels: "
+                + " actionGroups: "
                 + actionGroups.getImplementingClass()
                 + " with "
                 + actionGroups.getCEntries().size()
