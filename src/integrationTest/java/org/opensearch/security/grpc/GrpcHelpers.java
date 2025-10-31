@@ -148,7 +148,7 @@ public class GrpcHelpers {
                 .setOperationContainer(opCont)
                 .setObject(com.google.protobuf.ByteString.copyFromUtf8(docBody))
                 .build();
-            requestBuilder.addRequestBody(requestBody);
+            requestBuilder.addBulkRequestBody(requestBody);
         }
         DocumentServiceGrpc.DocumentServiceBlockingStub stub = DocumentServiceGrpc.newBlockingStub(channel);
         return stub.bulk(requestBuilder.build());
@@ -157,7 +157,7 @@ public class GrpcHelpers {
     public static SearchResponse doMatchAll(ManagedChannel channel, String index, int size) {
         QueryContainer query = QueryContainer.newBuilder().setMatchAll(MatchAllQuery.newBuilder().build()).build();
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setSize(size).setQuery(query).build();
-        SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setRequestBody(requestBody).build();
+        SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setSearchRequestBody(requestBody).build();
         SearchServiceGrpc.SearchServiceBlockingStub stub = SearchServiceGrpc.newBlockingStub(channel);
         return stub.search(searchRequest);
     }
