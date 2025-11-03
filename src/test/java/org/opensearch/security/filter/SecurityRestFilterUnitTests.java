@@ -12,6 +12,7 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +81,7 @@ public class SecurityRestFilterUnitTests {
     public void testSecurityRestFilterWrap() throws Exception {
         AdminDNs adminDNs = mock(AdminDNs.class);
 
-        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs);
+        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs, new HashSet<>());
 
         assertTrue(wrappedRestHandler instanceof SecurityRestFilter.AuthczRestHandler);
         assertFalse(wrappedRestHandler instanceof TestRestHandler);
@@ -92,7 +93,7 @@ public class SecurityRestFilterUnitTests {
         AdminDNs adminDNs = mock(AdminDNs.class);
 
         RestHandler testRestHandlerSpy = spy(testRestHandler);
-        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs);
+        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs, new HashSet<>());
 
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
 
