@@ -574,7 +574,7 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
-        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.9.0') {
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
             exclude(group: 'net.minidev', module: 'json-smart')
         }
     }
