@@ -149,17 +149,22 @@ public class SecurityRestFilter {
 
             NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
                 // X_OPAQUE_ID will be overwritten on restore - save to apply after restoring the saved context
-                final Map<String, String> tmpHeaders = new HashMap<>();
+                Map<String, String> tmpHeaders = null;
                 for (RestHeaderDefinition header : headersToCopy) {
-                    if (threadContext.getHeader(header.getName()) != null) {
-                        tmpHeaders.put(header.getName(), threadContext.getHeader(header.getName()));
+                    final String value = threadContext.getHeader(header.getName());
+                    if (value != null) {
+                        if (tmpHeaders == null) {
+                            tmpHeaders = new HashMap<>();
+                        }
+                        tmpHeaders.put(header.getName(), value);
                     }
                 }
                 storedContext.restore();
-                for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
-                    threadContext.putHeader(header.getKey(), header.getValue());
-                }
-                if (!tmpHeaders.isEmpty()) {
+
+                if (tmpHeaders != null) {
+                    for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
+                        threadContext.putHeader(header.getKey(), header.getValue());
+                    }
                     threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
