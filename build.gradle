@@ -795,7 +795,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.30.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.31.0') {
         exclude group: 'com.google.guava'
     }
 }
