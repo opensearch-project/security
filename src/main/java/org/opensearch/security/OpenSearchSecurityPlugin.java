@@ -123,6 +123,7 @@ import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestHeaderDefinition;
 import org.opensearch.script.ScriptService;
 import org.opensearch.search.internal.InternalScrollSearchRequest;
 import org.opensearch.search.internal.ReaderContext;
@@ -708,13 +709,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
+    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext, Set<RestHeaderDefinition> headersToCopy) {
 
         if (client || disabled || SSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
-        return (rh) -> securityRestHandler.wrap(rh, adminDns);
+        return (rh) -> securityRestHandler.wrap(rh, adminDns, headersToCopy);
     }
 
     @Override

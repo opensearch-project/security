@@ -574,7 +574,7 @@ allprojects {
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
-        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.9.0') {
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
             exclude(group: 'net.minidev', module: 'json-smart')
         }
     }
@@ -764,8 +764,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.10.0'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -795,7 +795,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.30.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.31.0') {
         exclude group: 'com.google.guava'
     }
 }

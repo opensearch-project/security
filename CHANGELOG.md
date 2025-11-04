@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [Resource Sharing] Allow multiple sharable resource types in single resource index ([#5713](https://github.com/opensearch-project/security/pull/5713))
 - Adding Alerting V2 roles to roles.yml ([#5747](https://github.com/opensearch-project/security/pull/5747))
 - add suggest api to ad read access role ([#5754](https://github.com/opensearch-project/security/pull/5754))
+- Get list of headersToCopy from core and use getHeader(String headerName) instead of getHeaders() ([#5769](https://github.com/opensearch-project/security/pull/5769))
 
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
@@ -35,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [GRPC] Fix compilation errors from core protobuf version bump to 0.23.0 ([#5763](https://github.com/opensearch-project/security/pull/5763))
 
 ### Maintenance
-- Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.0 ([#5678](https://github.com/opensearch-project/security/pull/5678))
+- Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.1 ([#5678](https://github.com/opensearch-project/security/pull/5678), [#5764](https://github.com/opensearch-project/security/pull/5764))
 - Bump `ch.qos.logback:logback-classic` from 1.5.18 to 1.5.20 ([#5680](https://github.com/opensearch-project/security/pull/5680), [#5724](https://github.com/opensearch-project/security/pull/5724))
 - Bump `org.scala-lang:scala-library` from 2.13.16 to 2.13.17 ([#5682](https://github.com/opensearch-project/security/pull/5682))
 - Bump `org.gradle.test-retry` from 1.6.2 to 1.6.4 ([#5706](https://github.com/opensearch-project/security/pull/5706))
@@ -52,7 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.errorprone:error_prone_annotations` from 2.42.0 to 2.43.0 ([#5743](https://github.com/opensearch-project/security/pull/5743))
 - Bump `actions/upload-artifact` from 4 to 5 ([#5740](https://github.com/opensearch-project/security/pull/5740))
 - Bump `actions/download-artifact` from 5 to 6 ([#5739](https://github.com/opensearch-project/security/pull/5739))
-- Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.30.0 ([#5741](https://github.com/opensearch-project/security/pull/5741))
+- Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.31.0 ([#5741](https://github.com/opensearch-project/security/pull/5741), [#5765](https://github.com/opensearch-project/security/pull/5765))
+- Bump `com.jayway.jsonpath:json-path` from 2.9.0 to 2.10.0 ([#5767](https://github.com/opensearch-project/security/pull/5767))
 
 ### Documentation
 
