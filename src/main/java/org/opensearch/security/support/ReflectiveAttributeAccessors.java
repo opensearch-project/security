@@ -12,12 +12,10 @@
 package org.opensearch.security.support;
 
 import java.lang.reflect.Method;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 public class ReflectiveAttributeAccessors {
     public static <O> Function<O, Object> objectAttr(String name) {
@@ -47,16 +45,9 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
-        @SuppressWarnings("removal")
         @Override
         public R apply(O object) {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            return AccessController.doPrivileged((PrivilegedAction<R>) () -> {
+            return AccessController.doPrivileged(() -> {
                 if (object == null) {
                     return null;
                 }
@@ -85,16 +76,9 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
-        @SuppressWarnings("removal")
         @Override
         public R apply(O object) {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            return AccessController.doPrivileged((PrivilegedAction<R>) () -> {
+            return AccessController.doPrivileged(() -> {
                 if (object == null) {
                     return null;
                 }
@@ -124,16 +108,9 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
-        @SuppressWarnings("removal")
         @Override
         public Void apply(O object, R value) {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
-            return AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+            return AccessController.doPrivileged(() -> {
                 if (object == null) {
                     throw new NullPointerException("Cannot set " + attribute + " because object is null");
                 }

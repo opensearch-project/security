@@ -26,18 +26,13 @@
 
 package org.opensearch.security;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
-import java.security.AccessController;
 import java.security.MessageDigest;
-import java.security.PrivilegedAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,7 +60,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.OpenSearchException;
@@ -129,11 +123,13 @@ import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestHeaderDefinition;
 import org.opensearch.script.ScriptService;
 import org.opensearch.search.internal.InternalScrollSearchRequest;
 import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -170,6 +166,7 @@ import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
@@ -253,17 +250,13 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTI
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
-// CS-ENFORCE-SINGLE
-
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     implements
         ClusterPlugin,
         MapperPlugin,
         IdentityPlugin,
-        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
         ExtensionAwarePlugin,
         ExtensiblePlugin
-// CS-ENFORCE-SINGLE
 
 {
 
@@ -357,7 +350,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
-    @SuppressWarnings("removal")
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
@@ -433,8 +425,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("ba9c5a61065f7f6115188128ffbdaa18fca34562b78b811f082439e2bef1d282"); // esnode-key
         demoCertHashes.add("bcd708e8dc707ae065f7ad8582979764b497f062e273d478054ab2f49c5469c6"); // root-ca
 
-        tryAddSecurityProvider();
-
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
             deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
@@ -453,21 +443,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         if (!client) {
-            final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
-                @Override
-                public List<Path> run() {
-                    final Path confPath = new Environment(settings, configPath).configDir().toAbsolutePath();
-                    if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
-                        try (Stream<Path> s = Files.walk(confPath)) {
-                            return s.distinct().filter(p -> checkFilePermissions(p)).collect(Collectors.toList());
-                        } catch (Exception e) {
-                            log.error(e.toString());
-                            return null;
-                        }
+            final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(() -> {
+                final Path confPath = new Environment(settings, configPath).configDir().toAbsolutePath();
+                if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
+                    try (Stream<Path> s = Files.walk(confPath)) {
+                        return s.distinct().filter(p -> checkFilePermissions(p)).collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.error(e.toString());
+                        return null;
                     }
-
-                    return Collections.emptyList();
                 }
+
+                return Collections.emptyList();
             });
 
             if (filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
@@ -496,21 +483,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         if (!client && !settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             // check for demo certificates
-            final List<String> files = AccessController.doPrivileged(new PrivilegedAction<List<String>>() {
-                @Override
-                public List<String> run() {
-                    final Path confPath = new Environment(settings, configPath).configDir().toAbsolutePath();
-                    if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
-                        try (Stream<Path> s = Files.walk(confPath)) {
-                            return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());
-                        } catch (Exception e) {
-                            log.error(e.toString());
-                            return null;
-                        }
+            final List<String> files = AccessController.doPrivileged(() -> {
+                final Path confPath = new Environment(settings, configPath).configDir().toAbsolutePath();
+                if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
+                    try (Stream<Path> s = Files.walk(confPath)) {
+                        return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());
+                    } catch (Exception e) {
+                        log.error(e.toString());
+                        return null;
                     }
-
-                    return Collections.emptyList();
                 }
+
+                return Collections.emptyList();
             });
 
             if (files != null) {
@@ -724,13 +708,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
+    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext, Set<RestHeaderDefinition> headersToCopy) {
 
         if (client || disabled || SSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
-        return (rh) -> securityRestHandler.wrap(rh, adminDns);
+        return (rh) -> securityRestHandler.wrap(rh, adminDns, headersToCopy);
     }
 
     @Override
@@ -781,9 +765,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resourcePluginInfo,
                 resourceSharingEnabledSetting
             );
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
             Set<String> resourceIndices = resourcePluginInfo.getResourceIndices();
-            // CS-ENFORCE-SINGLE
             if (resourceIndices.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceIndexListener);
                 log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
@@ -1180,6 +1162,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
@@ -1221,7 +1204,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, evaluator, resourcePluginInfo);
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
         // Assign resource sharing client to each extension
         // Using the non-gated client (i.e. no additional permissions required)
         ResourceSharingClient resourceAccessControlClient = new ResourceAccessControlClient(
@@ -1235,7 +1217,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         });
         components.add(resourcePluginInfo);
         components.add(resourceAccessHandler);
-        // CS-ENFORCE-SINGLE
 
         resourceAccessEvaluator = new ResourceAccessEvaluator(
             resourcePluginInfo,
@@ -2349,9 +2330,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 return field -> true;
             }
 
+            PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
+                ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
+                : null;
+
             return field -> {
                 try {
-                    return dlsFlsValve.isFieldAllowed(index, field);
+                    return dlsFlsValve.isFieldAllowed(index, field, ctx);
                 } catch (PrivilegesEvaluationException e) {
                     log.error("Error while evaluating FLS for {}.{}", index, field, e);
                     return false;
@@ -2440,18 +2425,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
     }
 
-    @SuppressWarnings("removal")
-    private void tryAddSecurityProvider() {
-        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-            if (Security.getProvider("BCFIPS") == null) {
-                Security.addProvider(new BouncyCastleFipsProvider());
-                log.debug("Bouncy Castle FIPS Provider added");
-            }
-            return null;
-        });
-    }
-
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
     @Override
     public void loadExtensions(ExtensionLoader loader) {
         // discover & register extensions and their types
@@ -2461,7 +2434,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // load action-groups in memory
         ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
     }
-    // CS-ENFORCE-SINGLE
 
     public static class GuiceHolder implements LifecycleComponent {
 
@@ -2470,7 +2442,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static IndicesService indicesService;
         private static PitService pitService;
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
 
         @Inject
@@ -2487,7 +2458,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
         }
-        // CS-ENFORCE-SINGLE
 
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
@@ -2505,11 +2475,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return pitService;
         }
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         public static ExtensionsManager getExtensionsManager() {
             return extensionsManager;
         }
-        // CS-ENFORCE-SINGLE
 
         @Override
         public void close() {}

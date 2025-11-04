@@ -12,8 +12,6 @@
 package org.opensearch.security.auth.http.jwt;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.text.ParseException;
 import java.util.Collection;
 import java.util.List;
@@ -28,12 +26,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import org.opensearch.security.auth.http.jwt.keybyoidc.BadCredentialsException;
@@ -96,21 +94,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @Override
-    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
-        final SecurityManager sm = System.getSecurityManager();
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
-            @Override
-            public AuthCredentials run() {
-                return extractCredentials0(request);
-            }
-        });
+        AuthCredentials creds = AccessController.doPrivileged(() -> extractCredentials0(request));
 
         return creds;
     }

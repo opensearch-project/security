@@ -168,7 +168,8 @@ public class ResourceAccessHandler {
         }
 
         resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
-            // Document may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any records.
+            // sharingInfo may be null when cluster has enabled resource-sharing protection for that index, but have not migrated any
+            // records.
             // This also means that for non-existing documents, the evaluator will return 403 instead
             if (sharingInfo == null) {
                 LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);

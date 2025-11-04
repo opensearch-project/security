@@ -29,7 +29,9 @@ package org.opensearch.security.filter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -49,6 +51,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestHeaderDefinition;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
@@ -68,7 +71,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -77,6 +79,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityRestFilter {
@@ -123,10 +126,12 @@ public class SecurityRestFilter {
 
     class AuthczRestHandler extends DelegatingRestHandler {
         private final AdminDNs adminDNs;
+        private final Set<RestHeaderDefinition> headersToCopy;
 
-        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs) {
+        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
             super(original);
             this.adminDNs = adminDNs;
+            this.headersToCopy = headersToCopy;
         }
 
         @Override
@@ -143,11 +148,24 @@ public class SecurityRestFilter {
             }
 
             NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
-                // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
-                final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
+                // X_OPAQUE_ID will be overwritten on restore - save to apply after restoring the saved context
+                Map<String, String> tmpHeaders = null;
+                for (RestHeaderDefinition header : headersToCopy) {
+                    final String value = threadContext.getHeader(header.getName());
+                    if (value != null) {
+                        if (tmpHeaders == null) {
+                            tmpHeaders = new HashMap<>();
+                        }
+                        tmpHeaders.put(header.getName(), value);
+                    }
+                }
                 storedContext.restore();
-                if (xOpaqueId != null) {
-                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+
+                if (tmpHeaders != null) {
+                    for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
+                        threadContext.putHeader(header.getKey(), header.getValue());
+                    }
+                    threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
 
@@ -245,8 +263,8 @@ public class SecurityRestFilter {
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
-    public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new AuthczRestHandler(original, adminDNs);
+    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
+        return new AuthczRestHandler(original, adminDNs, headersToCopy);
     }
 
     /**

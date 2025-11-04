@@ -35,6 +35,9 @@ alerting_read_access:
     - 'cluster:admin/opensearch/alerting/comments/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
     - 'cluster:admin/opensearch/alerting/remote/indexes/get'
+    - 'cluster:admin/opensearch/alerting/v2/alerts/get'
+    - 'cluster:admin/opensearch/alerting/v2/monitor/get'
+    - 'cluster:admin/opensearch/alerting/v2/monitor/search'
     - 'cluster:admin/opensearch/alerting/workflow/get'
     - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
 
@@ -69,6 +72,7 @@ anomaly_read_access:
   cluster_permissions:
     - 'cluster:admin/opendistro/ad/detector/info'
     - 'cluster:admin/opendistro/ad/detector/search'
+    - 'cluster:admin/opendistro/ad/detector/suggest'
     - 'cluster:admin/opendistro/ad/detector/validate'
     - 'cluster:admin/opendistro/ad/detectors/get'
     - 'cluster:admin/opendistro/ad/result/search'

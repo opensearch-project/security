@@ -14,8 +14,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +38,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.securityconf.impl.CType;
@@ -87,10 +86,9 @@ public class SecurityIndexHandler {
         }
     }
 
-    @SuppressWarnings("removal")
     public void uploadDefaultConfiguration(final Path configDir, final ActionListener<Set<SecurityConfig>> listener) {
         try (final ThreadContext.StoredContext threadContext = client.threadPool().getThreadContext().stashContext()) {
-            AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+            AccessController.doPrivileged(() -> {
                 try {
                     LOGGER.info("Uploading default security configuration from {}", configDir.toAbsolutePath());
                     final var bulkRequest = new BulkRequest().setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -118,7 +116,6 @@ public class SecurityIndexHandler {
                 } catch (final IOException ioe) {
                     listener.onFailure(new SecurityException(ioe));
                 }
-                return null;
             });
         }
     }

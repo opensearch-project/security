@@ -334,9 +334,21 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     /**
+     * Resolves all access levels that the given {@link User} is entitled to.
+     * <p>
+     * This method aggregates access levels based on:
+     * <ul>
+     *   <li>The user’s explicit identifier (username and wildcard {@code *}).</li>
+     *   <li>The user’s security roles (including the wildcard {@code *}).</li>
+     *   <li>The user’s backend roles (including the wildcard {@code *}).</li>
+     * </ul>
+     * For each category (user, roles, backend roles), a lookup is performed through
+     * {@link #fetchAccessLevels(Recipient, Set)} to collect the matching access levels.
+     * </p>
      *
-     * @param user
-     * @return
+     * @param user the {@link User} whose access levels should be determined;
+     *             must not be {@code null}.
+     * @return a {@link Set} of access level identifiers granted to the user, never {@code null}.
      */
     public Set<String> getAccessLevelsForUser(User user) {
         Set<String> userRoles = new HashSet<>(user.getSecurityRoles());

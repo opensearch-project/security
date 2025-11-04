@@ -169,7 +169,6 @@ public class CertificatesRule extends ExternalResource {
         final Instant startDate,
         final Instant endDate
     ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         return createCertificateBuilder(
             subjectName,
             DEFAULT_SUBJECT_NAME,
@@ -181,7 +180,6 @@ public class CertificatesRule extends ExternalResource {
         ).addExtension(Extension.basicConstraints, true, new BasicConstraints(true))
             .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyCertSign | KeyUsage.cRLSign))
             .build(new JcaContentSignerBuilder("SHA256withRSA").setProvider(BOUNCY_CASTLE_FIPS_PROVIDER).build(parentKeyPair.getPrivate()));
-        // CS-ENFORCE-SINGLE
     }
 
     public Tuple<PrivateKey, X509CertificateHolder> generateAccessCertificate(final KeyPair parentKeyPair) throws NoSuchAlgorithmException,
@@ -286,7 +284,6 @@ public class CertificatesRule extends ExternalResource {
         final List<ASN1Encodable> sans
     ) throws NoSuchAlgorithmException, IOException, OperatorCreationException {
         final var keyPair = generateKeyPair();
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         final var certificate = createCertificateBuilder(
             subject,
             issuer,
@@ -304,7 +301,6 @@ public class CertificatesRule extends ExternalResource {
             .addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(KeyPurposeId.id_kp_clientAuth))
             .addExtension(Extension.subjectAlternativeName, false, new DERSequence(sans.toArray(sans.toArray(new ASN1Encodable[0]))))
             .build(new JcaContentSignerBuilder("SHA256withRSA").setProvider(BOUNCY_CASTLE_FIPS_PROVIDER).build(parentKeyPair.getPrivate()));
-        // CS-ENFORCE-SINGLE
         return Tuple.tuple(keyPair.getPrivate(), certificate);
     }
 
@@ -329,7 +325,6 @@ public class CertificatesRule extends ExternalResource {
         final Instant startDate,
         final Instant endDate
     ) throws NoSuchAlgorithmException, CertIOException {
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         final var subjectName = new X500Name(RFC4519Style.INSTANCE, subject);
         final var issuerName = new X500Name(RFC4519Style.INSTANCE, issuer);
         final var extUtils = new JcaX509ExtensionUtils();
@@ -342,7 +337,6 @@ public class CertificatesRule extends ExternalResource {
             SubjectPublicKeyInfo.getInstance(certificatePublicKey.getEncoded())
         ).addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(parentPublicKey))
             .addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(certificatePublicKey));
-        // CS-ENFORCE-SINGLE
     }
 
     Tuple<Instant, Instant> generateStartAndEndDate() {

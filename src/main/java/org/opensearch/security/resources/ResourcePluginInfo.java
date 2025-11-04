@@ -8,7 +8,6 @@
 
 package org.opensearch.security.resources;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,7 +48,10 @@ public class ResourcePluginInfo {
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
-    // UI: action-group *names* per type
+    // type <-> index
+    private final Map<String, String> typeToIndex = new HashMap<>();
+
+    // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
 
     // AuthZ: resolved (flattened) groups per type
@@ -171,7 +173,7 @@ public class ResourcePluginInfo {
         return resourceAccessControlClient;
     }
 
-    /** Register/merge action-group names for a given resource type. */
+    /** Register/merge access-levels names for a given resource type. */
     public record ResourceDashboardInfo(String resourceType, Set<String> accessLevels // names only (for UI)
     ) implements ToXContentObject {
         @Override
@@ -255,7 +257,12 @@ public class ResourcePluginInfo {
         try {
             return typeToProvider.keySet()
                 .stream()
-                .map(s -> new ResourceDashboardInfo(s, typeToAccessLevels.get(s)))
+                .map(
+                    s -> new ResourceDashboardInfo(
+                        s,
+                        Collections.unmodifiableSet(typeToAccessLevels.getOrDefault(s, new LinkedHashSet<>()))
+                    )
+                )
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         } finally {
             lock.readLock().unlock();
@@ -290,4 +297,3 @@ public class ResourcePluginInfo {
     }
 
 }
-// CS-ENFORCE-SINGLE

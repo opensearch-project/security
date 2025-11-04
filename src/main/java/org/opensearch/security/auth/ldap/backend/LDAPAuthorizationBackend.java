@@ -15,13 +15,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.AccessController;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
@@ -43,9 +40,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
@@ -125,62 +122,33 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     }
 
-    @SuppressWarnings("removal")
     public static void checkConnection(final ConnectionConfig connectionConfig, String bindDn, byte[] password) throws Exception {
 
-        final SecurityManager sm = System.getSecurityManager();
+        AccessController.doPrivilegedChecked(() -> {
+            boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;
+            ClassLoader originalClassloader = null;
+            if (isJava9OrHigher) {
+                originalClassloader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(new Java9CL());
+            }
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;
-                    ClassLoader originalClassloader = null;
-                    if (isJava9OrHigher) {
-                        originalClassloader = Thread.currentThread().getContextClassLoader();
-                        Thread.currentThread().setContextClassLoader(new Java9CL());
-                    }
-
-                    checkConnection0(connectionConfig, bindDn, password, originalClassloader, isJava9OrHigher);
-                    return null;
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            throw e.getException();
-        }
+            checkConnection0(connectionConfig, bindDn, password, originalClassloader, isJava9OrHigher);
+        });
 
     }
 
-    @SuppressWarnings("removal")
     public static Connection getConnection(final Settings settings, final Path configPath) throws Exception {
 
-        final SecurityManager sm = System.getSecurityManager();
+        return AccessController.doPrivilegedChecked(() -> {
+            boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;
+            ClassLoader originalClassloader = null;
+            if (isJava9OrHigher) {
+                originalClassloader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(new Java9CL());
+            }
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<Connection>() {
-                @Override
-                public Connection run() throws Exception {
-                    boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;
-                    ClassLoader originalClassloader = null;
-                    if (isJava9OrHigher) {
-                        originalClassloader = Thread.currentThread().getContextClassLoader();
-                        Thread.currentThread().setContextClassLoader(new Java9CL());
-                    }
-
-                    return getConnection0(settings, configPath, originalClassloader, isJava9OrHigher);
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            throw e.getException();
-        }
+            return getConnection0(settings, configPath, originalClassloader, isJava9OrHigher);
+        });
 
     }
 
@@ -209,7 +177,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         return Collections.singletonList(result.entrySet().iterator().next());
     }
 
-    @SuppressWarnings("removal")
     private static void checkConnection0(
         final ConnectionConfig connectionConfig,
         String bindDn,
@@ -242,14 +209,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             connection = null;
             if (needRestore) {
                 try {
-                    AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                        @Override
-                        public Void run() throws Exception {
-                            Thread.currentThread().setContextClassLoader(cl);
-                            return null;
-                        }
-                    });
-                } catch (PrivilegedActionException e) {
+                    AccessController.doPrivilegedChecked(() -> Thread.currentThread().setContextClassLoader(cl));
+                } catch (Exception e) {
                     log.warn("Unable to restore classloader because of ", e);
                 }
             }
@@ -493,17 +454,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         };
     }
 
-    @SuppressWarnings("removal")
     private static void restoreClassLoader0(final ClassLoader cl) {
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    Thread.currentThread().setContextClassLoader(cl);
-                    return null;
-                }
-            });
-        } catch (PrivilegedActionException e) {
+            AccessController.doPrivilegedChecked(() -> Thread.currentThread().setContextClassLoader(cl));
+        } catch (Exception e) {
             log.warn("Unable to restore classloader because of", e);
         }
     }

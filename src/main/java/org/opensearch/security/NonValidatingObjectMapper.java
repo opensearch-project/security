@@ -27,9 +27,6 @@
 package org.opensearch.security;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
@@ -39,7 +36,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 public class NonValidatingObjectMapper {
     private static final ObjectMapper nonValidatingObjectMapper = new ObjectMapper();
@@ -56,19 +53,11 @@ public class NonValidatingObjectMapper {
         nonValidatingObjectMapper.setInjectableValues(injectableValues);
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> nonValidatingObjectMapper.readValue(string, jt));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> nonValidatingObjectMapper.readValue(string, jt));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 

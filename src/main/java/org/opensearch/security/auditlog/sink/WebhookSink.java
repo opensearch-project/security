@@ -16,9 +16,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.AccessController;
 import java.security.KeyStore;
-import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
@@ -45,6 +43,7 @@ import org.apache.http.HttpStatus;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
@@ -113,7 +112,6 @@ public class WebhookSink extends AuditLogSink {
     }
 
     @Override
-    @SuppressWarnings("removal")
     public boolean doStore(AuditMessage msg) {
         if (Strings.isEmpty(webhookUrl)) {
             log.debug("Webhook URL is null");
@@ -124,36 +122,32 @@ public class WebhookSink extends AuditLogSink {
             return true;
         }
 
-        return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-
-            @Override
-            public Boolean run() {
-                boolean success = false;
-                try {
-                    switch (webhookFormat.method) {
-                        case POST:
-                            success = post(msg);
-                            break;
-                        case GET:
-                            success = get(msg);
-                            break;
-                        default:
-                            log.error(
-                                "Http Method '{}' defined in WebhookFormat '{}' not implemented yet",
-                                webhookFormat.method.name(),
-                                webhookFormat.name()
-                            );
-                    }
-                    // log something in case endpoint is not reachable or did not return 200
-                    if (!success) {
-                        log.error(msg.toString());
-                    }
-                    return success;
-                } catch (Throwable t) {
-                    log.error("Uncaught exception while trying to log message.", t);
-                    log.error(msg.toString());
-                    return false;
+        return AccessController.doPrivileged(() -> {
+            boolean success = false;
+            try {
+                switch (webhookFormat.method) {
+                    case POST:
+                        success = post(msg);
+                        break;
+                    case GET:
+                        success = get(msg);
+                        break;
+                    default:
+                        log.error(
+                            "Http Method '{}' defined in WebhookFormat '{}' not implemented yet",
+                            webhookFormat.method.name(),
+                            webhookFormat.name()
+                        );
                 }
+                // log something in case endpoint is not reachable or did not return 200
+                if (!success) {
+                    log.error(msg.toString());
+                }
+                return success;
+            } catch (Throwable t) {
+                log.error("Uncaught exception while trying to log message.", t);
+                log.error(msg.toString());
+                return false;
             }
         });
     }
@@ -312,49 +306,39 @@ public class WebhookSink extends AuditLogSink {
         }
     }
 
-    @SuppressWarnings("removal")
     private KeyStore getEffectiveKeyStore(final Path configPath) {
 
-        return AccessController.doPrivileged(new PrivilegedAction<KeyStore>() {
+        return AccessController.doPrivileged(() -> {
+            try {
+                Settings sinkSettings = settings.getAsSettings(settingsPrefix);
 
-            @Override
-            public KeyStore run() {
-                try {
-                    Settings sinkSettings = settings.getAsSettings(settingsPrefix);
+                final boolean pem = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
+                    || sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
 
-                    final boolean pem = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
-                        || sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
+                if (pem) {
+                    X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(
+                        PemKeyReader.resolveStream(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings)
+                    );
 
-                    if (pem) {
-                        X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(
-                            PemKeyReader.resolveStream(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings)
-                        );
-
-                        if (trustCertificates == null) {
-                            String fullPath = settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
-                            trustCertificates = PemKeyReader.loadCertificatesFromFile(
-                                PemKeyReader.resolve(fullPath, settings, configPath, false)
-                            );
-                        }
-
-                        return PemKeyReader.toTruststore("alw", trustCertificates);
-
-                    } else {
-                        return PemKeyReader.loadKeyStore(
-                            PemKeyReader.resolve(
-                                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                                settings,
-                                configPath,
-                                false
-                            ),
-                            SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
-                            settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+                    if (trustCertificates == null) {
+                        String fullPath = settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
+                        trustCertificates = PemKeyReader.loadCertificatesFromFile(
+                            PemKeyReader.resolve(fullPath, settings, configPath, false)
                         );
                     }
-                } catch (Exception ex) {
-                    log.error("Could not load key material. Make sure your certificates are located relative to the config directory", ex);
-                    return null;
+
+                    return PemKeyReader.toTruststore("alw", trustCertificates);
+
+                } else {
+                    return PemKeyReader.loadKeyStore(
+                        PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, false),
+                        SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
+                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+                    );
                 }
+            } catch (Exception ex) {
+                log.error("Could not load key material. Make sure your certificates are located relative to the config directory", ex);
+                return null;
             }
         });
     }

@@ -11,11 +11,7 @@
 
 package org.opensearch.security.auth.ldap2;
 
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 import org.ldaptive.AddRequest;
 import org.ldaptive.BindRequest;
@@ -81,28 +77,16 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
         }
 
         @Override
-        @SuppressWarnings("removal")
         public ProviderConnection create() throws LdapException {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
             try {
-                return AccessController.doPrivileged(new PrivilegedExceptionAction<ProviderConnection>() {
-                    @Override
-                    public ProviderConnection run() throws Exception {
-                        return new PrivilegedProviderConnection(delegate.create(), getProviderConfig());
-                    }
-                });
-            } catch (PrivilegedActionException e) {
-                if (e.getException() instanceof LdapException) {
-                    throw (LdapException) e.getException();
-                } else if (e.getException() instanceof RuntimeException) {
-                    throw (RuntimeException) e.getException();
+                return AccessController.doPrivilegedChecked(() -> new PrivilegedProviderConnection(delegate.create(), getProviderConfig()));
+            } catch (Exception e) {
+                if (e instanceof LdapException) {
+                    throw (LdapException) e;
+                } else if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
                 } else {
-                    throw new RuntimeException(e.getException());
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -118,39 +102,29 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
             this.jndiProviderConfig = jndiProviderConfig;
         }
 
-        @SuppressWarnings("removal")
         public Response<Void> bind(BindRequest request) throws LdapException {
-            final SecurityManager sm = System.getSecurityManager();
-
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
-            }
-
             try {
-                return AccessController.doPrivileged(new PrivilegedExceptionAction<Response<Void>>() {
-                    @Override
-                    public Response<Void> run() throws Exception {
-                        if (jndiProviderConfig.getClassLoader() != null) {
-                            ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+                return AccessController.doPrivilegedChecked(() -> {
+                    if (jndiProviderConfig.getClassLoader() != null) {
+                        ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
 
-                            try {
-                                Thread.currentThread().setContextClassLoader(jndiProviderConfig.getClassLoader());
-                                return delegate.bind(request);
-                            } finally {
-                                Thread.currentThread().setContextClassLoader(originalClassLoader);
-                            }
-                        } else {
+                        try {
+                            Thread.currentThread().setContextClassLoader(jndiProviderConfig.getClassLoader());
                             return delegate.bind(request);
+                        } finally {
+                            Thread.currentThread().setContextClassLoader(originalClassLoader);
                         }
+                    } else {
+                        return delegate.bind(request);
                     }
                 });
-            } catch (PrivilegedActionException e) {
-                if (e.getException() instanceof LdapException) {
-                    throw (LdapException) e.getException();
-                } else if (e.getException() instanceof RuntimeException) {
-                    throw (RuntimeException) e.getException();
+            } catch (Exception e) {
+                if (e instanceof LdapException) {
+                    throw (LdapException) e;
+                } else if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
                 } else {
-                    throw new RuntimeException(e.getException());
+                    throw new RuntimeException(e);
                 }
             }
         }

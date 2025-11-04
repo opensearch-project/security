@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +70,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-// CS-ENFORCE-SINGLE
 
 public class CCReplicationTest extends AbstractDlsFlsTest {
     public static class MockReplicationPlugin extends Plugin implements ActionPlugin {
