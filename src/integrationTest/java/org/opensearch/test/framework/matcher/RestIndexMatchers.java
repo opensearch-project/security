@@ -82,6 +82,12 @@ public class RestIndexMatchers {
          */
         OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode);
 
+        /**
+         * Add the specified indices as indices that are expected from a remote cluster. These will have a name
+         * prefixed with the remote cluster prefix.
+         */
+        OnResponseIndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices);
+
         default IndexMatcher butForbiddenIfIncomplete(IndexMatcher other) {
             return butFailIfIncomplete(other, RestMatchers.isForbidden());
         }
@@ -162,6 +168,8 @@ public class RestIndexMatchers {
          * @return a new IndexMatcher instance with the new limit.
          */
         OnUserIndexMatcher and(TestIndexOrAliasOrDatastream... testIndices);
+
+        OnUserIndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices);
     }
 
     /**
@@ -395,6 +403,25 @@ public class RestIndexMatchers {
                 return start + response.getBody();
             }
         }
+
+        /**
+         * Add the specified indices as indices that are expected from a remote cluster. These will have a name
+         * prefixed with the remote cluster prefix.
+         */
+        public abstract IndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices);
+
+        protected Map<String, TestIndexOrAliasOrDatastream> indexMapWithRemoteIndices(
+            String prefix,
+            TestIndexOrAliasOrDatastream... remoteTestIndices
+        ) {
+            Map<String, TestIndexOrAliasOrDatastream> indexNameMap = new HashMap<>(this.expectedIndices);
+
+            for (TestIndexOrAliasOrDatastream testIndex : remoteTestIndices) {
+                indexNameMap.put(prefix + ":" + testIndex.name(), testIndex);
+            }
+
+            return indexNameMap;
+        }
     }
 
     /**
@@ -441,6 +468,16 @@ public class RestIndexMatchers {
                 .collect(Collectors.toSet());
 
             return matchesByIndices(actualItems, mismatchDescription, response);
+        }
+
+        @Override
+        public ContainsExactlyMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices) {
+            return new ContainsExactlyMatcher(
+                indexMapWithRemoteIndices(prefix, remoteTestIndices),
+                containsOpenSearchSecurityIndex,
+                jsonPath,
+                statusCodeWhenEmpty
+            );
         }
 
         protected boolean matchesByIndices(
@@ -627,6 +664,11 @@ public class RestIndexMatchers {
         public OnResponseIndexMatcher butFailIfIncomplete(IndexMatcher other, RestMatchers.HttpResponseMatcher statusCode) {
             return this;
         }
+
+        @Override
+        public OnResponseIndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices) {
+            return this;
+        }
     }
 
     /**
@@ -663,6 +705,11 @@ public class RestIndexMatchers {
         @Override
         public boolean covers(TestIndexOrAliasOrDatastream testIndex) {
             return expectedIndices.containsKey(testIndex.name());
+        }
+
+        @Override
+        public LimitedToMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices) {
+            return new LimitedToMatcher(indexMapWithRemoteIndices(prefix, remoteTestIndices));
         }
 
         protected boolean matchesByIndices(
@@ -759,6 +806,11 @@ public class RestIndexMatchers {
 
         @Override
         public OnUserIndexMatcher and(TestIndexOrAliasOrDatastream... testIndices) {
+            return this;
+        }
+
+        @Override
+        public OnUserIndexMatcher andFromRemote(String prefix, TestIndexOrAliasOrDatastream... remoteTestIndices) {
             return this;
         }
     }
