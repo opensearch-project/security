@@ -38,6 +38,11 @@ public class SampleResourceExtension implements ResourceSharingExtension {
             public String resourceIndexName() {
                 return RESOURCE_INDEX_NAME;
             }
+
+            @Override
+            public String typeField() {
+                return "resource_type";
+            }
         });
     }
 

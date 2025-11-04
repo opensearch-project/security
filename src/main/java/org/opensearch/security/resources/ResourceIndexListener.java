@@ -22,6 +22,7 @@ import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -73,6 +74,9 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         log.debug("postIndex called on {}", resourceIndex);
 
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
+
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
@@ -107,8 +111,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceIndex
                 );
             }, e -> { log.debug(e.getMessage()); });
+            // User.getRequestedTenant() is null if multi-tenancy is disabled
             ResourceSharing.Builder builder = ResourceSharing.builder()
                 .resourceId(resourceId)
+                .resourceType(resourceType)
                 .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
             ResourceSharing sharingInfo = builder.build();
             // User.getRequestedTenant() is null if multi-tenancy is disabled
