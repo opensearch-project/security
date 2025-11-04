@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [Resource Sharing] Make migrate api require default access level to be supplied and updates documentations + tests ([#5717](https://github.com/opensearch-project/security/pull/5717))
 - [Resource Sharing] Removes share and revoke java APIs ([#5718](https://github.com/opensearch-project/security/pull/5718))
 - Fix build failure in SecurityFilterTests ([#5736](https://github.com/opensearch-project/security/pull/5736))
+- [Resource Sharing]Refactor ResourceProvider to an interface and other ResourceSharing refactors ([#5755](https://github.com/opensearch-project/security/pull/5755))
 - Replace AccessController and remove restriction on word Extension ([#5750](https://github.com/opensearch-project/security/pull/5750))
 - Add security provider earlier in bootstrap process ([#5749](https://github.com/opensearch-project/security/pull/5749))
 - [GRPC] Fix compilation errors from core protobuf version bump to 0.23.0 ([#5763](https://github.com/opensearch-project/security/pull/5763))
