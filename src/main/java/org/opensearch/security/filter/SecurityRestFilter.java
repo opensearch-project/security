@@ -29,6 +29,7 @@ package org.opensearch.security.filter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestHeaderDefinition;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
@@ -124,10 +126,12 @@ public class SecurityRestFilter {
 
     class AuthczRestHandler extends DelegatingRestHandler {
         private final AdminDNs adminDNs;
+        private final Set<RestHeaderDefinition> headersToCopy;
 
-        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs) {
+        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
             super(original);
             this.adminDNs = adminDNs;
+            this.headersToCopy = headersToCopy;
         }
 
         @Override
@@ -144,13 +148,23 @@ public class SecurityRestFilter {
             }
 
             NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
-                // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
-                final Map<String, String> tmpHeaders = threadContext.getHeaders();
-                storedContext.restore();
-                for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
-                    threadContext.putHeader(header.getKey(), header.getValue());
+                // X_OPAQUE_ID will be overwritten on restore - save to apply after restoring the saved context
+                Map<String, String> tmpHeaders = null;
+                for (RestHeaderDefinition header : headersToCopy) {
+                    final String value = threadContext.getHeader(header.getName());
+                    if (value != null) {
+                        if (tmpHeaders == null) {
+                            tmpHeaders = new HashMap<>();
+                        }
+                        tmpHeaders.put(header.getName(), value);
+                    }
                 }
-                if (!tmpHeaders.isEmpty()) {
+                storedContext.restore();
+
+                if (tmpHeaders != null) {
+                    for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
+                        threadContext.putHeader(header.getKey(), header.getValue());
+                    }
                     threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
@@ -249,8 +263,8 @@ public class SecurityRestFilter {
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
-    public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new AuthczRestHandler(original, adminDNs);
+    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
+        return new AuthczRestHandler(original, adminDNs, headersToCopy);
     }
 
     /**
