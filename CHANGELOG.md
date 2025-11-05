@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adding Alerting V2 roles to roles.yml ([#5747](https://github.com/opensearch-project/security/pull/5747))
 - add suggest api to ad read access role ([#5754](https://github.com/opensearch-project/security/pull/5754))
 - Get list of headersToCopy from core and use getHeader(String headerName) instead of getHeaders() ([#5769](https://github.com/opensearch-project/security/pull/5769))
+- [Resource Sharing] Keep track of resource_type on resource sharing document ([#5772](https://github.com/opensearch-project/security/pull/5772))
 
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
