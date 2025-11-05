@@ -207,6 +207,15 @@ public class ResourcePluginInfo {
         }
     }
 
+    public ResourceProvider getResourceProvider(String type) {
+        lock.readLock().lock();
+        try {
+            return typeToProvider.get(type);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public String indexByType(String type) {
         lock.readLock().lock();
         try {

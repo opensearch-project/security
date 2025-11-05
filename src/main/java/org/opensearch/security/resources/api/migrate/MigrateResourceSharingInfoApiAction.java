@@ -60,6 +60,7 @@ import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -292,6 +293,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
+            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
+
             try {
                 // 3) build CreatedBy
                 CreatedBy createdBy = new CreatedBy(username);
@@ -323,6 +326,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .resourceId(resourceId)
                     .createdBy(createdBy)
                     .shareWith(shareWith);
+                builder.resourceType(provider.resourceType());
                 ResourceSharing sharingInfo = builder.build();
                 sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
             } catch (Exception e) {
