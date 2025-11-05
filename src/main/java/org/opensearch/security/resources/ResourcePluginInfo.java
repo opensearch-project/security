@@ -20,6 +20,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -41,6 +43,8 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  * @opensearch.experimental
  */
 public class ResourcePluginInfo {
+
+    private static final Logger log = LogManager.getLogger(ResourcePluginInfo.class);
 
     private ResourceSharingClient resourceAccessControlClient;
 
@@ -198,15 +202,6 @@ public class ResourcePluginInfo {
         lock.readLock().lock();
         try {
             return typeToFlattened.getOrDefault(resourceType, FlattenedActionGroups.EMPTY);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    public ResourceProvider getResourceProvider(String type) {
-        lock.readLock().lock();
-        try {
-            return typeToProvider.get(type);
         } finally {
             lock.readLock().unlock();
         }
