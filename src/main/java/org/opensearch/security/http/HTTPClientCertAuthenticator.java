@@ -46,7 +46,6 @@ import javax.naming.ldap.Rdn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.common.Nullable;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -71,7 +70,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         SAN
     }
 
-    private record ParsedSAN(int type, @Nullable WildcardMatcher matcher) {
+    private record ParsedSAN(int type, WildcardMatcher matcher) {
     }
 
     private record ParsedAttribute(AttributeType type, String dnAttr, ParsedSAN san) {
@@ -109,14 +108,14 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            WildcardMatcher matcher = null; // null means pass-through
+            WildcardMatcher matcher = WildcardMatcher.ANY;
             if (!Strings.isNullOrEmpty(glob)) {
                 // we only support '*' for now
                 if (glob.indexOf('?') >= 0 || (glob.startsWith("/") && glob.endsWith("/"))) {
-                    log.warn("Unsupported SAN glob (only '*' allowed, case-insensitive). attribute='{}'", raw);
+                    log.warn("Unsupported SAN glob (only literals and '*' are allowed, case-insensitive). attribute='{}'", raw);
                     return null;
                 }
-                matcher = WildcardMatcher.from(glob).ignoreCase();
+                matcher = "*".equals(glob.trim()) ? WildcardMatcher.ANY : WildcardMatcher.from(glob).ignoreCase();
             }
             return ParsedAttribute.san(new ParsedSAN(sanType.getValue(), matcher));
         }
@@ -218,16 +217,18 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
             final Collection<List<?>> altNames = peerCertificates[0].getSubjectAlternativeNames();
             if (altNames == null) return Collections.emptyList();
 
+            final int sanType = psan.type();
+            final WildcardMatcher matcher = psan.matcher();
+
             return altNames.stream()
                 .filter(entry -> entry != null && entry.size() >= 2)
-                .filter(entry -> entry.get(0) instanceof Integer i && i.intValue() == psan.type())
-                .map(entry -> sanValueToString(psan.type(), entry.get(1)))
+                .filter(entry -> entry.get(0) instanceof Integer i && i.intValue() == sanType)
+                .map(entry -> sanValueToString(sanType, entry.get(1)))
                 .map(v -> {
                     if (Strings.isNullOrEmpty(v)) return null;
                     // Bound input length for safety before glob
                     final String s = v.length() > MAX_SAN_VALUE_LEN ? v.substring(0, MAX_SAN_VALUE_LEN) : v;
-                    if (psan.matcher() == null) return s; // no filter -> pass-through
-                    return psan.matcher().test(s) ? s : null;
+                    return matcher.test(s) ? s : null;
                 })
                 .filter(Objects::nonNull)
                 .limit(MAX_SAN_MATCHES)

@@ -227,6 +227,8 @@ public class IntegrationTests extends SingleClusterTest {
         new SanUsernameCase(1, "user@sub.example.net", "san:rfc822Name:*@*.example.net", "user@sub.example.net"),
         // no match → fallback to DN
         new SanUsernameCase(1, "user2@example.com", "san:rfc822Name:*@other.com", SSL_PRINCIPAL),
+        // '*' → match ANY rfc822Name
+        new SanUsernameCase(1, "any.user@any.domain", "san:rfc822Name:*", "any.user@any.domain"),
 
         // dNSName (DNS)
         // exact
@@ -281,6 +283,9 @@ public class IntegrationTests extends SingleClusterTest {
 
         // 2) rfc822Name → glob on domain
         new SanRolesCase(1, "service@app.example.com", "san:rfc822Name:*@app.example.com", new String[] { "service@app.example.com" }),
+
+        // '*' → match ANY rfc822Name (role == SAN value)
+        new SanRolesCase(1, "role.user@whatever.tld", "san:rfc822Name:*", new String[] { "role.user@whatever.tld" }),
 
         // 3) dNSName → glob
         new SanRolesCase(2, "svc1.api.example.com", "san:dNSName:*.example.com", new String[] { "svc1.api.example.com" }),
