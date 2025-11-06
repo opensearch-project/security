@@ -37,13 +37,18 @@ public class DlsFlsBaseContext {
      * associated with a user. This indicates a system action. In these cases, no privilege evaluation should be performed.
      */
     public PrivilegesEvaluationContext getPrivilegesEvaluationContext() {
+        if (threadContext.getTransient("tmp_dls_fls_ctx") != null) {
+            return threadContext.getTransient("tmp_dls_fls_ctx");
+        }
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         if (HeaderHelper.isInternalOrPluginRequest(threadContext) || adminDNs.isAdmin(user)) {
             return null;
         }
 
-        return this.privilegesEvaluator.createContext(user, null);
+        PrivilegesEvaluationContext ctx = this.privilegesEvaluator.createContext(user, null);
+        threadContext.putTransient("tmp_dls_fls_ctx", ctx);
+        return ctx;
     }
 
     public boolean isDlsDoneOnFilterLevel() {

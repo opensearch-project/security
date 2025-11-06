@@ -11,7 +11,6 @@
 
 package org.opensearch.security.tools.democonfig;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to file extensions, keeping this rule disable for the whole file
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -56,7 +55,6 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-@SuppressWarnings("removal")
 @RunWith(RandomizedRunner.class)
 public class SecuritySettingsConfigurerTests {
 
@@ -259,7 +257,7 @@ public class SecuritySettingsConfigurerTests {
         assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
-        assertThat(actual.get("plugins.security.ssl.transport.enforce_hostname_verification"), equalTo(false));
+        assertThat(actual.get("transport.ssl.enforce_hostname_verification"), equalTo(false));
         assertThat(actual.get("plugins.security.ssl.http.enabled"), equalTo(true));
         assertThat(actual.get("plugins.security.ssl.http.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
@@ -425,4 +423,3 @@ public class SecuritySettingsConfigurerTests {
         Files.write(internalUsersFilePath, defaultContent, StandardCharsets.UTF_8);
     }
 }
-// CS-ENFORCE-SINGLE

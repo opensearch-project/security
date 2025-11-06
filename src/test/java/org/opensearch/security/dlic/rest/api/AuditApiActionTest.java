@@ -686,18 +686,38 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     private String getTestPayload() {
-        return "{"
-            + "\"enabled\":true,"
-            + "\"audit\":{"
-            + "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"],"
-            + "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"],"
-            + "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true,"
-            + "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"], \"ignore_headers\":[\"\"], \"ignore_url_params\":[]},"
-            + "\"compliance\":{"
-            + "\"enabled\":true,"
-            + "\"internal_config\":true,\"external_config\":true,"
-            + "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"],"
-            + "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}"
-            + "}";
+        return """
+            {
+              "enabled": true,
+              "audit": {
+                "enable_rest": true,
+                "disabled_rest_categories": ["AUTHENTICATED"],
+                "enable_transport": true,
+                "disabled_transport_categories": ["SSL_EXCEPTION"],
+                "resolve_bulk_requests": true,
+                "log_request_body": true,
+                "resolve_indices": true,
+                "exclude_sensitive_headers": true,
+                "ignore_users": ["test-user-1"],
+                "ignore_requests": ["test-request"],
+                "ignore_headers": [],
+                "ignore_url_params": []
+              },
+              "compliance": {
+                "enabled": true,
+                "internal_config": true,
+                "external_config": true,
+                "read_metadata_only": true,
+                "read_watched_fields": {
+                  "test-read-watch-field": []
+                },
+                "read_ignore_users": ["test-user-2"],
+                "write_metadata_only": true,
+                "write_log_diffs": true,
+                "write_watched_indices": ["test-write-watch-index"],
+                "write_ignore_users": ["test-user-3"]
+              }
+            }
+            """;
     }
 }

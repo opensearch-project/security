@@ -65,7 +65,7 @@ jobs:
           arguments: |
             ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -108,7 +108,7 @@ jobs:
           arguments: |
             ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -116,11 +116,11 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "spi-tests-linux", "spi-tests-windows", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
+    needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           path: downloaded-artifacts
 
@@ -165,7 +165,7 @@ jobs:
           arguments: |
             :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -208,86 +208,10 @@ jobs:
           arguments: |
             :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-          path: |
-            ./build/reports/
-
-  spi-tests-linux:
-    name: spi-tests
-    needs: ["Get-CI-Image-Tag"]
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [21, 24]
-        platform: [ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
-    container:
-      # using the same image which is used by opensearch-build to build the OpenSearch Distribution
-      # this image tag is subject to change as more dependencies and updates will arrive over time
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      # need to switch to root so that github actions can install runner binary on container without permission issues.
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
-
-    steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
-
-      - name: Checkout security
-        uses: actions/checkout@v5
-
-      - name: Run SPI Tests
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-disabled: true
-          arguments: |
-            :opensearch-security-spi:test -Dbuild.snapshot=false
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: spi-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-          path: |
-            ./build/reports/
-
-  spi-tests-windows:
-    name: spi-tests
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [21, 24]
-        platform: [windows-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
-
-      - name: Checkout security
-        uses: actions/checkout@v5
-
-      - name: Run SPI Tests
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-disabled: true
-          arguments: |
-            :opensearch-security-spi:test -Dbuild.snapshot=false
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: spi-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
           path: |
             ./build/reports/
 
@@ -326,7 +250,7 @@ jobs:
           arguments: |
             :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -358,7 +282,7 @@ jobs:
           arguments: |
             :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -460,7 +384,7 @@ jobs:
           java-version: 21
       - run: ./gradlew clean buildHealth
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: dependency-analysis

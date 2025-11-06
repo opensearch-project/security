@@ -20,9 +20,7 @@ package org.opensearch.security.ssl.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
-import java.security.AccessController;
 import java.security.KeyStore;
-import java.security.PrivilegedAction;
 import java.security.cert.CRL;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -39,10 +37,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
@@ -114,7 +112,6 @@ public class SSLRequestHelper {
 
     }
 
-    @SuppressWarnings("removal")
     public static SSLInfo getSSLInfo(
         final Settings settings,
         final Path configPath,
@@ -143,18 +140,7 @@ public class SSLRequestHelper {
                     x509Certs = Arrays.copyOf(certs, certs.length, X509Certificate[].class);
                     final X509Certificate[] x509CertsF = x509Certs;
 
-                    final SecurityManager sm = System.getSecurityManager();
-
-                    if (sm != null) {
-                        sm.checkPermission(new SpecialPermission());
-                    }
-
-                    validationFailure = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-                        @Override
-                        public Boolean run() {
-                            return !validate(x509CertsF, settings, configPath);
-                        }
-                    });
+                    validationFailure = AccessController.doPrivileged(() -> !validate(x509CertsF, settings, configPath));
 
                     if (validationFailure) {
                         throw new SSLPeerUnverifiedException("Unable to validate certificate (CRL)");

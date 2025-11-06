@@ -11,16 +11,13 @@
 
 package org.opensearch.security.auth.ldap.util;
 
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 import org.ldaptive.Connection;
 import org.ldaptive.DerefAliases;
@@ -38,7 +35,6 @@ public class LdapHelper {
 
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
 
-    @SuppressWarnings("removal")
     public static List<LdapEntry> search(
         final Connection conn,
         final String unescapedDn,
@@ -48,46 +44,36 @@ public class LdapHelper {
         boolean shouldFollowReferrals
     ) throws LdapException {
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
         try {
             final String baseDn = escapeDn(unescapedDn);
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<List<LdapEntry>>() {
-                @Override
-                public List<LdapEntry> run() throws Exception {
-                    final List<LdapEntry> entries = new ArrayList<>();
-                    final SearchRequest request = new SearchRequest(baseDn, filter);
+            return AccessController.doPrivilegedChecked(() -> {
+                final List<LdapEntry> entries = new ArrayList<>();
+                final SearchRequest request = new SearchRequest(baseDn, filter);
 
-                    request.setSearchScope(searchScope);
-                    request.setDerefAliases(DerefAliases.ALWAYS);
-                    request.setReturnAttributes(returnAttributes);
-                    final SearchOperation search = new SearchOperation(conn);
+                request.setSearchScope(searchScope);
+                request.setDerefAliases(DerefAliases.ALWAYS);
+                request.setReturnAttributes(returnAttributes);
+                final SearchOperation search = new SearchOperation(conn);
 
-                    if (shouldFollowReferrals) {
-                        // referrals will be followed to build the response
-                        request.setReferralHandler(new SearchReferralHandler());
-                    }
-
-                    final Response<SearchResult> r = search.execute(request);
-                    final org.ldaptive.SearchResult result = r.getResult();
-                    entries.addAll(result.getEntries());
-
-                    return entries;
+                if (shouldFollowReferrals) {
+                    // referrals will be followed to build the response
+                    request.setReferralHandler(new SearchReferralHandler());
                 }
+
+                final Response<SearchResult> r = search.execute(request);
+                final org.ldaptive.SearchResult result = r.getResult();
+                entries.addAll(result.getEntries());
+
+                return entries;
             });
-        } catch (PrivilegedActionException e) {
-            if (e.getException() instanceof LdapException) {
-                throw (LdapException) e.getException();
-            } else if (e.getException() instanceof RuntimeException) {
-                throw (RuntimeException) e.getException();
+        } catch (Exception e) {
+            if (e instanceof LdapException) {
+                throw (LdapException) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
                 throw new RuntimeException(e);
             }
-        } catch (InvalidNameException e) {
-            throw new RuntimeException(e);
         }
     }
 

@@ -61,6 +61,7 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -167,6 +168,7 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
@@ -419,7 +421,7 @@ public class SecurityFilter implements ActionFilter {
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
+                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }

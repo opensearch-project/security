@@ -8,7 +8,6 @@
 
 package org.opensearch.security.auth;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Rule base auto-tagging extension
 import org.opensearch.plugin.wlm.spi.AttributeExtractorExtension;
 import org.opensearch.rule.attribute_extractor.AttributeExtractor;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -29,4 +28,3 @@ public class PrincipalAttributeExtractorExtension implements AttributeExtractorE
         return new PrincipalExtractor(plugin.getThreadPool());
     }
 }
-// CS-ENFORCE-SINGLE

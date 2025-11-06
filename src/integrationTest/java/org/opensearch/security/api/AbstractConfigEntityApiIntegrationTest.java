@@ -199,7 +199,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     }
 
     void assertNullValuesInArray(final TestRestClient.HttpResponse response) throws Exception {
-        assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), equalTo("`null` is not allowed as json array element"));
+        assertThat(
+            response.getBody(),
+            response.getTextFromJsonBody("/reason"),
+            equalTo("`null` or blank values are not allowed as json array elements")
+        );
     }
 
     void assertInvalidKeys(final TestRestClient.HttpResponse response, final String expectedInvalidKeys) {

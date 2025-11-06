@@ -11,9 +11,7 @@
 
 package org.opensearch.security.auth.http.saml;
 
-import java.security.AccessController;
 import java.security.PrivateKey;
-import java.security.PrivilegedAction;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -28,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 
 import com.onelogin.saml2.settings.Saml2Settings;
@@ -63,7 +62,6 @@ public class Saml2SettingsProvider {
         this.spSignaturePrivateKey = spSignaturePrivateKey;
     }
 
-    @SuppressWarnings("removal")
     Saml2Settings get() throws SamlConfigException {
         try {
             HashMap<String, Object> configProperties = new HashMap<>();
@@ -100,7 +98,7 @@ public class Saml2SettingsProvider {
             settingsBuilder.fromValues(configProperties);
             settingsBuilder.fromValues(new SamlSettingsMap(this.opensearchSettings));
             SpecialPermission.check();
-            return AccessController.doPrivileged((PrivilegedAction<Saml2Settings>) () -> settingsBuilder.build());
+            return AccessController.doPrivileged(() -> settingsBuilder.build());
         } catch (ResolverException e) {
             throw new AuthenticatorUnavailableException(e);
         }

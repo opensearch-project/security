@@ -12,3 +12,16 @@ resource_types:
         allowed_actions:
           - "cluster:admin/sample-resource-plugin/*"
           - "cluster:admin/security/resource/share"
+  sample-resource-group:
+    sample_group_read_only:
+      allowed_actions:
+        - "cluster:admin/sample-resource-plugin/group/get"
+
+    sample_group_read_write:
+      allowed_actions:
+        - "cluster:admin/sample-resource-plugin/group/*"
+
+    sample_group_full_access:
+      allowed_actions:
+        - "cluster:admin/sample-resource-plugin/group/*"
+        - "cluster:admin/security/resource/share"

@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Streams;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -72,6 +73,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.test.framework.data.TestIndex;
+import org.opensearch.test.framework.matcher.RestIndexMatchers;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -325,7 +328,6 @@ public class TestSecurityConfig {
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
             }
-
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
                 xContentBuilder.field("authz", authzDomainMap);
@@ -455,10 +457,13 @@ public class TestSecurityConfig {
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
+        List<Role> referencedRoles = new ArrayList<>();
         List<String> backendRoles = new ArrayList<>();
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private Map<String, RestIndexMatchers.IndexMatcher> indexMatchers = new HashMap<>();
+        private boolean adminCertUser = false;
 
         private Boolean hidden = null;
 
@@ -483,12 +488,25 @@ public class TestSecurityConfig {
             return this;
         }
 
+        /**
+         * Adds a user-specific role to this user. Internally, the role name will be scoped with the user name
+         * to avoid accidental collisions between roles of different users.
+         */
         public User roles(Role... roles) {
             // We scope the role names by user to keep tests free of potential side effects
             String roleNamePrefix = "user_" + this.getName() + "__";
             this.roles.addAll(
                 Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
             );
+            return this;
+        }
+
+        /**
+         * Adds references to roles which are already defined for the top-level SecurityTestConfig object.
+         * This allows tests to share roles between users.
+         */
+        public User referencedRoles(Role... roles) {
+            this.referencedRoles.addAll(Arrays.asList(roles));
             return this;
         }
 
@@ -535,7 +553,21 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
-            return roles.stream().map(Role::getName).collect(Collectors.toSet());
+            return Streams.concat(roles.stream(), referencedRoles.stream()).map(Role::getName).collect(Collectors.toSet());
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public boolean isAdminCertUser() {
+            return adminCertUser;
+        }
+
+        public User adminCertUser() {
+            this.adminCertUser = true;
+            return this;
         }
 
         public Object getAttribute(String attributeName) {
@@ -551,7 +583,7 @@ public class TestSecurityConfig {
             if (result != null) {
                 return key.type.cast(result);
             } else {
-                return null;
+                throw new RuntimeException("Unknown reference " + key + " in user " + this.name);
             }
         }
 
@@ -1074,6 +1106,8 @@ public class TestSecurityConfig {
         client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
         if (rawConfigurationDocuments == null) {
+            checkReferencedRoles();
+
             writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
             if (auditConfiguration != null) {
                 writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
@@ -1090,7 +1124,26 @@ public class TestSecurityConfig {
                 writeConfigToIndex(client, entry.getKey(), entry.getValue());
             }
         }
+    }
 
+    /**
+     * Does a sanity check on the user's referenced roles; these must actually match the globally defined roles.
+     */
+    private void checkReferencedRoles() {
+        for (User user : this.internalUsers.values()) {
+            for (Role role : user.referencedRoles) {
+                if (this.roles.containsKey(role.name) && !this.roles.get(role.name).equals(role)) {
+                    throw new RuntimeException(
+                        "Referenced role '"
+                            + role.name
+                            + "' in user '"
+                            + user.name
+                            + "' does not match the definition in TestSecurityConfig: "
+                            + this.roles.get(role.name)
+                    );
+                }
+            }
+        }
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {

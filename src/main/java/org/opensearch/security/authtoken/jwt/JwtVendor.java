@@ -11,8 +11,6 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -23,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 
 import com.nimbusds.jose.JOSEException;
@@ -85,14 +84,11 @@ public class JwtVendor {
         }
     }
 
-    @SuppressWarnings("removal")
     public ExpiringBearerAuthToken createJwt(JwtClaimsBuilder claimsBuilder, String subject, Date expiryTime, Long expirySeconds)
         throws JOSEException, ParseException {
 
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
-        final SignedJWT signedJwt = AccessController.doPrivileged(
-            (PrivilegedAction<SignedJWT>) () -> new SignedJWT(header, claimsBuilder.build())
-        );
+        final SignedJWT signedJwt = AccessController.doPrivileged(() -> new SignedJWT(header, claimsBuilder.build()));
 
         // Sign the JWT so it can be serialized
         signedJwt.sign(signer);

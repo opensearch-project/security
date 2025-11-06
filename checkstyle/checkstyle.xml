@@ -228,20 +228,13 @@
     <property name="severity" value="error"/>
   </module>
 
-  <module name="RegexpSingleline">
-    <property name="format" value="extension"/>
-    <property name="ignoreCase" value="true"/>
-    <property name="message" value="Extension should only be used sparingly to keep implementations as generic as possible" />
-    <property name="severity" value="error"/>
-  </module>
-
   <module name="SuppressWithPlainTextCommentFilter">
-    <property name="offCommentFormat" value="CS-SUPPRESS-ALL: .+"/> <!-- Require an explaination after surpressing -->
+    <property name="offCommentFormat" value="CS-SUPPRESS-ALL: .+"/> <!-- Require an explanation after suppressing -->
     <property name="onCommentFormat" value="CS-ENFORCE-ALL"/>
   </module>
 
   <module name="SuppressWithPlainTextCommentFilter">
-    <property name="offCommentFormat" value="CS-SUPPRESS-SINGLE\: ([\w\|]+) .+"/> <!-- Require an explaination after surpressing -->
+    <property name="offCommentFormat" value="CS-SUPPRESS-SINGLE\: ([\w\|]+) .+"/> <!-- Require an explanation after suppressing -->
     <property name="onCommentFormat" value="CS-ENFORCE-SINGLE()"/>
     <property name="checkFormat" value="$1"/>
   </module>

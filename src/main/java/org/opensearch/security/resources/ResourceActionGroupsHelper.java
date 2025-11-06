@@ -15,14 +15,12 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
 import org.yaml.snakeyaml.Yaml;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline get Resource Sharing Extensions
 /**
  * Helper class to load `resource-action-groups.yml` file for all resource sharing extensions.
  */
@@ -89,11 +87,8 @@ public class ResourceActionGroupsHelper {
                                 || e.getValue().getAllowed_actions().isEmpty()
                         );
 
-                    FlattenedActionGroups flattened = new FlattenedActionGroups(cfg);
-
                     // Publish to ResourcePluginInfo → used by UI and authZ
-                    resourcePluginInfo.registerActionGroupNames(resType, cfg.getCEntries().keySet());
-                    resourcePluginInfo.registerFlattened(resType, flattened);
+                    resourcePluginInfo.registerAccessLevels(resType, cfg);
 
                     log.info("Registered {} action-groups for {}", cfg.getCEntries().size(), resType);
                 }
@@ -104,4 +99,3 @@ public class ResourceActionGroupsHelper {
         }
     }
 }
-// CS-ENFORCE-SINGLE

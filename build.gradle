@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.11'
+        spring_version = '6.2.12'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -47,7 +47,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
     }
@@ -65,9 +65,9 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.2"
+    id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.2"
+    id "com.github.spotbugs" version "6.4.4"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -422,10 +422,11 @@ publishing {
     repositories {
         maven {
             name = "Snapshots" //  optional target repository name
-            url = "https://central.sonatype.com/repository/maven-snapshots/"
-            credentials {
-                username System.getenv("SONATYPE_USERNAME")
-                password System.getenv("SONATYPE_PASSWORD")
+            url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+            credentials(AwsCredentials) {
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
             }
         }
     }
@@ -481,15 +482,15 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.42.0"
-            force "org.checkerframework:checker-qual:3.51.0"
-            force "ch.qos.logback:logback-classic:1.5.19"
+            force "com.google.errorprone:error_prone_annotations:2.43.0"
+            force "org.checkerframework:checker-qual:3.51.1"
+            force "ch.qos.logback:logback-classic:1.5.20"
             force "commons-io:commons-io:2.20.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.20.0"
             force "net.bytebuddy:byte-buddy:1.17.8"
-            force "org.ow2.asm:asm:9.8"
+            force "org.ow2.asm:asm:9.9"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
@@ -506,7 +507,7 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
         maven { url "build.shibboleth.net/maven/releases"}
@@ -572,6 +573,10 @@ allprojects {
         }
         integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
         integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+
+        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
+            exclude(group: 'net.minidev', module: 'json-smart')
+        }
     }
 }
 
@@ -690,10 +695,10 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.19.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.42.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.43.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
-    runtimeOnly 'org.ow2.asm:asm:9.8'
+    runtimeOnly 'org.ow2.asm:asm:9.9'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
@@ -721,7 +726,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.51.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.51.1'
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -757,10 +762,10 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.0'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M5"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -790,7 +795,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.28.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.31.0') {
         exclude group: 'com.google.guava'
     }
 }

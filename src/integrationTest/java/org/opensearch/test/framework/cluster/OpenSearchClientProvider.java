@@ -105,7 +105,14 @@ public interface OpenSearchClientProvider {
     }
 
     default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
+        if (user.isAdminCertUser()) {
+            return getRestClient(getTestCertificates().getAdminCertificateData());
+        }
         return getRestClient(user.getName(), user.getPassword(), null, headers);
+    }
+
+    default TestRestClient getAdminCertRestClient() {
+        return getRestClient(getTestCertificates().getAdminCertificateData());
     }
 
     default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
@@ -298,6 +305,10 @@ public interface OpenSearchClientProvider {
         String getName();
 
         String getPassword();
+
+        default boolean isAdminCertUser() {
+            return false;
+        }
     }
 
 }
