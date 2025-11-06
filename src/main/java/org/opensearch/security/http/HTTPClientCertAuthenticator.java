@@ -46,6 +46,7 @@ import javax.naming.ldap.Rdn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.Nullable;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -70,7 +71,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         SAN
     }
 
-    private record ParsedSAN(int type, String glob) {
+    private record ParsedSAN(int type, @Nullable WildcardMatcher matcher) {
     }
 
     private record ParsedAttribute(AttributeType type, String dnAttr, ParsedSAN san) {
@@ -107,8 +108,17 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
                 log.warn("Unsupported SAN type '{}' in attribute '{}'", sanField, raw);
                 return null;
             }
-            return ParsedAttribute.san(new ParsedSAN(sanType.getValue(), Strings.isNullOrEmpty(glob) ? null : glob));
 
+            WildcardMatcher matcher = null; // null means pass-through
+            if (!Strings.isNullOrEmpty(glob)) {
+                // we only support '*' for now
+                if (glob.indexOf('?') >= 0 || (glob.startsWith("/") && glob.endsWith("/"))) {
+                    log.warn("Unsupported SAN glob (only '*' allowed, case-insensitive). attribute='{}'", raw);
+                    return null;
+                }
+                matcher = WildcardMatcher.from(glob).ignoreCase();
+            }
+            return ParsedAttribute.san(new ParsedSAN(sanType.getValue(), matcher));
         }
 
         // DN form: either "dn:cn" or just "cn"
@@ -216,8 +226,8 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
                     if (Strings.isNullOrEmpty(v)) return null;
                     // Bound input length for safety before glob
                     final String s = v.length() > MAX_SAN_VALUE_LEN ? v.substring(0, MAX_SAN_VALUE_LEN) : v;
-                    if (psan.glob() == null) return s; // no filter -> pass-through
-                    return matchesGlobCI(s, psan.glob()) ? s : null; // glob filter
+                    if (psan.matcher() == null) return s; // no filter -> pass-through
+                    return psan.matcher().test(s) ? s : null;
                 })
                 .filter(Objects::nonNull)
                 .limit(MAX_SAN_MATCHES)
@@ -226,44 +236,6 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
             log.error("Error parsing X509 certificate", e);
             return Collections.emptyList();
         }
-    }
-
-    // Minimal case-insensitive '*' glob
-    private static boolean matchesGlobCI(String value, String pattern) {
-        final String v = value.toLowerCase(Locale.ROOT);
-        final String p = pattern.toLowerCase(Locale.ROOT);
-
-        final int star = p.indexOf('*');
-        if (star < 0) {
-            return v.equals(p);
-        }
-
-        // Split on '*' and ensure parts appear in order
-        final String[] parts = p.split("\\*", -1);
-        int pos = 0;
-
-        // prefix
-        if (!p.startsWith("*")) {
-            final String head = parts[0];
-            if (!v.startsWith(head)) return false;
-            pos = head.length();
-        }
-
-        // middle parts
-        for (int i = 1; i < parts.length - 1; i++) {
-            final String part = parts[i];
-            if (part.isEmpty()) continue;
-            final int idx = v.indexOf(part, pos);
-            if (idx < 0) return false;
-            pos = idx + part.length();
-        }
-
-        // suffix
-        final String tail = parts[parts.length - 1];
-        if (!p.endsWith("*")) {
-            return v.substring(pos).endsWith(tail);
-        }
-        return true;
     }
 
     // sometimes IP address is of type of byte[]
