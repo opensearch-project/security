@@ -252,7 +252,7 @@ public class SecuritySettingsConfigurerTests {
     public void testBuildSecurityConfigMap() {
         Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
 
-        assertThat(actual.size(), is(17));
+        assertThat(actual.size(), is(16));
         assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
