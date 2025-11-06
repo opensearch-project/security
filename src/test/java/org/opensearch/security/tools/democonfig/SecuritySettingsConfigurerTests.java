@@ -47,7 +47,6 @@ import static org.opensearch.security.dlic.rest.validation.RequestContentValidat
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
@@ -269,7 +268,6 @@ public class SecuritySettingsConfigurerTests {
         assertThat(actual.get("plugins.security.check_snapshot_restore_write_privileges"), equalTo(true));
         assertThat(actual.get("plugins.security.restapi.roles_enabled"), equalTo(REST_ENABLED_ROLES));
         assertThat(actual.get("plugins.security.system_indices.enabled"), equalTo(true));
-        assertThat(actual.get("plugins.security.system_indices.indices"), equalTo(SYSTEM_INDICES));
         assertThat(actual.get("node.max_local_storage_nodes"), equalTo(3));
 
         installer.initsecurity = true;
