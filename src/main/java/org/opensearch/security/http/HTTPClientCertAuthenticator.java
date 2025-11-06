@@ -34,11 +34,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -71,13 +70,13 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         SAN
     }
 
-    private record ParsedSAN(int type, Pattern pattern) {
+    private record ParsedSAN(int type, String glob) {
     }
 
     private record ParsedAttribute(AttributeType type, String dnAttr, ParsedSAN san) {
 
-        static ParsedAttribute dn(String attr) {
-            return new ParsedAttribute(AttributeType.DN, attr, null);
+        static ParsedAttribute dn(String dnAttr) {
+            return new ParsedAttribute(AttributeType.DN, dnAttr, null);
         }
 
         static ParsedAttribute san(ParsedSAN san) {
@@ -85,41 +84,31 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         }
     }
 
+    // Accept forms:
+    // "cn" -> DN:cn
+    // "dn:cn" -> DN:cn
+    // "san:EMAIL" -> SAN type EMAIL, no glob (match all of that SAN)
+    // "san:EMAIL:glob" -> SAN type EMAIL, glob
     private ParsedAttribute parseAttributeSetting(String raw) {
         if (Strings.isNullOrEmpty(raw)) return null; // “not configured”
-
-        // Accept forms:
-        // "cn" -> DN:cn
-        // "dn:cn" -> DN:cn
-        // "san:EMAIL" -> SAN type EMAIL, no regex (match all of that SAN)
-        // "san:EMAIL:re" -> SAN type EMAIL, regex
         final String s = raw.trim();
 
+        // SAN form: san:TYPE[:glob]
         if (s.regionMatches(true, 0, "san:", 0, 4)) {
-            final String rest = s.substring(4);      // after "san:"
+            final String rest = s.substring(4); // after "san:"
             final int firstColon = rest.indexOf(':');
             final String sanField = (firstColon >= 0) ? rest.substring(0, firstColon) : rest;
-            final String regex = (firstColon >= 0) ? rest.substring(firstColon + 1) : null;
+            final String glob = (firstColon >= 0) ? rest.substring(firstColon + 1) : null;
 
-            Integer sanTypeInt;
+            final SANType sanType;
             try {
-                sanTypeInt = SANType.valueOf(sanField.toUpperCase(java.util.Locale.ROOT)).getValue();
+                sanType = parseSanTypeToken(sanField);
             } catch (IllegalArgumentException e) {
                 log.warn("Unsupported SAN type '{}' in attribute '{}'", sanField, raw);
                 return null;
             }
+            return ParsedAttribute.san(new ParsedSAN(sanType.getValue(), Strings.isNullOrEmpty(glob) ? null : glob));
 
-            Pattern pattern = null;
-            if (!Strings.isNullOrEmpty(regex)) {
-                try {
-                    pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-                } catch (Exception e) {
-                    log.warn("Invalid regex in attribute '{}': {}", raw, e.toString());
-                    return null;
-                }
-            }
-
-            return ParsedAttribute.san(new ParsedSAN(sanTypeInt, pattern));
         }
 
         // DN form: either "dn:cn" or just "cn"
@@ -136,9 +125,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
 
     @Override
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
-
         final String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-
         if (Strings.isNullOrEmpty(principal)) {
             log.trace("No CLIENT CERT, send 401");
             return null;
@@ -153,23 +140,30 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
             final String[] roles = extractRoles(threadContext, principal);
             return new AuthCredentials(username, roles).markComplete();
         } catch (InvalidNameException e) {
-            log.error("Client cert had no properly formed DN");
-            log.debug("Client cert had no properly formed DN (was: {})", principal);
+            if (log.isDebugEnabled()) {
+                log.warn("Invalid client certificate DN; principal='{}'", principal, e);
+            } else {
+                log.warn("Client cert had no properly formed DN.  {}", e.getMessage());
+            }
+
             return null;
         }
     }
 
     private String extractUsername(ThreadContext ctx, String principal) throws InvalidNameException {
+        // Default: full DN
         if (parsedUsernameAttr == null || (parsedUsernameAttr.type == AttributeType.DN && parsedUsernameAttr.dnAttr == null)) {
             return principal;
         }
+
         List<String> usernames;
         if (parsedUsernameAttr.type == AttributeType.DN) {
             usernames = getDnAttribute(new LdapName(principal), parsedUsernameAttr.dnAttr);
         } else {
             usernames = extractFromSAN(ctx, parsedUsernameAttr.san);
         }
-        return usernames == null || usernames.isEmpty() ? principal : usernames.get(0);
+        // Username rule: pick the FIRST match; else fallback to full DN
+        return (usernames == null || usernames.isEmpty()) ? principal : usernames.get(0);
     }
 
     private String[] extractRoles(ThreadContext ctx, String principal) throws InvalidNameException {
@@ -206,27 +200,24 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         if (psan == null) return Collections.emptyList();
 
         final X509Certificate[] peerCertificates = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
-
         if (peerCertificates == null || peerCertificates.length == 0) {
             return Collections.emptyList();
         }
 
         try {
-            Collection<List<?>> altNames = peerCertificates[0].getSubjectAlternativeNames();
+            final Collection<List<?>> altNames = peerCertificates[0].getSubjectAlternativeNames();
             if (altNames == null) return Collections.emptyList();
 
             return altNames.stream()
                 .filter(entry -> entry != null && entry.size() >= 2)
                 .filter(entry -> entry.get(0) instanceof Integer i && i.intValue() == psan.type())
-                .map(entry -> sanValueToString(psan.type, entry.get(1)))
+                .map(entry -> sanValueToString(psan.type(), entry.get(1)))
                 .map(v -> {
                     if (Strings.isNullOrEmpty(v)) return null;
-                    if (psan.pattern() == null) return v; // no regex -> keep full
-                    // bound input length before regex
-                    String s = v.length() > MAX_SAN_VALUE_LEN ? v.substring(0, MAX_SAN_VALUE_LEN) : v;
-                    Matcher m = psan.pattern().matcher(s);
-                    if (!m.matches()) return null;
-                    return (m.groupCount() >= 1) ? m.group(1) : s; // first capture group, else full
+                    // Bound input length for safety before glob
+                    final String s = v.length() > MAX_SAN_VALUE_LEN ? v.substring(0, MAX_SAN_VALUE_LEN) : v;
+                    if (psan.glob() == null) return s; // no filter -> pass-through
+                    return matchesGlobCI(s, psan.glob()) ? s : null; // glob filter
                 })
                 .filter(Objects::nonNull)
                 .limit(MAX_SAN_MATCHES)
@@ -235,6 +226,44 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
             log.error("Error parsing X509 certificate", e);
             return Collections.emptyList();
         }
+    }
+
+    // Minimal case-insensitive '*' glob
+    private static boolean matchesGlobCI(String value, String pattern) {
+        final String v = value.toLowerCase(Locale.ROOT);
+        final String p = pattern.toLowerCase(Locale.ROOT);
+
+        final int star = p.indexOf('*');
+        if (star < 0) {
+            return v.equals(p);
+        }
+
+        // Split on '*' and ensure parts appear in order
+        final String[] parts = p.split("\\*", -1);
+        int pos = 0;
+
+        // prefix
+        if (!p.startsWith("*")) {
+            final String head = parts[0];
+            if (!v.startsWith(head)) return false;
+            pos = head.length();
+        }
+
+        // middle parts
+        for (int i = 1; i < parts.length - 1; i++) {
+            final String part = parts[i];
+            if (part.isEmpty()) continue;
+            final int idx = v.indexOf(part, pos);
+            if (idx < 0) return false;
+            pos = idx + part.length();
+        }
+
+        // suffix
+        final String tail = parts[parts.length - 1];
+        if (!p.endsWith("*")) {
+            return v.substring(pos).endsWith(tail);
+        }
+        return true;
     }
 
     // sometimes IP address is of type of byte[]
@@ -260,6 +289,22 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     @Override
     public String getType() {
         return "clientcert";
+    }
+
+    private static SANType parseSanTypeToken(String token) {
+        final String t = token.toLowerCase(Locale.ROOT);
+        return switch (t) {
+            case "othername" -> SANType.OTHER_NAME;
+            case "rfc822name" -> SANType.EMAIL;
+            case "dnsname" -> SANType.DNS; // RFC prints dNSName
+            case "x400address" -> SANType.X400_ADDRESS;
+            case "directoryname" -> SANType.DIRECTORY_NAME;
+            case "edipartyname" -> SANType.EDI_PARTY_NAME;
+            case "uniformresourceidentifier" -> SANType.URI;
+            case "ipaddress" -> SANType.IP_ADDRESS;    // RFC prints iPAddress
+            case "registeredid" -> SANType.REGISTERED_ID;
+            default -> throw new IllegalArgumentException("Unsupported SAN type token: " + token);
+        };
     }
 
     /**

@@ -173,7 +173,10 @@ public class IntegrationTests extends SingleClusterTest {
             HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(s, null);
 
             AuthCredentials creds = auth.extractCredentials(null, ctxWith(SSL_PRINCIPAL, cert));
-            Set<String> actual = creds.getBackendRoles() == null ? null : new HashSet<>(creds.getBackendRoles());
+            // the authenticator now returns null when there’s no match
+            Set<String> actual = (creds.getBackendRoles() == null || creds.getBackendRoles().isEmpty())
+                ? null
+                : new HashSet<>(creds.getBackendRoles());
             if (c.expectedRoles == null) {
                 Assert.assertNull("Expected null roles: " + c, actual);
             } else {
@@ -215,80 +218,85 @@ public class IntegrationTests extends SingleClusterTest {
     private static final String SSL_PRINCIPAL = "cn=abc,cn=xxx,l=ert,st=zui,c=qwe";
 
     private static final List<SanUsernameCase> USERNAME_CASES = Arrays.asList(
-        // EMAIL
-        new SanUsernameCase(1, "user1@example.com", "san:EMAIL:user1@example.com", "user1@example.com"),
-        new SanUsernameCase(1, "user2@example.com", "san:EMAIL:examples.com", SSL_PRINCIPAL),
-        new SanUsernameCase(1, "user+special@example.com", "san:EMAIL:user\\+special@example.com", "user+special@example.com"),
-        new SanUsernameCase(1, "admin@example.org", "san:EMAIL:.*@example\\.(?:com|org)", "admin@example.org"),
-        new SanUsernameCase(1, "admin@example.org", "san:EMAIL:(?i)^[^@]+@example\\.org$", "admin@example.org"),
-        new SanUsernameCase(1, "user@sub.example.net", "san:EMAIL:.*@.*example\\.net", "user@sub.example.net"),
+        // rfc822Name (EMAIL)
+        // exact match
+        new SanUsernameCase(1, "user1@example.com", "san:rfc822Name:user1@example.com", "user1@example.com"),
+        // glob on local-part
+        new SanUsernameCase(1, "admin@example.com", "san:rfc822Name:*@example.com", "admin@example.com"),
+        // glob on subdomain
+        new SanUsernameCase(1, "user@sub.example.net", "san:rfc822Name:*@*.example.net", "user@sub.example.net"),
+        // no match → fallback to DN
+        new SanUsernameCase(1, "user2@example.com", "san:rfc822Name:*@other.com", SSL_PRINCIPAL),
 
-        // DNS
-        new SanUsernameCase(2, "www.example.com", "san:DNS:www.example.com", "www.example.com"),
-        new SanUsernameCase(2, "shop.store.example.com", "san:DNS:.*.store.example.com", "shop.store.example.com"),
-        new SanUsernameCase(2, "subdomain.example.co.uk", "san:DNS:.*.example.co.uk", "subdomain.example.co.uk"),
-        new SanUsernameCase(2, "example.net", "san:DNS:.*.example.com", SSL_PRINCIPAL),
-        new SanUsernameCase(2, "api.services.example", "san:DNS:.*.services.example.com", SSL_PRINCIPAL),
+        // dNSName (DNS)
+        // exact
+        new SanUsernameCase(2, "www.example.com", "san:dNSName:www.example.com", "www.example.com"),
+        // subdomain glob
+        new SanUsernameCase(2, "shop.store.example.com", "san:dNSName:*.store.example.com", "shop.store.example.com"),
+        // no match → DN
+        new SanUsernameCase(2, "example.net", "san:dNSName:*.example.com", SSL_PRINCIPAL),
 
-        // IP
-        new SanUsernameCase(7, "10.0.0.1", "san:IP_ADDRESS:10.0.0.1", "10.0.0.1"),
-        new SanUsernameCase(7, "192.168.1.10", "san:IP_ADDRESS:192.168.1.*", "192.168.1.10"),
-        new SanUsernameCase(7, "172.16.0.1", "san:IP_ADDRESS:10.0.*", SSL_PRINCIPAL),
+        // iPAddress
+        new SanUsernameCase(7, "10.0.0.1", "san:iPAddress:10.0.0.1", "10.0.0.1"),
+        new SanUsernameCase(7, "192.168.1.10", "san:iPAddress:192.168.1.*", "192.168.1.10"),
+        // no match → DN
+        new SanUsernameCase(7, "172.16.0.1", "san:iPAddress:10.0.*", SSL_PRINCIPAL),
 
-        // URI
-        new SanUsernameCase(6, "https://example.com/resource", "san:URI:https://example.com/resource", "https://example.com/resource"),
+        // uniformResourceIdentifier (URI)
+        // exact
+        new SanUsernameCase(
+            6,
+            "https://example.com/resource",
+            "san:uniformResourceIdentifier:https://example.com/resource",
+            "https://example.com/resource"
+        ),
+        // prefix glob
         new SanUsernameCase(
             6,
             "https://example.com/sub/resource",
-            "san:URI:https://example.com/sub/.*",
+            "san:uniformResourceIdentifier:https://example.com/sub/*",
             "https://example.com/sub/resource"
         ),
-        new SanUsernameCase(6, "http://example.com", "san:URI:(?:https|http)://example.com", "http://example.com"),
-        new SanUsernameCase(
-            6,
-            "https://example.com/path?param=value#fragment",
-            "san:URI:https://example.com/path\\?param=value.*",
-            "https://example.com/path?param=value#fragment"
-        ),
-        new SanUsernameCase(6, "ftp://example.com/file", "san:URI:http://.*", SSL_PRINCIPAL),
 
-        // OTHER_NAME / DIRECTORY_NAME / REGISTERED_ID
-        new SanUsernameCase(0, "specificOtherNameValue", "san:OTHER_NAME:.*", "specificOtherNameValue"),
-        new SanUsernameCase(0, "specificOtherNameValue", "san:OTHER_NAME:specificOtherNameValue1", SSL_PRINCIPAL),
-        new SanUsernameCase(
-            3,
-            "X400:C=GB;A= ;P=Some Organization",
-            "san:X400_ADDRESS:X400:C=GB;A=.*;P=.*",
-            "X400:C=GB;A= ;P=Some Organization"
-        ),
+        new SanUsernameCase(6, "http://example.com", "san:uniformResourceIdentifier:http://example.com", "http://example.com"),
+        // no match → DN
+        new SanUsernameCase(6, "ftp://example.com/file", "san:uniformResourceIdentifier:http://*", SSL_PRINCIPAL),
+
+        // otherName / directoryName / registeredID
+        new SanUsernameCase(0, "specificOtherNameValue", "san:otherName:*", "specificOtherNameValue"),
+        // no match → DN
+        new SanUsernameCase(0, "specificOtherNameValue", "san:otherName:other*", SSL_PRINCIPAL),
         new SanUsernameCase(
             4,
             "C=US, ST=Virginia, L=SomeCity, O=My Org, OU=My Unit, CN=www.example.org",
-            "san:DIRECTORY_NAME:C=US, ST=.*",
+            "san:directoryName:C=US*",
             "C=US, ST=Virginia, L=SomeCity, O=My Org, OU=My Unit, CN=www.example.org"
         ),
-        new SanUsernameCase(8, "1.2.3.4.5.6", "san:REGISTERED_ID:1.2.3.4.*", "1.2.3.4.5.6")
+        new SanUsernameCase(8, "1.2.3.4.5.6", "san:registeredID:1.2.3.*", "1.2.3.4.5.6")
     );
 
     private static final List<SanRolesCase> ROLES_CASES = Arrays.asList(
-        // EMAIL with capturing group → group(1) only
-        new SanRolesCase(1, "admin@blue.example.org", "san:EMAIL:^[^@]+@([^.]+)\\.example\\.(?:com|org)$", new String[] { "blue" }),
+        // 1) rfc822Name → exact
+        new SanRolesCase(1, "admin@blue.example.org", "san:rfc822Name:admin@blue.example.org", new String[] { "admin@blue.example.org" }),
 
-        // DNS no capturing group → whole string kept
-        new SanRolesCase(2, "svc1.api.example.com", "san:DNS:.*\\.example\\.com$", new String[] { "svc1.api.example.com" }),
+        // 2) rfc822Name → glob on domain
+        new SanRolesCase(1, "service@app.example.com", "san:rfc822Name:*@app.example.com", new String[] { "service@app.example.com" }),
 
-        // URI with capturing group → path segment
+        // 3) dNSName → glob
+        new SanRolesCase(2, "svc1.api.example.com", "san:dNSName:*.example.com", new String[] { "svc1.api.example.com" }),
+
+        // 4) uniformResourceIdentifier → prefix glob
         new SanRolesCase(
             6,
             "https://example.com/dep/teamA/resource",
-            "san:URI:^https://example\\.com/dep/([^/]+)/.*$",
-            new String[] { "teamA" }
+            "san:uniformResourceIdentifier:https://example.com/dep/*",
+            new String[] { "https://example.com/dep/teamA/resource" }
         ),
 
-        // No match → empty roles
-        new SanRolesCase(7, "10.0.0.5", "san:EMAIL:.*@example\\.org$", new String[] {}),
+        // 5) No match → roles must be null
+        new SanRolesCase(7, "10.0.0.5", "san:rfc822Name:*@example.org", null),
 
-        // DN roles (ignore SAN) → L=ert from DN
+        // 6) DN roles (ignore SAN) → L=ert from DN
         new SanRolesCase(1, "whatever@example.com", "dn:l", new String[] { "ert" })
     );
 
