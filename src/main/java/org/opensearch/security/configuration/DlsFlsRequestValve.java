@@ -51,6 +51,8 @@ public interface DlsFlsRequestValve {
 
     boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException;
 
+    boolean indexHasFlsRestrictions(String index, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException;
+
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
@@ -86,6 +88,11 @@ public interface DlsFlsRequestValve {
         @Override
         public boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) {
             return true;
+        }
+
+        @Override
+        public boolean indexHasFlsRestrictions(String index, PrivilegesEvaluationContext ctx) {
+            return false;
         }
     }
 

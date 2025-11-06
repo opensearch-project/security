@@ -2328,12 +2328,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public Function<String, Predicate<String>> getFieldFilter() {
         return index -> {
             if (threadPool == null || dlsFlsValve == null) {
-                return field -> true;
+                return NOOP_FIELD_PREDICATE;
             }
 
             PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
                 ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
                 : null;
+
+            boolean indexHasRestrictions = false;
+            try {
+                indexHasRestrictions = dlsFlsValve.indexHasFlsRestrictions(index, ctx);
+            } catch (PrivilegesEvaluationException e) {
+                log.error("Error while evaluating FLS restrictions for {}", index, e);
+            }
+
+            if (!indexHasRestrictions) {
+                return NOOP_FIELD_PREDICATE;
+            }
 
             return field -> {
                 try {
