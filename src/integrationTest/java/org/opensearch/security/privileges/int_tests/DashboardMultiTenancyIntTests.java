@@ -41,7 +41,6 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * An integration test matrix for Dashboards multi-tenancy. Verifies both read and write operations
@@ -660,25 +659,13 @@ public class DashboardMultiTenancyIntTests {
             );
 
             if (user.reference(WRITE).covers(dashboards_index_human_resources)) {
-                if (user == GLOBAL_TENANT_READ_WRITE_USER || user == WILDCARD_TENANT_USER) {
-                    assertThat(response, isOk());
-                    assertThat(
-                        response,
-                        containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
-                            .reducedBy(user.reference(WRITE))
-                            .whenEmpty(isOk())
-                    );
-                } else {
-                    // At the moment, we get here a nested error:
-                    // Update is not supported when FLS or DLS or Fieldmasking is activated
-                    // This is a bug; even though it does not seem to have an impact on Dashboards functionality
-                    assertThat(response, isOk());
-                    assertTrue(
-                        response.getBody(),
-                        response.getBody().contains("Update is not supported when FLS or DLS or Fieldmasking is activated")
-                    );
-                }
-
+                assertThat(response, isOk());
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(isOk())
+                );
             } else {
                 assertThat(
                     response,
