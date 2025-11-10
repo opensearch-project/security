@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.31.0 ([#5741](https://github.com/opensearch-project/security/pull/5741), [#5765](https://github.com/opensearch-project/security/pull/5765))
 - Bump `com.jayway.jsonpath:json-path` from 2.9.0 to 2.10.0 ([#5767](https://github.com/opensearch-project/security/pull/5767))
 - Bump `commons-io:commons-io` from 2.20.0 to 2.21.0 ([#5780](https://github.com/opensearch-project/security/pull/5780))
+- Bump `com.nimbusds:nimbus-jose-jwt` from 10.5 to 10.6 ([#5782](https://github.com/opensearch-project/security/pull/5782))
 
 ### Documentation
 
