@@ -723,7 +723,7 @@ dependencies {
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
-    runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
+    runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.51.1'
