@@ -449,6 +449,29 @@ bundlePlugin {
     }
 }
 
+//create source set 'integrationTest'
+//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file ('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+        processIntegrationTestResources {
+            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+        }
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 configurations {
     all {
         resolutionStrategy {
@@ -497,9 +520,24 @@ configurations {
             force "com.google.guava:failureaccess:1.0.3"
         }
     }
+}
 
-    integrationTestImplementation.extendsFrom implementation
-    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+subprojects {
+    plugins.withId('java') {
+        dependencies {
+            testImplementation 'org.hamcrest:hamcrest:2.2'
+            testImplementation 'junit:junit:4.13.2'
+            testImplementation "org.opensearch:opensearch:${opensearch_version}"
+            testImplementation "org.mockito:mockito-core:5.20.0"
+        }
+
+        afterEvaluate {
+            if (project.configurations.findByName('integrationTestImplementation')) {
+                configurations.integrationTestImplementation.extendsFrom configurations.implementation
+                configurations.integrationTestRuntimeOnly.extendsFrom configurations.runtimeOnly
+            }
+        }
+    }
 }
 
 allprojects {
@@ -513,87 +551,62 @@ allprojects {
         maven { url "build.shibboleth.net/maven/releases"}
     }
 
-    configurations {
-        integrationTestImplementation.extendsFrom implementation
-        compile.extendsFrom compileOnly
-        compile.extendsFrom testImplementation
-    }
-    dependencies {
-        // unit test framework
-        testImplementation 'org.hamcrest:hamcrest:2.2'
-        testImplementation 'junit:junit:4.13.2'
-        testImplementation "org.opensearch:opensearch:${opensearch_version}"
-        testImplementation "org.mockito:mockito-core:5.20.0"
+    afterEvaluate {
+        if (project.configurations.findByName('integrationTestImplementation')) {
+            dependencies {
+                //integration test framework:
+                integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
+                    exclude(group: 'junit', module: 'junit')
+                }
+                integrationTestImplementation 'junit:junit:4.13.2'
+                integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
+                    exclude(group: 'org.slf4j', module: 'slf4j-api')
+                }
+                integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
+                integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
+                integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+                integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+                integrationTestImplementation 'commons-io:commons-io:2.21.0'
+                integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+                integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
+                integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
+                integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+                integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+                integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+                integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
+                    exclude(group: 'org.hamcrest', module: 'hamcrest')
+                }
+                integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
+                integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
+                integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
+                integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+                integrationTestImplementation "org.mockito:mockito-core:5.20.0"
+                integrationTestImplementation "org.passay:passay:1.6.6"
+                integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
+                integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
+                integrationTestImplementation "com.google.guava:guava:${guava_version}"
+                integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
+                integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+                integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
+                integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
+                integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
+                    exclude(group:'com.fasterxml.jackson.core')
+                    exclude(group: 'org.apache.commons', module: 'commons-collections4')
+                }
+                integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
+                integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
-        //integration test framework:
-        integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
-            exclude(group: 'junit', module: 'junit')
-        }
-        integrationTestImplementation 'junit:junit:4.13.2'
-        integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
-            exclude(group: 'org.slf4j', module: 'slf4j-api')
-        }
-        integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
-        integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
-        integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
-        integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-        integrationTestImplementation 'commons-io:commons-io:2.21.0'
-        integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-        integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
-        integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-        integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-        integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-        integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
-        integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
-            exclude(group: 'org.hamcrest', module: 'hamcrest')
-        }
-        integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-        integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
-        integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
-        integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-        integrationTestImplementation "org.mockito:mockito-core:5.20.0"
-        integrationTestImplementation "org.passay:passay:1.6.6"
-        integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
-        integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
-        integrationTestImplementation "com.google.guava:guava:${guava_version}"
-        integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
-        integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-        integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
-        integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
-        integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
-            exclude(group:'com.fasterxml.jackson.core')
-            exclude(group: 'org.apache.commons', module: 'commons-collections4')
-        }
-        integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
-        integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
-
-        integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
-            exclude(group: 'net.minidev', module: 'json-smart')
-        }
-    }
-}
-
-//create source set 'integrationTest'
-//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
-sourceSets {
-    integrationTest {
-        java {
-            srcDir file ('src/integrationTest/java')
-            compileClasspath += sourceSets.main.output
-            runtimeClasspath += sourceSets.main.output
-        }
-        resources {
-            srcDir file('src/integrationTest/resources')
-        }
-        processIntegrationTestResources {
-            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+                integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
+                    exclude(group: 'net.minidev', module: 'json-smart')
+                }
+            }
         }
     }
 }
@@ -801,22 +814,12 @@ dependencies {
 }
 
 jar {
-    libsDirName = '.'
-    into '', {
-        from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
-    }
-    processResources {
-        exclude("KEYS")
-    }
+    from('NOTICE.txt', 'THIRD-PARTY.txt', 'LICENSE')
 }
 
 tasks.register('testsJar', Jar) {
     archiveClassifier = 'tests'
     from(sourceSets.test.output)
-}
-
-testsJar {
-    libsDirName = '.'
 }
 
 task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
@@ -901,7 +904,7 @@ afterEvaluate {
         version = "${project.version}" - "-SNAPSHOT"
 
         into '/usr/share/opensearch/plugins'
-        from(zipTree(bundlePlugin.archivePath)) {
+        from(zipTree(bundlePlugin.archiveFile)) {
             into opensearchplugin.name
         }
 
