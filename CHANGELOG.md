@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.apache.ws.xmlschema:xmlschema-core` from 2.3.1 to 2.3.2 ([#5781](https://github.com/opensearch-project/security/pull/5781))
 - Bump `commons-io:commons-io` from 2.20.0 to 2.21.0 ([#5780](https://github.com/opensearch-project/security/pull/5780))
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.5 to 10.6 ([#5782](https://github.com/opensearch-project/security/pull/5782))
+- Upgrade to gradle 9.2 and run CI with JDK 25 ([#5786](https://github.com/opensearch-project/security/pull/5786))
 
 ### Documentation
 
