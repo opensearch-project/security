@@ -485,7 +485,7 @@ configurations {
             force "com.google.errorprone:error_prone_annotations:2.43.0"
             force "org.checkerframework:checker-qual:3.51.1"
             force "ch.qos.logback:logback-classic:1.5.20"
-            force "commons-io:commons-io:2.20.0"
+            force "commons-io:commons-io:2.21.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.20.0"
@@ -538,7 +538,7 @@ allprojects {
         integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
         integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
         integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-        integrationTestImplementation 'commons-io:commons-io:2.20.0'
+        integrationTestImplementation 'commons-io:commons-io:2.21.0'
         integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
         integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
         integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
