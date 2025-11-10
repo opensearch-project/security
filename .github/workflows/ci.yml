@@ -338,7 +338,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21, 25]
+        jdk: [21]
         platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
