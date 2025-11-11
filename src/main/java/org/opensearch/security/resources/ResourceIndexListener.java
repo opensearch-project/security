@@ -19,8 +19,9 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.auth.UserSubjectImpl;
-import org.opensearch.security.spi.resources.sharing.CreatedBy;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.CreatedBy;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -37,10 +38,20 @@ public class ResourceIndexListener implements IndexingOperationListener {
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
 
     private final ThreadPool threadPool;
+    private final ResourcePluginInfo resourcePluginInfo;
 
-    public ResourceIndexListener(ThreadPool threadPool, Client client, ResourcePluginInfo resourcePluginInfo) {
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+
+    public ResourceIndexListener(
+        ThreadPool threadPool,
+        Client client,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
+    ) {
         this.threadPool = threadPool;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(client, threadPool, resourcePluginInfo);
+        this.resourcePluginInfo = resourcePluginInfo;
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
 
     /**
@@ -48,7 +59,18 @@ public class ResourceIndexListener implements IndexingOperationListener {
      */
     @Override
     public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
+
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            // feature is disabled
+            return;
+        }
         String resourceIndex = shardId.getIndexName();
+
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
+            // type is marked as not protected
+            return;
+        }
+
         log.debug("postIndex called on {}", resourceIndex);
 
         String resourceId = index.id();
@@ -85,14 +107,12 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceIndex
                 );
             }, e -> { log.debug(e.getMessage()); });
+            ResourceSharing.Builder builder = ResourceSharing.builder()
+                .resourceId(resourceId)
+                .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
+            ResourceSharing sharingInfo = builder.build();
             // User.getRequestedTenant() is null if multi-tenancy is disabled
-            this.resourceSharingIndexHandler.indexResourceSharing(
-                resourceId,
-                resourceIndex,
-                new CreatedBy(user.getName(), user.getRequestedTenant()),
-                null,
-                listener
-            );
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
 
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);
@@ -104,7 +124,17 @@ public class ResourceIndexListener implements IndexingOperationListener {
      */
     @Override
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
+        if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
+            // feature is disabled
+            return;
+        }
         String resourceIndex = shardId.getIndexName();
+
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
+            // type is marked as not protected
+            return;
+        }
+
         log.debug("postDelete called on {}", resourceIndex);
 
         String resourceId = delete.id();

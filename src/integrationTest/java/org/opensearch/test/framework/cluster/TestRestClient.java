@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,6 +60,7 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.routing.HttpRoutePlanner;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -72,9 +74,13 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 
+import com.nimbusds.jose.shaded.gson.Gson;
+
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -118,6 +124,12 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse get(String path, Header... headers) {
         return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
+    }
+
+    public HttpResponse get(String path, HttpEntity entity, Header... headers) {
+        HttpGet uriRequest = new HttpGet(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
     }
 
     public HttpResponse getWithoutLeadingSlash(String path, Header... headers) {
@@ -184,8 +196,20 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(uriRequest);
     }
 
+    public HttpResponse put(String path, HttpEntity entity, Header... headers) {
+        HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
+    }
+
     public HttpResponse delete(String path, Header... headers) {
         return executeRequest(new HttpDelete(getHttpServerUri() + "/" + path), headers);
+    }
+
+    public HttpResponse delete(String path, HttpEntity entity, Header... headers) {
+        HttpDelete uriRequest = new HttpDelete(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
     }
 
     public HttpResponse postJson(String path, String body, Header... headers) {
@@ -201,6 +225,12 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse post(String path) {
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
         return executeRequest(uriRequest);
+    }
+
+    public HttpResponse post(String path, HttpEntity entity, Header... headers) {
+        HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
+        uriRequest.setEntity(entity);
+        return executeRequest(uriRequest, headers);
     }
 
     public HttpResponse patch(String path, ToXContentObject body) {
@@ -315,12 +345,12 @@ public class TestRestClient implements AutoCloseable {
         private void verifyContentType() {
             final String contentType = this.getHeader(HttpHeaders.CONTENT_TYPE).getValue();
             if (contentType.contains("application/json")) {
-                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
+                assertThat("Response body format was not json, body: " + body, body.charAt(0), anyOf(equalTo('{'), equalTo('[')));
             } else {
                 assertThat(
                     "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
                     body.charAt(0),
-                    not(equalTo('{'))
+                    allOf(not(equalTo('{')), not(equalTo('[')))
                 );
             }
 
@@ -493,6 +523,21 @@ public class TestRestClient implements AutoCloseable {
     @Override
     public void close() {
         // TODO: Is there anything to clean up here?
+    }
+
+    /**
+     * Helper method to create very simple dynamic JSON request bodies.
+     * @param attributes Key-value pairs, keys on even indices, values on odd indices.
+     * @return A request body that can be passed to the get(), post(), etc. methods.
+     */
+    public static HttpEntity json(Object... attributes) {
+        Map<String, Object> map = new HashMap<>();
+
+        for (int i = 0; i < attributes.length - 1; i += 2) {
+            map.put(attributes[i].toString(), attributes[i + 1]);
+        }
+
+        return new StringEntity(new Gson().toJson(map), ContentType.APPLICATION_JSON);
     }
 
 }

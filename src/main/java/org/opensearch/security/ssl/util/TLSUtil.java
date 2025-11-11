@@ -20,9 +20,7 @@ public class TLSUtil {
     private static final int SSL_CONTENT_TYPE_ALERT = 21;
     private static final int SSL_CONTENT_TYPE_HANDSHAKE = 22;
     private static final int SSL_CONTENT_TYPE_APPLICATION_DATA = 23;
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions heartbeat needs special handling by security extension
     private static final int SSL_CONTENT_TYPE_EXTENSION_HEARTBEAT = 24;
-    // CS-ENFORCE-SINGLE
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
     private TLSUtil() {
@@ -40,11 +38,9 @@ public class TLSUtil {
             case SSL_CONTENT_TYPE_ALERT:
             case SSL_CONTENT_TYPE_HANDSHAKE:
             case SSL_CONTENT_TYPE_APPLICATION_DATA:
-                // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions heartbeat needs special handling by security extension
             case SSL_CONTENT_TYPE_EXTENSION_HEARTBEAT:
                 tls = true;
                 break;
-            // CS-ENFORCE-SINGLE
             default:
                 // SSLv2 or bad data
                 tls = false;

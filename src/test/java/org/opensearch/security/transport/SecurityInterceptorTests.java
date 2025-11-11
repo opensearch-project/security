@@ -8,7 +8,6 @@
 
 package org.opensearch.security.transport;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -167,7 +166,6 @@ public class SecurityInterceptorTests {
             NoopTracer.INSTANCE
         );
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
         guiceHolder = new OpenSearchSecurityPlugin.GuiceHolder(
             mock(RepositoriesService.class),
             transportService,
@@ -175,7 +173,6 @@ public class SecurityInterceptorTests {
             mock(PitService.class),
             mock(ExtensionsManager.class)
         );
-        // CS-ENFORCE-SINGLE
 
         // Instantiate objects for tests
         user = new User("John Doe");

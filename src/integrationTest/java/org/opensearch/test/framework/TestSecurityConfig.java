@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Streams;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -58,6 +59,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -72,8 +74,10 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
 
+import static java.util.Arrays.asList;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 
@@ -103,8 +107,8 @@ public class TestSecurityConfig {
     private Map<String, Role> roles = new LinkedHashMap<>();
     private AuditConfiguration auditConfiguration;
     private Map<String, RoleMapping> rolesMapping = new LinkedHashMap<>();
-
     private Map<String, ActionGroup> actionGroups = new LinkedHashMap<>();
+    private Map<String, Tenant> tenants = new LinkedHashMap<>();
 
     /**
      * A map from document id to a string containing config JSON.
@@ -163,7 +167,9 @@ public class TestSecurityConfig {
         this.internalUsers.put(user.name, user);
 
         for (Role role : user.roles) {
-            this.roles.put(role.name, role);
+            if (!role.isPredefined) {
+                this.roles.put(role.name, role);
+            }
         }
 
         return this;
@@ -236,6 +242,17 @@ public class TestSecurityConfig {
 
     public List<ActionGroup> actionGroups() {
         return List.copyOf(actionGroups.values());
+    }
+
+    public TestSecurityConfig tenants(Tenant... tenants) {
+        for (Tenant tenant : tenants) {
+            if (this.tenants.containsKey(tenant.name)) {
+                throw new IllegalArgumentException("Tenant " + tenant.name + " already exists");
+            }
+            this.tenants.put(tenant.name, tenant);
+        }
+
+        return this;
     }
 
     /**
@@ -325,7 +342,6 @@ public class TestSecurityConfig {
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
             }
-
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
                 xContentBuilder.field("authz", authzDomainMap);
@@ -455,10 +471,12 @@ public class TestSecurityConfig {
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
+        List<Role> referencedRoles = new ArrayList<>();
         List<String> backendRoles = new ArrayList<>();
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
         private Map<MetadataKey<?>, Object> matchers = new HashMap<>();
+        private boolean adminCertUser = false;
 
         private Boolean hidden = null;
 
@@ -483,12 +501,36 @@ public class TestSecurityConfig {
             return this;
         }
 
+        /**
+         * Adds a user-specific role to this user. Internally, the role name will be scoped with the user name
+         * to avoid accidental collisions between roles of different users.
+         */
         public User roles(Role... roles) {
             // We scope the role names by user to keep tests free of potential side effects
             String roleNamePrefix = "user_" + this.getName() + "__";
-            this.roles.addAll(
-                Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
-            );
+
+            for (Role role : roles) {
+                if (!role.isPredefined) {
+                    Role copy = role.clone();
+                    if (!copy.name.startsWith(roleNamePrefix)) {
+                        copy.name = roleNamePrefix + role.name;
+                    }
+                    this.roles.add(copy);
+                } else {
+                    // Add the unscoped role for predefined roles
+                    this.roles.add(role);
+                }
+            }
+
+            return this;
+        }
+
+        /**
+         * Adds references to roles which are already defined for the top-level SecurityTestConfig object.
+         * This allows tests to share roles between users.
+         */
+        public User referencedRoles(Role... roles) {
+            this.referencedRoles.addAll(Arrays.asList(roles));
             return this;
         }
 
@@ -535,7 +577,21 @@ public class TestSecurityConfig {
         }
 
         public Set<String> getRoleNames() {
-            return roles.stream().map(Role::getName).collect(Collectors.toSet());
+            return Streams.concat(roles.stream(), referencedRoles.stream()).map(Role::getName).collect(Collectors.toSet());
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public boolean isAdminCertUser() {
+            return adminCertUser;
+        }
+
+        public User adminCertUser() {
+            this.adminCertUser = true;
+            return this;
         }
 
         public Object getAttribute(String attributeName) {
@@ -551,7 +607,7 @@ public class TestSecurityConfig {
             if (result != null) {
                 return key.type.cast(result);
             } else {
-                return null;
+                throw new RuntimeException("Unknown reference " + key + " in user " + this.name);
             }
         }
 
@@ -629,16 +685,25 @@ public class TestSecurityConfig {
     public static class Role implements ToXContentObject {
         public static Role ALL_ACCESS = new Role("all_access").clusterPermissions("*").indexPermissions("*").on("*");
 
+        /**
+         * Represents the kibana_user role which is predefined in static_roles.yml.
+         */
+        public static Role KIBANA_USER = new Role("kibana_user").isPredefined(true);
+
         private String name;
         private List<String> clusterPermissions = new ArrayList<>();
-
         private List<IndexPermission> indexPermissions = new ArrayList<>();
+        private List<TenantPermission> tenantPermissions = new ArrayList<>();
 
         private Boolean hidden;
-
         private Boolean reserved;
-
         private String description;
+
+        /**
+         * If this is true, the role is expected to be defined in static_roles.yml. Thus, it is not necessary to include it
+         * in the written role config.
+         */
+        private boolean isPredefined = false;
 
         public Role(String name) {
             this(name, null);
@@ -656,6 +721,10 @@ public class TestSecurityConfig {
 
         public IndexPermission indexPermissions(String... indexPermissions) {
             return new IndexPermission(this, indexPermissions);
+        }
+
+        public TenantPermission tenantPermissions(String... tenantPermissions) {
+            return new TenantPermission(this, tenantPermissions);
         }
 
         public Role name(String name) {
@@ -677,10 +746,20 @@ public class TestSecurityConfig {
             return this;
         }
 
+        /**
+         * If this is true, the role is expected to be defined in static_roles.yml. Thus, it is not necessary to include it
+         * in the written role config.
+         */
+        public Role isPredefined(boolean isPredefined) {
+            this.isPredefined = isPredefined;
+            return this;
+        }
+
         public Role clone() {
             Role role = new Role(this.name);
             role.clusterPermissions.addAll(this.clusterPermissions);
             role.indexPermissions.addAll(this.indexPermissions);
+            role.tenantPermissions.addAll(this.tenantPermissions);
             return role;
         }
 
@@ -691,9 +770,11 @@ public class TestSecurityConfig {
             if (!clusterPermissions.isEmpty()) {
                 xContentBuilder.field("cluster_permissions", clusterPermissions);
             }
-
             if (!indexPermissions.isEmpty()) {
                 xContentBuilder.field("index_permissions", indexPermissions);
+            }
+            if (!tenantPermissions.isEmpty()) {
+                xContentBuilder.field("tenant_permissions", tenantPermissions);
             }
             if (hidden != null) {
                 xContentBuilder.field("hidden", hidden);
@@ -713,6 +794,7 @@ public class TestSecurityConfig {
             return Objects.equals(name, role.name)
                 && Objects.equals(clusterPermissions, role.clusterPermissions)
                 && Objects.equals(indexPermissions, role.indexPermissions)
+                && Objects.equals(tenantPermissions, role.tenantPermissions)
                 && Objects.equals(hidden, role.hidden)
                 && Objects.equals(reserved, role.reserved)
                 && Objects.equals(description, role.description);
@@ -720,7 +802,7 @@ public class TestSecurityConfig {
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, clusterPermissions, indexPermissions, hidden, reserved, description);
+            return Objects.hash(name, clusterPermissions, indexPermissions, tenantPermissions, hidden, reserved, description);
         }
 
         public static SecurityDynamicConfiguration<org.opensearch.security.securityconf.impl.v7.RoleV7> toRolesConfiguration(
@@ -902,6 +984,58 @@ public class TestSecurityConfig {
         }
     }
 
+    public static class TenantPermission implements ToXContentObject {
+        private List<String> tenantPatterns;
+        private final List<String> allowedActions;
+        private Role role;
+
+        TenantPermission(Role role, String... allowedActions) {
+            this.allowedActions = asList(allowedActions);
+            this.role = role;
+        }
+
+        public Role on(String... tenantPatterns) {
+            this.tenantPatterns = asList(tenantPatterns);
+            this.role.tenantPermissions.add(this);
+            return this.role;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+            xContentBuilder.startObject();
+            xContentBuilder.field("tenant_patterns", tenantPatterns);
+            xContentBuilder.field("allowed_actions", allowedActions);
+            xContentBuilder.endObject();
+            return xContentBuilder;
+        }
+    }
+
+    public static class Tenant implements ToXContentObject {
+        private String name;
+        private String description;
+
+        public Tenant(String name) {
+            this.name = Objects.requireNonNull(name, "Name is required");
+        }
+
+        public Tenant description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
+            xContentBuilder.startObject();
+            xContentBuilder.field("description", description);
+            xContentBuilder.endObject();
+            return xContentBuilder;
+        }
+    }
+
     public static class AuthcDomain implements ToXContentObject {
 
         private static String PUBLIC_KEY =
@@ -1074,6 +1208,8 @@ public class TestSecurityConfig {
         client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
         if (rawConfigurationDocuments == null) {
+            checkReferencedRoles();
+
             writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
             if (auditConfiguration != null) {
                 writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
@@ -1082,7 +1218,7 @@ public class TestSecurityConfig {
             writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
             writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
             writeConfigToIndex(client, CType.ACTIONGROUPS, actionGroups);
-            writeEmptyConfigToIndex(client, CType.TENANTS);
+            writeConfigToIndex(client, CType.TENANTS, tenants);
         } else {
             // Write raw configuration alternatively to the normal configuration
 
@@ -1090,7 +1226,26 @@ public class TestSecurityConfig {
                 writeConfigToIndex(client, entry.getKey(), entry.getValue());
             }
         }
+    }
 
+    /**
+     * Does a sanity check on the user's referenced roles; these must actually match the globally defined roles.
+     */
+    private void checkReferencedRoles() {
+        for (User user : this.internalUsers.values()) {
+            for (Role role : user.referencedRoles) {
+                if (this.roles.containsKey(role.name) && !this.roles.get(role.name).equals(role)) {
+                    throw new RuntimeException(
+                        "Referenced role '"
+                            + role.name
+                            + "' in user '"
+                            + user.name
+                            + "' does not match the definition in TestSecurityConfig: "
+                            + this.roles.get(role.name)
+                    );
+                }
+            }
+        }
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {

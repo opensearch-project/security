@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [21, 24]
+        jdk: [21, 25]
         test-run: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     steps:
@@ -24,7 +24,7 @@ jobs:
 
     - run: ./gradlew test
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       if: always()
       with:
         name: ${{ matrix.jdk }}-${{ matrix.test-run }}-reports

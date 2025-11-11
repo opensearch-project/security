@@ -8,6 +8,9 @@
 
 package org.opensearch.sample.resource.feature.enabled;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -19,30 +22,34 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import org.opensearch.sample.resource.TestUtils;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sample.resource.TestUtils.ApiHelper.assertSearchResponse;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -96,7 +103,7 @@ public class ApiAccessTests {
         }
 
         @Test
-        public void testApiAccess_noAccessUser() {
+        public void testApiAccess_noAccessUser() throws Exception {
             // user has no permission
 
             // cannot create own resource
@@ -107,27 +114,29 @@ public class ApiAccessTests {
             }
 
             // cannot get admin's resource
-            api.assertApiGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(adminResId, NO_ACCESS_USER));
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.updateResource(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
 
             // cannot share admin's resource with itself
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // cannot see admin's resource when searching
-            api.assertApiGetSearch(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
-            api.assertApiPostSearch(searchAllPayload(), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
-            api.assertApiPostSearch(searchByNamePayload("sample"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "sample");
+            forbidden(() -> api.searchResources(NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchAllPayload(), NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchByNamePayload("sample"), NO_ACCESS_USER));
 
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.deleteResource(adminResId, NO_ACCESS_USER));
+            response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
         }
 
         @Test
-        public void testApiAccess_limitedAccessUser() {
+        public void testApiAccess_limitedAccessUser() throws Exception {
             // user doesn't have update or delete permissions, but can read and create
             // Has * permission on sample plugin resource index
 
@@ -140,46 +149,56 @@ public class ApiAccessTests {
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
 
+            api.awaitSharingEntry(userResId, LIMITED_ACCESS_USER.getName());
+
             // cannot see admin's resource
-            api.assertApiGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUser"); // can only see own resource
+            forbidden(() -> api.getResource(adminResId, LIMITED_ACCESS_USER));
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(LIMITED_ACCESS_USER)); // can only see own resource
+            assertThat(listResponse.getBody(), containsString("sampleUser"));
 
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.updateResource(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
             // can update own resource
-            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
-            api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            ok(() -> api.updateResource(userResId, LIMITED_ACCESS_USER, "sampleUpdateUser"));
+            response = ok(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
             // resource should be visible even after update
 
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
-            api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // can share or revoke own resource
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiShare(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdateUser");
-            api.assertApiRevoke(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
+            ok(() -> api.shareResource(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            response = ok(() -> api.getResource(userResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
+            ok(() -> api.revokeResource(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
 
             // should not be able to search for admin's resource, can only see self-resource
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
-            // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 0, null);
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete own resource since user is the owner
-            api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK);
+            ok(() -> api.deleteResource(userResId, LIMITED_ACCESS_USER));
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.deleteResource(adminResId, LIMITED_ACCESS_USER));
         }
 
         @Test
-        public void testApiAccess_allAccessUser() {
+        public void testApiAccess_allAccessUser() throws Exception {
             // user has * cluster and index permissions
 
             // can create own resource
@@ -190,42 +209,51 @@ public class ApiAccessTests {
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
+            api.awaitSharingEntry(userResId, FULL_ACCESS_USER.getName());
 
             // cannot see admin's resource
-            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "sample");
-            api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUser");
+            forbidden(() -> api.getResource(adminResId, FULL_ACCESS_USER));
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sampleUser"));
 
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.updateResource(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
             // can update own resource
-            api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
-            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            ok(() -> api.updateResource(userResId, FULL_ACCESS_USER, "sampleUpdateUser"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(userResId, FULL_ACCESS_USER));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
             // resource should be visible even after update
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // cannot share or revoke admin's resource
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // can share or revoke own resource
-            api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiShare(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiRevoke(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
+            ok(() -> api.shareResource(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
+            response = ok(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
+            searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            ok(() -> api.revokeResource(userResId, FULL_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
 
             // should not be able to search for admin's resource, 1 total result
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
-            // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 0, null);
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete own resource
-            api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+            ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.deleteResource(adminResId, FULL_ACCESS_USER));
         }
 
         @Test
@@ -243,17 +271,18 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can share and revoke admin's resource
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, NO_ACCESS_USER.getName())
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
-                );
+                TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                payloadBuilder.resourceId(adminResId);
+                payloadBuilder.resourceType(RESOURCE_TYPE);
+                payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
@@ -316,7 +345,7 @@ public class ApiAccessTests {
         }
 
         @Test
-        public void testApiAccess_noAccessUser() {
+        public void testApiAccess_noAccessUser() throws Exception {
             // user has no permission
 
             // cannot create own resource
@@ -327,29 +356,30 @@ public class ApiAccessTests {
             }
 
             // cannot get admin's resource
-            api.assertApiGet(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(adminResId, NO_ACCESS_USER));
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.updateResource(adminResId, NO_ACCESS_USER, "sampleUpdateAdmin"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
 
             // cannot share admin's resource with itself
-            api.assertApiShare(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, NO_ACCESS_USER, NO_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, NO_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // should not be able to search for any resource
-            api.assertApiGetSearch(NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
-            api.assertApiPostSearch(searchAllPayload(), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateAdmin"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
-            // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN, 0, "");
+            forbidden(() -> api.searchResources(NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchAllPayload(), NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchByNamePayload("sampleUpdateAdmin"), NO_ACCESS_USER));
+            forbidden(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), NO_ACCESS_USER));
 
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, NO_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.deleteResource(adminResId, NO_ACCESS_USER));
+            response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
         }
 
         @Test
-        public void testApiAccess_limitedAccessUser() {
+        public void testApiAccess_limitedAccessUser() throws Exception {
             // user doesn't have update or delete permissions, but can read and create
             // Has * permission on sample plugin resource index
 
@@ -362,43 +392,52 @@ public class ApiAccessTests {
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
 
+            api.awaitSharingEntry(userResId, LIMITED_ACCESS_USER.getName());
+
             // cannot see admin's resource
-            api.assertApiGet(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiGetAll(LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUser"); // can only see own resource
+            forbidden(() -> api.getResource(adminResId, LIMITED_ACCESS_USER));
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(LIMITED_ACCESS_USER)); // can only see own resource
+            assertThat(listResponse.getBody(), containsString("sampleUser"));
 
             // cannot update admin's resource
-            api.assertApiUpdate(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-            api.assertApiGet(adminResId, USER_ADMIN, HttpStatus.SC_OK, "sample");
+            forbidden(() -> api.updateResource(adminResId, LIMITED_ACCESS_USER, "sampleUpdateAdmin"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(adminResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sample"));
             // can update own resource
-            api.assertApiUpdate(userResId, LIMITED_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
-            api.assertApiGet(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            ok(() -> api.updateResource(userResId, LIMITED_ACCESS_USER, "sampleUpdateUser"));
+            response = ok(() -> api.getResource(userResId, LIMITED_ACCESS_USER));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
 
             // cannot share or revoke admin's resource
-            api.assertApiShare(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, LIMITED_ACCESS_USER, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // can share or revoke own resource
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiShare(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdateUser");
-            api.assertApiRevoke(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
+            ok(() -> api.shareResource(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            response = ok(() -> api.getResource(userResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
+            ok(() -> api.revokeResource(userResId, LIMITED_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
 
             // should be able to search only for own resource
-            api.assertApiGetSearch(LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchAllPayload(), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchByNamePayload("sample"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 0, "");
-            // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 0, null);
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), LIMITED_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete own resource since user is the owner
-            api.assertApiDelete(userResId, LIMITED_ACCESS_USER, HttpStatus.SC_OK);
+            ok(() -> api.deleteResource(userResId, LIMITED_ACCESS_USER));
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, LIMITED_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.deleteResource(adminResId, LIMITED_ACCESS_USER));
         }
 
         @Test
-        public void testApiAccess_allAccessUser() {
+        public void testApiAccess_allAccessUser() throws Exception {
             // user has * cluster and index permissions
 
             // can create own resource
@@ -410,38 +449,46 @@ public class ApiAccessTests {
                 userResId = resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
 
+            api.awaitSharingEntry(userResId, FULL_ACCESS_USER.getName());
+
             // cannot see admin's resource
-            api.assertApiGet(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN, "sample");
-            api.assertApiGetAll(FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUser");
+            forbidden(() -> api.getResource(adminResId, FULL_ACCESS_USER));
+            TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+            assertThat(listResponse.getBody(), containsString("sampleUser"));
 
             // cannot update admin's resource as resource is not shared with itself
-            api.assertApiUpdate(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.updateResource(adminResId, FULL_ACCESS_USER, "sampleUpdateAdmin"));
             // can update own resource
-            api.assertApiUpdate(userResId, FULL_ACCESS_USER, "sampleUpdateUser", HttpStatus.SC_OK);
-            api.assertApiGet(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK, "sampleUpdateUser");
+            ok(() -> api.updateResource(userResId, FULL_ACCESS_USER, "sampleUpdateUser"));
+            TestRestClient.HttpResponse response = ok(() -> api.getResource(userResId, FULL_ACCESS_USER));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
 
             // cannot share or revoke admin's resource
-            api.assertApiShare(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-            api.assertApiRevoke(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.shareResource(adminResId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+            forbidden(() -> api.revokeResource(adminResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
 
             // can share or revoke own resource
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
-            api.assertApiShare(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_OK, "sampleUpdateUser");
-            api.assertApiRevoke(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-            api.assertApiGet(userResId, USER_ADMIN, HttpStatus.SC_FORBIDDEN, "");
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
+            ok(() -> api.shareResource(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            response = ok(() -> api.getResource(userResId, USER_ADMIN));
+            assertThat(response.getBody(), containsString("sampleUpdateUser"));
+            ok(() -> api.revokeResource(userResId, FULL_ACCESS_USER, USER_ADMIN, SAMPLE_READ_ONLY));
+            forbidden(() -> api.getResource(userResId, USER_ADMIN));
 
             // should be able to search only for its own resource
-            api.assertApiGetSearch(FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchAllPayload(), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
-            api.assertApiPostSearch(searchByNamePayload("sample"), FULL_ACCESS_USER, HttpStatus.SC_OK, 0, "");
-            // can see own resource
-            api.assertApiPostSearch(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER, HttpStatus.SC_OK, 1, "sampleUpdateUser");
+            TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchAllPayload(), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sample"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 0, null);
+            searchResponse = ok(() -> api.searchResources(searchByNamePayload("sampleUpdateUser"), FULL_ACCESS_USER));
+            assertSearchResponse(searchResponse, 1, "sampleUpdateUser");
 
             // can delete own resource
-            api.assertApiDelete(userResId, FULL_ACCESS_USER, HttpStatus.SC_OK);
+            ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));
             // cannot delete admin's resource
-            api.assertApiDelete(adminResId, FULL_ACCESS_USER, HttpStatus.SC_FORBIDDEN);
+            forbidden(() -> api.deleteResource(adminResId, FULL_ACCESS_USER));
         }
 
         @Test
@@ -460,17 +507,18 @@ public class ApiAccessTests {
                 assertThat(resp.getBody(), containsString("sampleUpdated"));
 
                 // can share and revoke admin's resource
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + adminResId,
-                    shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+                resp = client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(adminResId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, NO_ACCESS_USER.getName())
                 );
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 
-                resp = client.postJson(
-                    SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + adminResId,
-                    revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
-                );
+                TestUtils.PatchSharingInfoPayloadBuilder payloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+                payloadBuilder.resourceId(adminResId);
+                payloadBuilder.resourceType(RESOURCE_TYPE);
+                payloadBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
+                resp = client.patch(SECURITY_SHARE_ENDPOINT, payloadBuilder.build());
 
                 resp.assertStatusCode(HttpStatus.SC_OK);
 

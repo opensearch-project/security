@@ -8,7 +8,6 @@
 
 package org.opensearch.security.auth;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Rule base auto-tagging extension
 import org.opensearch.rule.autotagging.Attribute;
 import org.opensearch.rule.spi.AttributesExtension;
 
@@ -24,4 +23,3 @@ public class PrincipalAttributesExtension implements AttributesExtension {
         return PrincipalAttribute.PRINCIPAL;
     }
 }
-// CS-ENFORCE-SINGLE

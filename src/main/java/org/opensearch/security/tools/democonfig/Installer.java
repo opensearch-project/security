@@ -11,7 +11,6 @@
 
 package org.opensearch.security.tools.democonfig;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to file extensions, keeping this rule disable for the whole file
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -464,4 +463,3 @@ public class Installer {
     }
 
 }
-// CS-ENFORCE-SINGLE

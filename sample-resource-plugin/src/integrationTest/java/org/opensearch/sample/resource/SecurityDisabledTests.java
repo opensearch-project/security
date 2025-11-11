@@ -10,6 +10,7 @@ package org.opensearch.sample.resource;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -22,6 +23,8 @@ import org.opensearch.Version;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -29,16 +32,15 @@ import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -109,17 +111,18 @@ public class SecurityDisabledTests {
             response = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, sampleResourceUpdated);
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            response = client.postJson(
-                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(USER_ADMIN.getName(), SAMPLE_READ_ONLY_RESOURCE_AG)
+            response = client.putJson(
+                SECURITY_SHARE_ENDPOINT,
+                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, USER_ADMIN.getName())
             );
-            assertNotImplementedResponse(response, "Cannot share resource");
+            assertBadRequest(response, "no handler found for uri [/_plugins/_security/api/resource/share] and method [PUT]");
 
-            response = client.postJson(
-                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(USER_ADMIN.getName(), SAMPLE_READ_ONLY_RESOURCE_AG)
-            );
-            assertNotImplementedResponse(response, "Cannot revoke access to resource");
+            TestUtils.PatchSharingInfoPayloadBuilder patchBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(USER_ADMIN.getName()))), SAMPLE_READ_ONLY);
+            response = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
+            assertBadRequest(response, "no handler found for uri [/_plugins/_security/api/resource/share] and method [PATCH]");
 
             response = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -127,7 +130,7 @@ public class SecurityDisabledTests {
         }
     }
 
-    private void assertNotImplementedResponse(TestRestClient.HttpResponse response, String msg) {
-        assertThat(response, RestMatchers.isMethodNotImplemented("/error/reason", msg));
+    private void assertBadRequest(TestRestClient.HttpResponse response, String msg) {
+        assertThat(response, RestMatchers.isBadRequest("/error", msg));
     }
 }

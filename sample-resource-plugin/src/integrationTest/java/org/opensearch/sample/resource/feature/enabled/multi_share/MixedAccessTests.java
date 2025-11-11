@@ -22,12 +22,17 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY_RESOURCE_AG;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -55,82 +60,75 @@ public class MixedAccessTests {
         api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
-
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
+        forbidden(() -> api.getResource(resourceId, user));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertReadOnly(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
-
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_FORBIDDEN);
+    private void assertReadOnly(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertFullAccess(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.assertApiShare(resourceId, user, user, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.assertApiRevoke(resourceId, user, USER_ADMIN, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
+    private void assertFullAccess(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        ok(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        ok(() -> api.revokeResource(resourceId, user, USER_ADMIN, SAMPLE_FULL_ACCESS));
+        ok(() -> api.deleteResource(resourceId, user));
     }
 
     @Test
-    public void multipleUsers_multipleLevels() {
+    public void multipleUsers_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
         // 1. share at read-only for full-access user and at full-access for limited-perms user
-        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
-        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName());
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // 2. check read-only access for full-access user
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. limited access user shares with full-access user at sampleAllAG
-        api.assertApiShare(resourceId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
+        ok(() -> api.shareResource(resourceId, LIMITED_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // 4. full-access user now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
     }
 
     @Test
-    public void multipleUsers_sameLevel() {
+    public void multipleUsers_sameLevel() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
         // 1. share with both users at read-only level
-        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, SAMPLE_READ_ONLY_RESOURCE_AG);
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
 
         // 2. assert both now have read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
     }
 
     @Test
-    public void sameUser_multipleLevels() {
+    public void sameUser_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
         // 1. share with user at read-only level
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, LIMITED_ACCESS_USER.getName());
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_READ_ONLY));
 
         // 2. assert user now has read-only access
         assertReadOnly(LIMITED_ACCESS_USER);
 
         // 3. share with user at full-access level
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, SAMPLE_FULL_ACCESS_RESOURCE_AG);
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // 4. assert user now has full access
         assertFullAccess(LIMITED_ACCESS_USER);
@@ -141,7 +139,7 @@ public class MixedAccessTests {
     }
 
     @Test
-    public void multipleRoles_multipleLevels() {
+    public void multipleRoles_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
@@ -149,29 +147,28 @@ public class MixedAccessTests {
         String limitedAccessUserRole = getActualRoleName(LIMITED_ACCESS_USER, "shared_role_limited_perms");
 
         // 1. share at read-only for shared_role and at full-access for shared_role_limited_perms
-        api.assertApiShareByRole(resourceId, USER_ADMIN, fullAccessUserRole, SAMPLE_READ_ONLY_RESOURCE_AG, HttpStatus.SC_OK);
-        api.assertApiShareByRole(resourceId, USER_ADMIN, limitedAccessUserRole, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, fullAccessUserRole);
-        api.awaitSharingEntry(resourceId, limitedAccessUserRole);
+        ok(() -> api.shareResourceByRole(resourceId, USER_ADMIN, fullAccessUserRole, SAMPLE_READ_ONLY));
+        ok(() -> api.shareResourceByRole(resourceId, USER_ADMIN, limitedAccessUserRole, SAMPLE_FULL_ACCESS));
 
         // 2. check read-only access for FULL_ACCESS_USER (has shared_role)
         assertReadOnly(FULL_ACCESS_USER);
 
         // 3. LIMITED_ACCESS_USER (has shared_role_limited_perms) shares with shared_role at sampleAllAG
-        api.assertApiShareByRole(resourceId, LIMITED_ACCESS_USER, fullAccessUserRole, SAMPLE_FULL_ACCESS_RESOURCE_AG, HttpStatus.SC_OK);
-        api.awaitSharingEntry(resourceId, fullAccessUserRole);
+        ok(() -> api.shareResourceByRole(resourceId, LIMITED_ACCESS_USER, fullAccessUserRole, SAMPLE_FULL_ACCESS));
 
         // 4. FULL_ACCESS_USER now has full-access to admin's resource
         assertFullAccess(FULL_ACCESS_USER);
     }
 
     @Test
-    public void initialShare_multipleLevels() {
+    public void initialShare_multipleLevels() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
 
         String shareWithPayload = """
             {
+              "resource_id": "%s",
+              "resource_type": "%s",
               "share_with": {
                 "%s" : {
                     "users": ["%s"]
@@ -182,17 +179,17 @@ public class MixedAccessTests {
               }
             }
             """.formatted(
-            SAMPLE_FULL_ACCESS_RESOURCE_AG,
+            resourceId,
+            RESOURCE_TYPE,
+            SAMPLE_FULL_ACCESS,
             LIMITED_ACCESS_USER.getName(),
-            SAMPLE_READ_ONLY_RESOURCE_AG,
+            SAMPLE_READ_ONLY,
             FULL_ACCESS_USER.getName()
         );
 
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.postJson(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, shareWithPayload);
+            TestRestClient.HttpResponse response = client.putJson(SECURITY_SHARE_ENDPOINT, shareWithPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
-            // wait for one of the users to be populated
-            api.awaitSharingEntry(resourceId, FULL_ACCESS_USER.getName());
         }
 
         // full-access user has read-only perm

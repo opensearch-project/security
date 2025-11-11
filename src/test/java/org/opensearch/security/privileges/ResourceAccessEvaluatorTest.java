@@ -8,8 +8,6 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Collections;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,6 +18,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 
 import org.mockito.ArgumentCaptor;
@@ -40,6 +40,8 @@ public class ResourceAccessEvaluatorTest {
 
     @Mock
     private ResourceAccessHandler resourceAccessHandler;
+    @Mock
+    private ResourcePluginInfo resourcePluginInfo;
 
     @Mock
     private PrivilegesEvaluationContext context;
@@ -51,9 +53,13 @@ public class ResourceAccessEvaluatorTest {
 
     @Before
     public void setup() {
-        Settings settings = Settings.builder().put(ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED, true).build();
         threadContext = new ThreadContext(Settings.EMPTY);
-        evaluator = new ResourceAccessEvaluator(Collections.singleton(IDX), settings, resourceAccessHandler);
+        evaluator = new ResourceAccessEvaluator(
+            resourcePluginInfo,
+            resourceAccessHandler,
+            mock(OpensearchDynamicSetting.class),
+            mock(OpensearchDynamicSetting.class)
+        );
     }
 
     private void stubAuthenticatedUser() {
@@ -66,15 +72,16 @@ public class ResourceAccessEvaluatorTest {
         stubAuthenticatedUser();
         IndexRequest req = new IndexRequest(IDX).id("anyId");
 
+        // TODO check to see if type can be something other than indices
         doAnswer(inv -> {
-            ActionListener<Boolean> listener = inv.getArgument(4);
+            ActionListener<Boolean> listener = inv.getArgument(3);
             listener.onResponse(hasPermission);
             return null;
-        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq(IDX), eq("read"), any(), any());
+        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 
-        evaluator.evaluateAsync(req, "read", context, callback);
+        evaluator.evaluateAsync(req, "read", callback);
 
         ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
         verify(callback).onResponse(captor.capture());

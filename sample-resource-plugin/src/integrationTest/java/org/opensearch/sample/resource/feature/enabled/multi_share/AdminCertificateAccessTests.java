@@ -8,6 +8,9 @@
 
 package org.opensearch.sample.resource.feature.enabled.multi_share;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -16,6 +19,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.resource.TestUtils;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -23,15 +28,15 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS_RESOURCE_AG;
+import static org.opensearch.sample.resource.TestUtils.PatchSharingInfoPayloadBuilder;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_DELETE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_REVOKE_ENDPOINT;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.revokeAccessPayload;
-import static org.opensearch.sample.resource.TestUtils.shareWithPayload;
+import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -66,17 +71,18 @@ public class AdminCertificateAccessTests {
 
         // can share and revoke admin's resource
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.postJson(
-                SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId,
-                shareWithPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
+            HttpResponse response = client.putJson(
+                SECURITY_SHARE_ENDPOINT,
+                putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, NO_ACCESS_USER.getName())
             );
 
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            response = client.postJson(
-                SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId,
-                revokeAccessPayload(NO_ACCESS_USER.getName(), SAMPLE_FULL_ACCESS_RESOURCE_AG)
-            );
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(NO_ACCESS_USER.getName()))), SAMPLE_FULL_ACCESS);
+            response = client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
 
             response.assertStatusCode(HttpStatus.SC_OK);
         }

@@ -3,7 +3,7 @@ name: Plugin Install
 on: [push, pull_request, workflow_dispatch]
 
 env:
-  OPENSEARCH_VERSION: 3.3.0
+  OPENSEARCH_VERSION: 3.4.0
   PLUGIN_NAME: opensearch-security
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        jdk: [21, 24]
+        jdk: [21, 25]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -41,7 +41,7 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v8
+        uses: derek-ho/start-opensearch@v9
         if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
@@ -51,7 +51,7 @@ jobs:
           jdk-version: 21
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v8
+        uses: derek-ho/start-opensearch@v9
         if: ${{ runner.os == 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}

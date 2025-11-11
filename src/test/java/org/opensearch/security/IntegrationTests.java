@@ -26,6 +26,11 @@
 
 package org.opensearch.security;
 
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,7 +58,10 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.transport.client.Client;
+
+import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -140,6 +148,162 @@ public class IntegrationTests extends SingleClusterTest {
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL, sslPrincipal);
         return threadContext;
     }
+
+    @Test
+    public void testSanParsingCertAuth() throws Exception {
+        testSanUsernameParsingCertAuth();
+        testSanRolesParsingCertAuth();
+    }
+
+    private void testSanUsernameParsingCertAuth() throws Exception {
+        for (SanUsernameCase c : USERNAME_CASES) {
+            X509Certificate cert = mockCertWithSan(c.type, c.value);
+            Settings s = Settings.builder().put("username_attribute", c.userAttr).build();
+            HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(s, null);
+
+            AuthCredentials creds = auth.extractCredentials(null, ctxWith(SSL_PRINCIPAL, cert));
+            Assert.assertEquals("Username mismatch: " + c, c.expectedUser, creds.getUsername());
+        }
+    }
+
+    public void testSanRolesParsingCertAuth() throws Exception {
+        for (SanRolesCase c : ROLES_CASES) {
+            X509Certificate cert = mockCertWithSan(c.type, c.value);
+            Settings s = Settings.builder().put("roles_attribute", c.rolesAttr).build();
+            HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(s, null);
+
+            AuthCredentials creds = auth.extractCredentials(null, ctxWith(SSL_PRINCIPAL, cert));
+            // the authenticator now returns null when there’s no match
+            Set<String> actual = (creds.getBackendRoles() == null || creds.getBackendRoles().isEmpty())
+                ? null
+                : new HashSet<>(creds.getBackendRoles());
+            if (c.expectedRoles == null) {
+                Assert.assertNull("Expected null roles: " + c, actual);
+            } else {
+                Set<String> expected = new HashSet<>(Arrays.asList(c.expectedRoles));
+                Assert.assertEquals("Roles mismatch: " + c, expected, actual);
+            }
+        }
+    }
+
+    private static X509Certificate mockCertWithSan(int type, String value) throws Exception {
+        X509Certificate cert = Mockito.mock(X509Certificate.class);
+        Mockito.when(cert.getSubjectAlternativeNames()).thenReturn(Arrays.asList(Arrays.asList(type, value)));
+        return cert;
+    }
+
+    private static ThreadContext ctxWith(String principal, X509Certificate cert) {
+        ThreadContext ctx = new ThreadContext(Settings.EMPTY);
+        ctx.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL, principal);
+        ctx.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES, cert == null ? null : new X509Certificate[] { cert });
+        return ctx;
+    }
+
+    private record SanUsernameCase(int type, String value, String userAttr, String expectedUser) {
+
+        @Override
+        public String toString() {
+            return "type=" + type + ", value=" + value + ", userAttr=" + userAttr + ", expectedUser=" + expectedUser;
+        }
+    }
+
+    private record SanRolesCase(int type, String value, String rolesAttr, String[] expectedRoles) {
+
+        @Override
+        public String toString() {
+            return "type=" + type + ", value=" + value + ", rolesAttr=" + rolesAttr;
+        }
+    }
+
+    private static final String SSL_PRINCIPAL = "cn=abc,cn=xxx,l=ert,st=zui,c=qwe";
+
+    private static final List<SanUsernameCase> USERNAME_CASES = Arrays.asList(
+        // rfc822Name (EMAIL)
+        // exact match
+        new SanUsernameCase(1, "user1@example.com", "san:rfc822Name:user1@example.com", "user1@example.com"),
+        // glob on local-part
+        new SanUsernameCase(1, "admin@example.com", "san:rfc822Name:*@example.com", "admin@example.com"),
+        // glob on subdomain
+        new SanUsernameCase(1, "user@sub.example.net", "san:rfc822Name:*@*.example.net", "user@sub.example.net"),
+        // no match → fallback to DN
+        new SanUsernameCase(1, "user2@example.com", "san:rfc822Name:*@other.com", SSL_PRINCIPAL),
+        // '*' → match ANY rfc822Name
+        new SanUsernameCase(1, "any.user@any.domain", "san:rfc822Name:*", "any.user@any.domain"),
+
+        // dNSName (DNS)
+        // exact
+        new SanUsernameCase(2, "www.example.com", "san:dNSName:www.example.com", "www.example.com"),
+        // subdomain glob
+        new SanUsernameCase(2, "shop.store.example.com", "san:dNSName:*.store.example.com", "shop.store.example.com"),
+        // no match → DN
+        new SanUsernameCase(2, "example.net", "san:dNSName:*.example.com", SSL_PRINCIPAL),
+
+        // iPAddress
+        new SanUsernameCase(7, "10.0.0.1", "san:iPAddress:10.0.0.1", "10.0.0.1"),
+        new SanUsernameCase(7, "192.168.1.10", "san:iPAddress:192.168.1.*", "192.168.1.10"),
+        // no match → DN
+        new SanUsernameCase(7, "172.16.0.1", "san:iPAddress:10.0.*", SSL_PRINCIPAL),
+
+        // uniformResourceIdentifier (URI)
+        // exact
+        new SanUsernameCase(
+            6,
+            "https://example.com/resource",
+            "san:uniformResourceIdentifier:https://example.com/resource",
+            "https://example.com/resource"
+        ),
+        // prefix glob
+        new SanUsernameCase(
+            6,
+            "https://example.com/sub/resource",
+            "san:uniformResourceIdentifier:https://example.com/sub/*",
+            "https://example.com/sub/resource"
+        ),
+
+        new SanUsernameCase(6, "http://example.com", "san:uniformResourceIdentifier:http://example.com", "http://example.com"),
+        // no match → DN
+        new SanUsernameCase(6, "ftp://example.com/file", "san:uniformResourceIdentifier:http://*", SSL_PRINCIPAL),
+
+        // otherName / directoryName / registeredID
+        new SanUsernameCase(0, "specificOtherNameValue", "san:otherName:*", "specificOtherNameValue"),
+        // no match → DN
+        new SanUsernameCase(0, "specificOtherNameValue", "san:otherName:other*", SSL_PRINCIPAL),
+        new SanUsernameCase(
+            4,
+            "C=US, ST=Virginia, L=SomeCity, O=My Org, OU=My Unit, CN=www.example.org",
+            "san:directoryName:C=US*",
+            "C=US, ST=Virginia, L=SomeCity, O=My Org, OU=My Unit, CN=www.example.org"
+        ),
+        new SanUsernameCase(8, "1.2.3.4.5.6", "san:registeredID:1.2.3.*", "1.2.3.4.5.6")
+    );
+
+    private static final List<SanRolesCase> ROLES_CASES = Arrays.asList(
+        // 1) rfc822Name → exact
+        new SanRolesCase(1, "admin@blue.example.org", "san:rfc822Name:admin@blue.example.org", new String[] { "admin@blue.example.org" }),
+
+        // 2) rfc822Name → glob on domain
+        new SanRolesCase(1, "service@app.example.com", "san:rfc822Name:*@app.example.com", new String[] { "service@app.example.com" }),
+
+        // '*' → match ANY rfc822Name (role == SAN value)
+        new SanRolesCase(1, "role.user@whatever.tld", "san:rfc822Name:*", new String[] { "role.user@whatever.tld" }),
+
+        // 3) dNSName → glob
+        new SanRolesCase(2, "svc1.api.example.com", "san:dNSName:*.example.com", new String[] { "svc1.api.example.com" }),
+
+        // 4) uniformResourceIdentifier → prefix glob
+        new SanRolesCase(
+            6,
+            "https://example.com/dep/teamA/resource",
+            "san:uniformResourceIdentifier:https://example.com/dep/*",
+            new String[] { "https://example.com/dep/teamA/resource" }
+        ),
+
+        // 5) No match → roles must be null
+        new SanRolesCase(7, "10.0.0.5", "san:rfc822Name:*@example.org", null),
+
+        // 6) DN roles (ignore SAN) → L=ert from DN
+        new SanRolesCase(1, "whatever@example.com", "dn:l", new String[] { "ert" })
+    );
 
     @Test
     public void testDNSpecials() throws Exception {
