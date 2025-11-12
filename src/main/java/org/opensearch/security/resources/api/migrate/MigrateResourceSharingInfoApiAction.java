@@ -151,29 +151,22 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         String backendRolesPath = body.get("backend_roles_path").asText();
         JsonNode node = body.get("default_access_level");
         Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
-        String typePath = null;
-        if (body.has("type_path")) {
-            typePath = body.get("type_path").asText();
-        } else {
-            LOGGER.info("No type_path provided, assuming single resource-type for all records.");
-            if (typeToDefaultAccessLevel.size() > 1) {
-                String badRequestMessage = "type_path must be provided when multiple resource types are specified in default_access_level.";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
-            }
-        }
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
             String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
         }
 
+        String typePath = null;
         for (String type : typeToDefaultAccessLevel.keySet()) {
+            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
             String defaultAccessLevelForType = typeToDefaultAccessLevel.get(type);
             LOGGER.info("Default access level for resource type [{}] is [{}]", type, typeToDefaultAccessLevel.get(type));
             // check that access level exists for given resource-index
-            if (resourcePluginInfo.indexByType(type) == null) {
+            if (provider == null) {
                 String badRequestMessage = "Invalid resource type " + type + ".";
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
             }
+            typePath = provider.typeField(); // All types in the same index must have same typeField
             var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
             if (!accessLevels.contains(defaultAccessLevelForType)) {
                 LOGGER.error(
@@ -228,7 +221,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                 String type;
                 if (typePath != null) {
-                    type = rec.at(typePath.startsWith("/") ? typePath : ("/" + typePath)).asText(null);
+                    type = rec.at("/" + typePath.replace(".", "/")).asText(null);
                 } else {
                     type = typeToDefaultAccessLevel.keySet().iterator().next();
                 }
@@ -391,7 +384,6 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
                             .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
                             .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
-                            .put("type_path", RequestContentValidator.DataType.STRING) // path to resource type
                             .put("default_access_level", RequestContentValidator.DataType.OBJECT) // default access level by type
                             .build();
                     }

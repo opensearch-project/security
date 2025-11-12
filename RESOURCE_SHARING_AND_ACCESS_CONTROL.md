@@ -610,7 +610,6 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 | `source_index`         | string | yes      | Name of the plugin index containing the existing resource documents                                                                                  |
 | `username_path`        | string | yes      | JSON Pointer to the username field inside each document                                                                                              |
 | `backend_roles_path`   | string | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                 |
-| `type_path`            | string | no       | JSON Pointer to the resource type field inside each document (required if multiple resource types in same resource index)                            |
 | `default_access_level` | object | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
 
 **Example Request**
@@ -621,7 +620,6 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
   "source_index": ".sample_resource",
   "username_path": "/owner",
   "backend_roles_path": "/backend_roles",
-  "type_path": "/type",
   "default_access_level": {
     "sample-resource": "read_only",
     "sample-resource-group": "read-only-group"
