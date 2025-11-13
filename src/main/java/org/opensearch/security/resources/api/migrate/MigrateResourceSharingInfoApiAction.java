@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -77,12 +76,13 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *  - POST `_plugins/_security/api/resources/migrate`
  *      {
  *          source_index: "abc",                                    // name of plugin index
- *          username_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
+ *          username_path: "/path/to/username/node",                // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
+ *          default_owner: "<user-name>"                            // default owner when username_path is not available
  *          default_access_level: "<some-default-access-level>"     // default access-level at which sharing records should be created
  *      }
  *   - Response:
- *      200 OK Migration Complete. Migrate X, skippedNoUser Y, failed Z // migrate -> successful migration count, skippedNoUser -> records with no creator info, failed -> records that failed to migrate
+ *      200 OK Migration Complete. Migrate X, defaultOwner Y, failed Z // migrate -> successful migration count, defaultOwner -> records with no creator info, failed -> records that failed to migrate
  */
 public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
@@ -137,17 +137,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Pulls "source_index" from request body
      *      2. Does a match_all search (up to 10k) in the "source_index"
      *      3. Create a SourceDoc for each raw doc
-     *      4. Returns a triple of the source index name, the default access level and the list of source docs.
+     *      4. Returns an object of the source index name, the default owner name, the default access level and the list of source docs.
      */
-    private ValidationResult<Triple<String, Map<String, String>, List<SourceDoc>>> loadCurrentSharingInfo(
-        RestRequest request,
-        Client client
-    ) throws IOException {
+    private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
+        String defaultOwner = body.get("default_owner").asText();
         JsonNode node = body.get("default_access_level");
         Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
         String typePath = null;
@@ -245,7 +243,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         clear.addScrollId(scrollId);
         client.clearScroll(clear).actionGet();
 
-        return ValidationResult.success(Triple.of(sourceIndex, typeToDefaultAccessLevel, results));
+        return ValidationResult.success(new ValidationResultArg(sourceIndex, defaultOwner, typeToDefaultAccessLevel, results));
     }
 
     /**
@@ -253,14 +251,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Parses existing sharing info to a new ResourceSharing records
      *      2. Indexes the new record into corresponding resource-sharing index
      */
-    private ValidationResult<MigrationStats> createNewSharingRecords(Triple<String, Map<String, String>, List<SourceDoc>> sourceInfo)
-        throws IOException {
+    private ValidationResult<MigrationStats> createNewSharingRecords(ValidationResultArg sourceInfo) throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
-        AtomicReference<Set<String>> skippedNoUser = new AtomicReference<>();
-        skippedNoUser.set(new HashSet<>());
+        AtomicReference<Set<String>> skippedNoType = new AtomicReference<>();
+        skippedNoType.set(new HashSet<>());
+        AtomicReference<Set<String>> defaultOwner = new AtomicReference<>();
+        defaultOwner.set(new HashSet<>());
         AtomicInteger failureCount = new AtomicInteger();
 
-        List<SourceDoc> docs = sourceInfo.getRight();
+        List<SourceDoc> docs = sourceInfo.sourceDocs;
         int total = docs.size();
 
         CountDownLatch migrationStatsLatch = new CountDownLatch(total);
@@ -274,26 +273,27 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            // 2a) skip if no username node
-            String username = doc.username;
-            if (username == null || username.isEmpty()) {
-                LOGGER.debug("Record without associated user, skipping entirely: {}", doc.resourceId);
-                skippedNoUser.get().add(doc.resourceId);
-                migrationStatsLatch.countDown();
-                continue;
-            }
-
-            // 2b) skip if no type
+            // 2) skip if no type
             String type = doc.type;
             if (type == null || type.isEmpty()) {
                 LOGGER.debug("Record without associated type, skipping entirely: {}", doc.resourceId);
-                skippedNoUser.get().add(doc.resourceId);
+                skippedNoType.get().add(doc.resourceId);
                 migrationStatsLatch.countDown();
                 continue;
             }
 
             try {
                 // 3) build CreatedBy
+                String username = doc.username;
+                if (username == null || username.isEmpty()) {
+                    LOGGER.debug(
+                        "Record {} without associated user, creating a sharing entry with default owner: {}",
+                        doc.resourceId,
+                        sourceInfo.defaultOwnerName
+                    );
+                    username = sourceInfo.defaultOwnerName;
+                    defaultOwner.get().add(doc.resourceId);
+                }
                 CreatedBy createdBy = new CreatedBy(username);
 
                 // 4) build ShareWith
@@ -301,7 +301,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 ShareWith shareWith = null;
                 if (!backendRoles.isEmpty()) {
                     Recipients recipients = new Recipients(Map.of(Recipient.BACKEND_ROLES, new HashSet<>(backendRoles)));
-                    shareWith = new ShareWith(Map.of(sourceInfo.getMiddle().get(doc.type), recipients));
+                    shareWith = new ShareWith(Map.of(sourceInfo.typeToDefaultAccessLevel.get(doc.type), recipients));
                 }
 
                 // 5) index the new record
@@ -310,7 +310,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         "Successfully migrated a resource sharing entry {} for resource {} within index {}",
                         entry,
                         resourceId,
-                        sourceInfo.getLeft()
+                        sourceInfo.sourceIndex
                     );
                     migratedCount.getAndIncrement();
                     migrationStatsLatch.countDown();
@@ -324,7 +324,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .createdBy(createdBy)
                     .shareWith(shareWith);
                 ResourceSharing sharingInfo = builder.build();
-                sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
+                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();
@@ -341,12 +341,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
 
         String summary = String.format(
-            "Migration complete. migrated %d; skippedNoUser %d; failed %d",
+            "Migration complete. migrated %d; skippedNoType %s; failed %d",
             migratedCount.get(),
-            skippedNoUser.get().size(),
+            skippedNoType.get().size(),
             failureCount.get()
         );
-        MigrationStats stats = new MigrationStats(summary, skippedNoUser.get());
+        MigrationStats stats = new MigrationStats(summary, defaultOwner.get(), skippedNoType.get());
         return ValidationResult.success(stats);
     }
 
@@ -378,7 +378,13 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path", "default_access_level");
+                        return ImmutableSet.of(
+                            "source_index",
+                            "username_path",
+                            "backend_roles_path",
+                            "default_owner",
+                            "default_access_level"
+                        );
                     }
 
                     @Override
@@ -388,6 +394,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
                             .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
                             .put("type_path", RequestContentValidator.DataType.STRING) // path to resource type
+                            .put("default_owner", RequestContentValidator.DataType.STRING) // default owner name for resources without owner
                             .put("default_access_level", RequestContentValidator.DataType.OBJECT) // default access level by type
                             .build();
                     }
@@ -397,10 +404,10 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     static class SourceDoc {
-        String resourceId;
-        String username;
-        List<String> backendRoles;
-        String type;
+        final String resourceId;
+        final String username;
+        final List<String> backendRoles;
+        final String type;
 
         public SourceDoc(String id, String username, List<String> backendRoles, String type) {
             this.resourceId = id;
@@ -410,20 +417,42 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
     }
 
+    static class ValidationResultArg {
+        final String sourceIndex;
+        final String defaultOwnerName;
+        final Map<String, String> typeToDefaultAccessLevel;
+        final List<SourceDoc> sourceDocs;
+
+        public ValidationResultArg(
+            String sourceIndex,
+            String defaultOwner,
+            Map<String, String> typeToDefaultAccessLevel,
+            List<SourceDoc> sourceDocs
+        ) {
+            this.sourceIndex = sourceIndex;
+            this.defaultOwnerName = defaultOwner;
+            this.typeToDefaultAccessLevel = typeToDefaultAccessLevel;
+            this.sourceDocs = sourceDocs;
+        }
+    }
+
     static class MigrationStats implements ToXContentObject {
         private final String summary;
-        private final Set<String> skippedResources;
+        private final Set<String> resourcesWithDefaultOwner;
+        private final Set<String> skippedResourcesWitNoType;
 
-        public MigrationStats(String summary, Set<String> skippedResources) {
+        public MigrationStats(String summary, Set<String> defaultOwner, Set<String> skippedNoType) {
             this.summary = summary;
-            this.skippedResources = skippedResources;
+            this.resourcesWithDefaultOwner = defaultOwner;
+            this.skippedResourcesWitNoType = skippedNoType;
         }
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
             builder.field("summary", summary);
-            builder.array("skippedResources", skippedResources.toArray(new String[0]));
+            builder.field("resourcesWithDefaultOwner", resourcesWithDefaultOwner.toArray(new String[0]));
+            builder.array("skippedResources", skippedResourcesWitNoType.toArray(new String[0]));
             builder.endObject();
             return builder;
         }
