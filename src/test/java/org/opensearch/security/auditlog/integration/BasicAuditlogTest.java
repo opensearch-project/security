@@ -962,40 +962,50 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
             .build();
         setup(settings);
-        rh.sendAdminCertificate = true;
-        final String expectedRequestBody = "\"audit_request_body\" : \"__SENSITIVE__\"";
+        final String expectedChangePasswordRequestBody = "{}";
 
         // test PUT accounts API
         TestAuditlogImpl.clear();
-        rh.executePutRequest("/_opendistro/_security/api/account", "{\"password\":\"new-pass\", \"current_password\":\"curr-passs\"}");
+        rh.sendAdminCertificate = false;
+        final Header adminHeader = encodeBasicHeader("admin", "admin");
+        rh.executePutRequest(
+            "/_opendistro/_security/api/account",
+            "{\"password\":\"myNewPassword123!\", \"current_password\":\"myCurrentPassword123!\"}",
+            adminHeader
+        );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedChangePasswordRequestBody));
 
+        final String expectedUpdateUserRequestBody = "{\\\"backend_roles\\\":[],\\\"attributes\\\":{}}";
         // test PUT internal users API
         TestAuditlogImpl.clear();
         rh.executePutRequest(
             "/_opendistro/_security/api/internalusers/test1",
-            "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}"
+            "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}",
+            adminHeader
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedUpdateUserRequestBody));
 
         // test PATCH internal users API
+        rh.sendAdminCertificate = true;
         TestAuditlogImpl.clear();
         rh.executePatchRequest(
             "/_opendistro/_security/api/internalusers/test1",
             "[{\"op\":\"add\", \"path\":\"/password\", \"value\": \"test-pass\"}]"
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("__SENSITIVE__"));
 
         // test PUT users API
+        rh.sendAdminCertificate = false;
         TestAuditlogImpl.clear();
         rh.executePutRequest(
             "/_opendistro/_security/api/user/test2",
-            "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}"
+            "{\"password\":\"new-pass\", \"backend_roles\":[], \"attributes\": {}}",
+            adminHeader
         );
         assertThat(TestAuditlogImpl.messages.size(), is(1));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedRequestBody));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedUpdateUserRequestBody));
     }
 }
