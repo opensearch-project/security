@@ -558,6 +558,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         // diff only computed on active cluster manager
         if (clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
             diff = computeConfigDiff(configuration, configTypes);
+            System.out.println("computed diff: " + diff);
         }
         configCache.putAll(configuration.rawMap());
         notifyAboutChanges(configuration, diff);

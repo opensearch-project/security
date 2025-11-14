@@ -116,8 +116,24 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
 
+            String mappings = """
+                {
+                  "properties": {
+                    "@timestamp": {
+                      "type": "date"
+                    },
+                    "diffs": {
+                      "type": "object",
+                      "enabled": false
+                    }
+                  }
+                }
+                """;
             log.debug("Index request for {}", securityConfigVersionsIndex);
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityConfigVersionsIndex).settings(indexSettings);
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityConfigVersionsIndex).mapping(
+                mappings,
+                MediaTypeRegistry.JSON
+            ).settings(indexSettings);
 
             final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
             log.info("Index {} created?: {}", securityConfigVersionsIndex, ok);
@@ -208,7 +224,12 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
         builder.endObject();
         var indexRequest = new IndexRequest(securityConfigVersionsIndex).source(builder).setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 
-        client.indexAsync(indexRequest).thenAccept(response -> { log.info("Successfully saved diff to {}", securityConfigVersionsIndex); });
+        client.indexAsync(indexRequest)
+            .thenAccept(response -> { log.info("Successfully saved diff to {}", securityConfigVersionsIndex); })
+            .exceptionally((e) -> {
+                log.error("failed to save diff: " + e.getMessage());
+                return null;
+            });
     }
 
     public void applySecurityConfigVersionIndexRetentionPolicy() {
