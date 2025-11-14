@@ -26,14 +26,20 @@
 
 package org.opensearch.security.configuration;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 /**
  * Callback function on change particular configuration
  */
-@FunctionalInterface
 public interface ConfigurationChangeListener {
 
     /**
-     * @param configuration not null updated configuration on that was subscribe current listener
+     * @param typeToConfig not null updated configuration on that was subscribe current listener
      */
-    void onChange(ConfigurationMap typeToConfig);
+    default void onChange(ConfigurationMap typeToConfig) {}
+
+    /**
+     * @param diff diff between old and new configuration
+     */
+    default void onChange(JsonNode diff) {}
 }

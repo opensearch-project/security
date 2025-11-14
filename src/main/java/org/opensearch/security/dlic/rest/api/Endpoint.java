@@ -31,6 +31,5 @@ public enum Endpoint {
     NODESDN,
     SSL,
     RESOURCE_SHARING,
-    VIEW_VERSION,
-    ROLLBACK_VERSION;
+    VIEW_VERSION;
 }

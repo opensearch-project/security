@@ -49,6 +49,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -80,6 +82,7 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.index.shard.IndexEventListener;
 import org.opensearch.index.shard.IndexShard;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -92,6 +95,8 @@ import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import com.flipkart.zjsonpatch.JsonDiff;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.SnapshotRestoreHelper.isSecurityIndexRestoredFromSnapshot;
@@ -409,7 +414,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             if (initializationInProcess.compareAndSet(false, true)) {
                 return threadPool.generic().submit(() -> {
                     securityIndexHandler.loadConfiguration(securityMetadata.configuration(), ActionListener.wrap(cTypeConfigs -> {
-                        notifyConfigurationListeners(cTypeConfigs);
+                        notifyConfigurationListeners(cTypeConfigs, CType.values());
                         final var auditConfigDocPresent = cTypeConfigs.containsKey(CType.AUDIT) && cTypeConfigs.get(CType.AUDIT).notEmpty();
                         setupAuditConfigurationIfAny(auditConfigDocPresent);
                         auditHotReloadingEnabled.getAndSet(auditConfigDocPresent);
@@ -545,23 +550,51 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
      */
     private void doReload(Set<CType<?>> configTypes) {
         ConfigurationMap loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
-        notifyConfigurationListeners(loaded);
+        notifyConfigurationListeners(loaded, configTypes);
     }
 
-    private void notifyConfigurationListeners(ConfigurationMap configuration) {
+    private void notifyConfigurationListeners(ConfigurationMap configuration, Set<CType<?>> configTypes) {
+        JsonNode diff = null;
+        // diff only computed on active cluster manager
+        if (clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            diff = computeConfigDiff(configuration, configTypes);
+        }
         configCache.putAll(configuration.rawMap());
-        notifyAboutChanges(configuration);
+        notifyAboutChanges(configuration, diff);
+    }
+
+    private JsonNode computeConfigDiff(ConfigurationMap newConfiguration, Set<CType<?>> configTypes) {
+        try {
+            Map<CType<?>, SecurityDynamicConfiguration<?>> filteredOldConfig = configCache.asMap()
+                .entrySet()
+                .stream()
+                .filter(e -> configTypes.contains(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            JsonNode oldNode = DefaultObjectMapper.objectMapper.valueToTree(filteredOldConfig);
+            JsonNode newNode = DefaultObjectMapper.objectMapper.valueToTree(newConfiguration.rawMap());
+            JsonNode forwardDiff = JsonDiff.asJson(oldNode, newNode);
+            JsonNode reverseDiff = JsonDiff.asJson(newNode, oldNode);
+            ObjectNode result = DefaultObjectMapper.objectMapper.createObjectNode();
+            result.set("forwardDiff", forwardDiff);
+            result.set("reverseDiff", reverseDiff);
+
+            return result;
+        } catch (Exception e) {
+            LOGGER.error("Failed to compute config diff", e);
+            return DefaultObjectMapper.objectMapper.createArrayNode();
+        }
     }
 
     public synchronized void subscribeOnChange(ConfigurationChangeListener listener) {
         configurationChangedListener.add(listener);
     }
 
-    private synchronized void notifyAboutChanges(ConfigurationMap typeToConfig) {
+    private synchronized void notifyAboutChanges(ConfigurationMap typeToConfig, JsonNode diff) {
         for (ConfigurationChangeListener listener : configurationChangedListener) {
             try {
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener, typeToConfig);
                 listener.onChange(typeToConfig);
+                listener.onChange(diff);
             } catch (Exception e) {
                 LOGGER.error("{} listener errored: " + e, listener, e);
                 throw ExceptionsHelper.convertToOpenSearchException(e);

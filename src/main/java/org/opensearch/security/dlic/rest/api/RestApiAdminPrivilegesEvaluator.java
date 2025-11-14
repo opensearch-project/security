@@ -71,7 +71,6 @@ public class RestApiAdminPrivilegesEvaluator {
         .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
         .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
         .put(Endpoint.VIEW_VERSION, action -> buildEndpointPermission(Endpoint.VIEW_VERSION))
-        .put(Endpoint.ROLLBACK_VERSION, action -> buildEndpointPermission(Endpoint.ROLLBACK_VERSION))
         .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
         .build();
 

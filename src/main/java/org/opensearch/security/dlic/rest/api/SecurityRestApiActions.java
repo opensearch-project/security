@@ -131,16 +131,6 @@ public class SecurityRestApiActions {
                     new SecurityConfigVersionsLoader(client, settings)
                 )
             );
-            handler.add(
-                new RollbackVersionApiAction(
-                    clusterService,
-                    threadPool,
-                    securityApiDependencies,
-                    new SecurityConfigVersionsLoader(client, settings),
-                    configurationRepository,
-                    client
-                )
-            );
         }
 
         return handler;
