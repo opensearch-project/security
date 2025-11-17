@@ -261,6 +261,9 @@ task copyExtraTestResources(dependsOn: testClasses) {
 }
 
 def setCommonTestConfig(Test task) {
+    task.testClassesDirs = sourceSets.test.output.classesDirs
+    task.classpath = sourceSets.test.runtimeClasspath
+
     task.maxParallelForks = 8
     task.jvmArgs += "-Xmx3072m"
     // this is needed to reflect access system env map.
