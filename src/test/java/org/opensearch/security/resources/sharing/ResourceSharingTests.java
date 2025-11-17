@@ -57,7 +57,7 @@ public class ResourceSharingTests {
     @Test
     public void share_initializesShareWithWhenNull() {
         CreatedBy createdBy = mockCreatedBy("alice");
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, /*shareWith*/ null);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).build();
 
         Recipients target1 = mockRecipients(Map.of(Recipient.USERS, Set.of("bob")));
         Recipients target2 = mockRecipients(Map.of(Recipient.USERS, Set.of("not-bob")));
@@ -80,7 +80,7 @@ public class ResourceSharingTests {
         ShareWith sw = mock(ShareWith.class);
         when(sw.atAccessLevel("write")).thenReturn(existing);
 
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).shareWith(sw).build();
 
         Recipients newRecipients = mock(Recipients.class);
         rs.share("write", newRecipients);
@@ -100,7 +100,7 @@ public class ResourceSharingTests {
         ShareWith updated = mock(ShareWith.class);
         when(sw.updateSharingInfo(eq("admin"), any(Recipients.class))).thenReturn(updated);
 
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).shareWith(sw).build();
 
         Recipients recipients = mock(Recipients.class);
         rs.share("admin", recipients);
@@ -113,7 +113,7 @@ public class ResourceSharingTests {
     @Test
     public void revoke_noopWhenShareWithIsNull() {
         CreatedBy createdBy = mockCreatedBy("alice");
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, null);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).build();
 
         rs.revoke("read", mock(Recipients.class));
     }
@@ -124,7 +124,7 @@ public class ResourceSharingTests {
         ShareWith sw = mock(ShareWith.class);
         when(sw.atAccessLevel("read")).thenReturn(null);
 
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).shareWith(sw).build();
         rs.revoke("read", mock(Recipients.class));
 
         // nothing else to assert—just ensure no exceptions and no revoke() call
@@ -138,7 +138,7 @@ public class ResourceSharingTests {
         ShareWith sw = mock(ShareWith.class);
         when(sw.atAccessLevel("read")).thenReturn(existing);
 
-        ResourceSharing rs = new ResourceSharing("res-1", createdBy, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("res-1").createdBy(createdBy).shareWith(sw).build();
         Recipients target = mock(Recipients.class);
 
         rs.revoke("read", target);
@@ -149,7 +149,7 @@ public class ResourceSharingTests {
     @Test
     public void isCreatedBy_matchesUsername() {
         CreatedBy cb = mockCreatedBy("owner");
-        ResourceSharing rs = new ResourceSharing("r", cb, null);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).build();
 
         assertTrue(rs.isCreatedBy("owner"));
         assertFalse(rs.isCreatedBy("other"));
@@ -161,13 +161,13 @@ public class ResourceSharingTests {
         ShareWith sw = mock(ShareWith.class);
         when(sw.isPublic()).thenReturn(true);
 
-        ResourceSharing rs = new ResourceSharing("r", cb, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
         assertTrue(rs.isSharedWithEveryone());
 
         when(sw.isPublic()).thenReturn(false);
         assertFalse(rs.isSharedWithEveryone());
 
-        ResourceSharing rs2 = new ResourceSharing("r", cb, null);
+        ResourceSharing rs2 = ResourceSharing.builder().resourceId("r").createdBy(cb).build();
         assertFalse(rs2.isSharedWithEveryone());
     }
 
@@ -176,13 +176,13 @@ public class ResourceSharingTests {
         CreatedBy cb = mockCreatedBy("owner");
 
         // Case 1: shareWith == null
-        ResourceSharing rs1 = new ResourceSharing("r", cb, null);
+        ResourceSharing rs1 = ResourceSharing.builder().resourceId("r").createdBy(cb).build();
         assertFalse(rs1.isSharedWithEntity(Recipient.USERS, Set.of("u1"), "read"));
 
         // Case 2: access level missing
         ShareWith sw = mock(ShareWith.class);
         when(sw.atAccessLevel("read")).thenReturn(null);
-        ResourceSharing rs2 = new ResourceSharing("r", cb, sw);
+        ResourceSharing rs2 = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
         assertFalse(rs2.isSharedWithEntity(Recipient.USERS, Set.of("u1"), "read"));
 
         // Case 3: access level present -> delegate to Recipients.isSharedWithAny()
@@ -212,7 +212,7 @@ public class ResourceSharingTests {
 
         ShareWith sw = mockShareWith(map);
 
-        ResourceSharing rs = new ResourceSharing("r", cb, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
 
         // users, looking for anything in {"any"} -> wildcard on read makes it match
         Set<String> levelsUsers = rs.fetchAccessLevels(Recipient.USERS, Set.of("any"));
@@ -228,7 +228,7 @@ public class ResourceSharingTests {
 
     @Test
     public void fetchAccessLevels_returnsEmptyWhenShareWithIsNull() {
-        ResourceSharing rs = new ResourceSharing("r", mockCreatedBy("o"), null);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("o")).build();
         assertTrue(rs.fetchAccessLevels(Recipient.USERS, Set.of("x")).isEmpty());
     }
 
@@ -245,7 +245,7 @@ public class ResourceSharingTests {
 
         ShareWith sw = mockShareWith(info);
 
-        ResourceSharing rs = new ResourceSharing("r", cb, sw);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
         List<String> principals = rs.getAllPrincipals();
 
         assertTrue(principals.contains("user:owner"));
@@ -261,7 +261,7 @@ public class ResourceSharingTests {
 
     @Test
     public void getAllPrincipals_handlesNullShareWith() {
-        ResourceSharing rs = new ResourceSharing("r", mockCreatedBy("owner"), null);
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
         List<String> principals = rs.getAllPrincipals();
         assertEquals(1, principals.size());
         assertEquals("user:owner", principals.get(0));
