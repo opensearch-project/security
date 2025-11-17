@@ -13,6 +13,9 @@ package org.opensearch.security.user;
 import java.util.HashMap;
 import java.util.StringJoiner;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -35,6 +38,8 @@ import static org.opensearch.security.support.SecurityUtils.escapePipe;
  * Moved from https://github.com/opensearch-project/security/blob/d29095f26dba1a26308c69b608dc926bd40c0f52/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java#L293
  */
 public class ThreadContextUserInfo {
+    protected static final Logger log = LogManager.getLogger(ThreadContextUserInfo.class);
+
     private static final String READ_ACCESS = "READ";
     private static final String WRITE_ACCESS = "WRITE";
     private static final String NO_ACCESS = "NONE";
@@ -77,6 +82,7 @@ public class ThreadContextUserInfo {
 
             String tenantAccessToCheck = getTenancyAccess(context);
             joiner.add(tenantAccessToCheck);
+            log.debug("userInfo: {}", joiner);
 
             if (userAttributeSerializationEnabled) {
                 joiner.add(Base64Helper.serializeObject(new HashMap<>(context.getUser().getCustomAttributesMap())));
