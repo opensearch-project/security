@@ -181,11 +181,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     }
 
     @Override
-    public boolean isMultiRolespanEnabled() {
-        return config.dynamic.multi_rolespan_enabled;
-    }
-
-    @Override
     public String getFilteredAliasMode() {
         return config.dynamic.filtered_alias_mode;
     }
