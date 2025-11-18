@@ -556,6 +556,39 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         }
 
         /**
+         * Checks whether the user has any index privileges configured for the given actions, regardless of which indices.
+         * This checks if any of the user's roles have index privileges for any of the given actions.
+         */
+        @Override
+        protected boolean hasAnyIndexPrivilegeForAction(PrivilegesEvaluationContext context, Set<String> actions) {
+            Set<String> effectiveRoles = context.getMappedRoles();
+
+            for (String role : effectiveRoles) {
+                Map<String, IndexPattern> actionToIndexPattern = this.rolesToActionToIndexPattern.get(role);
+                if (actionToIndexPattern != null) {
+                    for (String action : actions) {
+                        if (actionToIndexPattern.containsKey(action)) {
+                            return true;
+                        }
+                    }
+                }
+
+                Map<WildcardMatcher, IndexPattern> actionPatternToIndexPattern = this.rolesToActionPatternToIndexPattern.get(role);
+                if (actionPatternToIndexPattern != null) {
+                    for (String action : actions) {
+                        for (WildcardMatcher actionMatcher : actionPatternToIndexPattern.keySet()) {
+                            if (actionMatcher.test(action)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /**
          * Checks whether this instance provides explicit privileges for the combination of the provided action,
          * the provided indices and the provided roles.
          * <p>

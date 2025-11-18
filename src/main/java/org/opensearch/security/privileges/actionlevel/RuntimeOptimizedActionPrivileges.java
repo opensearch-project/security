@@ -98,12 +98,26 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             return PrivilegesEvaluatorResponse.ok();
         }
 
+        Set<String> allIndicesResolved = resolvedIndices.getAllIndicesResolved(
+            context.getClusterStateSupplier(),
+            context.getIndexNameExpressionResolver()
+        );
+
+        if (allIndicesResolved.isEmpty()) {
+            if (this.index.hasAnyIndexPrivilegeForAction(context, actions)) {
+                log.debug("No resolved indices; grant the request (user has index privileges for the action)");
+                return PrivilegesEvaluatorResponse.ok();
+            } else {
+                log.debug("No resolved indices; deny the request (user has no index privileges for the action)");
+                // Create a CheckTable with a dummy index to represent missing privileges
+                CheckTable<String, String> checkTable = CheckTable.create(ImmutableSet.of("_"), actions);
+                return PrivilegesEvaluatorResponse.insufficient(checkTable).reason("No index privileges for the action");
+            }
+        }
+
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
-        CheckTable<String, String> checkTable = CheckTable.create(
-            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
-            actions
-        );
+        CheckTable<String, String> checkTable = CheckTable.create(allIndicesResolved, actions);
 
         StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
@@ -315,6 +329,14 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             PrivilegesEvaluationContext context,
             Set<String> actions
         );
+
+        /**
+         * Checks whether the user has any index privileges configured for the given actions, regardless of which indices.
+         * This is used to determine if a user should be denied access when there are no resolved indices.
+         * <p>
+         * Returns true if the user has any index privileges for any of the given actions, false otherwise.
+         */
+        protected abstract boolean hasAnyIndexPrivilegeForAction(PrivilegesEvaluationContext context, Set<String> actions);
 
         /**
          * Tests whether the current user (according to the context data) has index privileges for the given well known
