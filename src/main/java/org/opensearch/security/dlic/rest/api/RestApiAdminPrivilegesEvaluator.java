@@ -73,6 +73,7 @@ public class RestApiAdminPrivilegesEvaluator {
         .put(Endpoint.VIEW_VERSION, action -> buildEndpointPermission(Endpoint.VIEW_VERSION))
         .put(Endpoint.ROLLBACK_VERSION, action -> buildEndpointPermission(Endpoint.ROLLBACK_VERSION))
         .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
+        .put(Endpoint.RESOURCE_SHARING, action -> buildEndpointActionPermission(Endpoint.RESOURCE_SHARING, action))
         .build();
 
     private final ThreadContext threadContext;

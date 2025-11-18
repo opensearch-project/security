@@ -32,6 +32,7 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -190,60 +191,62 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             }
         }
 
-        List<SourceDoc> results = new ArrayList<>();
+        // need to stash context because source index may be a system index
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            List<SourceDoc> results = new ArrayList<>();
 
-        // 1) configure a 1-minute scroll
-        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
-            .source(
-                new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
-            );
+            // 1) configure a 1-minute scroll
+            Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+            SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
+                .source(
+                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
+                );
 
-        // 2) execute first search
-        SearchResponse searchResponse = client.search(searchRequest).actionGet();
-        String scrollId = searchResponse.getScrollId();
+            // 2) execute first search
+            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            String scrollId = searchResponse.getScrollId();
 
-        // 3) page through until no hits
-        while (true) {
-            SearchHit[] hits = searchResponse.getHits().getHits();
-            if (hits == null || hits.length == 0) {
-                break;
-            }
-            for (SearchHit hit : hits) {
-                JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
-                String id = hit.getId();
-                String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
+            // 3) page through until no hits
+            while (true) {
+                SearchHit[] hits = searchResponse.getHits().getHits();
+                if (hits == null || hits.length == 0) {
+                    break;
+                }
+                for (SearchHit hit : hits) {
+                    JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
+                    String id = hit.getId();
+                    String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
 
-                // backend_roles as an actual array
-                JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
-                List<String> backendRoles = new ArrayList<>();
-                if (backendRolesNode.isArray()) {
-                    for (JsonNode br : backendRolesNode) {
-                        backendRoles.add(br.asText());
+                    // backend_roles as an actual array
+                    JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
+                    List<String> backendRoles = new ArrayList<>();
+                    if (backendRolesNode.isArray()) {
+                        for (JsonNode br : backendRolesNode) {
+                            backendRoles.add(br.asText());
+                        }
                     }
-                }
 
-                String type;
-                if (typePath != null) {
-                    type = rec.at(typePath.startsWith("/") ? typePath : ("/" + typePath)).asText(null);
-                } else {
-                    type = typeToDefaultAccessLevel.keySet().iterator().next();
-                }
+                    String type;
+                    if (typePath != null) {
+                        type = rec.at(typePath.startsWith("/") ? typePath : ("/" + typePath)).asText(null);
+                    } else {
+                        type = typeToDefaultAccessLevel.keySet().iterator().next();
+                    }
 
-                results.add(new SourceDoc(id, username, backendRoles, type));
+                    results.add(new SourceDoc(id, username, backendRoles, type));
+                }
+                // 4) fetch next batch
+                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+                searchResponse = client.searchScroll(scrollRequest).actionGet();
+                scrollId = searchResponse.getScrollId();
             }
-            // 4) fetch next batch
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
-            searchResponse = client.searchScroll(scrollRequest).actionGet();
-            scrollId = searchResponse.getScrollId();
+
+            // 5) clear the scroll context to free resources
+            ClearScrollRequest clear = new ClearScrollRequest();
+            clear.addScrollId(scrollId);
+            client.clearScroll(clear).actionGet();
+            return ValidationResult.success(new ValidationResultArg(sourceIndex, defaultOwner, typeToDefaultAccessLevel, results));
         }
-
-        // 5) clear the scroll context to free resources
-        ClearScrollRequest clear = new ClearScrollRequest();
-        clear.addScrollId(scrollId);
-        client.clearScroll(clear).actionGet();
-
-        return ValidationResult.success(new ValidationResultArg(sourceIndex, defaultOwner, typeToDefaultAccessLevel, results));
     }
 
     /**

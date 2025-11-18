@@ -23,6 +23,7 @@ security_rest_api_full_access:
     - 'restapi:admin/ssl/certs/info'
     - 'restapi:admin/ssl/certs/reload'
     - 'restapi:admin/tenants'
+    - 'restapi:admin/resource_sharing/migrate'
 
 # Allows users to view monitors, destinations and alerts
 alerting_read_access:
