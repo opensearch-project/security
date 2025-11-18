@@ -61,12 +61,14 @@ public class ThreadContextUserInfo {
             USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT
         );
         this.privilegesConfiguration = privilegesConfiguration;
-        clusterSettings.addSettingsUpdateConsumer(
-            SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
-            newIsUserAttributeSerializationEnabled -> {
-                userAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
-            }
-        );
+        if (clusterSettings != null) {
+            clusterSettings.addSettingsUpdateConsumer(
+                    SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
+                    newIsUserAttributeSerializationEnabled -> {
+                        userAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
+                    }
+            );
+        }
     }
 
     public void setUserInfoInThreadContext(PrivilegesEvaluationContext context) {

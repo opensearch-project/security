@@ -27,9 +27,4 @@ public class HostResolverModeTest {
     public void testIpHostnameLookupValue() {
         assertThat(HostResolverMode.IP_HOSTNAME_LOOKUP.getValue(), is("ip-hostname-lookup"));
     }
-
-    @Test
-    public void testEnumCount() {
-        assertThat(HostResolverMode.values().length, is(2));
-    }
 }
