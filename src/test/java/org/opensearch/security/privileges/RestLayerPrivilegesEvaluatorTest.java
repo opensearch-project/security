@@ -89,7 +89,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             OpenSearchSecurityException.class,
             () -> restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", null)
         );
-        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized: PrivilegesEvaluator not initialized"));
+        assertThat(exception.getMessage(), equalTo("OpenSearch Security not initialized: PrivilegesEvaluator not initialized"));
     }
 
     @Test
