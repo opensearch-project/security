@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -145,7 +146,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
-    private final Map<String, SubjectBasedActionPrivileges> pluginIdToActionPrivileges = new HashMap<>();
+    private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
     private final RoleMapper roleMapper;
 
     private volatile boolean dnfofEnabled = false;
@@ -197,7 +198,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
 
-        this.pluginIdToActionPrivileges.putAll(createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups));
+        this.pluginIdToActionPrivileges = createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups);
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
     }
 
@@ -267,10 +268,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
         if (user.isPluginUser()) {
             mappedRoles = ImmutableSet.of();
-            actionPrivileges = this.pluginIdToActionPrivileges.get(user.getName());
-            if (actionPrivileges == null) {
-                actionPrivileges = ActionPrivileges.EMPTY;
-            }
+            actionPrivileges = this.pluginIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
         } else {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();
@@ -731,7 +729,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         return Collections.unmodifiableList(ret);
     }
 
-    private static Map<String, SubjectBasedActionPrivileges> createActionPrivileges(
+    private static ImmutableMap<String, ActionPrivileges> createActionPrivileges(
         Map<String, RoleV7> pluginIdToRolePrivileges,
         FlattenedActionGroups staticActionGroups
     ) {
@@ -741,7 +739,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             result.put(entry.getKey(), new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups));
         }
 
-        return result;
+        return ImmutableMap.copyOf(result);
     }
 
     private static boolean isDnfofEnabled(ConfigV7 generalConfiguration) {
