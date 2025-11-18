@@ -98,12 +98,19 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             return PrivilegesEvaluatorResponse.ok();
         }
 
+        Set<String> allIndicesResolved = resolvedIndices.getAllIndicesResolved(
+            context.getClusterStateSupplier(),
+            context.getIndexNameExpressionResolver()
+        );
+
+        if (allIndicesResolved.isEmpty()) {
+            log.debug("No resolved indices; grant the request (user has index privileges for the action)");
+            return PrivilegesEvaluatorResponse.ok();
+        }
+
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
-        CheckTable<String, String> checkTable = CheckTable.create(
-            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
-            actions
-        );
+        CheckTable<String, String> checkTable = CheckTable.create(allIndicesResolved, actions);
 
         StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
