@@ -63,10 +63,10 @@ public class ThreadContextUserInfo {
         this.privilegesConfiguration = privilegesConfiguration;
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(
-                    SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
-                    newIsUserAttributeSerializationEnabled -> {
-                        userAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
-                    }
+                SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING,
+                newIsUserAttributeSerializationEnabled -> {
+                    userAttributeSerializationEnabled = newIsUserAttributeSerializationEnabled;
+                }
             );
         }
     }
