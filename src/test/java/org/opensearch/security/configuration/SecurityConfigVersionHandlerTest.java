@@ -20,11 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -48,7 +49,6 @@ import org.opensearch.transport.client.ClusterAdminClient;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,7 +57,6 @@ import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -154,51 +153,47 @@ public class SecurityConfigVersionHandlerTest {
     }
 
     @Test
-    public void testFetchNextVersionId_shouldReturn_v1_IfNoLatestVersion() {
-        when(configVersionsLoader.loadLatestVersion()).thenReturn(null);
-        String id = handler.fetchNextVersionId();
-        assertThat(id, is("v1"));
-    }
-
-    @Test
-    public void testFetchNextVersionId_shouldIncrementCorrectly() {
-        Version<?> v3 = new Version<>("v3", Instant.now().toString(), Map.of(), "test_user");
-        Mockito.<SecurityConfigVersionDocument.Version<?>>when(configVersionsLoader.loadLatestVersion()).thenReturn(v3);
-        String next = handler.fetchNextVersionId();
-        assertThat(next, is("v4"));
-    }
-
-    @Test
-    public void testSaveCurrentVersionToSystemIndex_shouldWriteIfChanged() throws IOException {
-        SecurityConfigVersionDocument existingDoc = new SecurityConfigVersionDocument();
-        existingDoc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "test_user"));
-        when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
-
-        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
-        var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "test_user");
-
+    public void testSaveDiff_shouldWriteIfChanged() throws IOException {
         when(threadPool.generic()).thenReturn(mock(ExecutorService.class));
 
         when(client.index(any())).thenReturn(mockActionFuture(null));
-        handler.saveCurrentVersionToSystemIndex(newVersion);
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        String patchBody = """
+        [
+          {
+            "op": "add",
+            "path": "/ROLES/my_new_role",
+            "value": {
+              "_meta": {
+                "type": "roles",
+                "config_version": 2
+              },
+              "cluster_permissions": [
+                "cluster_composite_ops"
+              ],
+              "index_permissions": [
+                {
+                  "index_patterns": [
+                    "my-index-*"
+                  ],
+                  "allowed_actions": [
+                    "crud"
+                  ]
+                }
+              ],
+              "tenant_permissions": []
+            }
+          }
+        ]
+        """;
+
+        // Create JsonNode from text block
+        JsonNode patchNode = mapper.readTree(patchBody);
+        handler.saveDiff(patchNode);
 
         verify(client).index(any());
-    }
-
-    @Test
-    public void testSaveCurrentVersionToSystemIndex_shouldSkipWriteIfNoChanges() throws IOException {
-        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> configs = new HashMap<>();
-        configs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
-
-        var existingDoc = new SecurityConfigVersionDocument();
-        existingDoc.addVersion(new Version<>("v1", Instant.now().toString(), configs, "test_user"));
-        when(configVersionsLoader.loadFullDocument()).thenReturn(existingDoc);
-
-        var sameVersion = new Version<>("v2", Instant.now().toString(), configs, "test_user");
-        handler.saveCurrentVersionToSystemIndex(sameVersion);
-
-        verify(client, never()).index(any());
     }
 
     @Test
@@ -255,43 +250,6 @@ public class SecurityConfigVersionHandlerTest {
         when(indicesAdminClient.create(any())).thenThrow(new RuntimeException("unexpected failure"));
 
         handler.createOpendistroSecurityConfigVersionsIndexIfAbsent();
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testFetchNextVersionId_shouldThrowIfLoaderFails() {
-        when(configVersionsLoader.loadLatestVersion()).thenThrow(new RuntimeException("loader error"));
-
-        handler.fetchNextVersionId();
-    }
-
-    @Test(expected = OpenSearchException.class)
-    public void testSaveCurrentVersion_shouldCatchVersionConflict() throws IOException {
-        SecurityConfigVersionDocument doc = new SecurityConfigVersionDocument();
-        doc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "user"));
-        when(configVersionsLoader.loadFullDocument()).thenReturn(doc);
-
-        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
-        var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "user");
-
-        when(client.index(any())).thenThrow(new org.opensearch.index.engine.VersionConflictEngineException(null, "conflict", null));
-
-        handler.saveCurrentVersionToSystemIndex(newVersion);
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testSaveCurrentVersion_shouldThrowOnFailure() throws IOException {
-        SecurityConfigVersionDocument doc = new SecurityConfigVersionDocument();
-        doc.addVersion(new Version<>("v1", Instant.now().toString(), new HashMap<>(), "user"));
-        when(configVersionsLoader.loadFullDocument()).thenReturn(doc);
-
-        Map<String, SecurityConfigVersionDocument.HistoricSecurityConfig<?>> newConfigs = new HashMap<>();
-        newConfigs.put("roles", new SecurityConfigVersionDocument.HistoricSecurityConfig<>("time", EMPTY_CONFIG_MAP));
-        var newVersion = new Version<>("v2", Instant.now().toString(), newConfigs, "user");
-
-        when(client.index(any())).thenThrow(new RuntimeException("save failed"));
-
-        handler.saveCurrentVersionToSystemIndex(newVersion);
     }
 
     @Test

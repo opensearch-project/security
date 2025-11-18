@@ -89,6 +89,8 @@ import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.configuration.ConfigurationChangeListener;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
@@ -225,14 +227,17 @@ public class PrivilegesEvaluator {
         );
 
         if (configurationRepository != null) {
-            configurationRepository.subscribeOnChange(configMap -> {
-                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
-                    CType.ACTIONGROUPS
-                );
-                SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
-                SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
+            configurationRepository.subscribeOnChange(new ConfigurationChangeListener() {
+                @Override
+                public void onChange(ConfigurationMap typeToConfig) {
+                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                        CType.ACTIONGROUPS
+                    );
+                    SecurityDynamicConfiguration<RoleV7> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+                    SecurityDynamicConfiguration<TenantV7> tenantConfiguration = configurationRepository.getConfiguration(CType.TENANTS);
 
-                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
+                    updateConfiguration(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration);
+                }
             });
         }
 
