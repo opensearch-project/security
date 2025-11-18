@@ -112,7 +112,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
             ResourceSharing sharingInfo = builder.build();
             // User.getRequestedTenant() is null if multi-tenancy is disabled
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, false, listener);
 
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);

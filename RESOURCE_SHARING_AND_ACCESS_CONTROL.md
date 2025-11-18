@@ -635,7 +635,7 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 
 ```json
 {
-  "summary": "Migration complete. migrated 10; skippedNoType 1; failed 1",
+  "summary": "Migration complete. migrated 10; skippedNoType 1; skippedExisting 0; failed 1",
   "resourcesWithDefaultOwner": ["doc-17"],
   "skippedResources": ["doc-22"]
 }

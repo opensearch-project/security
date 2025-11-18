@@ -256,6 +256,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      */
     private ValidationResult<MigrationStats> createNewSharingRecords(ValidationResultArg sourceInfo) throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
+        AtomicInteger skippedExisting = new AtomicInteger();
         AtomicReference<Set<String>> skippedNoType = new AtomicReference<>();
         skippedNoType.set(new HashSet<>());
         AtomicReference<Set<String>> defaultOwner = new AtomicReference<>();
@@ -309,13 +310,22 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                 // 5) index the new record
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
-                    LOGGER.debug(
-                        "Successfully migrated a resource sharing entry {} for resource {} within index {}",
-                        entry,
-                        resourceId,
-                        sourceInfo.sourceIndex
-                    );
-                    migratedCount.getAndIncrement();
+                    if (entry != null) {
+                        LOGGER.debug(
+                            "Successfully migrated a resource sharing entry {} for resource {} within index {}",
+                            entry,
+                            resourceId,
+                            sourceInfo.sourceIndex
+                        );
+                        migratedCount.getAndIncrement();
+                    } else {
+                        LOGGER.debug(
+                            "Skipping migration of resource sharing record for resource {} within index {} as an entry already exists",
+                            resourceId,
+                            sourceInfo.sourceIndex
+                        );
+                        skippedExisting.getAndIncrement();
+                    }
                     migrationStatsLatch.countDown();
                 }, e -> {
                     LOGGER.debug(e.getMessage());
@@ -327,7 +337,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .createdBy(createdBy)
                     .shareWith(shareWith);
                 ResourceSharing sharingInfo = builder.build();
-                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
+                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, true, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();
@@ -344,9 +354,10 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
 
         String summary = String.format(
-            "Migration complete. migrated %d; skippedNoType %s; failed %d",
+            "Migration complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d",
             migratedCount.get(),
             skippedNoType.get().size(),
+            skippedExisting.get(),
             failureCount.get()
         );
         MigrationStats stats = new MigrationStats(summary, defaultOwner.get(), skippedNoType.get());

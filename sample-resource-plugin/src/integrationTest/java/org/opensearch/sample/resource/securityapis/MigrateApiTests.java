@@ -173,7 +173,10 @@ public class MigrateApiTests {
         try (TestRestClient client = cluster.getRestClient(MIGRATION_USER_REST_ADMIN)) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 2; skippedNoType 0; failed 0"));
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
         }
 
@@ -205,7 +208,10 @@ public class MigrateApiTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 2; skippedNoType 0; failed 0"));
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
@@ -226,6 +232,64 @@ public class MigrateApiTests {
     }
 
     @Test
+    public void testMigrateTwice_shouldSkipSecondTime() {
+        String resourceId = createSampleResource();
+        String resourceIdNoUser = createSampleResourceNoUser();
+        clearResourceSharingEntries();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
+            assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
+
+            TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
+            sharingResponse.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
+            assertThat(hitsNode.size(), equalTo(2));
+
+            final List<ObjectNode> actualHits = new ArrayList<>();
+            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+
+            // with custom access level, order-agnostic
+            assertThat(
+                actualHits,
+                containsInAnyOrder(expectedHits(resourceId, resourceIdNoUser, "sample_read_only").toArray(new ObjectNode[0]))
+            );
+
+            // execute migrate again
+            migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_valid_withSpecifiedAccessLevel("sample_read_write")
+            );
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 0; skippedNoType 0; skippedExisting 2; failed 0")
+            );
+            assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
+
+            sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
+            sharingResponse.assertStatusCode(HttpStatus.SC_OK);
+            hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
+            assertThat(hitsNode.size(), equalTo(2));
+
+            final List<ObjectNode> finalActualHits = new ArrayList<>();
+            hitsNode.forEach(node -> finalActualHits.add((ObjectNode) node));
+
+            // default access-level should not have been updated as record was already migrated
+            assertThat(
+                finalActualHits,
+                containsInAnyOrder(expectedHits(resourceId, resourceIdNoUser, "sample_read_only").toArray(new ObjectNode[0]))
+            );
+
+        }
+    }
+
+    @Test
     public void testMigrateAPIWithSuperAdmin_valid_withSpecifiedAccessLevel() {
         String resourceId = createSampleResource();
         String resourceIdNoUser = createSampleResourceNoUser();
@@ -237,7 +301,10 @@ public class MigrateApiTests {
                 migrationPayload_valid_withSpecifiedAccessLevel("sample_read_write")
             );
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 2; skippedNoType 0; failed 0"));
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");

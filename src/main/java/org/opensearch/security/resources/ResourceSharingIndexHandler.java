@@ -243,11 +243,16 @@ public class ResourceSharingIndexHandler {
      *                          "backend_roles": ["backend_role1"]
      *                        }
      *                      }
+     * @param isMigrationCall check whether this method is being called from migrate API
      * @param listener Returns resourceSharing object if the operation was successful, exception otherwise
      * @throws IOException if there are issues with index operations or JSON processing
      */
-    public void indexResourceSharing(String resourceIndex, ResourceSharing sharingInfo, ActionListener<ResourceSharing> listener)
-        throws IOException {
+    public void indexResourceSharing(
+        String resourceIndex,
+        ResourceSharing sharingInfo,
+        boolean isMigrationCall,
+        ActionListener<ResourceSharing> listener
+    ) throws IOException {
         String resourceId = sharingInfo.getResourceId();
         CreatedBy createdBy = sharingInfo.getCreatedBy();
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -283,7 +288,11 @@ public class ResourceSharingIndexHandler {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
                     LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
-                    listener.onResponse(sharingInfo);
+                    if (isMigrationCall) {
+                        listener.onResponse(null); // to allow migrate API to return appropriate response
+                    } else {
+                        listener.onResponse(sharingInfo);
+                    }
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
                     listener.onFailure(e);
