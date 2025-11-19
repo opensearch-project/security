@@ -89,7 +89,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -188,6 +188,18 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+
+        DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
+
+        if (!resolved.isLocalAll() && resolved.getAllIndices().stream().anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
+            // The documentAllowList is needed here for Dashboards multi tenancy which can redirect index accesses to indices for which no
+            // normal index privileges are present
+            // If we would not use the documentAllowList here, the index would appear to be protected
+
+            if (resolved.getAllIndices().size() == 1) {
+                return true;
+            }
+        }
 
         try {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);

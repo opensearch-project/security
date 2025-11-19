@@ -23,7 +23,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -77,7 +78,7 @@ public class RestApiAdminPrivilegesEvaluator {
 
     private final ThreadContext threadContext;
 
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
     private final AdminDNs adminDNs;
 
@@ -85,12 +86,12 @@ public class RestApiAdminPrivilegesEvaluator {
 
     public RestApiAdminPrivilegesEvaluator(
         final ThreadContext threadContext,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final PrivilegesConfiguration privilegesConfiguration,
         final AdminDNs adminDNs,
         final boolean restapiAdminEnabled
     ) {
         this.threadContext = threadContext;
-        this.privilegesEvaluator = privilegesEvaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
         this.adminDNs = adminDNs;
         this.restapiAdminEnabled = restapiAdminEnabled;
     }
@@ -108,11 +109,10 @@ public class RestApiAdminPrivilegesEvaluator {
             return false;
         }
         final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build(action);
-        final boolean hasAccess = privilegesEvaluator.hasRestAdminPermissions(
-            userAndRemoteAddress.getLeft(),
-            userAndRemoteAddress.getRight(),
-            permission
-        );
+        PrivilegesEvaluationContext context = privilegesConfiguration.privilegesEvaluator()
+            .createContext(userAndRemoteAddress.getLeft(), permission);
+        final boolean hasAccess = context.getActionPrivileges().hasExplicitClusterPrivilege(context, permission).isAllowed();
+
         if (logger.isDebugEnabled()) {
             logger.debug(
                 "User {} with permission {} {} access to endpoint {}",

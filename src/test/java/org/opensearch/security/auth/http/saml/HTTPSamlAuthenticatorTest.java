@@ -1000,6 +1000,11 @@ public class HTTPSamlAuthenticatorTest {
         }
 
         @Override
+        public boolean detailedErrorStackTraceEnabled() {
+            return false;
+        }
+
+        @Override
         public void sendResponse(RestResponse response) {
             this.response = response;
 

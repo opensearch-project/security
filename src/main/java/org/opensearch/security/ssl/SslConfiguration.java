@@ -137,6 +137,7 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .keyManager(kmFactory)
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
+                    .endpointIdentificationAlgorithm(null)
                     .build();
             });
         } catch (Exception e) {
