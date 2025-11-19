@@ -82,8 +82,8 @@ public class WebhookSink extends AuditLogSink {
         final String format = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT);
 
         // Read basic auth credentials
-        this.username = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME);
-        this.password = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD);
+        this.username = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME);
+        this.password = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD);
 
         // Generate Basic Auth header if credentials are provided
         if (this.username != null && this.password != null) {

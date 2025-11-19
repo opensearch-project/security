@@ -243,8 +243,8 @@ public class ConfigConstants {
 
     // External OpenSearch
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS = "http_endpoints";
-    public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME = "username";
-    public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD = "password";
+    public static final String SECURITY_AUDIT_CONFIG_USERNAME = "username";
+    public static final String SECURITY_AUDIT_CONFIG_PASSWORD = "password";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL = "enable_ssl";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";
