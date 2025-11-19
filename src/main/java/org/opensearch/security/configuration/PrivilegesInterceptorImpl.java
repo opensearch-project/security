@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -45,12 +46,12 @@ import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.TenantPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -77,13 +78,20 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
+    private final Supplier<TenantPrivileges> tenantPrivilegesSupplier;
+    private final Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier;
+
     public PrivilegesInterceptorImpl(
         IndexNameExpressionResolver resolver,
         ClusterService clusterService,
         Client client,
-        ThreadPool threadPool
+        ThreadPool threadPool,
+        Supplier<TenantPrivileges> tenantPrivilegesSupplier,
+        Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier
     ) {
         super(resolver, clusterService, client, threadPool);
+        this.tenantPrivilegesSupplier = tenantPrivilegesSupplier;
+        this.multiTenancyConfigurationSupplier = multiTenancyConfigurationSupplier;
     }
 
     /**
@@ -97,25 +105,26 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final ActionRequest request,
         final String action,
         final User user,
-        final DynamicConfigModel config,
         final Resolved requestedResolved,
-        final PrivilegesEvaluationContext context,
-        final TenantPrivileges tenantPrivileges
+        final PrivilegesEvaluationContext context
     ) {
+        DashboardsMultiTenancyConfiguration config = this.multiTenancyConfigurationSupplier.get();
 
-        final boolean enabled = config.isDashboardsMultitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
+        final boolean enabled = config.multitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
+        TenantPrivileges tenantPrivileges = this.tenantPrivilegesSupplier.get();
+
         // next two lines needs to be retrieved from configuration
-        final String dashboardsServerUsername = config.getDashboardsServerUsername();// config.dynamic.kibana.server_username;
-        final String dashboardsIndexName = config.getDashboardsIndexname();// config.dynamic.kibana.index;
+        final String dashboardsServerUsername = config.dashboardsServerUsername();// config.dynamic.kibana.server_username;
+        final String dashboardsIndexName = config.dashboardsIndex();// config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
         if (USER_TENANT.equals(requestedTenant)) {
-            final boolean private_tenant_enabled = config.isDashboardsPrivateTenantEnabled();
+            final boolean private_tenant_enabled = config.privateTenantEnabled();
             if (!private_tenant_enabled) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
