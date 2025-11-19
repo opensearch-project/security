@@ -48,8 +48,8 @@ public class ResourcePluginInfo {
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
-    // type <-> index
-    private final Map<String, String> typeToIndex = new HashMap<>();
+    // type <-> resource provider
+    private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
 
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
@@ -113,8 +113,7 @@ public class ResourcePluginInfo {
                 for (var rp : extension.getResourceProviders()) {
                     final String type = rp.resourceType();
                     if (!protectedTypes.contains(type)) continue;
-
-                    typeToProvider.put(type, rp);
+                    typeToProvider.put(rp.resourceType(), rp);
                 }
             }
         } finally {
@@ -122,6 +121,18 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * Extracts the value of a field from the Lucene document backing an {@link Engine.Index} operation.
+     * <p>
+     * This method iterates over all {@link IndexableField} instances with the given {@code fieldName} on the
+     * root document of {@code indexOp}. It returns the first non-{@code null} value, preferring
+     * {@link IndexableField#stringValue()} and falling back to decoding {@link IndexableField#binaryValue()}
+     * as UTF-8 if present.
+     *
+     * @param fieldName the name of the field to extract from the index operation's root document; must not be {@code null}
+     * @param indexOp   the index operation whose parsed document will be inspected; must not be {@code null}
+     * @return the first non-{@code null} string or UTF-8-decoded binary value of the field, or {@code null} if no such value exists
+     */
     public static String extractFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
         String fieldValue = null;
         for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
@@ -137,6 +148,21 @@ public class ResourcePluginInfo {
         return fieldValue;
     }
 
+    /**
+     * Resolves the resource type for the given index operation and resource index.
+     * <p>
+     * The method acquires a read lock and selects the first registered provider whose resource index name
+     * matches {@code resourceIndex}. If such a provider defines a {@code typeField}, the value of that
+     * field is extracted from {@code indexOp} via {@link #extractFieldFromIndexOp(String, Engine.Index)}.
+     * If {@code typeField} is not defined, it is assumed that the index hosts a single resource type and
+     * the provider's configured resource type is returned.
+     * <p>
+     * If no provider is found for the supplied {@code resourceIndex}, {@code null} is returned.
+     *
+     * @param resourceIndex the name of the resource index associated with the index operation
+     * @param indexOp       the index operation from which a dynamic type field may be extracted
+     * @return the resolved resource type, or {@code null} if no matching provider exists for {@code resourceIndex}
+     */
     public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
         lock.readLock().lock();
         try {

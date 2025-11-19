@@ -77,6 +77,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         log.debug("postIndex called on {}", resourceIndex);
 
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard

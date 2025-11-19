@@ -104,11 +104,6 @@ public class DynamicSecurityConfig {
         return this;
     }
 
-    public DynamicSecurityConfig setLegacy() {
-        this.legacyConfigFolder = "legacy/securityconfig_v6/";
-        return this;
-    }
-
     public List<IndexRequest> getDynamicConfig(String folder) {
 
         final String prefix = legacyConfigFolder + (folder == null ? "" : folder + "/");

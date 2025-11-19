@@ -27,6 +27,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +36,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.tasks.Task;
@@ -47,8 +47,13 @@ public class SnapshotRestoreEvaluator {
     private final String securityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSecurityIndexEnabled;
+    private final Supplier<Boolean> isLocalNodeElectedClusterManagerSupplier;
 
-    public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
+    public SnapshotRestoreEvaluator(
+        final Settings settings,
+        AuditLog auditLog,
+        Supplier<Boolean> isLocalNodeElectedClusterManagerSupplier
+    ) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(
             ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
             ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE
@@ -60,13 +65,13 @@ public class SnapshotRestoreEvaluator {
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
+        this.isLocalNodeElectedClusterManagerSupplier = isLocalNodeElectedClusterManagerSupplier;
     }
 
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
         final Task task,
         final String action,
-        final ClusterInfoHolder clusterInfoHolder,
         final PrivilegesEvaluatorResponse presponse
     ) {
 
@@ -88,7 +93,7 @@ public class SnapshotRestoreEvaluator {
             return presponse;
         }
 
-        if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
+        if (!isLocalNodeElectedClusterManagerSupplier.get()) {
             presponse.allowed = true;
             return presponse.markComplete();
         }

@@ -80,12 +80,6 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      */
     private ShareWith shareWith;
 
-    public ResourceSharing(String resourceId, CreatedBy createdBy, ShareWith shareWith) {
-        this.resourceId = resourceId;
-        this.createdBy = createdBy;
-        this.shareWith = shareWith;
-    }
-
     private ResourceSharing(Builder b) {
         this.resourceId = b.resourceId;
         this.resourceType = b.resourceType;
