@@ -73,6 +73,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         log.debug("postIndex called on {}", resourceIndex);
 
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+
         String resourceId = index.id();
 
         // Only proceed if this was a create operation and for primary shard
@@ -107,8 +109,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceIndex
                 );
             }, e -> { log.debug(e.getMessage()); });
+            // User.getRequestedTenant() is null if multi-tenancy is disabled
             ResourceSharing.Builder builder = ResourceSharing.builder()
                 .resourceId(resourceId)
+                .resourceType(resourceType)
                 .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
             ResourceSharing sharingInfo = builder.build();
             // User.getRequestedTenant() is null if multi-tenancy is disabled

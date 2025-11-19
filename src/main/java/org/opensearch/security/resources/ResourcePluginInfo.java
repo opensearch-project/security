@@ -15,20 +15,22 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.engine.Engine;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
@@ -46,8 +48,8 @@ public class ResourcePluginInfo {
 
     private final Set<ResourceSharingExtension> resourceSharingExtensions = new HashSet<>();
 
-    // type <-> index
-    private final Map<String, String> typeToIndex = new HashMap<>();
+    // type <-> resource provider
+    private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
 
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
@@ -57,8 +59,6 @@ public class ResourcePluginInfo {
 
     // cache current protected types and their indices
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
-    private Set<String> currentProtectedTypes = Collections.emptySet();          // snapshot of last set
-    private Set<String> cachedProtectedTypeIndices = Collections.emptySet();     // precomputed indices
 
     public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
         this.protectedTypesSetting = protectedTypesSetting;
@@ -68,7 +68,7 @@ public class ResourcePluginInfo {
         lock.writeLock().lock();
         try {
             resourceSharingExtensions.clear();
-            typeToIndex.clear();
+            typeToProvider.clear();
 
             // Enforce resource-type unique-ness
             Set<String> resourceTypes = new HashSet<>();
@@ -78,7 +78,7 @@ public class ResourcePluginInfo {
                         // add name seen so far to the resource-types set
                         resourceTypes.add(rp.resourceType());
                         // also cache type->index and index->type mapping
-                        typeToIndex.put(rp.resourceType(), rp.resourceIndexName());
+                        typeToProvider.put(rp.resourceType(), rp);
                     } else {
                         throw new OpenSearchSecurityException(
                             String.format(
@@ -91,10 +91,6 @@ public class ResourcePluginInfo {
                 }
             }
             resourceSharingExtensions.addAll(extensions);
-
-            // Whenever providers change, invalidate protected caches so next update refreshes them
-            currentProtectedTypes = Collections.emptySet();
-            cachedProtectedTypeIndices = Collections.emptySet();
         } finally {
             lock.writeLock().unlock();
         }
@@ -104,32 +100,87 @@ public class ResourcePluginInfo {
         lock.writeLock().lock();
         try {
             // Rebuild mappings based on the current allowlist
-            typeToIndex.clear();
+            typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
-                // No protected types -> leave maps empty
-                currentProtectedTypes = Collections.emptySet();
-                cachedProtectedTypeIndices = Collections.emptySet();
                 return;
             }
-
-            // Cache current protected set as an unmodifiable snapshot
-            currentProtectedTypes = Collections.unmodifiableSet(new LinkedHashSet<>(protectedTypes));
 
             for (ResourceSharingExtension extension : resourceSharingExtensions) {
                 for (var rp : extension.getResourceProviders()) {
                     final String type = rp.resourceType();
-                    if (!currentProtectedTypes.contains(type)) continue;
-
-                    final String index = rp.resourceIndexName();
-                    typeToIndex.put(type, index);
+                    if (!protectedTypes.contains(type)) continue;
+                    typeToProvider.put(rp.resourceType(), rp);
                 }
             }
-
-            // pre-compute indices for current protected set
-            cachedProtectedTypeIndices = Collections.unmodifiableSet(new LinkedHashSet<>(typeToIndex.values()));
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Extracts the value of a field from the Lucene document backing an {@link Engine.Index} operation.
+     * <p>
+     * This method iterates over all {@link IndexableField} instances with the given {@code fieldName} on the
+     * root document of {@code indexOp}. It returns the first non-{@code null} value, preferring
+     * {@link IndexableField#stringValue()} and falling back to decoding {@link IndexableField#binaryValue()}
+     * as UTF-8 if present.
+     *
+     * @param fieldName the name of the field to extract from the index operation's root document; must not be {@code null}
+     * @param indexOp   the index operation whose parsed document will be inspected; must not be {@code null}
+     * @return the first non-{@code null} string or UTF-8-decoded binary value of the field, or {@code null} if no such value exists
+     */
+    public static String extractFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
+        String fieldValue = null;
+        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
+            if (f.stringValue() != null) {
+                fieldValue = f.stringValue();
+                break;
+            }
+            if (f.binaryValue() != null) { // e.g., BytesRef-backed
+                fieldValue = f.binaryValue().utf8ToString();
+                break;
+            }
+        }
+        return fieldValue;
+    }
+
+    /**
+     * Resolves the resource type for the given index operation and resource index.
+     * <p>
+     * The method acquires a read lock and selects the first registered provider whose resource index name
+     * matches {@code resourceIndex}. If such a provider defines a {@code typeField}, the value of that
+     * field is extracted from {@code indexOp} via {@link #extractFieldFromIndexOp(String, Engine.Index)}.
+     * If {@code typeField} is not defined, it is assumed that the index hosts a single resource type and
+     * the provider's configured resource type is returned.
+     * <p>
+     * If no provider is found for the supplied {@code resourceIndex}, {@code null} is returned.
+     *
+     * @param resourceIndex the name of the resource index associated with the index operation
+     * @param indexOp       the index operation from which a dynamic type field may be extracted
+     * @return the resolved resource type, or {@code null} if no matching provider exists for {@code resourceIndex}
+     */
+    public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
+        lock.readLock().lock();
+        try {
+            // Eagerly use type field from first matching provider of same index as the indexOp
+            // If typeField is not present, assume single resource type per index and return type from provider
+            var provider = typeToProvider.values()
+                .stream()
+                .filter(p -> p.resourceIndexName().equals(resourceIndex))
+                .findFirst()
+                .orElse(null);
+            if (provider == null) {
+                // should not happen
+                return null;
+            }
+            if (provider.typeField() != null) {
+                return extractFieldFromIndexOp(provider.typeField(), indexOp);
+            }
+            // If `typeField` is not defined, assume single type to index and return type from provider
+            return provider.resourceType();
+        } finally {
+            lock.readLock().unlock();
         }
     }
 
@@ -179,23 +230,22 @@ public class ResourcePluginInfo {
         }
     }
 
-    public String indexByType(String type) {
+    public ResourceProvider getResourceProvider(String type) {
         lock.readLock().lock();
         try {
-            return typeToIndex.get(type);
+            return typeToProvider.get(type);
         } finally {
             lock.readLock().unlock();
         }
     }
 
-    public Set<String> typesByIndex(String index) {
+    public String indexByType(String type) {
         lock.readLock().lock();
         try {
-            return typeToIndex.entrySet()
-                .stream()
-                .filter(entry -> Objects.equals(entry.getValue(), index))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+            if (!typeToProvider.containsKey(type)) {
+                return null;
+            }
+            return typeToProvider.get(type).resourceIndexName();
         } finally {
             lock.readLock().unlock();
         }
@@ -204,7 +254,7 @@ public class ResourcePluginInfo {
     public Set<ResourceDashboardInfo> getResourceTypes() {
         lock.readLock().lock();
         try {
-            return typeToIndex.keySet()
+            return typeToProvider.keySet()
                 .stream()
                 .map(
                     s -> new ResourceDashboardInfo(
@@ -221,7 +271,7 @@ public class ResourcePluginInfo {
     public Set<String> getResourceIndices() {
         lock.readLock().lock();
         try {
-            return new HashSet<>(typeToIndex.values());
+            return typeToProvider.values().stream().map(ResourceProvider::resourceIndexName).collect(Collectors.toSet());
         } finally {
             lock.readLock().unlock();
         }
@@ -235,15 +285,10 @@ public class ResourcePluginInfo {
 
         lock.readLock().lock();
         try {
-            // If caller is asking for the current protected set, return the cache
-            if (new LinkedHashSet<>(resourceTypes).equals(currentProtectedTypes)) {
-                return cachedProtectedTypeIndices;
-            }
-
-            return typeToIndex.entrySet()
+            return typeToProvider.entrySet()
                 .stream()
                 .filter(e -> resourceTypes.contains(e.getKey()))
-                .map(Map.Entry::getValue)
+                .map(e -> e.getValue().resourceIndexName())
                 .collect(Collectors.toSet());
         } finally {
             lock.readLock().unlock();
