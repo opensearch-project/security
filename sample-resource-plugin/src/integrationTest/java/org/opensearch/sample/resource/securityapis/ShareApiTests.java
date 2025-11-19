@@ -15,6 +15,8 @@ import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -257,6 +259,86 @@ public class ShareApiTests {
                 TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
                 response = client.patch(SECURITY_SHARE_ENDPOINT, patchSharingInfoPayloadBuilder.build());
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+            }
+        }
+
+        @Test
+        public void testPostSharingInfo() {
+            Map<Recipient, Set<String>> recs = new HashMap<>();
+            Set<String> users = new HashSet<>();
+            users.add(FULL_ACCESS_USER.getName());
+            recs.put(Recipient.USERS, users);
+            Recipients recipients = new Recipients(recs);
+
+            TestUtils.PatchSharingInfoPayloadBuilder patchSharingInfoPayloadBuilder = new TestUtils.PatchSharingInfoPayloadBuilder();
+            patchSharingInfoPayloadBuilder.resourceId(adminResId).resourceType(RESOURCE_TYPE).share(recipients, SAMPLE_FULL_ACCESS);
+
+            // full-access user cannot share with itself since user doesn't have permission to share
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
+                TestRestClient.HttpResponse response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+            }
+
+            // a sharing entry should be created successfully since admin has access to share API
+            try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+                TestRestClient.HttpResponse response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
+                response.assertStatusCode(HttpStatus.SC_OK);
+                assertThat(response.getBody(), containsString(FULL_ACCESS_USER.getName()));
+            }
+
+            // limited access user will not be able to call patch endpoint
+            try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
+                TestRestClient.HttpResponse response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+            }
+
+            // full-access user will now be able to patch and grant access to limited access user
+            // they can also shoot themselves in the foot and remove own access
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
+                // add limited user
+                users.add(LIMITED_ACCESS_USER.getName());
+                patchSharingInfoPayloadBuilder.share(recipients, SAMPLE_FULL_ACCESS);
+                // remove self
+                Set<String> revokedUsers = new HashSet<>();
+                revokedUsers.add(FULL_ACCESS_USER.getName());
+                recs.put(Recipient.USERS, revokedUsers);
+                recipients = new Recipients(recs);
+                patchSharingInfoPayloadBuilder.revoke(recipients, SAMPLE_FULL_ACCESS);
+
+                TestRestClient.HttpResponse response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
+                response.assertStatusCode(HttpStatus.SC_OK);
+            }
+
+            // limited access user will now be able to call get and patch endpoint, but full-access won't
+            try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
+                TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
+                response.assertStatusCode(HttpStatus.SC_OK);
+                response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
+                response.assertStatusCode(HttpStatus.SC_OK);
+            }
+            try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
+                TestRestClient.HttpResponse response = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId);
+                response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+                response = client.post(
+                    SECURITY_SHARE_ENDPOINT,
+                    new StringEntity(patchSharingInfoPayloadBuilder.build(), ContentType.APPLICATION_JSON)
+                );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
         }
