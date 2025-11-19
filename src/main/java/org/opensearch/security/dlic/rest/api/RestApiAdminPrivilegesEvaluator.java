@@ -41,6 +41,8 @@ public class RestApiAdminPrivilegesEvaluator {
 
     public final static String SECURITY_CONFIG_UPDATE = "update";
 
+    public final static String RESOURCE_MIGRATE_ACTION = "migrate";
+
     private final static String REST_API_PERMISSION_PREFIX = "restapi:admin";
 
     private final static String REST_ENDPOINT_PERMISSION_PATTERN = REST_API_PERMISSION_PREFIX + "/%s";

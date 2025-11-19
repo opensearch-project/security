@@ -67,6 +67,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RESOURCE_MIGRATE_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -118,7 +119,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     private void migrateApiRequestHandlers(RequestHandler.RequestHandlersBuilder b) {
-        b.allMethodsNotImplemented().override(POST, this::handleMigrate);
+        b.withAccessHandler(this::accessHandler).allMethodsNotImplemented().override(POST, this::handleMigrate);
+    }
+
+    boolean accessHandler(final RestRequest request) {
+        if (request.method() == POST) {
+            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
+        } else {
+            return false;
+        }
     }
 
     private void handleMigrate(RestChannel channel, RestRequest request, Client client) throws IOException {
