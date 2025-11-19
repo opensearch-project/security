@@ -57,8 +57,6 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
-    private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
-
     // cache current protected types and their indices
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
