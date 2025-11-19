@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace AccessController and remove restriction on word Extension ([#5750](https://github.com/opensearch-project/security/pull/5750))
 - Add security provider earlier in bootstrap process ([#5749](https://github.com/opensearch-project/security/pull/5749))
 - [GRPC] Fix compilation errors from core protobuf version bump to 0.23.0 ([#5763](https://github.com/opensearch-project/security/pull/5763))
+- Modularized PrivilegesEvaluator ([#5791](https://github.com/opensearch-project/security/pull/5791))
 
 ### Maintenance
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.1 ([#5678](https://github.com/opensearch-project/security/pull/5678), [#5764](https://github.com/opensearch-project/security/pull/5764))

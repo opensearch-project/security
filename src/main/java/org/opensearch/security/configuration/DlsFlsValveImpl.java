@@ -89,7 +89,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
