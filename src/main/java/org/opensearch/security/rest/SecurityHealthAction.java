@@ -40,6 +40,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -67,17 +68,17 @@ public class SecurityHealthAction extends BaseRestHandler {
     );
 
     private final BackendRegistry registry;
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
     public SecurityHealthAction(
         final Settings settings,
         final RestController controller,
         final BackendRegistry registry,
-        final PrivilegesEvaluator privilegesEvaluator
+        final PrivilegesConfiguration privilegesConfiguration
     ) {
         super();
         this.registry = registry;
-        this.privilegesEvaluator = privilegesEvaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
     }
 
     @Override
@@ -108,7 +109,10 @@ public class SecurityHealthAction extends BaseRestHandler {
 
                     builder.startObject();
 
-                    if ("strict".equalsIgnoreCase(mode) && !(registry.isInitialized() && privilegesEvaluator.isInitialized())) {
+                    if ("strict".equalsIgnoreCase(mode)
+                        && !(registry.isInitialized()
+                            && privilegesConfiguration.privilegesEvaluator()
+                                .type() != PrivilegesEvaluator.PrivilegesEvaluatorType.NOT_INITIALIZED)) {
                         status = "DOWN";
                         message = "Not initialized";
                         restStatus = RestStatus.SERVICE_UNAVAILABLE;

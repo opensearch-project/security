@@ -20,14 +20,14 @@ import org.opensearch.security.user.User;
 
 public class RestLayerPrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
-    public RestLayerPrivilegesEvaluator(PrivilegesEvaluator privilegesEvaluator) {
-        this.privilegesEvaluator = privilegesEvaluator;
+    public RestLayerPrivilegesEvaluator(PrivilegesConfiguration privilegesConfiguration) {
+        this.privilegesConfiguration = privilegesConfiguration;
     }
 
     public PrivilegesEvaluatorResponse evaluate(final User user, final String routeName, final Set<String> actions) {
-        PrivilegesEvaluationContext context = privilegesEvaluator.createContext(user, routeName);
+        PrivilegesEvaluationContext context = privilegesConfiguration.privilegesEvaluator().createContext(user, routeName);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
