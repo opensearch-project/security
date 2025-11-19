@@ -78,7 +78,7 @@ public final class FieldReadCallback {
                     log.trace("_opendistro_security_source_field_context: {}", sfc);
                 }
 
-                filterFunction = XContentMapValues.filter(sfc.getIncludes(), sfc.getExcludes());
+                filterFunction = XContentMapValues.filter(sfc.getIncludes(), sfc.getExcludes(), true);
             }
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
