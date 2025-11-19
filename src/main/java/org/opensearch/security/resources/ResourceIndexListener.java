@@ -79,7 +79,11 @@ public class ResourceIndexListener implements IndexingOperationListener {
         String resourceId = index.id();
         ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
         if (provider == null) {
-            log.warn("Failed to create a resource sharing entry for resource: {} with type: {}", resourceId, resourceType);
+            log.warn(
+                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.experimental.resource_sharing.protected_types.",
+                resourceId,
+                resourceType
+            );
             return;
         }
 
