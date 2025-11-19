@@ -229,12 +229,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         }
                     }
 
-                String type;
-                if (typePath != null) {
-                    type = rec.at("/" + typePath.replace(".", "/")).asText(null);
-                } else {
-                    type = typeToDefaultAccessLevel.keySet().iterator().next();
-                }
+                    String type;
+                    if (typePath != null) {
+                        type = rec.at("/" + typePath.replace(".", "/")).asText(null);
+                    } else {
+                        type = typeToDefaultAccessLevel.keySet().iterator().next();
+                    }
 
                     results.add(new SourceDoc(id, username, backendRoles, type));
                 }
