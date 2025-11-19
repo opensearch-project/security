@@ -638,6 +638,8 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 }
 ```
 
+**NOTE:** Can only be invoked successfully by a [REST admin](https://docs.opensearch.org/latest/security/access-control/api/#access-control-for-the-api) or an [admin certificate user](https://docs.opensearch.org/latest/security/access-control/users-roles/#super-admin-users).
+
 
 ## **4. Resource Sharing API**
 
