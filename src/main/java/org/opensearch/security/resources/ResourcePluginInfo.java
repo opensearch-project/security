@@ -103,7 +103,6 @@ public class ResourcePluginInfo {
             typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
-                // No protected types -> leave maps empty
                 return;
             }
 

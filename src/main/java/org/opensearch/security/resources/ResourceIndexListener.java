@@ -72,10 +72,9 @@ public class ResourceIndexListener implements IndexingOperationListener {
             return;
         }
 
-        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
-        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
-
         log.debug("postIndex called on {}", resourceIndex);
+
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
 
         String resourceId = index.id();
         ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
@@ -130,6 +129,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     .parentId(ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index));
             }
             ResourceSharing sharingInfo = builder.build();
+            // User.getRequestedTenant() is null if multi-tenancy is disabled
 
             this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
 
