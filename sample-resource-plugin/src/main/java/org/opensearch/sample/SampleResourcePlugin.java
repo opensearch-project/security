@@ -123,6 +123,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         handlers.add(new GetResourceGroupRestAction());
         handlers.add(new DeleteResourceGroupRestAction());
         handlers.add(new SearchResourceGroupRestAction());
+
         handlers.add(new SecurePluginRestAction());
         return handlers;
     }
