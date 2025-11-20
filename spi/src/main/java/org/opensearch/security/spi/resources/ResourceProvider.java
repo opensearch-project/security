@@ -29,4 +29,22 @@ public interface ResourceProvider {
         return null;
     }
 
+    /**
+     * Returns the type of the parent resource, if any, for hierarchical resources.
+     *
+     * @return the parent resource type
+     */
+    default String parentType() {
+        return null;
+    }
+
+    /**
+     * Returns the name of the field representing the parent resource ID in the child resource document.
+     *
+     * @return the field name containing the parent id
+     */
+    default String parentIdField() {
+        return null;
+    }
+
 }

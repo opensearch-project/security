@@ -351,6 +351,15 @@ public final class TestUtils {
             }
         }
 
+        public String createSampleResourceWithGroupAs(TestSecurityConfig.User user, String groupId, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String sample = "{\"group_id\":\"" + groupId + "\", \"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
         public String createSampleResourceGroupAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"name\":\"samplegroup\",\"resource_type\":\"" + RESOURCE_GROUP_TYPE + "\"}";

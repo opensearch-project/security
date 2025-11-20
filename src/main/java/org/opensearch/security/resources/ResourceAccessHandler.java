@@ -155,8 +155,6 @@ public class ResourceAccessHandler {
             listener.onResponse(true);
             return;
         }
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
@@ -182,8 +180,13 @@ public class ResourceAccessHandler {
 
             Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
 
+            // no matching access level, either recurse up or fail fast
             if (accessLevels.isEmpty()) {
-                listener.onResponse(false);
+                if (sharingInfo.getParentId() != null) {
+                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+                } else {
+                    listener.onResponse(false);
+                }
                 return;
             }
 
@@ -192,7 +195,16 @@ public class ResourceAccessHandler {
             final Set<String> allowedActions = agForType.resolve(accessLevels);
             final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
 
-            listener.onResponse(matcher.test(action));
+            if (matcher.test(action)) {
+                listener.onResponse(true);
+                return;
+            }
+
+            if (sharingInfo.getParentId() != null) {
+                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+            } else {
+                listener.onResponse(false);
+            }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);

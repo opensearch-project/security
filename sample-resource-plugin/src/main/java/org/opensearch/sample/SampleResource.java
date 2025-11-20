@@ -36,6 +36,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     private String name;
     private String description;
+    private String groupId;
     private Map<String, String> attributes;
     // NOTE: following field is added to specifically test migrate API, for newer resources this field must not be defined
     private User user;
@@ -46,7 +47,8 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     public SampleResource(StreamInput in) throws IOException {
         this.name = in.readString();
-        this.description = in.readString();
+        this.description = in.readOptionalString();
+        this.groupId = in.readOptionalString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
         this.user = new User(in);
     }
@@ -60,15 +62,17 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         }
         s.setName((String) a[0]);
         s.setDescription((String) a[1]);
-        // ignore a[2] as we know the type
-        s.setAttributes((Map<String, String>) a[3]);
-        s.setUser((User) a[4]);
+        s.setGroupId((String) a[2]);
+        // ignore a[3] as we know the type
+        s.setAttributes((Map<String, String>) a[4]);
+        s.setUser((User) a[5]);
         return s;
     });
 
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("description"));
+        PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("group_id"));
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("resource_type"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> User.parse(p), null, new ParseField("user"));
@@ -82,6 +86,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         return builder.startObject()
             .field("name", name)
             .field("description", description)
+            .field("group_id", groupId)
             .field("resource_type", RESOURCE_TYPE)
             .field("attributes", attributes)
             .field("user", user)
@@ -90,7 +95,8 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
-        out.writeString(description);
+        out.writeOptionalString(description);
+        out.writeOptionalString(groupId);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
         user.writeTo(out);
     }
@@ -101,6 +107,10 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     public void setAttributes(Map<String, String> attributes) {
