@@ -345,7 +345,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .resourceType(provider.resourceType())
                     .build();
 
-                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, true, listener);
+                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();
