@@ -283,7 +283,7 @@ public class ResourceSharingIndexHandler {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
                     LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
-                    listener.onResponse(sharingInfo);
+                    listener.onResponse(null);
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
                     listener.onFailure(e);

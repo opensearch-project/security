@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Get list of headersToCopy from core and use getHeader(String headerName) instead of getHeaders() ([#5769](https://github.com/opensearch-project/security/pull/5769))
 - [Resource Sharing] Keep track of resource_type on resource sharing document ([#5772](https://github.com/opensearch-project/security/pull/5772))
 - Add support for X509 v3 extensions (SAN) for authentication  ([#5701](https://github.com/opensearch-project/security/pull/5701))
+- [Resource Sharing] Requires default_owner for resource/migrate API ([#5789](https://github.com/opensearch-project/security/pull/5789))
 
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
