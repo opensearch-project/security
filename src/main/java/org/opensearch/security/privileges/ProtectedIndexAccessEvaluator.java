@@ -67,16 +67,18 @@ public class ProtectedIndexAccessEvaluator {
         this.deniedActionMatcher = WildcardMatcher.from(indexDeniedActionPatterns);
     }
 
+    /**
+     * @return a PrivilegesEvaluatorResponse if the evaluation process is completed here, null otherwise
+     */
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
         final Task task,
         final String action,
         final IndexResolverReplacer.Resolved requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
         final Set<String> mappedRoles
     ) {
         if (!protectedIndexEnabled) {
-            return presponse;
+            return null;
         }
         if (!requestedResolved.isLocalAll()
             && indexMatcher.matchAny(requestedResolved.getAllIndices())
@@ -84,15 +86,13 @@ public class ProtectedIndexAccessEvaluator {
             && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '{}' index/indices is not allowed for a regular user", action, indexMatcher);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         if (requestedResolved.isLocalAll() && deniedActionMatcher.test(action) && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '_all' indices is not allowed for a regular user", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
         if ((requestedResolved.isLocalAll() || indexMatcher.matchAny(requestedResolved.getAllIndices()))
             && !allowedRolesMatcher.matchAny(mappedRoles)) {
@@ -112,6 +112,6 @@ public class ProtectedIndexAccessEvaluator {
                 }
             }
         }
-        return presponse;
+        return null;
     }
 }

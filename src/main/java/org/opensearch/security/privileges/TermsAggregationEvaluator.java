@@ -61,12 +61,14 @@ public class TermsAggregationEvaluator {
 
     public TermsAggregationEvaluator() {}
 
+    /**
+     * @return a PrivilegesEvaluatorResponse if the evaluation process is completed here, null otherwise
+     */
     public PrivilegesEvaluatorResponse evaluate(
         final Resolved resolved,
         final ActionRequest request,
         PrivilegesEvaluationContext context,
-        ActionPrivileges actionPrivileges,
-        PrivilegesEvaluatorResponse presponse
+        ActionPrivileges actionPrivileges
     ) {
         try {
             if (request instanceof SearchRequest) {
@@ -102,17 +104,16 @@ public class TermsAggregationEvaluator {
                                 sr.source().query(NONE_QUERY);
                             }
 
-                            presponse.allowed = true;
-                            return presponse.markComplete();
+                            return PrivilegesEvaluatorResponse.ok();
                         }
                     }
                 }
             }
         } catch (Exception e) {
             log.warn("Unable to evaluate terms aggregation", e);
-            return presponse;
+            return null;
         }
 
-        return presponse;
+        return null;
     }
 }

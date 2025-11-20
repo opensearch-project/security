@@ -38,7 +38,7 @@ public class RestLayerPrivilegesEvaluator {
 
         PrivilegesEvaluatorResponse result = context.getActionPrivileges().hasAnyClusterPrivilege(context, actions);
 
-        if (!result.allowed) {
+        if (!result.isAllowed()) {
             log.info(
                 "No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                 user,

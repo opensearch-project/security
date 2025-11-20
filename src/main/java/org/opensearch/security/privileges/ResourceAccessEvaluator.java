@@ -78,8 +78,6 @@ public class ResourceAccessEvaluator {
         final String action,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
-        PrivilegesEvaluatorResponse pResponse = new PrivilegesEvaluatorResponse();
-
         log.debug("Evaluating resource access");
 
         // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
@@ -87,12 +85,11 @@ public class ResourceAccessEvaluator {
 
         resourceAccessHandler.hasPermission(req.id(), req.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
-                pResponse.allowed = true;
-                pResponseListener.onResponse(pResponse.markComplete());
-                return;
+                pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
+            } else {
+                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
             }
-            pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action).markComplete());
-        }, e -> { pResponseListener.onResponse(pResponse.markComplete()); }));
+        }, e -> { pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action)); }));
     }
 
     /**
