@@ -639,6 +639,8 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 }
 ```
 
+**NOTE:** Can only be invoked successfully by a [REST admin](https://docs.opensearch.org/latest/security/access-control/api/#access-control-for-the-api) or an [admin certificate user](https://docs.opensearch.org/latest/security/access-control/users-roles/#super-admin-users).
+
 
 ## **4. Resource Sharing API**
 
@@ -700,10 +702,11 @@ Creates or replaces sharing settings for a resource.
 }
 ```
 
-### 2. `PATCH /_plugins/_security/api/resource/share`
+### 2. `PATCH /_plugins/_security/api/resource/share` and `POST /_plugins/_security/api/resource/share`
 
 **Description:**
 Updates sharing settings by **adding** or **removing** recipients at any access level. Unlike `PUT`, this is a **non-destructive** operation.
+Can be used alternatively. POST version supports calls from dashboards.
 
 **Request Body:**
 
@@ -750,7 +753,7 @@ Updates sharing settings by **adding** or **removing** recipients at any access 
 }
 ```
 
-#### Allowed Patch operations:
+#### Allowed Patch/Post operations:
 - `"add"` – Adds recipients
 - `"revoke"` – Removes recipients
 
@@ -851,26 +854,28 @@ NOTE:
 
 ## Who Can Use This?
 
-| API                                             | Permission Required               | Intended User     |
-|-------------------------------------------------|-----------------------------------|-------------------|
+| API                                              | Permission Required               | Intended User     |
+|--------------------------------------------------|-----------------------------------|-------------------|
 | `POST /_plugins/_security/api/resources/migrate` | REST admin or Super admin         | Cluster admin     |
-| `PUT /_plugins/_security/api/resource/share`    | Resource Owner                    | Dashboards / REST |
-| `PATCH /_plugins/_security/api/resource/share`  | Resource Owner / share permission | Dashboards / REST |
-| `GET /_plugins/_security/api/resource/share`    | Resource Owner / read permission  | Dashboards / REST |
-| `GET /_plugins/_security/api/resource/types`    | Dashboard access                  | Dashboards |
-| `GET /_plugins/_security/api/resource/list`     | Dashboard access                  | Dashboards |
+| `PUT /_plugins/_security/api/resource/share`     | Resource Owner                    | Dashboards / REST |
+| `PATCH /_plugins/_security/api/resource/share`   | Resource Owner / share permission | REST              |
+| `POST /_plugins/_security/api/resource/share`    | Resource Owner / share permission | Dashboards / REST |
+| `GET /_plugins/_security/api/resource/share`     | Resource Owner / read permission  | Dashboards / REST |
+| `GET /_plugins/_security/api/resource/types`     | Dashboard access                  | Dashboards        |
+| `GET /_plugins/_security/api/resource/list`      | Dashboard access                  | Dashboards        |
 
 
 ## When to Use
 
-| Use Case                                                    | API                                              |
-|-------------------------------------------------------------|--------------------------------------------------|
-| Migrating existing plugin-specific sharing configs          | `POST /_plugins/_security/api/resources/migrate` |
-| Sharing a document with another user or role                | `PUT /_plugins/_security/api/resource/share`     |
-| Granting/revoking access without affecting others           | `PATCH /_plugins/_security/api/resource/share`   |
-| Fetching the current sharing status of a resource           | `GET /_plugins/_security/api/resource/share`     |
-| Listing resource type. Encouraged only for dashboard access | `GET /_plugins/_security/api/resource/types`     |
-| Listing accessible resources in given resource index.       | `GET /_plugins/_security/api/resource/list`      |
+| Use Case                                                       | API                                              |
+|----------------------------------------------------------------|--------------------------------------------------|
+| Migrating existing plugin-specific sharing configs             | `POST /_plugins/_security/api/resources/migrate` |
+| Sharing a document with another user or role                   | `PUT /_plugins/_security/api/resource/share`     |
+| Granting/revoking access without affecting others              | `PATCH /_plugins/_security/api/resource/share`   |
+| Granting/revoking access without affecting others (dashboards) | `POST /_plugins/_security/api/resource/share`    |
+| Fetching the current sharing status of a resource              | `GET /_plugins/_security/api/resource/share`     |
+| Listing resource type. Encouraged only for dashboard access    | `GET /_plugins/_security/api/resource/types`     |
+| Listing accessible resources in given resource index.          | `GET /_plugins/_security/api/resource/list`      |
 
 
 ## **5. Best Practices For Users & Admins**
