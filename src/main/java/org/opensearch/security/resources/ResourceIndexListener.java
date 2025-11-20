@@ -78,6 +78,15 @@ public class ResourceIndexListener implements IndexingOperationListener {
         log.debug("postIndex called on {}", resourceIndex);
 
         String resourceId = index.id();
+        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
+        if (provider == null) {
+            log.warn(
+                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.experimental.resource_sharing.protected_types.",
+                resourceId,
+                resourceType
+            );
+            return;
+        }
 
         // Only proceed if this was a create operation and for primary shard
         if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
