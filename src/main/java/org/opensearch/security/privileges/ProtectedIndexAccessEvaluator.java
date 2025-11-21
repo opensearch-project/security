@@ -86,13 +86,13 @@ public class ProtectedIndexAccessEvaluator {
             && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '{}' index/indices is not allowed for a regular user", action, indexMatcher);
-            return PrivilegesEvaluatorResponse.insufficient(action);
+            return PrivilegesEvaluatorResponse.insufficient("");
         }
 
         if (requestedResolved.isLocalAll() && deniedActionMatcher.test(action) && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '_all' indices is not allowed for a regular user", action);
-            return PrivilegesEvaluatorResponse.insufficient(action);
+            return PrivilegesEvaluatorResponse.insufficient("");
         }
         if ((requestedResolved.isLocalAll() || indexMatcher.matchAny(requestedResolved.getAllIndices()))
             && !allowedRolesMatcher.matchAny(mappedRoles)) {

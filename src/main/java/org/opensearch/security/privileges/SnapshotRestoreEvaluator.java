@@ -107,7 +107,7 @@ public class SnapshotRestoreEvaluator {
         if (rs != null && (rs.contains(securityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
-            return PrivilegesEvaluatorResponse.insufficient(action).reason(securityIndex + " as source index is not allowed");
+            return PrivilegesEvaluatorResponse.insufficient("").reason(securityIndex + " as source index is not allowed");
         }
         return null;
     }
