@@ -60,6 +60,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RESOURCE_MIGRATE_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
@@ -205,10 +206,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         var counter = 0;
         for (final var e : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
             if (e.getKey() == Endpoint.SSL) {
-                permissions[counter] = e.getValue().build(CERTS_INFO_ACTION);
-                permissions[++counter] = e.getValue().build(RELOAD_CERTS_ACTION);
+                permissions[counter++] = e.getValue().build(CERTS_INFO_ACTION);
+                permissions[counter++] = e.getValue().build(RELOAD_CERTS_ACTION);
             } else if (e.getKey() == Endpoint.CONFIG) {
                 permissions[counter++] = e.getValue().build(SECURITY_CONFIG_UPDATE);
+            } else if (e.getKey() == Endpoint.RESOURCE_SHARING) {
+                permissions[counter++] = e.getValue().build(RESOURCE_MIGRATE_ACTION);
             } else {
                 permissions[counter++] = e.getValue().build();
             }

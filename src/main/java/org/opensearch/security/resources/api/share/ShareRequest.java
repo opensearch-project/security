@@ -95,7 +95,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             arv.addValidationError("share_with is required");
             throw arv;
         }
-        if (method == RestRequest.Method.PATCH && add == null && revoke == null) {
+        if ((method == RestRequest.Method.PATCH || method == RestRequest.Method.POST) && add == null && revoke == null) {
             arv.addValidationError("either add or revoke must be present");
             throw arv;
         }

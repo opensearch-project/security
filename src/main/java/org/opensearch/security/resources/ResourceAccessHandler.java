@@ -155,8 +155,6 @@ public class ResourceAccessHandler {
             listener.onResponse(true);
             return;
         }
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {

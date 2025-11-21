@@ -42,6 +42,8 @@ public class RestApiAdminPrivilegesEvaluator {
 
     public final static String SECURITY_CONFIG_UPDATE = "update";
 
+    public final static String RESOURCE_MIGRATE_ACTION = "migrate";
+
     private final static String REST_API_PERMISSION_PREFIX = "restapi:admin";
 
     private final static String REST_ENDPOINT_PERMISSION_PATTERN = REST_API_PERMISSION_PREFIX + "/%s";
@@ -74,6 +76,7 @@ public class RestApiAdminPrivilegesEvaluator {
         .put(Endpoint.VIEW_VERSION, action -> buildEndpointPermission(Endpoint.VIEW_VERSION))
         .put(Endpoint.ROLLBACK_VERSION, action -> buildEndpointPermission(Endpoint.ROLLBACK_VERSION))
         .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
+        .put(Endpoint.RESOURCE_SHARING, action -> buildEndpointActionPermission(Endpoint.RESOURCE_SHARING, action))
         .build();
 
     private final ThreadContext threadContext;
