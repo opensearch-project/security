@@ -26,14 +26,14 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0-SNAPSHOT')
 
-        kafka_version  = '4.1.0'
+        kafka_version  = '4.1.1'
         open_saml_version = '5.1.6'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.12'
+        spring_version = '6.2.14'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -812,7 +812,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.31.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.32.0') {
         exclude group: 'com.google.guava'
     }
 }
