@@ -21,7 +21,7 @@ jobs:
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@v1
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download release notes
         run: |
           curl -s -o release-notes.md https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${{ steps.tag.outputs.tag }}.md
