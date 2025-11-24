@@ -91,14 +91,8 @@ public class SSLAuditlogTest extends AbstractAuditlogUnitTest {
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.key.pem")
             )
-            .put(
-                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
-                "admin"
-            )
-            .put(
-                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD,
-                "admin"
-            )
+            .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME, "admin")
+            .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD, "admin")
             .build();
 
         setup(additionalSettings);
@@ -174,14 +168,8 @@ public class SSLAuditlogTest extends AbstractAuditlogUnitTest {
                     + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("auditlog/chain-ca.pem")
             )
-            .put(
-                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
-                "admin"
-            )
-            .put(
-                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD,
-                "admin"
-            )
+            .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME, "admin")
+            .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD, "admin")
             .build();
 
         setup(additionalSettings);
