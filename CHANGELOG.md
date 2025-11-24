@@ -55,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `github/codeql-action` from 3 to 4 ([#5702](https://github.com/opensearch-project/security/pull/5702))
 - Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
 - Bump `com.autonomousapps.build-health` from 3.0.4 to 3.3.0 ([#5726](https://github.com/opensearch-project/security/pull/5726), [#5744](https://github.com/opensearch-project/security/pull/5744))
-- Bump `spring_version` from 6.2.11 to 6.2.12 ([#5725](https://github.com/opensearch-project/security/pull/5725))
+- Bump `spring_version` from 6.2.11 to 6.2.14 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M5 to 4.0.0-RC1 ([#5742](https://github.com/opensearch-project/security/pull/5742))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.42.0 to 2.44.0 ([#5743](https://github.com/opensearch-project/security/pull/5743), [#5779](https://github.com/opensearch-project/security/pull/5779))
 - Bump `actions/upload-artifact` from 4 to 5 ([#5740](https://github.com/opensearch-project/security/pull/5740))
