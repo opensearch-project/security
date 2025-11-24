@@ -833,6 +833,61 @@ public class WebhookAuditLogTest {
     }
 
     @Test
+    public void basicAuthGetTest() throws Exception {
+        TestHttpHandler handler = new TestHttpHandler();
+
+        int port = findFreePort();
+        server = ServerBootstrap.bootstrap()
+            .setListenerPort(port)
+            .setHttpProcessor(HttpProcessors.server("Test/1.1"))
+            .setRequestRouter((request, context) -> handler)
+            .create();
+
+        server.start();
+
+        String url = "http://localhost:" + port + "/endpoint";
+        String username = "test_user";
+        String password = "test_password";
+
+        // Test with basic auth credentials - GET
+        Settings settings = Settings.builder()
+            .put("plugins.security.audit.config.webhook.url", url)
+            .put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_GET")
+            .put("plugins.security.audit.config.username", username)
+            .put("plugins.security.audit.config.password", password)
+            .put("path.home", ".")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks")
+            )
+            .build();
+
+        LoggingSink fallback = new LoggingSink("test", Settings.EMPTY, null, null);
+        WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
+        auditlog.store(msg);
+
+        // Verify request was made with GET method
+        assertThat(handler.method, is("GET"));
+
+        // Verify Authorization header is present and correct
+        Assert.assertNotNull(handler.headers);
+        Assert.assertTrue(handler.headers.containsKey("Authorization"));
+        String authHeader = handler.headers.get("Authorization");
+        Assert.assertTrue(authHeader.startsWith("Basic "));
+
+        // Decode and verify credentials
+        String encodedCredentials = authHeader.substring("Basic ".length());
+        String decodedCredentials = new String(java.util.Base64.getDecoder().decode(encodedCredentials), StandardCharsets.UTF_8);
+        Assert.assertEquals(username + ":" + password, decodedCredentials);
+
+        // no message stored on fallback
+        assertThat(fallback.messages.size(), is(0));
+        auditlog.close();
+        server.awaitTermination(TimeValue.ofSeconds(3));
+    }
+
+    @Test
     public void webhookWithoutAuthTest() throws Exception {
         TestHttpHandler handler = new TestHttpHandler();
 
