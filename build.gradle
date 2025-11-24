@@ -26,14 +26,14 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0-SNAPSHOT')
 
-        kafka_version  = '4.1.0'
+        kafka_version  = '4.1.1'
         open_saml_version = '5.1.6'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.12'
+        spring_version = '6.2.14'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -480,7 +480,7 @@ configurations {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.19.0'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.17'
+            force 'org.scala-lang:scala-library:2.13.18'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -778,7 +778,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
-    testImplementation 'commons-validator:commons-validator:1.10.0'
+    testImplementation 'commons-validator:commons-validator:1.10.1'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
@@ -796,7 +796,7 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.17'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
@@ -812,7 +812,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.31.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.32.0') {
         exclude group: 'com.google.guava'
     }
 }
