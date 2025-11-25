@@ -555,7 +555,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -576,7 +576,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan2() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {

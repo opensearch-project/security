@@ -124,7 +124,6 @@
 
     },
     "do_not_fail_on_forbidden":false,
-    "multi_rolespan_enabled":false,
     "hosts_resolver_mode":"ip-only",
     "do_not_fail_on_forbidden_empty":false
   }
