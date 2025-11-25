@@ -11,8 +11,6 @@
 
 package org.opensearch.security.ssl.transport;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
@@ -20,6 +18,8 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.opensearch.secure_sm.AccessController;
 
 public class SPIFFEPrincipalExtractor implements PrincipalExtractor {
     /**
@@ -31,21 +31,17 @@ public class SPIFFEPrincipalExtractor implements PrincipalExtractor {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     @Override
-    @SuppressWarnings("removal")
     public String extractPrincipal(final X509Certificate x509Certificate, final Type type) {
         if (x509Certificate == null) {
             return null;
         }
 
-        final Collection<List<?>> altNames = AccessController.doPrivileged(new PrivilegedAction<Collection<List<?>>>() {
-            @Override
-            public Collection<List<?>> run() {
-                try {
-                    return x509Certificate.getSubjectAlternativeNames();
-                } catch (CertificateParsingException e) {
-                    log.error("Unable to parse X509 altNames", e);
-                    return null;
-                }
+        final Collection<List<?>> altNames = AccessController.doPrivileged(() -> {
+            try {
+                return x509Certificate.getSubjectAlternativeNames();
+            } catch (CertificateParsingException e) {
+                log.error("Unable to parse X509 altNames", e);
+                return null;
             }
         });
 

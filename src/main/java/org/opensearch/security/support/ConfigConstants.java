@@ -43,6 +43,7 @@ import com.password4j.types.Hmac;
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
+    public static final String OPENSEARCH_SECURITY_CONFIG_PREFIX = "_opensearch_security_";
     public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
 
     public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
@@ -80,6 +81,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields_ccs";
 
     public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
+    public static final String OPENSEARCH_SECURITY_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "request_headers";
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
@@ -107,10 +109,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_trustedcluster_request";
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "ssl_transport_extension_request";
-    // CS-ENFORCE-SINGLE
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer
@@ -131,6 +131,7 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_INJECTED_USER = "injected_user";
     public static final String OPENDISTRO_SECURITY_INJECTED_USER_HEADER = "injected_user_header";
+    public static final String OPENDISTRO_SECURITY_INJECTED_USER_CUSTOM_ATTRIBUTES = "injected_user_custom_attributes";
 
     public static final String OPENDISTRO_SECURITY_XFF_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "xff_done";
 
@@ -413,10 +414,8 @@ public class ConfigConstants {
     public static final boolean USER_ATTRIBUTE_SERIALIZATION_ENABLED_DEFAULT = false;
 
     // On-behalf-of endpoints settings
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
     public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
-    // CS-ENFORCE-SINGLE
 
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
@@ -425,6 +424,13 @@ public class ConfigConstants {
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
+
+    // Protected resource types
+    // Resource sharing will only apply to these types
+    public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES =
+        "plugins.security.experimental.resource_sharing.protected_types";
+    public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
+                                                                                                      // protected
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

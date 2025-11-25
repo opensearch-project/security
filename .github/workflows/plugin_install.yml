@@ -3,7 +3,7 @@ name: Plugin Install
 on: [push, pull_request, workflow_dispatch]
 
 env:
-  OPENSEARCH_VERSION: 3.3.0
+  OPENSEARCH_VERSION: 3.4.0
   PLUGIN_NAME: opensearch-security
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        jdk: [21, 24]
+        jdk: [21, 25]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -21,13 +21,13 @@ jobs:
         uses: DarshitChanpura/secure-password-action@v1.0.0
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v3
@@ -41,10 +41,21 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v7
+        uses: derek-ho/start-opensearch@v9
+        if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
+          security-enabled: true
+          admin-password: ${{ steps.generate-password.outputs.password }}
+          jdk-version: 21
+
+      - name: Run Opensearch with A Single Plugin
+        uses: derek-ho/start-opensearch@v9
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugins: "file:///$((Get-Location).Path -replace '\\\\','/')/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21

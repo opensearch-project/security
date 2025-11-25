@@ -23,14 +23,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
+import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.spi.resources.sharing.Recipient;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
-import org.opensearch.security.spi.resources.sharing.ShareWith;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -55,17 +50,15 @@ public class ResourceAccessHandlerTest {
     private ResourceSharingIndexHandler sharingIndexHandler;
     @Mock
     private AdminDNs adminDNs;
+
     @Mock
-    private PrivilegesEvaluator privilegesEvaluator;
-    @Mock
-    private PrivilegesEvaluationContext context;
-    @Mock
-    private RoleBasedActionPrivileges roleBasedPrivileges;
+    private ResourcePluginInfo resourcePluginInfo;
 
     private ThreadContext threadContext;
     private ResourceAccessHandler handler;
 
     private static final String INDEX = "test-index";
+    private static final String TYPE = "test";
     private static final String RESOURCE_ID = "res-1";
     private static final String ACTION = "read";
 
@@ -73,7 +66,11 @@ public class ResourceAccessHandlerTest {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, privilegesEvaluator);
+        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, resourcePluginInfo);
+
+        // For tests that verify permission with action-group
+        when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
+        when(resourcePluginInfo.indexByType(TYPE)).thenReturn(INDEX);
     }
 
     private void injectUser(User user) {
@@ -89,7 +86,7 @@ public class ResourceAccessHandlerTest {
         when(adminDNs.isAdmin(user)).thenReturn(true);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, context, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -99,8 +96,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("alice", ImmutableSet.of("r1"), ImmutableSet.of("b1"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.isCreatedBy("alice")).thenReturn(true);
@@ -112,7 +107,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -122,19 +117,17 @@ public class ResourceAccessHandlerTest {
         User user = new User("bob", ImmutableSet.of("role1"), ImmutableSet.of("backend1"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
+        // Document setup: shared with the user at access-level "read"
         ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy("bob")).thenReturn(false);
-        when(doc.fetchAccessLevels(eq(Recipient.USERS), any())).thenReturn(Set.of("read"));
-        when(doc.fetchAccessLevels(eq(Recipient.ROLES), any())).thenReturn(Set.of());
-        when(doc.fetchAccessLevels(eq(Recipient.BACKEND_ROLES), any())).thenReturn(Set.of());
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Set.of("read"));
 
         FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
-        when(roleBasedPrivileges.flattenedActionGroups()).thenReturn(ag);
-        when(ag.resolve(Set.of("read"))).thenReturn(ImmutableSet.of("read"));
+        when(resourcePluginInfo.flattenedForType(TYPE)).thenReturn(ag);
+        // Resolve the access level "read" to the concrete allowed action "read" (could also be a wildcard)
+        when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));
 
+        // Return the sharing doc from the index handler
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
             l.onResponse(doc);
@@ -142,7 +135,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
     }
@@ -152,12 +145,9 @@ public class ResourceAccessHandlerTest {
         User user = new User("charlie", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy("charlie")).thenReturn(false);
-        when(doc.fetchAccessLevels(any(), any())).thenReturn(Collections.emptySet());
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
@@ -166,7 +156,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
     }
@@ -176,8 +166,6 @@ public class ResourceAccessHandlerTest {
         User user = new User("dave", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(context);
-        when(context.getActionPrivileges()).thenReturn(roleBasedPrivileges);
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
@@ -186,21 +174,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
-
-        verify(listener).onResponse(false);
-    }
-
-    @Test
-    public void testHasPermission_pluginUserDenied() {
-        User user = new User("plugin_user", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(user);
-        PrivilegesEvaluationContext subjectContext = mock(PrivilegesEvaluationContext.class);
-        when(subjectContext.getActionPrivileges()).thenReturn(mock(SubjectBasedActionPrivileges.class));
-        when(privilegesEvaluator.createContext(user, ACTION)).thenReturn(subjectContext);
-
-        ActionListener<Boolean> listener = mock(ActionListener.class);
-        handler.hasPermission(RESOURCE_ID, INDEX, ACTION, null, listener);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
     }
@@ -219,7 +193,7 @@ public class ResourceAccessHandlerTest {
             return null;
         }).when(sharingIndexHandler).fetchAllResourceIds(eq(INDEX), any());
 
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
+        handler.getOwnAndSharedResourceIdsForCurrentUser(TYPE, listener);
         verify(listener).onResponse(Set.of("res1", "res2"));
     }
 
@@ -232,12 +206,12 @@ public class ResourceAccessHandlerTest {
         ActionListener<Set<String>> listener = mock(ActionListener.class);
 
         doAnswer(inv -> {
-            ActionListener<Set<String>> l = inv.getArgument(3);
+            ActionListener<Set<String>> l = inv.getArgument(2);
             l.onResponse(Set.of("res1"));
             return null;
-        }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any(), any());
+        }).when(sharingIndexHandler).fetchAccessibleResourceIds(any(), any(), any());
 
-        handler.getOwnAndSharedResourceIdsForCurrentUser(INDEX, listener);
+        handler.getOwnAndSharedResourceIdsForCurrentUser(TYPE, listener);
         verify(listener).onResponse(Set.of("res1"));
     }
 
@@ -256,7 +230,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).share(eq(RESOURCE_ID), eq(INDEX), eq(shareWith), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.share(RESOURCE_ID, INDEX, shareWith, listener);
+        handler.share(RESOURCE_ID, TYPE, shareWith, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -267,37 +241,7 @@ public class ResourceAccessHandlerTest {
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
 
-        handler.share(RESOURCE_ID, INDEX, shareWith, listener);
-        verify(listener).onFailure(any(OpenSearchStatusException.class));
-    }
-
-    @Test
-    public void testRevokeSuccess() {
-        User user = new User("user3", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
-        injectUser(user);
-
-        ShareWith revokeTarget = mock(ShareWith.class);
-        ResourceSharing doc = mock(ResourceSharing.class);
-
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(3);
-            l.onResponse(doc);
-            return null;
-        }).when(sharingIndexHandler).revoke(eq(RESOURCE_ID), eq(INDEX), eq(revokeTarget), any());
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
-
-        verify(listener).onResponse(doc);
-    }
-
-    @Test
-    public void testRevokeFailsIfNoUser() {
-        ShareWith revokeTarget = mock(ShareWith.class);
-
-        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-
-        handler.revoke(RESOURCE_ID, INDEX, revokeTarget, listener);
+        handler.share(RESOURCE_ID, TYPE, shareWith, listener);
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
 
@@ -314,7 +258,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+        handler.getSharingInfo(RESOURCE_ID, TYPE, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -322,7 +266,7 @@ public class ResourceAccessHandlerTest {
     @Test
     public void testGetSharingInfoFailsIfNoUser() {
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.getSharingInfo(RESOURCE_ID, INDEX, listener);
+        handler.getSharingInfo(RESOURCE_ID, TYPE, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }
@@ -342,7 +286,7 @@ public class ResourceAccessHandlerTest {
         }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, add, revoke, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -351,7 +295,7 @@ public class ResourceAccessHandlerTest {
     public void testPatchSharingInfoFailsIfNoUser() {
         ShareWith x = new ShareWith(ImmutableMap.of());
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, INDEX, x, x, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }

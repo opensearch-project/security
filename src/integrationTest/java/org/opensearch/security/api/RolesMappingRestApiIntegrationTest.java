@@ -270,6 +270,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         ok(() -> client.patch(apiPath(roleName), patch(addOp("users", configJsonArray("g", "h")))));
         ok(() -> client.patch(apiPath(roleName), patch(addOp("and_backend_roles", configJsonArray("i", "j")))));
         ok(() -> client.patch(apiPath(roleName), patch(addOp("and_backend_roles", configJsonArray("i", "j")))), "No updates required");
+        badRequest(() -> client.patch(apiPath(roleName), patch(replaceOp("backend_roles", configJsonArray("c", "")))));
 
         ok(() -> client.patch(apiPath(), patch(removeOp(roleName))));
         notFound(() -> client.get(apiPath(roleName)));

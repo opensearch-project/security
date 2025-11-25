@@ -26,9 +26,12 @@
 
 package org.opensearch.security.filter;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -48,7 +51,9 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestHeaderDefinition;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -66,7 +71,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -75,6 +79,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM;
 
 public class SecurityRestFilter {
@@ -121,10 +126,12 @@ public class SecurityRestFilter {
 
     class AuthczRestHandler extends DelegatingRestHandler {
         private final AdminDNs adminDNs;
+        private final Set<RestHeaderDefinition> headersToCopy;
 
-        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs) {
+        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
             super(original);
             this.adminDNs = adminDNs;
+            this.headersToCopy = headersToCopy;
         }
 
         @Override
@@ -141,11 +148,24 @@ public class SecurityRestFilter {
             }
 
             NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
-                // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
-                final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
+                // X_OPAQUE_ID will be overwritten on restore - save to apply after restoring the saved context
+                Map<String, String> tmpHeaders = null;
+                for (RestHeaderDefinition header : headersToCopy) {
+                    final String value = threadContext.getHeader(header.getName());
+                    if (value != null) {
+                        if (tmpHeaders == null) {
+                            tmpHeaders = new HashMap<>();
+                        }
+                        tmpHeaders.put(header.getName(), value);
+                    }
+                }
                 storedContext.restore();
-                if (xOpaqueId != null) {
-                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+
+                if (tmpHeaders != null) {
+                    for (Map.Entry<String, String> header : tmpHeaders.entrySet()) {
+                        threadContext.putHeader(header.getKey(), header.getValue());
+                    }
+                    threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
             });
 
@@ -156,7 +176,11 @@ public class SecurityRestFilter {
                 }
             });
 
+            RestRequest filteredRequest = maybeFilterRestRequest(request);
+
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+            // for audit logging
+            final SecurityRequestChannel filteredRequestChannel = SecurityRequestFactory.from(filteredRequest, channel);
 
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
@@ -177,7 +201,7 @@ public class SecurityRestFilter {
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
-                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), true, intiatingUser, filteredRequestChannel);
                 if (performPermissionCheck) {
                     log.debug("Permission check skipped: Super admin has full access");
                     handleSuperAdminPermissionCheck(channel);
@@ -187,7 +211,7 @@ public class SecurityRestFilter {
                 return;
             }
             if (user != null) {
-                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, requestChannel);
+                auditLog.logSucceededLogin(user.getName(), false, intiatingUser, filteredRequestChannel);
             }
             final Optional<SecurityResponse> deniedResponse = allowlistingSettings.checkRequestIsAllowed(requestChannel);
 
@@ -196,9 +220,9 @@ public class SecurityRestFilter {
                 return;
             }
 
-            authorizeRequest(delegate, requestChannel, user);
-            if (requestChannel.getQueuedResponse().isPresent()) {
-                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
+            authorizeRequest(delegate, filteredRequestChannel, user);
+            if (filteredRequestChannel.getQueuedResponse().isPresent()) {
+                channel.sendResponse(filteredRequestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
@@ -216,6 +240,14 @@ public class SecurityRestFilter {
 
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
         }
+
+        RestRequest maybeFilterRestRequest(RestRequest request) throws IOException {
+            // Skip PATCH because filtering only supports JSON object bodies, not arrays.
+            if (delegate instanceof RestRequestFilter && (request.method() != RestRequest.Method.PATCH)) {
+                return ((RestRequestFilter) delegate).getFilteredRequest(request);
+            }
+            return request;
+        }
     }
 
     /**
@@ -231,8 +263,8 @@ public class SecurityRestFilter {
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
-    public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new AuthczRestHandler(original, adminDNs);
+    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
+        return new AuthczRestHandler(original, adminDNs, headersToCopy);
     }
 
     /**
@@ -250,7 +282,7 @@ public class SecurityRestFilter {
             .findFirst();
         final boolean routeSupportsRestAuthorization = handler.isPresent() && handler.get() instanceof NamedRoute;
         if (routeSupportsRestAuthorization) {
-            PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
+            PrivilegesEvaluatorResponse pres;
             NamedRoute route = ((NamedRoute) handler.get());
             // Check both route.actionNames() and route.name(). The presence of either is sufficient.
             Set<String> actionNames = ImmutableSet.<String>builder()
@@ -267,12 +299,7 @@ public class SecurityRestFilter {
                 auditLog.logGrantedPrivileges(user.getName(), request);
             } else {
                 auditLog.logMissingPrivileges(route.name(), user.getName(), request);
-                String err;
-                if (!pres.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
-                } else {
-                    err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
-                }
+                String err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 log.debug(err);
 
                 request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));

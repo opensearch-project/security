@@ -31,5 +31,7 @@ public enum Endpoint {
     NODESDN,
     SSL,
     RESOURCE_SHARING,
-    APITOKENS;
+    APITOKENS,
+    VIEW_VERSION,
+    ROLLBACK_VERSION;
 }

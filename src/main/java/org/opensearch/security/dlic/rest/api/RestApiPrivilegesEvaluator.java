@@ -37,7 +37,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
@@ -50,7 +50,7 @@ public class RestApiPrivilegesEvaluator {
     protected final Logger logger = LogManager.getLogger(this.getClass());
 
     private final AdminDNs adminDNs;
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final RoleMapper roleMapper;
     private final PrincipalExtractor principalExtractor;
     private final Path configPath;
     private final ThreadPool threadPool;
@@ -77,14 +77,14 @@ public class RestApiPrivilegesEvaluator {
     public RestApiPrivilegesEvaluator(
         final Settings settings,
         final AdminDNs adminDNs,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final RoleMapper roleMapper,
         final PrincipalExtractor principalExtractor,
         final Path configPath,
         ThreadPool threadPool
     ) {
 
         this.adminDNs = adminDNs;
-        this.privilegesEvaluator = privilegesEvaluator;
+        this.roleMapper = roleMapper;
         this.principalExtractor = principalExtractor;
         this.configPath = configPath;
         this.threadPool = threadPool;
@@ -376,7 +376,7 @@ public class RestApiPrivilegesEvaluator {
             final TransportAddress remoteAddress = userAndRemoteAddress.getRight();
 
             // map the users Security roles
-            Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+            Set<String> userRoles = roleMapper.map(user, remoteAddress);
 
             // check if user has any role that grants access
             if (currentUserHasRestApiAccess(userRoles)) {

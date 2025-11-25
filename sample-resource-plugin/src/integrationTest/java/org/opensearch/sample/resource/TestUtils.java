@@ -14,7 +14,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 
@@ -22,11 +24,11 @@ import org.opensearch.Version;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.painless.PainlessModulePlugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.spi.resources.sharing.Recipients;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -36,12 +38,14 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.sample.utils.Constants.SAMPLE_RESOURCE_PLUGIN_PREFIX;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -64,40 +68,44 @@ public final class TestUtils {
             "cluster:admin/sample-resource-plugin/get",
             "cluster:admin/sample-resource-plugin/search",
             "cluster:admin/sample-resource-plugin/create",
-            "cluster:admin/sample-resource-plugin/share",
-            "cluster:admin/sample-resource-plugin/revoke"
+            "cluster:admin/security/resource/share",
+            "cluster:admin/security/resource/share"
         ).indexPermissions("indices:data/read*").on(RESOURCE_INDEX_NAME)
     );
 
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
-    public static final TestSecurityConfig.ActionGroup sampleReadOnlyAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_read_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:data/read*",
-        "cluster:admin/sample-resource-plugin/get"
-    );
-    public static final TestSecurityConfig.ActionGroup sampleAllAG = new TestSecurityConfig.ActionGroup(
-        "sample_plugin_index_all_access",
-        TestSecurityConfig.ActionGroup.Type.INDEX,
-        "indices:*",
-        "cluster:admin/sample-resource-plugin/*",
-        "cluster:admin/security/resource/share"
-    );
+    public static final String SAMPLE_READ_ONLY = "sample_read_only";
+    public static final String SAMPLE_READ_WRITE = "sample_read_write";
+    public static final String SAMPLE_FULL_ACCESS = "sample_full_access";
+
+    public static final String SAMPLE_GROUP_READ_ONLY = "sample_group_read_only";
+    public static final String SAMPLE_GROUP_READ_WRITE = "sample_group_read_write";
+    public static final String SAMPLE_GROUP_FULL_ACCESS = "sample_group_full_access";
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
-    public static final String SAMPLE_RESOURCE_SHARE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/share";
-    public static final String SAMPLE_RESOURCE_REVOKE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/revoke";
 
-    static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
-    static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/create";
+    public static final String SAMPLE_RESOURCE_GROUP_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/get";
+    public static final String SAMPLE_RESOURCE_GROUP_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/update";
+    public static final String SAMPLE_RESOURCE_GROUP_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/delete";
+    public static final String SAMPLE_RESOURCE_GROUP_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/group/search";
+
+    public static final String RESOURCE_SHARING_MIGRATION_ENDPOINT = "_plugins/_security/api/resources/migrate";
+    public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
+    public static final String SECURITY_TYPES_ENDPOINT = "_plugins/_security/api/resource/types";
+    public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
+        return newCluster(featureEnabled, systemIndexEnabled, List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE));
+    }
+
+    public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled, List<String> protectedResourceTypes) {
         return new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS_COORDINATOR)
             .plugin(
                 new PluginInfo(
@@ -112,27 +120,20 @@ public final class TestUtils {
                     false
                 )
             )
-            .plugin(PainlessModulePlugin.class)
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
-            .actionGroups(sampleReadOnlyAG, sampleAllAG)
             .nodeSettings(
-                Map.of(OPENSEARCH_RESOURCE_SHARING_ENABLED, featureEnabled, SECURITY_SYSTEM_INDICES_ENABLED_KEY, systemIndexEnabled)
+                Map.of(
+                    OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    featureEnabled,
+                    SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+                    systemIndexEnabled,
+                    OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
+                    protectedResourceTypes
+                )
             )
             .build();
-    }
-
-    public static String shareWithPayload(String user, String accessLevel) {
-        return """
-            {
-              "share_with": {
-                "%s" : {
-                    "users": ["%s"]
-                }
-              }
-            }
-            """.formatted(accessLevel, user);
     }
 
     public static String directSharePayload(String resourceId, String creator, String target, String accessLevel) {
@@ -151,84 +152,120 @@ public final class TestUtils {
             """.formatted(resourceId, creator, accessLevel, target);
     }
 
-    public static String revokeAccessPayload(String user, String accessLevel) {
+    public static String migrationPayload_valid() {
         return """
             {
-              "entities_to_revoke": {
-                "%s" : {
-                    "users": ["%s"]
-                }
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_owner": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
               }
             }
-            """.formatted(accessLevel, user);
-
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", "sample_read_only");
     }
 
-    static String migrationPayload_valid() {
+    public static String migrationPayload_valid_withSpecifiedAccessLevel(String accessLevel) {
+        return """
+            {
+             "source_index": "%s",
+             "username_path": "%s",
+             "backend_roles_path": "%s",
+             "default_owner": "%s",
+             "default_access_level": {
+                 "sample-resource": "%s"
+              }
+            }
+             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", accessLevel);
+    }
+
+    public static String migrationPayload_missingSourceIndex() {
+        return """
+            {
+            "username_path": "%s",
+            "backend_roles_path": "%s",
+            "default_owner": "%s",
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
+            }
+            """.formatted("user/name", "user/backend_roles", "some_user", "sample_read_only");
+    }
+
+    public static String migrationPayload_missingUserName() {
+        return """
+            {
+            "source_index": "%s",
+            "backend_roles_path": "%s",
+            "default_owner": "%s",
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "some_user", "sample_read_only");
+    }
+
+    public static String migrationPayload_missingBackendRoles() {
         return """
             {
             "source_index": "%s",
             "username_path": "%s",
-            "backend_roles_path": "%s"
+            "default_owner": "%s",
+            "default_access_level": {
+              "sample-resource": "%s"
+             }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "some_user", "sample_read_only");
     }
 
-    static String migrationPayload_valid_withSpecifiedAccessLevel() {
+    public static String migrationPayload_missingDefaultAccessLevel() {
         return """
             {
             "source_index": "%s",
             "username_path": "%s",
             "backend_roles_path": "%s",
-            "default_access_level": "%s"
+            "default_owner": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "read_only");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user");
     }
 
-    static String migrationPayload_missingSourceIndex() {
+    public static String migrationPayload_missingDefaultOwner() {
         return """
             {
-            "username_path": "%s",
-            "backend_roles_path": "%s"
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
             }
-            """.formatted("user/name", "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
 
-    static String migrationPayload_missingUserName() {
-        return """
-            {
-            "source_index": "%s",
-            "backend_roles_path": "%s"
-            }
-            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles");
-    }
-
-    static String migrationPayload_missingBackendRoles() {
-        return """
-            {
-            "source_index": "%s",
-            "username_path": "%s"
-            }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name");
-    }
-
-    static String putSharingInfoPayload(String resourceId, String resourceIndex, String accessLevel, String user) {
+    public static String putSharingInfoPayload(
+        String resourceId,
+        String resourceType,
+        String accessLevel,
+        Recipient recipient,
+        String entity
+    ) {
         return """
             {
               "resource_id": "%s",
               "resource_type": "%s",
               "share_with": {
                 "%s" : {
-                    "users": ["%s"]
+                    "%s": ["%s"]
                 }
               }
             }
-            """.formatted(resourceId, resourceIndex, accessLevel, user);
+            """.formatted(resourceId, resourceType, accessLevel, recipient.getName(), entity);
     }
 
     public static class PatchSharingInfoPayloadBuilder {
         private String resourceId;
-        private String resourceIndex;
+        private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
 
@@ -237,8 +274,8 @@ public final class TestUtils {
             return this;
         }
 
-        public PatchSharingInfoPayloadBuilder resourceIndex(String resourceIndex) {
-            this.resourceIndex = resourceIndex;
+        public PatchSharingInfoPayloadBuilder resourceType(String resourceType) {
+            this.resourceType = resourceType;
             return this;
         }
 
@@ -292,7 +329,7 @@ public final class TestUtils {
                     %s
                   }
                 }
-                """.formatted(resourceId, resourceIndex, allShares, allRevokes);
+                """.formatted(resourceId, resourceType, allShares, allRevokes);
         }
     }
 
@@ -320,15 +357,23 @@ public final class TestUtils {
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
                 TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
                 resp.assertStatusCode(HttpStatus.SC_OK);
-
             }
         }
 
         // Helper to create a sample resource and return its ID
-        public String createSampleResourceAs(TestSecurityConfig.User user) {
+        public String createSampleResourceAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                String sample = "{\"name\":\"sample\"}";
-                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample);
+                String sample = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
+        public String createSampleResourceGroupAs(TestSecurityConfig.User user, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String sample = "{\"name\":\"samplegroup\",\"resource_type\":\"" + RESOURCE_GROUP_TYPE + "\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
             }
@@ -336,7 +381,7 @@ public final class TestUtils {
 
         public String createRawResourceAs(CertificateData adminCert) {
             try (TestRestClient client = cluster.getRestClient(adminCert)) {
-                String sample = "{\"name\":\"sample\"}";
+                String sample = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 return resp.getTextFromJsonBody("/_id");
@@ -351,8 +396,16 @@ public final class TestUtils {
             assertGet(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status, user.getName());
         }
 
-        public void assertApiGet(String resourceId, TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGet(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId, user, status, expectedResourceName);
+        public TestRestClient.HttpResponse getResource(String resourceId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        public TestRestClient.HttpResponse getResourceGroup(String resourceGroupId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GROUP_GET_ENDPOINT + "/" + resourceGroupId);
+            }
         }
 
         private void assertGet(String endpoint, TestSecurityConfig.User user, int status, String expectedString) {
@@ -363,16 +416,10 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiGetSearchForbidden(TestSecurityConfig.User user) {
-            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, HttpStatus.SC_FORBIDDEN, 0, null);
-        }
-
-        public void assertDirectGetSearchForbidden(TestSecurityConfig.User user) {
-            assertGetSearch(RESOURCE_INDEX_NAME + "/_search", user, HttpStatus.SC_FORBIDDEN, 0, null);
-        }
-
-        public void assertApiGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
-            assertGetSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, user, status, expectedHits, expectedResourceName);
+        public TestRestClient.HttpResponse searchResources(TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
+            }
         }
 
         public void assertDirectGetSearch(TestSecurityConfig.User user, int status, int expectedHits, String expectedResourceName) {
@@ -395,6 +442,15 @@ public final class TestUtils {
                     assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
                     assertThat(response.getBody(), containsString(expectedResourceName));
                 }
+            }
+        }
+
+        public static void assertSearchResponse(TestRestClient.HttpResponse response, int expectedHits, String expectedResourceName) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> hits = (Map<String, Object>) response.bodyAsMap().get("hits");
+            assertThat(((List<String>) hits.get("hits")).size(), is(equalTo(expectedHits)));
+            if (expectedHits > 0) {
+                assertThat(response.getBody(), containsString(expectedResourceName));
             }
         }
 
@@ -422,22 +478,22 @@ public final class TestUtils {
                 """.formatted(name);
         }
 
-        public void assertApiPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
-            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        public TestRestClient.HttpResponse searchResources(String searchPayload, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload);
+            }
         }
 
-        public void assertDirectPostSearchForbidden(String searchPayload, TestSecurityConfig.User user) {
-            assertPostSearch(RESOURCE_INDEX_NAME + "/_search", searchPayload, user, HttpStatus.SC_FORBIDDEN, 0, null);
+        public TestRestClient.HttpResponse searchResourceIndex(String searchPayload, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.postJson(RESOURCE_INDEX_NAME + "/_search", searchPayload);
+            }
         }
 
-        public void assertApiPostSearch(
-            String searchPayload,
-            TestSecurityConfig.User user,
-            int status,
-            int expectedHits,
-            String expectedResourceName
-        ) {
-            assertPostSearch(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload, user, status, expectedHits, expectedResourceName);
+        public TestRestClient.HttpResponse searchResourceIndex(TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(RESOURCE_INDEX_NAME + "/_search");
+            }
         }
 
         public void assertDirectPostSearch(
@@ -470,29 +526,24 @@ public final class TestUtils {
             }
         }
 
-        public void assertDirectGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGetAll(RESOURCE_INDEX_NAME + "/_search", user, status, expectedResourceName);
-        }
-
-        public void assertApiGetAll(TestSecurityConfig.User user, int status, String expectedResourceName) {
-            assertGetAll(SAMPLE_RESOURCE_GET_ENDPOINT, user, status, expectedResourceName);
-        }
-
-        private void assertGetAll(String endpoint, TestSecurityConfig.User user, int status, String expectedResourceName) {
+        public TestRestClient.HttpResponse listResources(TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                Awaitility.await("Wait until index is refreshed").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(endpoint);
-                    response.assertStatusCode(status);
-                    if (status == HttpStatus.SC_OK) {
-                        assertThat(response.bodyAsJsonNode().get("resources").size(), greaterThanOrEqualTo(1));
-                        assertThat(response.getBody(), containsString(expectedResourceName));
-                    }
-                });
+                return client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             }
         }
 
-        public void assertApiUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
-            assertUpdate(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, newName, user, status);
+        public TestRestClient.HttpResponse updateResource(String resourceId, TestSecurityConfig.User user, String newName) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
+                return client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, updatePayload);
+            }
+        }
+
+        public TestRestClient.HttpResponse updateResourceGroup(String resourceGroupId, TestSecurityConfig.User user, String newName) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String updatePayload = "{" + "\"name\": \"" + newName + "\"}";
+                return client.postJson(SAMPLE_RESOURCE_GROUP_UPDATE_ENDPOINT + "/" + resourceGroupId, updatePayload);
+            }
         }
 
         public void assertDirectUpdate(String resourceId, TestSecurityConfig.User user, String newName, int status) {
@@ -507,7 +558,7 @@ public final class TestUtils {
             }
         }
 
-        public void assertDirectShare(
+        public void assertDirectUpdateSharingInfo(
             String resourceId,
             TestSecurityConfig.User user,
             TestSecurityConfig.User target,
@@ -523,59 +574,89 @@ public final class TestUtils {
             }
         }
 
-        public void assertApiShare(
+        public TestRestClient.HttpResponse shareResource(
             String resourceId,
             TestSecurityConfig.User user,
             TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            assertShare(SAMPLE_RESOURCE_SHARE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
-        }
-
-        private void assertShare(
-            String endpoint,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
+            String accessLevel
         ) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.postJson(endpoint, shareWithPayload(target.getName(), accessLevel));
-                response.assertStatusCode(status);
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.USERS, target.getName())
+                );
             }
         }
 
-        public void assertDirectRevoke(
+        public TestRestClient.HttpResponse shareResourceGroup(
             String resourceId,
             TestSecurityConfig.User user,
             TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            assertRevoke(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, target, accessLevel, status);
-        }
-
-        public void assertApiRevoke(
-            String resourceId,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
-        ) {
-            assertRevoke(SAMPLE_RESOURCE_REVOKE_ENDPOINT + "/" + resourceId, user, target, accessLevel, status);
-        }
-
-        private void assertRevoke(
-            String endpoint,
-            TestSecurityConfig.User user,
-            TestSecurityConfig.User target,
-            String accessLevel,
-            int status
+            String accessLevel
         ) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                TestRestClient.HttpResponse response = client.postJson(endpoint, revokeAccessPayload(target.getName(), accessLevel));
-                response.assertStatusCode(status);
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_GROUP_TYPE, accessLevel, Recipient.USERS, target.getName())
+                );
+            }
+        }
+
+        public TestRestClient.HttpResponse shareResourceByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.ROLES, targetRole)
+                );
+            }
+        }
+
+        public TestRestClient.HttpResponse shareResourceGroupByRole(
+            String resourceId,
+            TestSecurityConfig.User user,
+            String targetRole,
+            String accessLevel
+        ) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(
+                    SECURITY_SHARE_ENDPOINT,
+                    putSharingInfoPayload(resourceId, RESOURCE_GROUP_TYPE, accessLevel, Recipient.ROLES, targetRole)
+                );
+            }
+        }
+
+        public TestRestClient.HttpResponse revokeResource(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
+            }
+        }
+
+        public TestRestClient.HttpResponse revokeResourceGroup(
+            String resourceId,
+            TestSecurityConfig.User user,
+            TestSecurityConfig.User target,
+            String accessLevel
+        ) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_GROUP_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revoke(new Recipients(Map.of(Recipient.USERS, Set.of(target.getName()))), accessLevel);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(TestUtils.SECURITY_SHARE_ENDPOINT, patchBuilder.build());
             }
         }
 
@@ -587,8 +668,16 @@ public final class TestUtils {
             assertDelete(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId, user, status);
         }
 
-        public void assertApiDelete(String resourceId, TestSecurityConfig.User user, int status) {
-            assertDelete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId, user, status);
+        public TestRestClient.HttpResponse deleteResource(String resourceId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        public TestRestClient.HttpResponse deleteResourceGroup(String resourceGroupId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.delete(SAMPLE_RESOURCE_GROUP_DELETE_ENDPOINT + "/" + resourceGroupId);
+            }
         }
 
         private void assertDelete(String endpoint, TestSecurityConfig.User user, int status) {
@@ -598,20 +687,23 @@ public final class TestUtils {
             }
         }
 
-        public void awaitSharingEntry() {
-            awaitSharingEntry("admin");
+        public void awaitSharingEntry(String resourceId) {
+            awaitSharingEntry(resourceId, "admin");
         }
 
-        public void awaitSharingEntry(String expectedString) {
+        public void awaitSharingEntry(String resourceId, String expectedString) {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                Awaitility.await("Wait for sharing entry").pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
-                    TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_search");
-                    response.assertStatusCode(200);
-                    String hitsJson = response.bodyAsMap().get("hits").toString();
-                    assertThat(hitsJson, containsString(expectedString));
-                    int size = response.bodyAsJsonNode().get("hits").get("hits").size();
-                    assertThat(size, greaterThanOrEqualTo(1));
-                });
+                Awaitility.await("Wait for sharing entry for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        String body = response.getBody();
+                        String resourceType = response.getTextFromJsonBody("/_source/resource_type");
+                        assert resourceType != null : "resource_type cannot be null";
+                        assertThat(body, containsString(expectedString));
+                        assertThat(body, containsString(resourceId));
+                    });
             }
         }
     }

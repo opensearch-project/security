@@ -43,7 +43,8 @@ import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -71,7 +72,7 @@ public class ApiTokenAction extends BaseRestHandler {
     public Logger log = LogManager.getLogger(this.getClass());
     private final ThreadPool threadPool;
     private final ConfigurationRepository configurationRepository;
-    private final PrivilegesEvaluator privilegesEvaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
     private final SecurityApiDependencies securityApiDependencies;
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
@@ -83,7 +84,7 @@ public class ApiTokenAction extends BaseRestHandler {
     public ApiTokenAction(
         ThreadPool threadpool,
         ConfigurationRepository configurationRepository,
-        PrivilegesEvaluator privilegesEvaluator,
+        PrivilegesConfiguration privilegesConfiguration,
         Settings settings,
         AdminDNs adminDns,
         AuditLog auditLog,
@@ -91,20 +92,21 @@ public class ApiTokenAction extends BaseRestHandler {
         PrincipalExtractor principalExtractor,
         ApiTokenRepository apiTokenRepository,
         ClusterService clusterService,
-        IndexNameExpressionResolver indexNameExpressionResolver
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        RoleMapper roleMapper
     ) {
         this.apiTokenRepository = apiTokenRepository;
         this.threadPool = threadpool;
         this.configurationRepository = configurationRepository;
-        this.privilegesEvaluator = privilegesEvaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
         this.securityApiDependencies = new SecurityApiDependencies(
             adminDns,
             configurationRepository,
-            privilegesEvaluator,
-            new RestApiPrivilegesEvaluator(settings, adminDns, privilegesEvaluator, principalExtractor, configPath, threadPool),
+            privilegesConfiguration,
+            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
             new RestApiAdminPrivilegesEvaluator(
                 threadPool.getThreadContext(),
-                privilegesEvaluator,
+                privilegesConfiguration,
                 adminDns,
                 settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
             ),

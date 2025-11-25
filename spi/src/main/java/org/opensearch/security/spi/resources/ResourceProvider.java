@@ -14,6 +14,19 @@ package org.opensearch.security.spi.resources;
  *
  * @opensearch.experimental
  */
-public record ResourceProvider(String resourceType, String resourceIndexName) {
+public interface ResourceProvider {
+
+    String resourceType();
+
+    String resourceIndexName();
+
+    /**
+     * Returns the name of the field representing the resource type in the resource document.
+     *
+     * @return the field name containing the resource type
+     */
+    default String typeField() {
+        return null;
+    }
 
 }

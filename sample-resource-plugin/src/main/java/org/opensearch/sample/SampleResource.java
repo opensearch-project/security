@@ -27,6 +27,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Sample resource declared by this plugin.
@@ -50,27 +51,25 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         this.user = new User(in);
     }
 
-    private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(
-        "sample_resource",
-        true,
-        a -> {
-            SampleResource s;
-            try {
-                s = new SampleResource();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            s.setName((String) a[0]);
-            s.setDescription((String) a[1]);
-            s.setAttributes((Map<String, String>) a[2]);
-            s.setUser((User) a[3]);
-            return s;
+    private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(RESOURCE_TYPE, true, a -> {
+        SampleResource s;
+        try {
+            s = new SampleResource();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-    );
+        s.setName((String) a[0]);
+        s.setDescription((String) a[1]);
+        // ignore a[2] as we know the type
+        s.setAttributes((Map<String, String>) a[3]);
+        s.setUser((User) a[4]);
+        return s;
+    });
 
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("description"));
+        PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("resource_type"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> User.parse(p), null, new ParseField("user"));
     }
@@ -83,6 +82,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         return builder.startObject()
             .field("name", name)
             .field("description", description)
+            .field("resource_type", RESOURCE_TYPE)
             .field("attributes", attributes)
             .field("user", user)
             .endObject();
@@ -117,6 +117,6 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     @Override
     public String getWriteableName() {
-        return "sample_resource";
+        return RESOURCE_TYPE;
     }
 }

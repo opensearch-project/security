@@ -43,7 +43,7 @@ import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
-import org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator;
+import org.opensearch.security.auth.http.jwt.keybyjwks.HTTPJwtKeyByJWKSAuthenticator;
 import org.opensearch.security.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator;
 import org.opensearch.security.auth.http.kerberos.HTTPSpnegoAuthenticator;
 import org.opensearch.security.auth.http.saml.HTTPSamlAuthenticator;
@@ -98,8 +98,6 @@ public abstract class DynamicConfigModel {
 
     public abstract boolean isDnfofEnabled();
 
-    public abstract boolean isMultiRolespanEnabled();
-
     public abstract String getFilteredAliasMode();
 
     public abstract String getHostsResolverMode();
@@ -145,7 +143,7 @@ public abstract class DynamicConfigModel {
         authImplMap.put("extended-proxy_h", HTTPExtendedProxyAuthenticator.class.getName());
         authImplMap.put("clientcert_h", HTTPClientCertAuthenticator.class.getName());
         authImplMap.put("kerberos_h", HTTPSpnegoAuthenticator.class.getName());
-        authImplMap.put("jwt_h", HTTPJwtAuthenticator.class.getName());
+        authImplMap.put("jwt_h", HTTPJwtKeyByJWKSAuthenticator.class.getName());
         authImplMap.put("openid_h", HTTPJwtKeyByOpenIdConnectAuthenticator.class.getName());
         authImplMap.put("saml_h", HTTPSamlAuthenticator.class.getName());
 

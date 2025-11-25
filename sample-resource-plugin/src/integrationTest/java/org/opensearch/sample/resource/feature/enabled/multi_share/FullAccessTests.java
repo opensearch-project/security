@@ -10,7 +10,6 @@ package org.opensearch.sample.resource.feature.enabled.multi_share;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -20,12 +19,17 @@ import org.junit.runner.RunWith;
 import org.opensearch.sample.resource.TestUtils;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
-import static org.opensearch.sample.resource.TestUtils.sampleAllAG;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 /**
@@ -45,7 +49,7 @@ public class FullAccessTests {
     @Before
     public void setup() {
         resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(); // wait until sharing entry is created
+        api.awaitSharingEntry(resourceId); // wait until sharing entry is created
     }
 
     @After
@@ -53,42 +57,41 @@ public class FullAccessTests {
         api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_FORBIDDEN);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_FORBIDDEN);
+    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
+        forbidden(() -> api.getResource(resourceId, user));
+        forbidden(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        forbidden(() -> api.deleteResource(resourceId, user));
 
-        api.assertApiShare(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
-        api.assertApiRevoke(resourceId, user, user, sampleAllAG.name(), HttpStatus.SC_FORBIDDEN);
+        forbidden(() -> api.shareResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.revokeResource(resourceId, user, user, SAMPLE_FULL_ACCESS));
     }
 
-    private void assertRUDAccess(TestSecurityConfig.User user) {
-        api.assertApiGet(resourceId, user, HttpStatus.SC_OK, "sample");
-        api.assertApiUpdate(resourceId, user, "sampleUpdateAdmin", HttpStatus.SC_OK);
-        api.assertApiDelete(resourceId, user, HttpStatus.SC_OK);
+    private void assertRUDAccess(TestSecurityConfig.User user) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, user));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.updateResource(resourceId, user, "sampleUpdateAdmin"));
+        ok(() -> api.deleteResource(resourceId, user));
     }
 
     // check that target cannot access before sharing and after revoking
     // while resource is shared, they can access it and share it someone else
-    private void assertSharingAccess(TestSecurityConfig.User user, TestSecurityConfig.User target) {
-        api.assertApiGet(resourceId, target, HttpStatus.SC_FORBIDDEN, "");
-        api.assertApiShare(resourceId, user, target, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(target.getName());
+    private void assertSharingAccess(TestSecurityConfig.User user, TestSecurityConfig.User target) throws Exception {
+        forbidden(() -> api.getResource(resourceId, target));
+        ok(() -> api.shareResource(resourceId, user, target, SAMPLE_FULL_ACCESS));
 
-        api.assertApiGet(resourceId, target, HttpStatus.SC_OK, "sample");
-        api.assertApiShare(resourceId, target, new TestSecurityConfig.User("test"), sampleAllAG.name(), HttpStatus.SC_OK);
+        TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, target));
+        assertThat(response.getBody(), containsString("sample"));
+        ok(() -> api.shareResource(resourceId, target, new TestSecurityConfig.User("test"), SAMPLE_FULL_ACCESS));
 
-        api.assertApiRevoke(resourceId, user, target, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry();
-        api.assertApiGet(resourceId, target, HttpStatus.SC_FORBIDDEN, "");
+        ok(() -> api.revokeResource(resourceId, user, target, SAMPLE_FULL_ACCESS));
+        forbidden(() -> api.getResource(resourceId, target));
     }
 
     @Test
-    public void fullAccessUser_canCRUD() {
+    public void fullAccessUser_canCRUD() throws Exception {
         assertNoAccessBeforeSharing(FULL_ACCESS_USER);
-        // share at sampleAllAG level
-        api.assertApiShare(resourceId, USER_ADMIN, FULL_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(FULL_ACCESS_USER.getName()); // wait until sharing info is populated
+        // share at sample_full_access level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         // can share admin's resource with others since full access was granted
         assertSharingAccess(FULL_ACCESS_USER, LIMITED_ACCESS_USER);
@@ -97,11 +100,10 @@ public class FullAccessTests {
     }
 
     @Test
-    public void limitedAccessUser_canCRUD() {
+    public void limitedAccessUser_canCRUD() throws Exception {
         assertNoAccessBeforeSharing(LIMITED_ACCESS_USER);
-        // share at sampleAllAG level
-        api.assertApiShare(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(LIMITED_ACCESS_USER.getName()); // wait until sharing info is populated
+        // share at sample_full_access level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, LIMITED_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         assertSharingAccess(LIMITED_ACCESS_USER, FULL_ACCESS_USER);
 
@@ -109,11 +111,10 @@ public class FullAccessTests {
     }
 
     @Test
-    public void noAccessUser_canCRUD() {
+    public void noAccessUser_canCRUD() throws Exception {
         assertNoAccessBeforeSharing(NO_ACCESS_USER);
-        // share at sampleAllAG level
-        api.assertApiShare(resourceId, USER_ADMIN, NO_ACCESS_USER, sampleAllAG.name(), HttpStatus.SC_OK);
-        api.awaitSharingEntry(NO_ACCESS_USER.getName());
+        // share at sample_full_access level
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_FULL_ACCESS));
 
         assertSharingAccess(NO_ACCESS_USER, LIMITED_ACCESS_USER);
 

@@ -61,6 +61,7 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -85,17 +86,18 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.ThreadContextUserInfo;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -107,7 +109,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_PERFORM_P
 public class SecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator evalp;
+    private final PrivilegesConfiguration privilegesConfiguration;
     private final AdminDNs adminDns;
     private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
@@ -120,10 +122,11 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
+    private final ThreadContextUserInfo threadContextUserInfo;
 
     public SecurityFilter(
         final Settings settings,
-        final PrivilegesEvaluator evalp,
+        PrivilegesConfiguration privilegesConfiguration,
         final AdminDNs adminDns,
         DlsFlsRequestValve dlsFlsValve,
         AuditLog auditLog,
@@ -133,10 +136,9 @@ public class SecurityFilter implements ActionFilter {
         final CompatConfig compatConfig,
         final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver,
-        Set<String> resourceIndices,
-        ResourceAccessHandler resourceAccessHandler
+        ResourceAccessEvaluator resourceAccessEvaluator
     ) {
-        this.evalp = evalp;
+        this.privilegesConfiguration = privilegesConfiguration;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
@@ -150,7 +152,14 @@ public class SecurityFilter implements ActionFilter {
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator(resourceIndices, settings, resourceAccessHandler);
+        this.resourceAccessEvaluator = resourceAccessEvaluator;
+        this.threadContextUserInfo = new ThreadContextUserInfo(
+            threadPool.getThreadContext(),
+            privilegesConfiguration,
+            cs.getClusterSettings(),
+            settings
+        );
+
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -169,12 +178,13 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
         try (StoredContext ctx = threadPool.getThreadContext().newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            apply0(task, action, request, listener, chain);
+            apply0(task, action, request, actionRequestMetadata, listener, chain);
         }
     }
 
@@ -186,6 +196,7 @@ public class SecurityFilter implements ActionFilter {
         Task task,
         final String action,
         Request request,
+        ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
         ActionFilterChain<Request, Response> chain
     ) {
@@ -379,40 +390,26 @@ public class SecurityFilter implements ActionFilter {
                     }
             }
 
-            final PrivilegesEvaluator eval = evalp;
-
-            if (!eval.isInitialized()) {
-                StringBuilder error = new StringBuilder("OpenSearch Security not initialized for ");
-                error.append(action);
-                if (!clusterInfoHolder.hasClusterManager()) {
-                    error.append(String.format(". %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
-                }
-
-                log.error(error.toString());
-                listener.onFailure(new OpenSearchSecurityException(error.toString(), RestStatus.SERVICE_UNAVAILABLE));
-                return;
-            }
+            final PrivilegesEvaluator eval = this.privilegesConfiguration.privilegesEvaluator();
 
             if (log.isTraceEnabled()) {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            PrivilegesEvaluationContext context = eval.createContext(user, action, request, task, injectedRoles);
+            PrivilegesEvaluationContext context = eval.createContext(user, action, request, actionRequestMetadata, task);
+            this.threadContextUserInfo.setUserInfoInThreadContext(context);
+
             User finalUser = user;
             Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
                 auditLog.logMissingPrivileges(action, request, task);
-                String err;
-                if (!response.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", finalUser, response.getMissingSecurityRoles());
-                } else {
-                    err = (injectedRoles != null)
-                        ? String.format(
-                            "no permissions for %s and associated roles %s",
-                            response.getMissingPrivileges(),
-                            context.getMappedRoles()
-                        )
-                        : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
-                }
+                String err = (injectedRoles != null)
+                    ? String.format(
+                        "no permissions for %s and associated roles %s",
+                        response.getMissingPrivileges(),
+                        context.getMappedRoles()
+                    )
+                    : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             };
@@ -421,7 +418,7 @@ public class SecurityFilter implements ActionFilter {
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                resourceAccessEvaluator.evaluateAsync(request, action, context, ActionListener.wrap(response -> {
+                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }

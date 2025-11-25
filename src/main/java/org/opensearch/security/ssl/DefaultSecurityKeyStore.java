@@ -23,11 +23,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.AccessController;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -64,9 +61,9 @@ import org.bouncycastle.asn1.ASN1TaggedObject;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.util.CertFileProps;
 import org.opensearch.security.ssl.util.CertFromFile;
@@ -111,13 +108,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
 
             if (aesMaxKeyLength < 256) {
-                // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
                 log.info(
                     "AES-256 not supported, max key length for AES is {} bit."
                         + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')",
                     aesMaxKeyLength
                 );
-                // CS-ENFORCE-SINGLE
             }
         } catch (final NoSuchAlgorithmException e) {
             log.error("AES encryption not supported (SG 1). ", e);
@@ -803,7 +798,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
-    @SuppressWarnings("removal")
     private void initEnabledSSLCiphers() {
 
         final ImmutableSet<String> allowedSecureHttpSSLCiphers = ImmutableSet.copyOf(
@@ -868,7 +862,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         enabledTransportProtocolsJDKProvider.retainAll(allowedSecureTransportSSLProtocols);
     }
 
-    @SuppressWarnings("removal")
     private SslContext buildSSLServerContext(
         final PrivateKey _key,
         final X509Certificate[] _cert,
@@ -879,19 +872,16 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     ) throws SSLException {
 
         try {
-            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
-                @Override
-                public SslContextBuilder run() throws Exception {
-                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert), sslProvider, ciphers, authMode);
-                }
-            });
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivilegedChecked(
+                () -> configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert), sslProvider, ciphers, authMode)
+            );
 
             if (_trustedCerts != null && _trustedCerts.length > 0) {
                 _sslContextBuilder.trustManager(_trustedCerts);
             }
 
             return buildSSLContext0(_sslContextBuilder);
-        } catch (final PrivilegedActionException e) {
+        } catch (final Exception e) {
             if (e.getCause() instanceof SSLException) {
                 throw (SSLException) e.getCause();
             } else {
@@ -900,7 +890,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
     }
 
-    @SuppressWarnings("removal")
     private SslContext buildSSLServerContext(
         final File _key,
         final File _cert,
@@ -910,26 +899,17 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final SslProvider sslProvider,
         final ClientAuth authMode
     ) throws SSLException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
-                @Override
-                public SslContextBuilder run() throws Exception {
-                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd), sslProvider, ciphers, authMode);
-                }
-            });
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivilegedChecked(
+                () -> configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd), sslProvider, ciphers, authMode)
+            );
 
             if (_trustedCerts != null) {
                 _sslContextBuilder.trustManager(_trustedCerts);
             }
 
             return buildSSLContext0(_sslContextBuilder);
-        } catch (final PrivilegedActionException e) {
+        } catch (final Exception e) {
             if (e.getCause() instanceof SSLException) {
                 throw (SSLException) e.getCause();
             } else {
@@ -1009,26 +989,13 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
-    @SuppressWarnings("removal")
     private SslContext buildSSLContext0(final SslContextBuilder sslContextBuilder) throws SSLException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         SslContext sslContext = null;
         try {
-            sslContext = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContext>() {
-                @Override
-                public SslContext run() throws Exception {
-                    return sslContextBuilder.build();
-                }
-            });
-        } catch (final PrivilegedActionException e) {
-            if (e.getCause() instanceof SSLException) {
-                throw (SSLException) e.getCause();
+            sslContext = AccessController.doPrivilegedChecked(sslContextBuilder::build);
+        } catch (final Exception e) {
+            if (e instanceof SSLException) {
+                throw (SSLException) e;
             } else {
                 throw new RuntimeException(e);
             }

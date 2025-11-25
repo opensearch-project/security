@@ -473,7 +473,6 @@ public class SslSettingsManager {
             final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
 
             if (aesMaxKeyLength < 256) {
-                // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
                 LOGGER.info(
                     "AES-256 not supported, max key length for AES is {} bit."
                         + " (This is not an issue, it just limits possible encryption strength. "
@@ -481,7 +480,6 @@ public class SslSettingsManager {
                         + "install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')",
                     aesMaxKeyLength
                 );
-                // CS-ENFORCE-SINGLE
             }
         } catch (final NoSuchAlgorithmException e) {
             LOGGER.error("AES encryption not supported (SG 1). ", e);

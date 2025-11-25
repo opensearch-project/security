@@ -16,8 +16,6 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +35,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.SpecialPermission;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
@@ -63,6 +60,7 @@ import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -714,7 +712,6 @@ public abstract class AbstractAuditLog implements AuditLog {
         save(msg);
     }
 
-    @SuppressWarnings("removal")
     protected void logExternalConfig() {
 
         final ComplianceConfig complianceConfig = getComplianceConfig();
@@ -729,15 +726,9 @@ public abstract class AbstractAuditLog implements AuditLog {
         log.info("logging external config");
         final Map<String, Object> configAsMap = Utils.convertJsonToxToStructuredMap(settings);
 
-        final SecurityManager sm = System.getSecurityManager();
+        final Map<String, String> envAsMap = AccessController.doPrivileged(() -> System.getenv());
 
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        final Map<String, String> envAsMap = AccessController.doPrivileged((PrivilegedAction<Map<String, String>>) System::getenv);
-
-        final Properties propsAsMap = AccessController.doPrivileged((PrivilegedAction<Properties>) System::getProperties);
+        final Properties propsAsMap = AccessController.doPrivileged(System::getProperties);
 
         final String sha256 = DigestUtils.sha256Hex(configAsMap.toString() + envAsMap.toString() + propsAsMap.toString());
         AuditMessage msg = new AuditMessage(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, clusterService, null, null);

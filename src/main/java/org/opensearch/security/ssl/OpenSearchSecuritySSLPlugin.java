@@ -18,8 +18,7 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,14 +33,13 @@ import java.util.function.Supplier;
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.Booleans;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
@@ -71,6 +69,7 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.filter.SecurityRestFilter;
@@ -94,6 +93,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
+import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_ENABLED_CIPHERS;
@@ -104,11 +104,12 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_A
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_PEMTRUSTEDCAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_TRUSTSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
-        SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
+        SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_KEY,
         true,
         Property.NodeScope,
         Property.Filtered,
@@ -123,10 +124,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         Property.Deprecated
     );
 
-    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(
-        System.getProperty("opensearch.unsafe.use_netty_default_allocator"),
-        false
-    );
     protected final Logger log = LogManager.getLogger(this.getClass());
     public static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
@@ -144,7 +141,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final SSLConfig SSLConfig;
     protected volatile ThreadPool threadPool;
 
-    @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 
         if (disabled) {
@@ -158,14 +154,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             this.configPath = null;
             SSLConfig = new SSLConfig(false, false);
 
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                @Override
-                public Object run() {
-                    System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
-                    return null;
-                }
-            });
-
+            AccessController.doPrivileged(() -> System.setProperty("opensearch.set.netty.runtime.available.processors", "false"));
             return;
         }
         SSLConfig = new SSLConfig(settings);
@@ -191,20 +180,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             log.warn(renegoMsg);
         } else {
             if (!rejectClientInitiatedRenegotiation) {
-
-                final SecurityManager sm = System.getSecurityManager();
-
-                if (sm != null) {
-                    sm.checkPermission(new SpecialPermission());
-                }
-
-                AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                    @Override
-                    public Object run() {
-                        System.setProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION, "true");
-                        return null;
-                    }
-                });
+                AccessController.doPrivileged(
+                    () -> System.setProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION, "true")
+                );
                 log.debug(
                     "Client side initiated TLS renegotiation forcibly disabled. This can prevent DoS attacks. (jdk.tls.rejectClientInitiatedRenegotiation set to true)."
                 );
@@ -213,21 +191,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             }
         }
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         // TODO check initialize native netty open ssl libs still neccessary
-        AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
-                PlatformDependent.newFixedMpscQueue(1);
-                OpenSsl.isAvailable();
-                return null;
-            }
+        AccessController.doPrivileged(() -> {
+            System.setProperty("opensearch.set.netty.runtime.available.processors", "false");
+            PlatformDependent.newFixedMpscQueue(1);
+            OpenSsl.isAvailable();
         });
 
         this.settings = settings;
@@ -255,6 +223,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
         }
+
+        tryAddSecurityProvider();
 
         this.sslSettingsManager = new SslSettingsManager(new Environment(settings, configPath));
     }
@@ -442,7 +412,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 Property.Filtered
             )
         );
-        if (!settings.stream().anyMatch(s -> s.getKey().equalsIgnoreCase(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY))) {
+        if (!settings.stream().anyMatch(s -> s.getKey().equalsIgnoreCase(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY))) {
             settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION);
         }
         if (!settings.stream()
@@ -693,7 +663,18 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
         settingsFilter.add("opendistro_security.*");
-        settingsFilter.add("plugins.security.*");
+        settingsFilter.add("plugins.security.transport_user_cache.*");
+        settingsFilter.add("plugins.security.nodes_dn.*");
+        settingsFilter.add("plugins.security.restapi.*");
+        settingsFilter.add("plugins.security.ssl.*");
+        settingsFilter.add("plugins.security.config_version.*");
+        settingsFilter.add("plugins.security.nodes_dn_dynamic_config_enabled.*");
+        settingsFilter.add("plugins.security.privileges_evaluation.*");
+        settingsFilter.add("plugins.security.authcz.*");
+        settingsFilter.add("plugins.security.password.*");
+        settingsFilter.add("plugins.security.unsupported.*");
+        settingsFilter.add("plugins.security.audit.*");
+        settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }
 
@@ -740,14 +721,14 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         if (!NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
             builder.put(
-                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+                TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
                 SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.get(settings)
             );
         } else {
             if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
                 throw new OpenSearchException(
                     "Only one of the settings ["
-                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
+                        + TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
                         + ", "
                         + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.getKey()
                         + " (deprecated)] could be specified but not both"
@@ -756,5 +737,19 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         }
 
         return builder.build();
+    }
+
+    public ThreadPool getThreadPool() {
+        return this.threadPool;
+    }
+
+    private void tryAddSecurityProvider() {
+        AccessController.doPrivileged(() -> {
+            if (Security.getProvider("BCFIPS") == null) {
+                Security.addProvider(new BouncyCastleFipsProvider());
+                log.debug("Bouncy Castle FIPS Provider added");
+            }
+            return null;
+        });
     }
 }

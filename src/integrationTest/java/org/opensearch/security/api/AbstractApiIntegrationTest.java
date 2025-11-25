@@ -60,6 +60,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RESOURCE_MIGRATE_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
@@ -205,10 +206,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         var counter = 0;
         for (final var e : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
             if (e.getKey() == Endpoint.SSL) {
-                permissions[counter] = e.getValue().build(CERTS_INFO_ACTION);
-                permissions[++counter] = e.getValue().build(RELOAD_CERTS_ACTION);
+                permissions[counter++] = e.getValue().build(CERTS_INFO_ACTION);
+                permissions[counter++] = e.getValue().build(RELOAD_CERTS_ACTION);
             } else if (e.getKey() == Endpoint.CONFIG) {
                 permissions[counter++] = e.getValue().build(SECURITY_CONFIG_UPDATE);
+            } else if (e.getKey() == Endpoint.RESOURCE_SHARING) {
+                permissions[counter++] = e.getValue().build(RESOURCE_MIGRATE_ACTION);
             } else {
                 permissions[counter++] = e.getValue().build();
             }
@@ -310,7 +313,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse badRequest(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
@@ -326,13 +329,16 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    void forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
-        throws Exception {
+    public static void forbidden(
+        final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
+        final String expectedMessage
+    ) throws Exception {
         final var response = forbidden(endpointCallback);
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse forbidden(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         assertResponseBody(response.getBody());
@@ -347,7 +353,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+    public static TestRestClient.HttpResponse notImplemented(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_NOT_IMPLEMENTED));
@@ -355,7 +361,8 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse notFound(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
         assertResponseBody(response.getBody());
@@ -368,14 +375,15 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is(expectedMessage));
     }
 
-    TestRestClient.HttpResponse ok(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
+    public static TestRestClient.HttpResponse ok(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
+        throws Exception {
         final var response = endpointCallback.get();
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertResponseBody(response.getBody());
         return response;
     }
 
-    TestRestClient.HttpResponse ok(
+    public static TestRestClient.HttpResponse ok(
         final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
         final String expectedMessage
     ) throws Exception {
@@ -393,12 +401,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
-    void assertResponseBody(final String responseBody) {
+    public static void assertResponseBody(final String responseBody) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
     }
 
-    void assertResponseBody(final String responseBody, final String expectedMessage) {
+    public static void assertResponseBody(final String responseBody, final String expectedMessage) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
         assertThat(responseBody, containsString(expectedMessage));

@@ -29,7 +29,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -53,7 +53,7 @@ public class ApiTokenActionTest {
     private ThreadPool threadPool;
 
     @Mock
-    private PrivilegesEvaluator privilegesEvaluator;
+    private PrivilegesConfiguration privilegesConfiguration;
 
     @Mock
     private ConfigurationRepository configurationRepository;
@@ -147,7 +147,7 @@ public class ApiTokenActionTest {
 
             threadPool,
             configurationRepository,
-            privilegesEvaluator,
+            privilegesConfiguration,
             Settings.EMPTY,
             null,
             null,
@@ -155,6 +155,7 @@ public class ApiTokenActionTest {
             null,
             null,
             clusterService,
+            null,
             null
         );
 

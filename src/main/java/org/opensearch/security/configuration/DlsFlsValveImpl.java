@@ -12,11 +12,10 @@
 package org.opensearch.security.configuration;
 
 import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -31,7 +30,6 @@ import org.apache.lucene.util.BytesRef;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
@@ -66,7 +64,9 @@ import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -77,15 +77,19 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -102,6 +106,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
+    private final AdminDNs adminDNs;
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    private final ResourcePluginInfo resourcePluginInfo;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -110,7 +117,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext
+        DlsFlsBaseContext dlsFlsBaseContext,
+        AdminDNs adminDNs,
+        ResourcePluginInfo resourcePluginInfo,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -122,6 +132,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
+        this.adminDNs = adminDNs;
+        this.resourcePluginInfo = resourcePluginInfo;
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -130,6 +142,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
 
     /**
@@ -139,13 +152,54 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext)
-            || (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction()))) {
+        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
+            return true;
+        }
+        if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
+            return true;
+        }
+        ActionRequest request = context.getRequest();
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
+            if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
+                IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+                Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
+                WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
+                if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
+                    IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
+                        namedXContentRegistry,
+                        resolved,
+                        userSubject.getUser()
+                    );
+
+                    return DlsFilterLevelActionHandler.handle(
+                        context,
+                        sharedResourceMap,
+                        listener,
+                        nodeClient,
+                        clusterService,
+                        OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                        resolver,
+                        threadContext
+                    );
+                }
+            }
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+
+        DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
+
+        if (!resolved.isLocalAll() && resolved.getAllIndices().stream().anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
+            // The documentAllowList is needed here for Dashboards multi tenancy which can redirect index accesses to indices for which no
+            // normal index privileges are present
+            // If we would not use the documentAllowList here, the index would appear to be protected
+
+            if (resolved.getAllIndices().size() == 1) {
+                return true;
+            }
+        }
 
         try {
             boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);
@@ -487,14 +541,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     @Override
-    public boolean isFieldAllowed(String index, String field) throws PrivilegesEvaluationException {
-        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-        if (privilegesEvaluationContext == null) {
+    public boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException {
+        if (ctx == null) {
             return true;
         }
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowedRecursive(field);
+        return config.getFieldPrivileges().getRestriction(ctx, index).isAllowedRecursive(field);
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
@@ -639,10 +692,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
-        @SuppressWarnings("removal")
         private static <T> Field getField(Class<T> cls, String name) {
-            SpecialPermission.check();
-            return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged(cls, name));
+            return AccessController.doPrivileged(() -> getFieldPrivileged(cls, name));
         }
 
         @SuppressWarnings("unchecked")

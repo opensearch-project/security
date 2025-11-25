@@ -352,7 +352,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.transport.pemcert_filepath", Certificates.NODE_CERT.getFileName());
         configMap.put("plugins.security.ssl.transport.pemkey_filepath", Certificates.NODE_KEY.getFileName());
         configMap.put("plugins.security.ssl.transport.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
-        configMap.put("plugins.security.ssl.transport.enforce_hostname_verification", false);
+        configMap.put("transport.ssl.enforce_hostname_verification", false);
         configMap.put("plugins.security.ssl.http.enabled", true);
         configMap.put("plugins.security.ssl.http.pemcert_filepath", Certificates.NODE_CERT.getFileName());
         configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());

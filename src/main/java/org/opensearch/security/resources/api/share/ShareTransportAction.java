@@ -13,7 +13,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.spi.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -42,19 +42,20 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
         );
         switch (request.getMethod()) {
             case GET:
-                resourceAccessHandler.getSharingInfo(request.id(), request.index(), sharingInfoListener);
+                resourceAccessHandler.getSharingInfo(request.id(), request.type(), sharingInfoListener);
                 return;
             case PATCH:
+            case POST:
                 resourceAccessHandler.patchSharingInfo(
                     request.id(),
-                    request.index(),
+                    request.type(),
                     request.getAdd(),
                     request.getRevoke(),
                     sharingInfoListener
                 );
                 break;
             case PUT:
-                resourceAccessHandler.share(request.id(), request.index(), request.getShareWith(), sharingInfoListener);
+                resourceAccessHandler.share(request.id(), request.type(), request.getShareWith(), sharingInfoListener);
                 break;
         }
 

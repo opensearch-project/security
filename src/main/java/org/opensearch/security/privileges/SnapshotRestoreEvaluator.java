@@ -27,6 +27,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +36,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.tasks.Task;
@@ -47,8 +47,13 @@ public class SnapshotRestoreEvaluator {
     private final String securityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSecurityIndexEnabled;
+    private final Supplier<Boolean> isLocalNodeElectedClusterManagerSupplier;
 
-    public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
+    public SnapshotRestoreEvaluator(
+        final Settings settings,
+        AuditLog auditLog,
+        Supplier<Boolean> isLocalNodeElectedClusterManagerSupplier
+    ) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(
             ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
             ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE
@@ -60,37 +65,32 @@ public class SnapshotRestoreEvaluator {
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
+        this.isLocalNodeElectedClusterManagerSupplier = isLocalNodeElectedClusterManagerSupplier;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(
-        final ActionRequest request,
-        final Task task,
-        final String action,
-        final ClusterInfoHolder clusterInfoHolder,
-        final PrivilegesEvaluatorResponse presponse
-    ) {
+    /**
+     * @return a PrivilegesEvaluatorResponse if the evaluation process is completed here, null otherwise
+     */
+    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action) {
 
         if (!(request instanceof RestoreSnapshotRequest)) {
-            return presponse;
+            return null;
         }
 
         // snapshot restore for regular users not enabled
         if (!enableSnapshotRestorePrivilege) {
             log.warn("{} is not allowed for a regular user", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         // if this feature is enabled, users can also snapshot and restore
         // the Security index and the global state
         if (restoreSecurityIndexEnabled) {
-            presponse.allowed = true;
-            return presponse;
+            return null;
         }
 
-        if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
-            presponse.allowed = true;
-            return presponse.markComplete();
+        if (!isLocalNodeElectedClusterManagerSupplier.get()) {
+            return PrivilegesEvaluatorResponse.ok();
         }
 
         final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
@@ -99,8 +99,7 @@ public class SnapshotRestoreEvaluator {
         if (restoreRequest.includeGlobalState()) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} with 'include_global_state' enabled is not allowed", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action).reason("'include_global_state' is not allowed");
         }
 
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
@@ -108,9 +107,8 @@ public class SnapshotRestoreEvaluator {
         if (rs != null && (rs.contains(securityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient("").reason(securityIndex + " as source index is not allowed");
         }
-        return presponse;
+        return null;
     }
 }

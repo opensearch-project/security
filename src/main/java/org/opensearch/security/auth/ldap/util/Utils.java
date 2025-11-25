@@ -11,9 +11,6 @@
 
 package org.opensearch.security.auth.ldap.util;
 
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -24,8 +21,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.secure_sm.AccessController;
 
 import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
@@ -38,27 +35,14 @@ public final class Utils {
 
     }
 
-    @SuppressWarnings("removal")
     public static void unbindAndCloseSilently(final Connection connection) {
         if (connection == null) {
             return;
         }
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
-                @Override
-                public Object run() throws Exception {
-                    connection.close();
-                    return null;
-                }
-            });
-        } catch (PrivilegedActionException e) {
+            AccessController.doPrivilegedChecked(() -> connection.close());
+        } catch (Exception e) {
             // ignore
         }
     }

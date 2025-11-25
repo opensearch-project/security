@@ -40,12 +40,11 @@ public class PitPrivilegesEvaluator {
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
         final String action,
-        final PrivilegesEvaluatorResponse presponse,
         final IndexResolverReplacer irr
     ) {
 
         if (!(request instanceof DeletePitRequest || request instanceof PitSegmentsRequest)) {
-            return presponse;
+            return null;
         }
         List<String> pitIds = new ArrayList<>();
 
@@ -58,9 +57,9 @@ public class PitPrivilegesEvaluator {
         }
         // if request is for all PIT IDs, skip custom pit ids evaluation
         if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
-            return presponse;
+            return null;
         } else {
-            return handlePitsAccess(pitIds, context, actionPrivileges, action, presponse, irr);
+            return handlePitsAccess(pitIds, context, actionPrivileges, action, irr);
         }
     }
 
@@ -72,7 +71,6 @@ public class PitPrivilegesEvaluator {
         PrivilegesEvaluationContext context,
         ActionPrivileges actionPrivileges,
         final String action,
-        PrivilegesEvaluatorResponse presponse,
         final IndexResolverReplacer irr
     ) {
         Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
@@ -87,10 +85,9 @@ public class PitPrivilegesEvaluator {
         PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(context, ImmutableSet.of(action), pitResolved);
         // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
         if (subResponse.isAllowed()) {
-            presponse.allowed = true;
-            presponse.markComplete();
+            return PrivilegesEvaluatorResponse.ok();
         }
 
-        return presponse;
+        return null;
     }
 }

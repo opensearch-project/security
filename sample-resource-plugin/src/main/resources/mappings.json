@@ -1,0 +1,14 @@
+{
+  "dynamic": true,
+  "_meta": {
+    "schema_version": 1
+  },
+  "properties": {
+    "resource_type": {
+      "type": "keyword"
+    },
+    "all_shared_principals": {
+      "type": "keyword"
+    }
+  }
+}
