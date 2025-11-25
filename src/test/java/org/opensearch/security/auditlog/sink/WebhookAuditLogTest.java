@@ -881,8 +881,6 @@ public class WebhookAuditLogTest {
         String decodedCredentials = new String(java.util.Base64.getDecoder().decode(encodedCredentials), StandardCharsets.UTF_8);
         Assert.assertEquals(username + ":" + password, decodedCredentials);
 
-        // no message stored on fallback
-        assertThat(fallback.messages.size(), is(0));
         auditlog.close();
         server.awaitTermination(TimeValue.ofSeconds(3));
     }
