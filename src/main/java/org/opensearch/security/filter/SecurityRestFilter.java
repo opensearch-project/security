@@ -282,7 +282,7 @@ public class SecurityRestFilter {
             .findFirst();
         final boolean routeSupportsRestAuthorization = handler.isPresent() && handler.get() instanceof NamedRoute;
         if (routeSupportsRestAuthorization) {
-            PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
+            PrivilegesEvaluatorResponse pres;
             NamedRoute route = ((NamedRoute) handler.get());
             // Check both route.actionNames() and route.name(). The presence of either is sufficient.
             Set<String> actionNames = ImmutableSet.<String>builder()
@@ -299,12 +299,7 @@ public class SecurityRestFilter {
                 auditLog.logGrantedPrivileges(user.getName(), request);
             } else {
                 auditLog.logMissingPrivileges(route.name(), user.getName(), request);
-                String err;
-                if (!pres.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
-                } else {
-                    err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
-                }
+                String err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 log.debug(err);
 
                 request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));

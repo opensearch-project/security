@@ -101,7 +101,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesConfiguration privilegesConfiguration = createPrivilegesConfiguration(roles);
         RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesConfiguration);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
-        assertThat(response.allowed, equalTo(true));
+        assertThat(response.isAllowed(), equalTo(true));
     }
 
     @Test
@@ -113,7 +113,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesConfiguration privilegesConfiguration = createPrivilegesConfiguration(roles);
         RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesConfiguration);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
-        assertThat(response.allowed, equalTo(true));
+        assertThat(response.isAllowed(), equalTo(true));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         PrivilegesConfiguration privilegesConfiguration = createPrivilegesConfiguration(roles);
         RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesConfiguration);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
-        assertThat(response.allowed, equalTo(false));
+        assertThat(response.isAllowed(), equalTo(false));
     }
 
     PrivilegesConfiguration createPrivilegesConfiguration(SecurityDynamicConfiguration<RoleV7> roles) {

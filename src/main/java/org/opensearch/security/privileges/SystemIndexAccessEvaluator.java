@@ -123,17 +123,30 @@ public class SystemIndexAccessEvaluator {
         return securityIndexDeniedActionPatternsList;
     }
 
+    /**
+     * @return a PrivilegesEvaluatorResponse if the evaluation process is completed here, null otherwise
+     */
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
         final Task task,
         final String action,
         final Resolved requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
         final User user
     ) {
-        evaluateSystemIndicesAccess(action, requestedResolved, request, task, presponse, context, actionPrivileges, user);
+        PrivilegesEvaluatorResponse presponse = evaluateSystemIndicesAccess(
+            action,
+            requestedResolved,
+            request,
+            task,
+            context,
+            actionPrivileges,
+            user
+        );
+        if (presponse != null && !presponse.isAllowed()) {
+            return presponse;
+        }
 
         if (requestedResolved.isLocalAll()
             || requestedResolved.getAllIndices().contains(securityIndex)
@@ -234,17 +247,15 @@ public class SystemIndexAccessEvaluator {
      * @param requestedResolved this object contains all indices this request is resolved to
      * @param request the action request to be used for audit logging
      * @param task task in which this access check will be performed
-     * @param presponse the pre-response object that will eventually become a response and returned to the requester
      * @param context conveys information about user and mapped roles, etc.
      * @param actionPrivileges the up-to-date ActionPrivileges instance
      * @param user this user's permissions will be looked up
      */
-    private void evaluateSystemIndicesAccess(
+    private PrivilegesEvaluatorResponse evaluateSystemIndicesAccess(
         final String action,
         final Resolved requestedResolved,
         final ActionRequest request,
         final Task task,
-        final PrivilegesEvaluatorResponse presponse,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
         final User user
@@ -269,9 +280,7 @@ public class SystemIndexAccessEvaluator {
                         .collect(Collectors.toList());
                     log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.insufficient("").reason("Service account cannot access regular indices");
             }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
             if (containsProtectedIndex) {
@@ -284,9 +293,7 @@ public class SystemIndexAccessEvaluator {
                         String.join(", ", getAllProtectedSystemIndices(requestedResolved))
                     );
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.insufficient("");
             } else if (containsSystemIndex
                 && !actionPrivileges.hasExplicitIndexPrivilege(context, SYSTEM_INDEX_PERMISSION_SET, requestedResolved).isAllowed()) {
                     auditLog.logSecurityIndexAttempt(request, action, task);
@@ -298,9 +305,7 @@ public class SystemIndexAccessEvaluator {
                             String.join(", ", getAllSystemIndices(requestedResolved))
                         );
                     }
-                    presponse.allowed = false;
-                    presponse.markComplete();
-                    return;
+                    return PrivilegesEvaluatorResponse.insufficient("");
                 }
         }
 
@@ -313,9 +318,7 @@ public class SystemIndexAccessEvaluator {
                 );
                 if (requestedResolved.getAllIndices().equals(matchingPluginIndices)) {
                     // plugin is authorized to perform any actions on its own registered system indices
-                    presponse.allowed = true;
-                    presponse.markComplete();
-                    return;
+                    return PrivilegesEvaluatorResponse.ok();
                 } else {
                     Set<String> matchingSystemIndices = SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices());
                     matchingSystemIndices.removeAll(matchingPluginIndices);
@@ -329,17 +332,12 @@ public class SystemIndexAccessEvaluator {
                                 matchingPluginIndices
                             );
                         }
-                        presponse.allowed = false;
-                        presponse.getMissingPrivileges();
-                        presponse.markComplete();
-                        return;
+                        return PrivilegesEvaluatorResponse.insufficient("");
                     }
                 }
             } else {
                 // no system index protection and request originating from plugin, allow
-                presponse.allowed = true;
-                presponse.markComplete();
-                return;
+                return PrivilegesEvaluatorResponse.ok();
             }
         }
 
@@ -359,8 +357,7 @@ public class SystemIndexAccessEvaluator {
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     log.warn("{} for '_all' indices is not allowed for a regular user", action);
-                    presponse.allowed = false;
-                    presponse.markComplete();
+                    return PrivilegesEvaluatorResponse.insufficient("");
                 }
             }
             // if system index is enabled and system index permissions are enabled we don't need to perform any further
@@ -373,9 +370,7 @@ public class SystemIndexAccessEvaluator {
                         if (log.isDebugEnabled()) {
                             log.debug("Filtered '{}' but resulting list is empty", securityIndex);
                         }
-                        presponse.allowed = false;
-                        presponse.markComplete();
-                        return;
+                        return PrivilegesEvaluatorResponse.insufficient("");
                     }
                     irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
                     if (log.isDebugEnabled()) {
@@ -385,10 +380,10 @@ public class SystemIndexAccessEvaluator {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     final String foundSystemIndexes = String.join(", ", getAllSystemIndices(requestedResolved));
                     log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
-                    presponse.allowed = false;
-                    presponse.markComplete();
+                    return PrivilegesEvaluatorResponse.insufficient("");
                 }
             }
         }
+        return null;
     }
 }
