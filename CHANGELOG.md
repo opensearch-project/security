@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Ensure all restHeaders from ActionPlugin.getRestHeaders are carried to threadContext for tracing ([#5396](https://github.com/opensearch-project/security/pull/5396))
+- Allow overlap of static and custom security configs, but prefer static ([#5805](https://github.com/opensearch-project/security/pull/5805))
+
 ### Features
 
 ### Enhancements
