@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 
@@ -60,6 +61,9 @@ public class WebhookSink extends AuditLogSink {
     WebhookFormat webhookFormat = null;
     final boolean verifySSL;
     final KeyStore effectiveTruststore;
+    private final String username;
+    private final String password;
+    private final String basicAuthHeader;
 
     public WebhookSink(
         final String name,
@@ -76,6 +80,19 @@ public class WebhookSink extends AuditLogSink {
 
         final String webhookUrl = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL);
         final String format = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT);
+
+        // Read basic auth credentials
+        this.username = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME);
+        this.password = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD);
+
+        // Generate Basic Auth header if credentials are provided
+        if (this.username != null && this.password != null) {
+            String credentials = this.username + ":" + this.password;
+            String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+            this.basicAuthHeader = "Basic " + encodedCredentials;
+        } else {
+            this.basicAuthHeader = null;
+        }
 
         verifySSL = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true);
         httpClient = getHttpClient();
@@ -225,6 +242,12 @@ public class WebhookSink extends AuditLogSink {
 
     protected boolean doGet(String url) {
         HttpGet httpGet = new HttpGet(url);
+
+        // Add Basic Auth header if credentials are configured
+        if (basicAuthHeader != null) {
+            httpGet.setHeader("Authorization", basicAuthHeader);
+        }
+
         CloseableHttpResponse serverResponse = null;
         try {
             serverResponse = httpClient.execute(httpGet);
@@ -279,6 +302,11 @@ public class WebhookSink extends AuditLogSink {
     protected boolean doPost(String url, String payload) {
 
         HttpPost postRequest = new HttpPost(url);
+
+        // Add Basic Auth header if credentials are configured
+        if (basicAuthHeader != null) {
+            postRequest.setHeader("Authorization", basicAuthHeader);
+        }
 
         StringEntity input = new StringEntity(payload, webhookFormat.contentType.withCharset(StandardCharsets.UTF_8));
         postRequest.setEntity(input);

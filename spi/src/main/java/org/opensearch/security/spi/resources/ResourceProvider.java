@@ -20,4 +20,13 @@ public interface ResourceProvider {
 
     String resourceIndexName();
 
+    /**
+     * Returns the name of the field representing the resource type in the resource document.
+     *
+     * @return the field name containing the resource type
+     */
+    default String typeField() {
+        return null;
+    }
+
 }

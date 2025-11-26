@@ -28,7 +28,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -52,7 +51,6 @@ public class ResourceAccessHandler {
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
     private final AdminDNs adminDNs;
-    private final PrivilegesEvaluator privilegesEvaluator;
     private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
@@ -60,13 +58,11 @@ public class ResourceAccessHandler {
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns,
-        PrivilegesEvaluator evaluator,
         ResourcePluginInfo resourcePluginInfo
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
-        this.privilegesEvaluator = evaluator;
         this.resourcePluginInfo = resourcePluginInfo;
     }
 
@@ -159,8 +155,6 @@ public class ResourceAccessHandler {
             listener.onResponse(true);
             return;
         }
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {

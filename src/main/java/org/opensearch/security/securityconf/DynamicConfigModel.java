@@ -98,8 +98,6 @@ public abstract class DynamicConfigModel {
 
     public abstract boolean isDnfofEnabled();
 
-    public abstract boolean isMultiRolespanEnabled();
-
     public abstract String getFilteredAliasMode();
 
     public abstract String getHostsResolverMode();

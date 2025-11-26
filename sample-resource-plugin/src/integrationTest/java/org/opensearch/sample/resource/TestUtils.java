@@ -158,11 +158,12 @@ public final class TestUtils {
               "source_index": "%s",
               "username_path": "%s",
               "backend_roles_path": "%s",
+              "default_owner": "%s",
               "default_access_level": {
                 "sample-resource": "%s"
               }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", "sample_read_only");
     }
 
     public static String migrationPayload_valid_withSpecifiedAccessLevel(String accessLevel) {
@@ -171,11 +172,12 @@ public final class TestUtils {
              "source_index": "%s",
              "username_path": "%s",
              "backend_roles_path": "%s",
+             "default_owner": "%s",
              "default_access_level": {
                  "sample-resource": "%s"
               }
             }
-             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", accessLevel);
+             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", accessLevel);
     }
 
     public static String migrationPayload_missingSourceIndex() {
@@ -183,11 +185,12 @@ public final class TestUtils {
             {
             "username_path": "%s",
             "backend_roles_path": "%s",
+            "default_owner": "%s",
             "default_access_level": {
               "sample-resource": "%s"
              }
             }
-            """.formatted("user/name", "user/backend_roles", "sample_read_only");
+            """.formatted("user/name", "user/backend_roles", "some_user", "sample_read_only");
     }
 
     public static String migrationPayload_missingUserName() {
@@ -195,11 +198,12 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "backend_roles_path": "%s",
+            "default_owner": "%s",
             "default_access_level": {
               "sample-resource": "%s"
              }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "sample_read_only");
+            """.formatted(RESOURCE_INDEX_NAME, "user/backend_roles", "some_user", "sample_read_only");
     }
 
     public static String migrationPayload_missingBackendRoles() {
@@ -207,11 +211,12 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
+            "default_owner": "%s",
             "default_access_level": {
               "sample-resource": "%s"
              }
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "sample_read_only");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "some_user", "sample_read_only");
     }
 
     public static String migrationPayload_missingDefaultAccessLevel() {
@@ -219,9 +224,23 @@ public final class TestUtils {
             {
             "source_index": "%s",
             "username_path": "%s",
-            "backend_roles_path": "%s"
+            "backend_roles_path": "%s",
+            "default_owner": "%s"
             }
-            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles");
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user");
+    }
+
+    public static String migrationPayload_missingDefaultOwner() {
+        return """
+            {
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
 
     public static String putSharingInfoPayload(
@@ -344,7 +363,7 @@ public final class TestUtils {
         // Helper to create a sample resource and return its ID
         public String createSampleResourceAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                String sample = "{\"name\":\"sample\"}";
+                String sample = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
@@ -353,7 +372,7 @@ public final class TestUtils {
 
         public String createSampleResourceGroupAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
-                String sample = "{\"name\":\"samplegroup\"}";
+                String sample = "{\"name\":\"samplegroup\",\"resource_type\":\"" + RESOURCE_GROUP_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();
@@ -362,7 +381,7 @@ public final class TestUtils {
 
         public String createRawResourceAs(CertificateData adminCert) {
             try (TestRestClient client = cluster.getRestClient(adminCert)) {
-                String sample = "{\"name\":\"sample\"}";
+                String sample = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 return resp.getTextFromJsonBody("/_id");
@@ -680,6 +699,8 @@ public final class TestUtils {
                         TestRestClient.HttpResponse response = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
                         response.assertStatusCode(200);
                         String body = response.getBody();
+                        String resourceType = response.getTextFromJsonBody("/_source/resource_type");
+                        assert resourceType != null : "resource_type cannot be null";
                         assertThat(body, containsString(expectedString));
                         assertThat(body, containsString(resourceId));
                     });

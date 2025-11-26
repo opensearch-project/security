@@ -52,6 +52,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private String resourceId;
 
     /**
+     * The type of the resource
+     */
+    private String resourceType;
+
+    /**
      * Information about who created the resource
      */
     private final CreatedBy createdBy;
@@ -61,14 +66,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      */
     private ShareWith shareWith;
 
-    public ResourceSharing(String resourceId, CreatedBy createdBy, ShareWith shareWith) {
-        this.resourceId = resourceId;
-        this.createdBy = createdBy;
-        this.shareWith = shareWith;
-    }
-
     private ResourceSharing(Builder b) {
         this.resourceId = b.resourceId;
+        this.resourceType = b.resourceType;
         this.createdBy = b.createdBy;
         this.shareWith = b.shareWith;
     }
@@ -137,21 +137,33 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ResourceSharing resourceSharing = (ResourceSharing) o;
-        return Objects.equals(getResourceId(), resourceSharing.getResourceId())
-            && Objects.equals(getCreatedBy(), resourceSharing.getCreatedBy())
-            && Objects.equals(getShareWith(), resourceSharing.getShareWith());
+        if (!(o instanceof ResourceSharing)) return false;
+        ResourceSharing that = (ResourceSharing) o;
+        return Objects.equals(resourceId, that.resourceId)
+            && Objects.equals(resourceType, that.resourceType)
+            && Objects.equals(createdBy, that.createdBy)
+            && Objects.equals(shareWith, that.shareWith);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getResourceId(), getCreatedBy(), getShareWith());
+        return Objects.hash(resourceId, resourceType, createdBy, shareWith);
     }
 
     @Override
     public String toString() {
-        return "ResourceSharing {" + "resourceId='" + resourceId + '\'' + ", createdBy=" + createdBy + ", sharedWith=" + shareWith + '}';
+        return "ResourceSharing{"
+            + "resourceId='"
+            + resourceId
+            + '\''
+            + ", resourceType='"
+            + resourceType
+            + '\''
+            + ", createdBy="
+            + createdBy
+            + ", shareWith="
+            + shareWith
+            + '}';
     }
 
     @Override
@@ -162,6 +174,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(resourceId);
+        out.writeString(resourceType);
         createdBy.writeTo(out);
         if (shareWith != null) {
             out.writeBoolean(true);
@@ -173,7 +186,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject().field("resource_id", resourceId).field("created_by");
+        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType).field("created_by");
         createdBy.toXContent(builder, params);
         if (shareWith != null) {
             builder.field("share_with");
@@ -195,6 +208,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                 switch (Objects.requireNonNull(currentFieldName)) {
                     case "resource_id":
                         b.resourceId(parser.text());
+                        break;
+                    case "resource_type":
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.resourceType(null);
+                        } else {
+                            b.resourceType(parser.text());
+                        }
                         break;
                     case "created_by":
                         b.createdBy(CreatedBy.fromXContent(parser));
@@ -359,11 +379,17 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public static final class Builder {
         private String resourceId;
+        private String resourceType;
         private CreatedBy createdBy;
         private ShareWith shareWith;
 
         public Builder resourceId(String resourceId) {
             this.resourceId = resourceId;
+            return this;
+        }
+
+        public Builder resourceType(String resourceType) {
+            this.resourceType = resourceType;
             return this;
         }
 

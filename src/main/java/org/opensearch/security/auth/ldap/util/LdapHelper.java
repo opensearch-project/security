@@ -66,14 +66,8 @@ public class LdapHelper {
 
                 return entries;
             });
-        } catch (Exception e) {
-            if (e instanceof LdapException) {
-                throw (LdapException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
+        } catch (InvalidNameException e) {
+            throw new RuntimeException(e);
         }
     }
 
