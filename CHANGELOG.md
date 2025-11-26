@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
+- Add support for Basic Authentication in webhook audit log sink using `plugins.security.audit.config.username` and `plugins.security.audit.config.password` ([#5792](https://github.com/opensearch-project/security/pull/5792))
 
 ### Changed
 - Ensure all restHeaders from ActionPlugin.getRestHeaders are carried to threadContext for tracing ([#5396](https://github.com/opensearch-project/security/pull/5396))
@@ -23,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add support for X509 v3 extensions (SAN) for authentication  ([#5701](https://github.com/opensearch-project/security/pull/5701))
 - [Resource Sharing] Requires default_owner for resource/migrate API ([#5789](https://github.com/opensearch-project/security/pull/5789))
 - Optimize getFieldFilter to only return a predicate when index has FLS restrictions for user ([#5777](https://github.com/opensearch-project/security/pull/5777))
-
+- Add --timeout (-to) as an option to securityadmin.sh ([#5787](https://github.com/opensearch-project/security/pull/5787))
 
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))

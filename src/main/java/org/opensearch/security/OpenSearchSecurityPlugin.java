@@ -1827,14 +1827,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ); // not filtered here
             settings.add(
                 Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME,
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
                     Property.NodeScope,
                     Property.Filtered
                 )
             );
             settings.add(
                 Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD,
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD,
                     Property.NodeScope,
                     Property.Filtered
                 )

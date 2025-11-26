@@ -226,6 +226,7 @@ public class SecurityAdmin {
         options.addOption(
             Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9200)").build()
         );
+        options.addOption(Option.builder("to").longOpt("timeout").hasArg().argName("timeout").desc("timeout (default: 30s)").build());
         options.addOption(
             Option.builder("cn")
                 .longOpt("clustername")
@@ -336,6 +337,7 @@ public class SecurityAdmin {
 
         String hostname = "localhost";
         int port = 9200;
+        int timeout = 30;
         String kspass = System.getenv(OPENDISTRO_SECURITY_KS_PASS);
         String tspass = System.getenv(OPENDISTRO_SECURITY_TS_PASS);
         String cd = ".";
@@ -387,6 +389,7 @@ public class SecurityAdmin {
 
             hostname = line.getOptionValue("h", hostname);
             port = Integer.parseInt(line.getOptionValue("p", String.valueOf(port)));
+            timeout = Integer.parseInt(line.getOptionValue("to", String.valueOf(timeout)));
 
             promptForPassword = line.hasOption("prompt");
 
@@ -869,7 +872,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                boolean success = uploadFile(restHighLevelClient, file, index, type, resolveEnvVars);
+                boolean success = uploadFile(restHighLevelClient, file, index, type, resolveEnvVars, timeout);
 
                 if (!success) {
                     System.out.println("ERR: cannot upload configuration, see errors above");
@@ -884,7 +887,7 @@ public class SecurityAdmin {
                 return (success ? 0 : -1);
             }
 
-            return upload(restHighLevelClient, index, cd, expectedNodeCount, resolveEnvVars);
+            return upload(restHighLevelClient, index, cd, expectedNodeCount, resolveEnvVars, timeout);
         }
     }
 
@@ -959,9 +962,10 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        boolean resolveEnvVars
+        boolean resolveEnvVars,
+        int timeout
     ) {
-        return uploadFile(restHighLevelClient, filepath, index, _id, resolveEnvVars, false);
+        return uploadFile(restHighLevelClient, filepath, index, _id, resolveEnvVars, false, timeout);
     }
 
     private static boolean uploadFile(
@@ -970,7 +974,8 @@ public class SecurityAdmin {
         final String index,
         final String _id,
         boolean resolveEnvVars,
-        final boolean populateEmptyIfMissing
+        final boolean populateEmptyIfMissing,
+        int timeout
     ) {
 
         String id = _id;
@@ -988,6 +993,7 @@ public class SecurityAdmin {
             final String content = CharStreams.toString(reader);
             final String res = restHighLevelClient.index(
                 new IndexRequest(index).id(id)
+                    .timeout(timeout + "s")
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(_id, readXContent(resolveEnvVars ? replaceEnvVars(content, Settings.EMPTY) : content, XContentType.YAML)),
                 RequestOptions.DEFAULT
@@ -1354,23 +1360,23 @@ public class SecurityAdmin {
         return success ? 0 : -1;
     }
 
-    private static int upload(RestHighLevelClient tc, String index, String cd, int expectedNodeCount, boolean resolveEnvVars)
+    private static int upload(RestHighLevelClient tc, String index, String cd, int expectedNodeCount, boolean resolveEnvVars, int timeout)
         throws IOException {
-        boolean success = uploadFile(tc, cd + "config.yml", index, "config", resolveEnvVars);
-        success = uploadFile(tc, cd + "roles.yml", index, "roles", resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", resolveEnvVars) && success;
+        boolean success = uploadFile(tc, cd + "config.yml", index, "config", resolveEnvVars, timeout);
+        success = uploadFile(tc, cd + "roles.yml", index, "roles", resolveEnvVars, timeout) && success;
+        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", resolveEnvVars, timeout) && success;
 
-        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", resolveEnvVars, timeout) && success;
+        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", resolveEnvVars, timeout) && success;
 
-        success = uploadFile(tc, cd + "tenants.yml", index, "tenants", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "tenants.yml", index, "tenants", resolveEnvVars, timeout) && success;
 
-        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", resolveEnvVars, true, timeout) && success;
         if (new File(cd + "audit.yml").exists()) {
-            success = uploadFile(tc, cd + "audit.yml", index, "audit", resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", resolveEnvVars, timeout) && success;
         }
         if (new File(cd + "allowlist.yml").exists()) {
-            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", resolveEnvVars, timeout) && success;
         }
 
         if (!success) {

@@ -83,8 +83,8 @@ public final class ExternalOpenSearchSink extends AuditLogSink {
             ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH,
             ConfigConstants.OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT
         );
-        final String user = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME);
-        final String password = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD);
+        final String user = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME);
+        final String password = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD);
 
         final HttpClientBuilder builder = HttpClient.builder(servers.toArray(new String[0]));
 
