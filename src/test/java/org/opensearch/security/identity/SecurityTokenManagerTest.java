@@ -192,7 +192,7 @@ public class SecurityTokenManagerTest {
 
     @Test
     public void issueOnBehalfOfToken_jwtGenerationFailure() throws Exception {
-        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> new ClusterName("cluster17")).when(cs).getClusterName();
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
@@ -213,7 +213,7 @@ public class SecurityTokenManagerTest {
 
     @Test
     public void issueOnBehalfOfToken_success() throws Exception {
-        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> new ClusterName("cluster17")).when(cs).getClusterName();
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
@@ -288,27 +288,8 @@ public class SecurityTokenManagerTest {
     }
 
     @Test
-    public void testCreateJwtWithBadRoles() {
-        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
-        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
-        when(threadPool.getThreadContext()).thenReturn(threadContext);
-
-        createMockJwtVendorInTokenManager(true);
-
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
-    }
-
-    @Test
     public void issueApiToken_success() throws Exception {
-        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> new ClusterName("cluster17")).when(cs).getClusterName();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);

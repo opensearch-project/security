@@ -83,8 +83,7 @@ public class SecurityTokenManager implements TokenManager {
             oboSettings = oboSettingsFromDcm;
         }
         final Settings apiTokenSettingsFromDcm = dcm.getDynamicApiTokenSettings();
-        final Boolean apiTokenEnabled = apiTokenSettingsFromDcm.getAsBoolean("enabled", false);
-        if (apiTokenEnabled) {
+        if (apiTokenSettingsFromDcm.getAsBoolean("enabled", false)) {
             apiTokenSettings = apiTokenSettingsFromDcm;
         }
     }
