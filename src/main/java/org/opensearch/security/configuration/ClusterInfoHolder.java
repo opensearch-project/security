@@ -101,4 +101,12 @@ public class ClusterInfoHolder implements ClusterStateListener {
         }
         return false;
     }
+
+    public String getReasonForUnavailability() {
+        if (!hasClusterManager()) {
+            return CLUSTER_MANAGER_NOT_PRESENT;
+        } else {
+            return null;
+        }
+    }
 }

@@ -128,7 +128,9 @@ public class AccountApiAction extends AbstractApiAction {
         final TransportAddress remoteAddress,
         final SecurityDynamicConfiguration<?> configuration
     ) {
-        PrivilegesEvaluationContext context = securityApiDependencies.privilegesEvaluator().createContext(user, null);
+        PrivilegesEvaluationContext context = securityApiDependencies.privilegesConfiguration()
+            .privilegesEvaluator()
+            .createContext(user, null);
         ok(
             channel,
             (builder, params) -> builder.startObject()
@@ -139,7 +141,7 @@ public class AccountApiAction extends AbstractApiAction {
                 .field("user_requested_tenant", user.getRequestedTenant())
                 .field("backend_roles", user.getRoles())
                 .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                .field("tenants", securityApiDependencies.privilegesEvaluator().tenantPrivileges().tenantMap(context))
+                .field("tenants", securityApiDependencies.privilegesConfiguration().tenantPrivileges().tenantMap(context))
                 .field("roles", context.getMappedRoles())
                 .endObject()
         );

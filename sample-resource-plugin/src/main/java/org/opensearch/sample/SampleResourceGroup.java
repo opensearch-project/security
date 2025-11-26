@@ -25,7 +25,6 @@ import org.opensearch.core.xcontent.XContentParser;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
-import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Sample resource group declared by this plugin.
@@ -45,7 +44,7 @@ public class SampleResourceGroup implements NamedWriteable, ToXContentObject {
     }
 
     private static final ConstructingObjectParser<SampleResourceGroup, Void> PARSER = new ConstructingObjectParser<>(
-        RESOURCE_TYPE,
+        RESOURCE_GROUP_TYPE,
         true,
         a -> {
             SampleResourceGroup s;
@@ -56,6 +55,7 @@ public class SampleResourceGroup implements NamedWriteable, ToXContentObject {
             }
             s.setName((String) a[0]);
             s.setDescription((String) a[1]);
+            // ignore a[2] as we know the type
             return s;
         }
     );
@@ -63,6 +63,7 @@ public class SampleResourceGroup implements NamedWriteable, ToXContentObject {
     static {
         PARSER.declareString(constructorArg(), new ParseField("name"));
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("description"));
+        PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("resource_type"));
     }
 
     public static SampleResourceGroup fromXContent(XContentParser parser) throws IOException {
@@ -70,7 +71,11 @@ public class SampleResourceGroup implements NamedWriteable, ToXContentObject {
     }
 
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject().field("name", name).field("description", description).endObject();
+        return builder.startObject()
+            .field("name", name)
+            .field("description", description)
+            .field("resource_type", RESOURCE_GROUP_TYPE)
+            .endObject();
     }
 
     public void writeTo(StreamOutput out) throws IOException {
