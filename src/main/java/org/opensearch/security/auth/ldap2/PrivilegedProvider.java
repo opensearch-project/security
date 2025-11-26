@@ -78,17 +78,7 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
 
         @Override
         public ProviderConnection create() throws LdapException {
-            try {
-                return AccessController.doPrivilegedChecked(() -> new PrivilegedProviderConnection(delegate.create(), getProviderConfig()));
-            } catch (Exception e) {
-                if (e instanceof LdapException) {
-                    throw (LdapException) e;
-                } else if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
+            return AccessController.doPrivilegedChecked(() -> new PrivilegedProviderConnection(delegate.create(), getProviderConfig()));
         }
 
     }
@@ -103,30 +93,20 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
         }
 
         public Response<Void> bind(BindRequest request) throws LdapException {
-            try {
-                return AccessController.doPrivilegedChecked(() -> {
-                    if (jndiProviderConfig.getClassLoader() != null) {
-                        ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+            return AccessController.doPrivilegedChecked(() -> {
+                if (jndiProviderConfig.getClassLoader() != null) {
+                    ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
 
-                        try {
-                            Thread.currentThread().setContextClassLoader(jndiProviderConfig.getClassLoader());
-                            return delegate.bind(request);
-                        } finally {
-                            Thread.currentThread().setContextClassLoader(originalClassLoader);
-                        }
-                    } else {
+                    try {
+                        Thread.currentThread().setContextClassLoader(jndiProviderConfig.getClassLoader());
                         return delegate.bind(request);
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(originalClassLoader);
                     }
-                });
-            } catch (Exception e) {
-                if (e instanceof LdapException) {
-                    throw (LdapException) e;
-                } else if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
                 } else {
-                    throw new RuntimeException(e);
+                    return delegate.bind(request);
                 }
-            }
+            });
         }
 
         public Response<Void> add(AddRequest request) throws LdapException {
