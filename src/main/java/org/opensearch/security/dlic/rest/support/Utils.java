@@ -20,7 +20,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -149,34 +148,12 @@ public class Utils {
     }
 
     public static byte[] jsonMapToByteArray(Map<String, Object> jsonAsMap) throws IOException {
-
-        try {
-            return AccessController.doPrivilegedChecked(() -> internalMapper.writeValueAsBytes(jsonAsMap));
-        } catch (final Exception e) {
-            if (e instanceof JsonProcessingException) {
-                throw (JsonProcessingException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> internalMapper.writeValueAsBytes(jsonAsMap));
     }
 
     public static Map<String, Object> byteArrayToMutableJsonMap(byte[] jsonBytes) throws IOException {
-
-        try {
-            return AccessController.doPrivilegedChecked(() -> internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
-            }));
-        } catch (final Exception e) {
-            if (e instanceof IOException) {
-                throw (IOException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
+        }));
     }
 
     /**
