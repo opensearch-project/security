@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
@@ -174,6 +175,7 @@ public class SystemIndexAccessEvaluatorTest {
             ImmutableSet.of("role_a"),
             action,
             request,
+            ActionRequestMetadata.empty(),
             null,
             null,
             indexNameExpressionResolver,

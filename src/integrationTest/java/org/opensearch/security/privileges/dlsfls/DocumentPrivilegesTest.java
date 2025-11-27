@@ -33,12 +33,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
-import org.opensearch.action.IndicesRequest;
-import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -58,7 +58,6 @@ import org.opensearch.security.privileges.PrivilegesConfigurationValidationExcep
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -535,6 +534,7 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
+                null,
                 () -> CLUSTER_STATE,
                 ActionPrivileges.EMPTY
             );
@@ -572,17 +572,12 @@ public class DocumentPrivilegesTest {
         final static IndexNameExpressionResolver INDEX_NAME_EXPRESSION_RESOLVER = new IndexNameExpressionResolver(
             new ThreadContext(Settings.EMPTY)
         );
-        final static IndexResolverReplacer RESOLVER_REPLACER = new IndexResolverReplacer(
-            INDEX_NAME_EXPRESSION_RESOLVER,
-            () -> CLUSTER_STATE,
-            null
-        );
 
         final Statefulness statefulness;
         final UserSpec userSpec;
         final User user;
         final IndicesSpec indicesSpec;
-        final IndexResolverReplacer.Resolved resolvedIndices;
+        final ResolvedIndices resolvedIndices;
         final PrivilegesEvaluationContext context;
         final boolean dfmEmptyOverridesAll;
 
@@ -690,7 +685,7 @@ public class DocumentPrivilegesTest {
             DocumentPrivileges subject = createSubject(roleConfig);
             boolean result = subject.isUnrestricted(context, resolvedIndices);
 
-            if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -746,7 +741,7 @@ public class DocumentPrivilegesTest {
             DocumentPrivileges subject = createSubject(roleConfig);
             boolean result = subject.isUnrestricted(context, resolvedIndices);
 
-            if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -776,7 +771,7 @@ public class DocumentPrivilegesTest {
             if (userSpec.attributes.isEmpty()) {
                 // All roles defined above use attributes. If there are no user attributes, we must get a restricted result.
                 assertFalse(result);
-            } else if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            } else if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -833,30 +828,15 @@ public class DocumentPrivilegesTest {
             this.userSpec = userSpec;
             this.indicesSpec = indicesSpec;
             this.user = userSpec.buildUser();
-            this.resolvedIndices = RESOLVER_REPLACER.resolveRequest(new IndicesRequest.Replaceable() {
-
-                @Override
-                public String[] indices() {
-                    return indicesSpec.indices.toArray(new String[0]);
-                }
-
-                @Override
-                public IndicesOptions indicesOptions() {
-                    return IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
-                }
-
-                @Override
-                public IndicesRequest indices(String... strings) {
-                    return this;
-                }
-            });
+            this.resolvedIndices = ResolvedIndices.of(indicesSpec.indices);
             this.context = new PrivilegesEvaluationContext(
                 this.user,
                 ImmutableSet.copyOf(userSpec.roles),
                 null,
                 null,
+                ActionRequestMetadata.empty(),
                 null,
-                RESOLVER_REPLACER,
+                null,
                 INDEX_NAME_EXPRESSION_RESOLVER,
                 () -> CLUSTER_STATE,
                 ActionPrivileges.EMPTY
@@ -1158,7 +1138,9 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
+                null,
                 () -> CLUSTER_STATE,
+
                 ActionPrivileges.EMPTY
             );
             this.statefulness = statefulness;

@@ -18,9 +18,12 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -67,11 +70,14 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
+    private final ActionRequestMetadata<?, ?> actionRequestMetadata;
+
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
         IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
@@ -87,6 +93,7 @@ public class PrivilegesEvaluationContext {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
         this.actionPrivileges = actionPrivileges;
+        this.actionRequestMetadata = actionRequestMetadata;
     }
 
     public User getUser() {
@@ -126,6 +133,10 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
+    /**
+     * @deprecated use getResolvedIndices() instead
+     */
+    @Deprecated
     public IndexResolverReplacer.Resolved getResolvedRequest() {
         IndexResolverReplacer.Resolved result = this.resolvedRequest;
 
@@ -135,6 +146,10 @@ public class PrivilegesEvaluationContext {
         }
 
         return result;
+    }
+
+    public OptionallyResolvedIndices getResolvedIndices() {
+        return this.actionRequestMetadata.resolvedIndices();
     }
 
     public Task getTask() {
@@ -159,6 +174,10 @@ public class PrivilegesEvaluationContext {
 
     public Supplier<ClusterState> getClusterStateSupplier() {
         return clusterStateSupplier;
+    }
+
+    public ClusterState clusterState() {
+        return clusterStateSupplier.get();
     }
 
     public Map<String, IndexAbstraction> getIndicesLookup() {
