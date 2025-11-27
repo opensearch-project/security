@@ -16,6 +16,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.security.user.User;
 
 import static org.junit.Assert.assertEquals;
@@ -40,6 +41,7 @@ public class UserAttributesUnitTest {
             ImmutableSet.copyOf(List.of("mapped_role1")),
             null,
             null,
+            ActionRequestMetadata.empty(),
             null,
             null,
             null,

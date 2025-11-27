@@ -39,6 +39,8 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -63,7 +65,6 @@ import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.queries.QueryBuilderTraverser;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ReflectiveAttributeAccessors;
 import org.opensearch.security.util.ParentChildrenQueryDetector;
@@ -84,7 +85,6 @@ public class DlsFilterLevelActionHandler {
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
-        IndexNameExpressionResolver resolver,
         ThreadContext threadContext
     ) {
 
@@ -122,7 +122,6 @@ public class DlsFilterLevelActionHandler {
             nodeClient,
             clusterService,
             indicesService,
-            resolver,
             threadContext
         ).handle();
     }
@@ -131,13 +130,12 @@ public class DlsFilterLevelActionHandler {
     private final ActionRequest request;
     private final ActionListener<?> listener;
     private final IndexToRuleMap<DlsRestriction> dlsRestrictionMap;
-    private final Resolved resolved;
+    private final OptionallyResolvedIndices resolved;
     private final boolean requiresIndexScoping;
     private final Client nodeClient;
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final ThreadContext threadContext;
-    private final IndexNameExpressionResolver resolver;
     private BoolQueryBuilder filterLevelQueryBuilder;
     private DocumentAllowList documentAllowlist;
 
@@ -148,21 +146,21 @@ public class DlsFilterLevelActionHandler {
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
-        IndexNameExpressionResolver resolver,
         ThreadContext threadContext
     ) {
         this.action = context.getAction();
         this.request = context.getRequest();
         this.listener = listener;
         this.dlsRestrictionMap = dlsRestrictionMap;
-        this.resolved = context.getResolvedRequest();
+        this.resolved = context.getResolvedIndices();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.threadContext = threadContext;
-        this.resolver = resolver;
 
-        this.requiresIndexScoping = resolved.isLocalAll() || resolved.getAllIndicesResolved(clusterService, resolver).size() != 1;
+        this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices
+            ? resolvedIndices.local().names().size() != 1
+            : true;
     }
 
     private boolean handle() {
@@ -477,7 +475,7 @@ public class DlsFilterLevelActionHandler {
 
         int queryCount = 0;
 
-        Set<String> indices = resolved.getAllIndicesResolved(clusterService, resolver);
+        Set<String> indices = resolved.local().names(clusterService.state());
 
         for (String index : indices) {
             String prefixedIndex;

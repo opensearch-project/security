@@ -150,6 +150,7 @@ public class RestLayerPrivilegesEvaluatorTest {
                     user.getSecurityRoles(),
                     action,
                     actionRequest,
+                    ActionRequestMetadata.empty(),
                     task,
                     null,
                     null,
