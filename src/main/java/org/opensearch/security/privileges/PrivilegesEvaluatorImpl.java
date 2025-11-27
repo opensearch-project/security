@@ -279,6 +279,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             mappedRoles,
             action0,
             request,
+            actionRequestMetadata,
             task,
             irr,
             resolver,
