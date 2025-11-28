@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modularized PrivilegesEvaluator ([#5791](https://github.com/opensearch-project/security/pull/5791))
 - [Resource Sharing] Adds post support for update sharing info API ([#5799](https://github.com/opensearch-project/security/pull/5799))
 - Cleaned up use of PrivilegesEvaluatorResponse ([#5804](https://github.com/opensearch-project/security/pull/5804))
+- Remove reflective call to getInnerChannel ([#5816](https://github.com/opensearch-project/security/pull/5816))
 
 ### Maintenance
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.1 ([#5678](https://github.com/opensearch-project/security/pull/5678), [#5764](https://github.com/opensearch-project/security/pull/5764))
