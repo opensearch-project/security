@@ -26,6 +26,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [Resource Sharing] Requires default_owner for resource/migrate API ([#5789](https://github.com/opensearch-project/security/pull/5789))
 - Add --timeout (-to) as an option to securityadmin.sh ([#5787](https://github.com/opensearch-project/security/pull/5787))
 
+* Create a mechanism for plugins to explicitly declare actions they need to perform with their assigned PluginSubject ([#5341](https://github.com/opensearch-project/security/pull/5341))
+* Moves OpenSAML jars to a Shadow Jar configuration to facilitate its use in FIPS enabled environments ([#5400](https://github.com/opensearch-project/security/pull/5404))
+* Replaced the standard distribution of BouncyCastle with BC-FIPS ([#5439](https://github.com/opensearch-project/security/pull/5439))
+* Introduce API Tokens with `cluster_permissions` and `index_permissions` directly associated with the token ([#5443](https://github.com/opensearch-project/security/pull/5443))
+* Introduced setting `plugins.security.privileges_evaluation.precomputed_privileges.enabled` ([#5465](https://github.com/opensearch-project/security/pull/5465))
+* Optimized wildcard matching runtime performance ([#5470](https://github.com/opensearch-project/security/pull/5470))
+* Optimized performance for construction of internal action privileges data structure  ([#5470](https://github.com/opensearch-project/security/pull/5470))
+
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
 - Improve array validator to also check for blank string in addition to null ([#5714](https://github.com/opensearch-project/security/pull/5714))
