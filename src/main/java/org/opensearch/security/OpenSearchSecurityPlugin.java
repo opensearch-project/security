@@ -1434,7 +1434,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Function.identity(),
                 Property.NodeScope,
                 Property.Filtered,
-                Property.Final
+                Property.Final,
+                Property.Deprecated
             )
         );
 
