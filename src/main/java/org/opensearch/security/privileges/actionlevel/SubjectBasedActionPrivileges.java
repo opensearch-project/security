@@ -349,6 +349,27 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
         }
 
         /**
+         * Checks whether the user has any index privileges configured for the given actions, regardless of which indices.
+         * This checks if the subject has index privileges for any of the given actions.
+         */
+        @Override
+        protected boolean hasAnyIndexPrivilegeForAction(PrivilegesEvaluationContext context, Set<String> actions) {
+            for (String action : actions) {
+                if (this.actionToIndexPattern.containsKey(action)) {
+                    return true;
+                }
+
+                for (WildcardMatcher actionMatcher : this.actionPatternToIndexPattern.keySet()) {
+                    if (actionMatcher.test(action)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /**
          * Checks whether this instance provides explicit privileges for the combination of the provided action and
          * the provided indices.
          * <p>
