@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        jdk: [21, 24]
+        jdk: [21, 25]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -27,7 +27,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v3

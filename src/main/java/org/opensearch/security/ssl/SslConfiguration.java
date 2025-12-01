@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
@@ -117,7 +118,7 @@ public class SslConfiguration {
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
                     .build();
             });
-        } catch (Exception e) {
+        } catch (SSLException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
         }
     }
@@ -137,6 +138,7 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .keyManager(kmFactory)
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
+                    .endpointIdentificationAlgorithm(null)
                     .build();
             });
         } catch (Exception e) {

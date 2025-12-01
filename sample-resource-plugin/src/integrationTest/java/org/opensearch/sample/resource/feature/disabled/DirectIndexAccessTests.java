@@ -31,6 +31,7 @@ import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_SEARCH_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -66,7 +67,7 @@ public class DirectIndexAccessTests {
 
             // cannot access any raw request
             try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -89,7 +90,7 @@ public class DirectIndexAccessTests {
 
             // cannot create a resource since user doesn't have indices:data/write/index permission
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -114,7 +115,7 @@ public class DirectIndexAccessTests {
 
             // cannot create a resource directly since system index protection (SIP) is enabled
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -179,7 +180,7 @@ public class DirectIndexAccessTests {
 
             // cannot access any raw request
             try (TestRestClient client = cluster.getRestClient(NO_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -202,7 +203,7 @@ public class DirectIndexAccessTests {
 
             // cannot create a resource since user doesn't have indices:data/write/index permission
             try (TestRestClient client = cluster.getRestClient(LIMITED_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
@@ -228,7 +229,7 @@ public class DirectIndexAccessTests {
             // can create a resource
             String userResId;
             try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
-                String sample = "{\"name\":\"sampleUser\"}";
+                String sample = "{\"name\":\"sampleUser\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.postJson(RESOURCE_INDEX_NAME + "/_doc", sample);
                 resp.assertStatusCode(HttpStatus.SC_CREATED);
                 userResId = resp.getTextFromJsonBody("/_id");

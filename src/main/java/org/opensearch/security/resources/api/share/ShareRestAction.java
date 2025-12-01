@@ -26,6 +26,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PATCH;
+import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_RESOURCE_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -55,7 +56,7 @@ public class ShareRestAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return addRoutesPrefix(
-            ImmutableList.of(new Route(PUT, "/share"), new Route(GET, "/share"), new Route(PATCH, "/share")),
+            ImmutableList.of(new Route(PUT, "/share"), new Route(GET, "/share"), new Route(PATCH, "/share"), new Route(POST, "/share")),
             PLUGIN_API_RESOURCE_ROUTE_PREFIX
         );
     }
