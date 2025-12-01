@@ -75,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Upgrade to gradle 9.2 and run CI with JDK 25 ([#5786](https://github.com/opensearch-project/security/pull/5786))
 - Bump `commons-validator:commons-validator` from 1.10.0 to 1.10.1 ([#5807](https://github.com/opensearch-project/security/pull/5807))
 - Bump `actions/checkout` from 5 to 6 ([#5810](https://github.com/opensearch-project/security/pull/5810))
+- Bump `org.bouncycastle:bcpkix-jdk18on` from 1.82 to 1.83 ([#5825](https://github.com/opensearch-project/security/pull/5825))
 
 ### Documentation
 
