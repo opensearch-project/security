@@ -61,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `derek-ho/start-opensearch` from 7 to 9 ([#5630](https://github.com/opensearch-project/security/pull/5630), [#5679](https://github.com/opensearch-project/security/pull/5679))
 - Bump `github/codeql-action` from 3 to 4 ([#5702](https://github.com/opensearch-project/security/pull/5702))
 - Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
-- Bump `com.autonomousapps.build-health` from 3.0.4 to 3.3.0 ([#5726](https://github.com/opensearch-project/security/pull/5726), [#5744](https://github.com/opensearch-project/security/pull/5744))
+- Bump `com.autonomousapps.build-health` from 3.0.4 to 3.5.1 ([#5726](https://github.com/opensearch-project/security/pull/5726), [#5744](https://github.com/opensearch-project/security/pull/5744), [#5819](https://github.com/opensearch-project/security/pull/5819))
 - Bump `spring_version` from 6.2.11 to 6.2.14 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M5 to 4.0.0-RC1 ([#5742](https://github.com/opensearch-project/security/pull/5742))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.42.0 to 2.44.0 ([#5743](https://github.com/opensearch-project/security/pull/5743), [#5779](https://github.com/opensearch-project/security/pull/5779))
@@ -76,6 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `commons-validator:commons-validator` from 1.10.0 to 1.10.1 ([#5807](https://github.com/opensearch-project/security/pull/5807))
 - Bump `actions/checkout` from 5 to 6 ([#5810](https://github.com/opensearch-project/security/pull/5810))
 - Bump `org.bouncycastle:bcprov-jdk18on` from 1.82 to 1.83 ([#5820](https://github.com/opensearch-project/security/pull/5820))
+- Bump `org.bouncycastle:bcpkix-jdk18on` from 1.82 to 1.83 ([#5825](https://github.com/opensearch-project/security/pull/5825))
 
 ### Documentation
 
