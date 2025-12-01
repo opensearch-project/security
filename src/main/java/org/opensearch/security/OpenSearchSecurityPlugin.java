@@ -2351,12 +2351,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             boolean indexHasRestrictions = false;
             try {
                 indexHasRestrictions = dlsFlsValve.indexHasFlsRestrictions(index, ctx);
+
+                if (!indexHasRestrictions) {
+                    return NOOP_FIELD_PREDICATE;
+                }
             } catch (PrivilegesEvaluationException e) {
                 log.error("Error while evaluating FLS restrictions for {}", index, e);
-            }
-
-            if (!indexHasRestrictions) {
-                return NOOP_FIELD_PREDICATE;
             }
 
             return field -> {
