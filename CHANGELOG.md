@@ -54,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.scala-lang:scala-library` from 2.13.16 to 2.13.18 ([#5682](https://github.com/opensearch-project/security/pull/5682), [#5809](https://github.com/opensearch-project/security/pull/5809))
 - Bump `kafka_version` from 4.0.0 to 4.1.1 ([#5613](https://github.com/opensearch-project/security/pull/5613), [#5806](https://github.com/opensearch-project/security/pull/5806))
 - Bump `org.gradle.test-retry` from 1.6.2 to 1.6.4 ([#5706](https://github.com/opensearch-project/security/pull/5706))
-- Bump `org.checkerframework:checker-qual` from 3.51.0 to 3.51.1 ([#5705](https://github.com/opensearch-project/security/pull/5705))
+- Bump `org.checkerframework:checker-qual` from 3.51.0 to 3.52.0 ([#5705](https://github.com/opensearch-project/security/pull/5705), [#5821](https://github.com/opensearch-project/security/pull/5821))
 - Bump `org.ow2.asm:asm` from 9.8 to 9.9 ([#5707](https://github.com/opensearch-project/security/pull/5707))
 - Bump `stefanzweifel/git-auto-commit-action` from 6 to 7 ([#5704](https://github.com/opensearch-project/security/pull/5704))
 - Bump `net.bytebuddy:byte-buddy` from 1.17.7 to 1.17.8 ([#5703](https://github.com/opensearch-project/security/pull/5703))
