@@ -478,7 +478,7 @@ configurations {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.19.0'
+            force 'commons-codec:commons-codec:1.20.0'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.18'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -709,7 +709,7 @@ dependencies {
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.19.0'
+    runtimeOnly 'commons-codec:commons-codec:1.20.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.44.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
