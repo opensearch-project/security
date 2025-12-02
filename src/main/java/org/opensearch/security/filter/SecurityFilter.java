@@ -462,7 +462,6 @@ public class SecurityFilter implements ActionFilter {
                         createIndexRequest.index(),
                         alias2Name(createIndexRequest.aliases())
                     );
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                     createIndexRequestBuilder.execute(ActionListener.wrap(createIndexResponse -> {
                         if (createIndexResponse.isAcknowledged()) {
                             log.debug(
