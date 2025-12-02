@@ -9,7 +9,7 @@
 * GitHub history for details.
 */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.int_tests;
 
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
@@ -28,19 +28,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
-/**
-* This is a port for the test
-* org.opensearch.security.privileges.PrivilegesEvaluatorTest to the new test
-* framework for direct comparison
-*/
-public class PrivilegesEvaluatorTest {
+public class MiscPrivilegesIntTests {
 
     protected final static TestSecurityConfig.User NEGATIVE_LOOKAHEAD = new TestSecurityConfig.User("negative_lookahead_user").roles(
         new Role("negative_lookahead_role").indexPermissions("read").on("/^(?!t.*).*/").clusterPermissions("cluster_composite_ops")
     );
 
     protected final static TestSecurityConfig.User NEGATED_REGEX = new TestSecurityConfig.User("negated_regex_user").roles(
-        new Role("negated_regex_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("cluster_composite_ops")
+        new Role("negated_regex_role").indexPermissions("read").on("/^[a-r].*/").clusterPermissions("cluster_composite_ops")
     );
 
     protected final static TestSecurityConfig.User SEARCH_TEMPLATE = new TestSecurityConfig.User("search_template_user").roles(
@@ -54,13 +49,9 @@ public class PrivilegesEvaluatorTest {
                 .clusterPermissions(RenderSearchTemplateAction.NAME)
         );
 
-    private String TEST_QUERY =
-        "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}";
-
-    private String TEST_DOC = "{\"source\": {\"title\": \"Spirited Away\"}}";
-
-    private String TEST_RENDER_SEARCH_TEMPLATE_QUERY =
-        "{\"params\":{\"status\":[\"pending\",\"published\"]},\"source\":\"{\\\"query\\\": {\\\"terms\\\": {\\\"status\\\": [\\\"{{#status}}\\\",\\\"{{.}}\\\",\\\"{{/status}}\\\"]}}}\"}";
+    private final String TEST_RENDER_SEARCH_TEMPLATE_QUERY =
+        """
+            {"params":{"status":["pending","published"]},"source":"{\\"query\\": {\\"terms\\": {\\"status\\": [\\"{{#status}}\\",\\"{{.}}\\",\\"{{/status}}\\"]}}}"}""";
 
     final static TestIndex R = TestIndex.name("r").build();
     /**
@@ -93,45 +84,6 @@ public class PrivilegesEvaluatorTest {
             assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
-    }
-
-    @Test
-    public void testSearchTemplateRequestSuccess() {
-        // Insert doc into services index with admin user
-        try (TestRestClient client = cluster.getRestClient(TestSecurityConfig.User.USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.postJson("services/_doc", TEST_DOC);
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            final String searchTemplateOnServicesIndex = "services/_search/template";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.getWithJsonBody(
-                searchTemplateOnServicesIndex,
-                TEST_QUERY
-            );
-            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-    }
-
-    @Test
-    public void testSearchTemplateRequestUnauthorizedIndex() {
-        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            final String searchTemplateOnMoviesIndex = "movies/_search/template";
-            final TestRestClient.HttpResponse searchTemplateOnUnauthorizedIndexResponse = client.getWithJsonBody(
-                searchTemplateOnMoviesIndex,
-                TEST_QUERY
-            );
-            assertThat(searchTemplateOnUnauthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-        }
-    }
-
-    @Test
-    public void testSearchTemplateRequestUnauthorizedAllIndices() {
-        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            final String searchTemplateOnAllIndices = "_search/template";
-            final TestRestClient.HttpResponse searchOnAllIndicesResponse = client.getWithJsonBody(searchTemplateOnAllIndices, TEST_QUERY);
-            assertThat(searchOnAllIndicesResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-        }
     }
 
     @Test
