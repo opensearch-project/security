@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.14'
+        spring_version = '7.0.1'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -798,7 +798,7 @@ dependencies {
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
-    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
+    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.4') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
